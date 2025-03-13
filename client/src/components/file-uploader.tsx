@@ -11,6 +11,7 @@ interface FileUploaderProps {
 
 export function FileUploader({ onSuccess, className }: FileUploaderProps) {
   const [uploadProgress, setUploadProgress] = useState('Preparing...');
+  const [progressPercentage, setProgressPercentage] = useState(0);
   const [loadingDots, setLoadingDots] = useState('');
   const { toast } = useToast();
   const { isUploading, setIsUploading } = useDisasterContext();
@@ -29,17 +30,20 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
 
       // Simulate progression of loading phases
       const phases = [
-        { message: 'Uploading file', delay: 1000 },
-        { message: 'Processing data', delay: 2000 },
-        { message: 'Analyzing text', delay: 3000 },
-        { message: 'Detecting languages', delay: 4000 },
-        { message: 'Running sentiment analysis', delay: 5000 }
+        { message: 'Uploading file', delay: 1000, percentage: 20 },
+        { message: 'Processing data', delay: 2000, percentage: 40 },
+        { message: 'Analyzing text', delay: 3000, percentage: 60 },
+        { message: 'Detecting languages', delay: 4000, percentage: 80 },
+        { message: 'Running sentiment analysis', delay: 5000, percentage: 90 }
       ];
 
       let timeout: NodeJS.Timeout;
-      phases.forEach(({message, delay}) => {
+      phases.forEach(({message, delay, percentage}) => {
         timeout = setTimeout(() => {
-          if (isUploading) setUploadProgress(message);
+          if (isUploading) {
+            setUploadProgress(message);
+            setProgressPercentage(percentage);
+          }
         }, delay);
       });
 
@@ -47,6 +51,8 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
         clearInterval(intervalId);
         clearTimeout(timeout);
       };
+    } else {
+      setProgressPercentage(0);
     }
   }, [isUploading]);
 
@@ -68,6 +74,10 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
     try {
       const result = await uploadCSV(file);
 
+      // Set to 100% when complete
+      setProgressPercentage(100);
+      setUploadProgress('Upload Complete');
+
       toast({
         title: 'File uploaded successfully',
         description: `Analyzed ${result.posts.length} posts`,
@@ -81,14 +91,19 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
       if (onSuccess) {
         onSuccess(result);
       }
+
+      // Short delay before resetting the upload state
+      setTimeout(() => {
+        setIsUploading(false);
+      }, 1000);
     } catch (error) {
       toast({
         title: 'Upload failed',
         description: error instanceof Error ? error.message : 'An unexpected error occurred',
         variant: 'destructive',
       });
-    } finally {
       setIsUploading(false);
+    } finally {
       // Reset the input value to allow re-uploading the same file
       event.target.value = '';
     }
@@ -103,11 +118,16 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span className="text-blue-800 font-medium">{uploadProgress}{loadingDots}</span>
+            <span className="text-blue-800 font-medium">
+              {uploadProgress}{loadingDots} ({progressPercentage}%)
+            </span>
           </div>
 
           <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-            <div className="bg-blue-600 h-2.5 rounded-full animate-pulse w-full"></div>
+            <div 
+              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
+              style={{ width: `${progressPercentage}%` }}
+            />
           </div>
 
           <div className="text-xs text-gray-500 text-center">

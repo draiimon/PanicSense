@@ -10,6 +10,7 @@ import time
 import logging
 import re
 from datetime import datetime
+from langdetect import detect
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -55,7 +56,7 @@ class DisasterSentimentBackend:
                 "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",
                 "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",
                 "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",
-                "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",
+                "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",
                 "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",
                 "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"
             ]
@@ -105,101 +106,196 @@ class DisasterSentimentBackend:
                 logging.error("Max retries exceeded for request error.")
                 return None
 
+    def fetch_groq(self, headers, payload, retry_count=0):
+        try:
+            response = requests.post(self.api_url, headers=headers, json=payload)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            if hasattr(e, 'response') and e.response and e.response.status_code == 429:
+                logging.warning(f"LOADING SENTIMENTS..... (Data {self.current_api_index + 1}/{len(self.api_keys)}). Data Fetching...")
+                self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
+                logging.info(f"Waiting {self.limit_delay} seconds before trying next key")
+                time.sleep(self.limit_delay)
+                if retry_count < self.max_retries:
+                    return self.fetch_groq(headers, payload, retry_count + 1)
+                else:
+                    logging.error("Max retries exceeded for rate limit.")
+                    return None
+            else:
+                logging.error(f"API Error: {e}")
+                time.sleep(self.retry_delay)
+                if retry_count < self.max_retries:
+                    return self.fetch_groq(headers, payload, retry_count + 1)
+                else:
+                    logging.error("Max retries exceeded for API error.")
+                    return None
+        except Exception as e:
+            logging.error(f"API Request Error: {e}")
+            time.sleep(self.retry_delay)
+            if retry_count < self.max_retries:
+                return self.fetch_groq(headers, payload, retry_count + 1)
+            else:
+                logging.error("Max retries exceeded for request error.")
+                return None
+
+
+
+    def detect_language(self, text):
+        """
+        Enhanced language detection focusing on English and Tagalog.
+        """
+        try:
+            # Common Tagalog words/markers
+            tagalog_markers = [
+                'ang', 'mga', 'na', 'sa', 'at', 'ng', 'ay', 'hindi', 'po', 
+                'ito', 'yan', 'yung', 'naman', 'pero', 'para', 'may',
+                'lindol', 'bagyo', 'baha', 'sunog', 'bulkan'
+            ]
+
+            # Check for Tagalog markers first
+            text_lower = text.lower()
+            word_count = sum(1 for word in tagalog_markers if word in text_lower.split())
+
+            # If we find enough Tagalog markers, classify as Tagalog
+            if word_count >= 2:  # Threshold for Tagalog detection
+                return 'tl'
+
+            # Fallback to langdetect
+            from langdetect import detect
+            detected = detect(text)
+
+            # Map similar languages to our supported ones
+            if detected in ['tl', 'ceb', 'fil']:  # Filipino language variants
+                return 'tl'
+
+            return 'en'  # Default to English for other languages
+        except:
+            return 'en'  # Fallback to English on detection failure
+
     def analyze_sentiment(self, text):
         """
-        Analyze sentiment using AI with detailed logging
+        Analyze sentiment using AI with detailed logging and enhanced language handling
         """
         # Detect language first for better prompting
         language = self.detect_language(text)
         language_name = "Filipino/Tagalog" if language == "tl" else "English"
 
         logging.info(f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
-        logging.info(f"Processing {language_name} text through AI")
 
-        # Try using the API if keys are available
         try:
             if len(self.api_keys) > 0:
                 api_key = self.api_keys[self.current_api_index]
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-                # Customize prompt based on detected language
-                prompt = f"Analyze the overall sentiment of this disaster-related text."
-                if language == "tl":
-                    prompt += " Note that this text may be in Filipino/Tagalog language."
+                # Enhanced prompt with language-specific context
+                prompt = f"""Analyze the sentiment in this disaster-related {'Tagalog/Filipino' if language == 'tl' else 'English'} text.
+Choose exactly one option from: Panic, Fear/Anxiety, Disbelief, Resilience, or Neutral.
+Consider cultural context and local expressions.
 
-                prompt += " Choose exactly one option from these categories: Panic, Fear/Anxiety, Disbelief, Resilience, or Neutral. Provide a brief explanation for your choice."
-                prompt += f" Text: {text}\nSentiment:"
+Text: {text}
+
+Provide sentiment and brief explanation in this format:
+Sentiment: [chosen sentiment]
+Confidence: [percentage]
+Explanation: [brief explanation]"""
 
                 payload = {
                     "messages": [{"role": "user", "content": prompt}],
                     "model": "mixtral-8x7b-32768",
                     "temperature": 0.6,
-                    "max_tokens": 50,
+                    "max_tokens": 150,
                 }
 
-                logging.info(f"Sending request to AI (Key #{self.current_api_index + 1})")
-                result = self.fetch_api(headers, payload)
-            else:
-                # No valid API keys, skip to rule-based approach
-                raise Exception("No valid API keys available")
+                result = self.fetch_groq(headers, payload)
 
-            if result and 'choices' in result and result['choices']:
-                raw_output = result['choices'][0]['message']['content'].strip()
-                logging.info(f"Got response from AI: '{raw_output}'")
+                if result and 'choices' in result and result['choices']:
+                    raw_output = result['choices'][0]['message']['content'].strip()
 
-                # Extract model's confidence from output if present
-                confidence_match = re.search(r'(\d+(?:\.\d+)?)%', raw_output)
-                model_confidence = None
+                    # Extract sentiment, confidence, and explanation
+                    sentiment_match = re.search(r'Sentiment:\s*(.*?)(?:\n|$)', raw_output)
+                    confidence_match = re.search(r'Confidence:\s*(\d+(?:\.\d+)?)%', raw_output)
+                    explanation_match = re.search(r'Explanation:\s*(.*?)(?:\n|$)', raw_output)
 
-                if confidence_match:
-                    confidence_value = float(confidence_match.group(1)) / 100.0
-                    model_confidence = max(0.7, min(0.98, confidence_value))  # Clamp between 0.7 and 0.98
+                    sentiment = None
+                    if sentiment_match:
+                        for label in self.sentiment_labels:
+                            if label.lower() in sentiment_match.group(1).lower():
+                                sentiment = label
+                                break
 
-                # Find which sentiment was detected and extract explanation
-                detected_sentiment = None
-                explanation = None
-                for sentiment in self.sentiment_labels:
-                    if sentiment.lower() in raw_output.lower():
-                        detected_sentiment = sentiment
-                        #Extract explanation (this is a simplified approach; more robust methods might be needed for real-world scenarios)
-                        explanation_start = raw_output.lower().find(sentiment.lower()) + len(sentiment)
-                        explanation = raw_output[explanation_start:].strip()
-                        break
+                    confidence = 0.85  # Default confidence
+                    if confidence_match:
+                        confidence = float(confidence_match.group(1)) / 100.0
+                        confidence = max(0.7, min(0.98, confidence))  # Clamp between 0.7 and 0.98
 
-                self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
+                    explanation = explanation_match.group(1) if explanation_match else None
 
-                # Use high confidence if provided by API
-                if model_confidence:
-                    return {"sentiment": detected_sentiment, "confidence": model_confidence, "explanation": explanation, "language": language}
-                else:
-                    # Default confidence is good for API results
-                    return {"sentiment": detected_sentiment, "confidence": 0.92, "explanation": explanation, "language": language}
+                    self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
+
+                    if sentiment:
+                        return {
+                            "sentiment": sentiment,
+                            "confidence": confidence,
+                            "explanation": explanation,
+                            "language": language
+                        }
 
         except Exception as e:
-            logging.error(f"Error in analysis: {e}")
-            logging.error(f"Analysis failed: {str(e)[:100]}")
-            # Fall back to the rule-based approach if API fails
+            logging.error(f"Error in sentiment analysis: {e}")
 
-        # Fallback: Enhanced rule-based sentiment analysis with language awareness
-        logging.info("Falling back to rule-based sentiment analysis")
+        # Fallback to rule-based analysis
         return self.rule_based_sentiment_analysis(text)
 
     def rule_based_sentiment_analysis(self, text):
-        # Rule-based fallback methods
+        """
+        Enhanced rule-based sentiment analysis with bilingual keyword support
+        """
+        # Bilingual keywords (English + Tagalog)
         keywords = {
-            'Panic': ['panic', 'chaos', 'terror', 'terrified', 'trapped', 'help', 'emergency', 'urgent', 'life-threatening', 'evacuate', 'escape', 'fleeing', 'screaming'],
-            'Fear/Anxiety': ['fear', 'afraid', 'scared', 'worried', 'anxious', 'concern', 'frightened', 'threatened', 'danger', 'dread', 'horrified', 'threatened'],
-            'Disbelief': ['disbelief', 'unbelievable', 'impossible', 'can\'t believe', 'shocked', 'stunned', 'surprised', 'amazed', 'astonished', 'bewildered'],
-            'Resilience': ['safe', 'survive', 'hope', 'rebuild', 'recover', 'endure', 'strength', 'support', 'community', 'help', 'assistance', 'together', 'overcome'],
-            'Neutral': ['update', 'information', 'news', 'report', 'status', 'advisory', 'announcement', 'notice', 'alert', 'warning', 'watch']
+            'Panic': [
+                # English
+                'panic', 'chaos', 'terror', 'terrified', 'trapped', 'help', 'emergency',
+                # Tagalog
+                'takot', 'tulong', 'saklolo', 'naiipit', 'natatakot', 'emergency',
+                'delikado', 'mapanganib', 'kalamidad', 'pagkatakot'
+            ],
+            'Fear/Anxiety': [
+                # English
+                'fear', 'afraid', 'scared', 'worried', 'anxious', 'concern',
+                # Tagalog
+                'kaba', 'kabado', 'nag-aalala', 'natatakot', 'nangangamba',
+                'pangamba', 'balisa', 'Hindi mapakali', 'nerbiyoso'
+            ],
+            'Disbelief': [
+                # English
+                'disbelief', 'unbelievable', 'impossible', "can't believe", 'shocked',
+                # Tagalog
+                'hindi makapaniwala', 'gulat', 'nagulat', 'menganga',
+                'hindi matanggap', 'nakakabalikwas', 'nakakagulat'
+            ],
+            'Resilience': [
+                # English
+                'safe', 'survive', 'hope', 'rebuild', 'recover', 'endure', 'strength',
+                # Tagalog
+                'ligtas', 'kaya natin', 'malalagpasan', 'magkaisa', 'tulong',
+                'magtulungan', 'babangon', 'matatag', 'lakas ng loob'
+            ],
+            'Neutral': [
+                # English
+                'update', 'information', 'news', 'report', 'status', 'advisory',
+                # Tagalog
+                'balita', 'impormasyon', 'ulat', 'abiso', 'paalala',
+                'kalagayan', 'sitwasyon', 'pangyayari'
+            ]
         }
 
         explanations = {
-            'Panic': "The text contains urgent language and indicators of immediate distress, suggesting the person is experiencing extreme fear requiring immediate response.",
-            'Fear/Anxiety': "The language expresses worry and concern about potential danger, indicating the person feels threatened by the disaster situation.",
-            'Disbelief': "The text shows elements of shock and surprise, suggesting the person is having difficulty accepting the reality of the disaster situation.",
-            'Resilience': "The message contains positive language focused on recovery and community support, indicating the person is maintaining hope despite challenges.",
-            'Neutral': "The text primarily conveys information without strong emotional content, focusing on facts rather than feelings."
+            'Panic': "The text shows immediate distress and urgent need for help, indicating panic.",
+            'Fear/Anxiety': "The message expresses worry and concern about the situation.",
+            'Disbelief': "The content indicates shock and difficulty accepting the situation.",
+            'Resilience': "The text shows strength and community support in face of adversity.",
+            'Neutral': "The message primarily shares information without strong emotion."
         }
 
         text_lower = text.lower()
@@ -222,35 +318,21 @@ class DisasterSentimentBackend:
                 max_score = score
                 max_sentiment = sentiment
 
-        # Normalize confidence based on text length and score
+        # Calculate confidence based on match strength
         text_word_count = len(text_lower.split())
         confidence = min(0.7, 0.4 + (max_score / max(10, text_word_count)) * 0.5)
 
         # Create a custom explanation
         custom_explanation = explanations[max_sentiment]
         if matched_keywords[max_sentiment]:
-            custom_explanation += f" Key indicators include: {', '.join(matched_keywords[max_sentiment][:3])}."
+            custom_explanation += f" Key indicators: {', '.join(matched_keywords[max_sentiment][:3])}."
 
-        logging.info(f"Using rule-based method. Selected sentiment: {max_sentiment}, confidence: {confidence:.2f}")
-        return {"sentiment": max_sentiment, "confidence": confidence, "explanation": custom_explanation, "language": self.detect_language(text)}
-
-
-    def detect_language(self, text):
-        """
-        Language detection limited to English and Tagalog
-        """
-        try:
-            from langdetect import detect
-            language = detect(text)
-
-            # Only return 'en' or 'tl', default to 'en' for others
-            if language == 'tl':
-                return 'tl'
-            else:
-                return 'en'
-        except:
-            # Fall back to English if detection fails
-            return 'en'
+        return {
+            "sentiment": max_sentiment,
+            "confidence": confidence,
+            "explanation": custom_explanation,
+            "language": self.detect_language(text)
+        }
 
     def process_csv(self, file_path):
         df = pd.read_csv(file_path)
