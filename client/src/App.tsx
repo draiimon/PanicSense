@@ -22,7 +22,7 @@ function ProtectedRoute({ component: Component, ...rest }: { component: React.Co
 
   React.useEffect(() => {
     if (!isLoading && !user) {
-      setLocation('/login');
+      window.location.href = '/login';
     }
   }, [user, isLoading, setLocation]);
 
@@ -45,10 +45,10 @@ function Router() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Redirect to dashboard if user is already logged in
+  // Redirect to dashboard if user is already logged in and tries to access login/signup
   React.useEffect(() => {
-    if (user && window.location.pathname === '/login') {
-      setLocation('/dashboard');
+    if (user && (window.location.pathname === '/login' || window.location.pathname === '/signup')) {
+      window.location.href = '/dashboard';
     }
   }, [user, setLocation]);
 
