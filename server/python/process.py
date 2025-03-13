@@ -111,7 +111,7 @@ class DisasterSentimentBackend:
         """
         # Detect language first for better prompting
         language = self.detect_language(text)
-        language_name = "Filipino/Tagalog" if language == "tl" else "English"
+        language_name = language  # Now already returns full language name
 
         logging.info(f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
         logging.info(f"Processing {language_name} text through AI")
@@ -237,20 +237,28 @@ class DisasterSentimentBackend:
 
     def detect_language(self, text):
         """
-        Language detection limited to English and Tagalog
+        Enhanced language detection focused on English and Tagalog
         """
         try:
             from langdetect import detect
             language = detect(text)
-
-            # Only return 'en' or 'tl', default to 'en' for others
-            if language == 'tl':
-                return 'tl'
+            
+            # Explicitly detect Tagalog/Filipino
+            tagalog_keywords = ['ang', 'mga', 'na', 'sa', 'ng', 'ko', 'ay', 'mo', 'po', 'namin', 'ako', 'kami', 'siya', 'niya', 'nila', 'natin']
+            tagalog_count = sum(1 for word in text.lower().split() if word in tagalog_keywords)
+            
+            # If more than 2 Tagalog keywords are found, classify as Tagalog
+            if tagalog_count > 2 or language == 'tl' or language == 'fil':
+                return 'Tagalog'  # Return 'Tagalog' instead of code 'tl'
+            elif language == 'en':
+                return 'English'  # Return 'English' instead of code 'en'
             else:
-                return 'en'
-        except:
-            # Fall back to English if detection fails
-            return 'en'
+                # For any other language, return "Unknown"
+                return 'Unknown'  # Explicitly mark non-English/Tagalog as Unknown
+        except Exception as e:
+            logging.error(f"Language detection error: {e}")
+            # Fall back to Unknown if detection fails
+            return 'Unknown'
 
     def process_csv(self, file_path):
         df = pd.read_csv(file_path)
