@@ -26,8 +26,8 @@ const upload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to generate disaster events from sentiment posts
-  const generateDisasterEvents = async (posts: SentimentPost[]): Promise<DisasterEvent[]> => {
-    if (posts.length === 0) return [];
+  const generateDisasterEvents = async (posts: SentimentPost[]): Promise<void> => {
+    if (posts.length === 0) return;
     
     // Group posts by day to identify patterns
     const postsByDay: {[key: string]: {
@@ -55,8 +55,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sentiment = post.sentiment;
       postsByDay[day].sentiments[sentiment] = (postsByDay[day].sentiments[sentiment] || 0) + 1;
     }
-    
-    const createdEvents: DisasterEvent[] = [];
     
     // Process each day with sufficient posts (at least 3)
     for (const [day, data] of Object.entries(postsByDay)) {
@@ -121,7 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const description = `Based on ${data.count} social media reports. Sample content: ${sampleTexts}`;
       
       // Create the disaster event
-      const event = await storage.createDisasterEvent(
+      await storage.createDisasterEvent(
         insertDisasterEventSchema.parse({
           name: `${disasterType} Incident on ${new Date(day).toLocaleDateString()}`,
           description,
@@ -131,10 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sentimentImpact: dominantSentiment
         })
       );
-      createdEvents.push(event);
     }
-    
-    return createdEvents;
   };
 
   // API Routes
@@ -200,11 +195,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
-        console.error("Upload failed: No file received in request");
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      console.log(`Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
       const fileBuffer = req.file.buffer;
       const originalFilename = req.file.originalname;
 
@@ -240,12 +233,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       // Generate disaster events from the sentiment posts
-      const generatedEvents = await generateDisasterEvents(sentimentPosts);
+      await generateDisasterEvents(sentimentPosts);
 
       res.json({
         file: analyzedFile,
         posts: sentimentPosts,
-        events: generatedEvents,
         metrics: data.metrics
       });
     } catch (error) {
@@ -313,14 +305,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sentimentPosts = await Promise.all(sentimentPromises);
       
       // Generate disaster events from the new posts if we have at least 3
-      let generatedEvents: DisasterEvent[] = [];
       if (sentimentPosts.length >= 3) {
-        generatedEvents = await generateDisasterEvents(sentimentPosts);
+        await generateDisasterEvents(sentimentPosts);
       }
       
       res.json({
-        posts: sentimentPosts,
-        events: generatedEvents
+        posts: sentimentPosts
       });
     } catch (error) {
       res.status(500).json({ 

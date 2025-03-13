@@ -12,8 +12,6 @@ import Evaluation from "@/pages/evaluation";
 import RawData from "@/pages/raw-data";
 import { DisasterContextProvider } from "@/context/disaster-context";
 import { MainLayout } from "@/components/layout/main-layout";
-import { UploadProvider } from './context/upload-context';
-import { UploadIndicator } from '@/components/upload-indicator';
 
 function Router() {
   return (
@@ -35,13 +33,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <DisasterContextProvider>
-        <UploadProvider> {/* This line was already present, but the changes incorrectly tried to remove and re-add it. */}
-          <Toaster />
-          <UploadIndicator />
-          <MainLayout>
-            <Router />
-          </MainLayout>
-        </UploadProvider>
+        <MainLayout>
+          <Router />
+        </MainLayout>
+        <Toaster />
       </DisasterContextProvider>
     </QueryClientProvider>
   );

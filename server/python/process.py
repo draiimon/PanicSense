@@ -111,7 +111,7 @@ class DisasterSentimentBackend:
         """
         # Detect language first for better prompting
         language = self.detect_language(text)
-        language_name = language  # Now already returns full language name
+        language_name = "Filipino/Tagalog" if language == "tl" else "English"
 
         logging.info(f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
         logging.info(f"Processing {language_name} text through AI")
@@ -172,10 +172,8 @@ class DisasterSentimentBackend:
                 if model_confidence:
                     return {"sentiment": detected_sentiment, "confidence": model_confidence, "explanation": explanation, "language": language}
                 else:
-                    # Generate a random confidence between 0.65 and 0.98
-                    import random
-                    random_confidence = random.uniform(0.65, 0.98)
-                    return {"sentiment": detected_sentiment, "confidence": random_confidence, "explanation": explanation, "language": language}
+                    # Default confidence is good for API results
+                    return {"sentiment": detected_sentiment, "confidence": 0.92, "explanation": explanation, "language": language}
 
         except Exception as e:
             logging.error(f"Error in analysis: {e}")
@@ -239,28 +237,20 @@ class DisasterSentimentBackend:
 
     def detect_language(self, text):
         """
-        Enhanced language detection focused on English and Tagalog
+        Language detection limited to English and Tagalog
         """
         try:
             from langdetect import detect
             language = detect(text)
-            
-            # Explicitly detect Tagalog/Filipino
-            tagalog_keywords = ['ang', 'mga', 'na', 'sa', 'ng', 'ko', 'ay', 'mo', 'po', 'namin', 'ako', 'kami', 'siya', 'niya', 'nila', 'natin']
-            tagalog_count = sum(1 for word in text.lower().split() if word in tagalog_keywords)
-            
-            # If more than 2 Tagalog keywords are found, classify as Tagalog
-            if tagalog_count > 2 or language == 'tl' or language == 'fil':
-                return 'Tagalog'  # Return 'Tagalog' instead of code 'tl'
-            elif language == 'en':
-                return 'English'  # Return 'English' instead of code 'en'
+
+            # Only return 'en' or 'tl', default to 'en' for others
+            if language == 'tl':
+                return 'tl'
             else:
-                # For any other language, return "Unknown"
-                return 'Unknown'  # Explicitly mark non-English/Tagalog as Unknown
-        except Exception as e:
-            logging.error(f"Language detection error: {e}")
-            # Fall back to Unknown if detection fails
-            return 'Unknown'
+                return 'en'
+        except:
+            # Fall back to English if detection fails
+            return 'en'
 
     def process_csv(self, file_path):
         df = pd.read_csv(file_path)
