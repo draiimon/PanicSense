@@ -1,78 +1,68 @@
-
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion } from "framer-motion";
 
-export default function About() {
+export default function AboutPage() {
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">About PanicSense PH</h1>
-      
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Our Mission</CardTitle>
-          <CardDescription>Empowering communities through disaster sentiment analysis</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4">
-            PanicSense PH is dedicated to providing real-time disaster sentiment analysis to help communities
-            and emergency responders better understand public reactions during crisis situations. By analyzing
-            social media posts and other text sources, we identify patterns of panic, fear, resilience, and
-            other emotions to guide more effective disaster response.
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-8"
+    >
+      <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-8 shadow-lg">
+        <h1 className="text-3xl font-bold text-white mb-4">About PanicSense PH</h1>
+        <div className="prose prose-invert max-w-none">
+          <p className="text-slate-300 text-lg">
+            PanicSense PH harnesses cutting-edge deep learning and natural language processing technologies to perform real-time sentiment analysis during crisis events. Our system employs a sophisticated neural architecture that combines transformer-based models with custom attention mechanisms specifically optimized for disaster-related content.
           </p>
-        </CardContent>
-      </Card>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Our Team</CardTitle>
-            <CardDescription>The founders behind PanicSense PH</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-semibold">John Doe</h3>
-                <p className="text-sm text-slate-500">Co-Founder & CEO</p>
-                <p className="mt-1">Disaster management specialist with 10+ years of experience in emergency response systems.</p>
-              </div>
-              <div>
-                <h3 className="font-semibold">Jane Smith</h3>
-                <p className="text-sm text-slate-500">Co-Founder & CTO</p>
-                <p className="mt-1">AI researcher specializing in natural language processing and sentiment analysis.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Our Technology</CardTitle>
-            <CardDescription>Cutting-edge sentiment analysis for disaster response</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4">
-              PanicSense PH leverages advanced AI and machine learning algorithms to analyze text data in real-time.
-              Our system is capable of processing both English and Filipino content, recognizing cultural nuances
-              and local expressions to accurately assess sentiment during disaster situations.
-            </p>
-            <p>
-              The platform categorizes sentiments into Panic, Fear/Anxiety, Disbelief, Resilience, and Neutral,
-              providing actionable insights for emergency responders and community leaders.
-            </p>
-          </CardContent>
-        </Card>
+          <p className="text-slate-300 text-lg">
+            The platform implements advanced transfer learning techniques and fine-tuned language models that can process both English and Filipino text with state-of-the-art accuracy. Our novel cross-lingual embedding approach enables contextual understanding of cultural nuances and colloquial expressions across multiple Filipino dialects.
+          </p>
+          <p className="text-slate-300 text-lg">
+            Utilizing ensemble methods and reinforcement learning algorithms, the system dynamically categorizes emotional states into five distinct classifications: Panic, Fear/Anxiety, Disbelief, Resilience, and Neutral. This granular emotion mapping provides critical decision support for emergency response coordination and resource allocation during disaster events.
+          </p>
+        </div>
       </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Contact Us</CardTitle>
-          <CardDescription>Get in touch with the PanicSense PH team</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>Email: admin@panicsense.ph</p>
-          <p>Address: Manila, Philippines</p>
-        </CardContent>
-      </Card>
-    </div>
+
+      <motion.div 
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+        className="bg-white rounded-xl p-8 shadow-lg"
+      >
+        <h2 className="text-2xl font-bold text-slate-800 mb-6">THE FOUNDERS</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="space-y-4">
+            <div className="aspect-square bg-slate-200 rounded-xl flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-24 h-24 text-slate-400">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-slate-800">
+              <strong>Castillo, Mark Andrei R.</strong>
+            </h3>
+            <p className="text-slate-600">Core System Architecture &amp; Machine Learning</p>
+          </div>
+          <div className="space-y-4">
+            <div className="aspect-square bg-slate-200 rounded-xl flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-24 h-24 text-slate-400">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-slate-800">Garcia, Ivahnn</h3>
+            <p className="text-slate-600">Frontend Development &amp; User Experience</p>
+          </div>
+          <div className="space-y-4">
+            <div className="aspect-square bg-slate-200 rounded-xl flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-24 h-24 text-slate-400">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-slate-800">Gatdula, Julia Daphne Ngan</h3>
+            <p className="text-slate-600">Data Resources &amp; Information Engineering</p>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
