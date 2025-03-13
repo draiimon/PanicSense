@@ -12,6 +12,8 @@ import Evaluation from "@/pages/evaluation";
 import RawData from "@/pages/raw-data";
 import { DisasterContextProvider } from "@/context/disaster-context";
 import { MainLayout } from "@/components/layout/main-layout";
+import { UploadProvider } from './context/upload-context';
+import { UploadIndicator } from '@/components/upload-indicator';
 
 function Router() {
   return (
@@ -33,10 +35,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <DisasterContextProvider>
-        <MainLayout>
-          <Router />
-        </MainLayout>
-        <Toaster />
+        <UploadProvider>
+          <Toaster />
+          <UploadIndicator />
+          <MainLayout>
+            <Router />
+          </MainLayout>
+        </UploadProvider>
       </DisasterContextProvider>
     </QueryClientProvider>
   );
