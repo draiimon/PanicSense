@@ -1,0 +1,105 @@
+import { useEffect, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { getSentimentColor } from '@/lib/colors';
+import 'leaflet/dist/leaflet.css';
+
+interface Region {
+  name: string;
+  coordinates: [number, number]; // [latitude, longitude]
+  sentiment: string;
+  intensity: number; // 0-100
+}
+
+interface SentimentMapProps {
+  regions: Region[];
+  onRegionSelect?: (region: Region) => void;
+}
+
+export function SentimentMap({ regions, onRegionSelect }: SentimentMapProps) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+
+  useEffect(() => {
+    // Skip if leaflet is not available (SSR) or map is already initialized
+    if (typeof window === 'undefined' || !mapRef.current || mapInstanceRef.current) return;
+
+    // Dynamically import Leaflet - needed for client-side only use
+    import('leaflet').then((L) => {
+      mapInstanceRef.current = L.map(mapRef.current).setView([12.8797, 121.7740], 5);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(mapInstanceRef.current);
+    });
+    
+    // Cleanup function
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // Update markers when regions change
+  useEffect(() => {
+    if (!mapInstanceRef.current || typeof window === 'undefined') return;
+    
+    import('leaflet').then((L) => {
+      // Clear previous markers
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current = [];
+      
+      // Add new markers
+      regions.forEach(region => {
+        const color = getSentimentColor(region.sentiment);
+        
+        // Calculate radius based on intensity (min 10, max 50)
+        const radius = 10 + (region.intensity / 100) * 40;
+        
+        const circle = L.circle(region.coordinates, {
+          color,
+          fillColor: color,
+          fillOpacity: 0.5,
+          radius: radius * 1000 // Convert to meters
+        }).addTo(mapInstanceRef.current);
+        
+        // Add a popup
+        circle.bindPopup(`
+          <strong>${region.name}</strong><br>
+          Sentiment: ${region.sentiment}<br>
+          Intensity: ${region.intensity}%
+        `);
+        
+        // Handle click event
+        if (onRegionSelect) {
+          circle.on('click', () => {
+            onRegionSelect(region);
+          });
+        }
+        
+        markersRef.current.push(circle);
+      });
+    });
+  }, [regions, onRegionSelect]);
+
+  return (
+    <Card className="bg-white rounded-lg shadow">
+      <CardHeader className="p-5 border-b border-gray-200">
+        <CardTitle className="text-lg font-medium text-slate-800">
+          Sentiment Map
+        </CardTitle>
+        <CardDescription className="text-sm text-slate-500">
+          Philippine regions colored by dominant emotion
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-5">
+        <div 
+          ref={mapRef} 
+          className="h-[500px] w-full bg-slate-50 rounded-lg"
+        />
+      </CardContent>
+    </Card>
+  );
+}
