@@ -1,182 +1,151 @@
 import { users, type User, type InsertUser, 
   sentimentPosts, type SentimentPost, type InsertSentimentPost,
   disasterEvents, type DisasterEvent, type InsertDisasterEvent,
-  analyzedFiles, type AnalyzedFile, type InsertAnalyzedFile 
+  analyzedFiles, type AnalyzedFile, type InsertAnalyzedFile,
+  sessions, type LoginUser
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 export interface IStorage {
+  // User Management
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  loginUser(credentials: LoginUser): Promise<User | null>;
+  createSession(userId: number): Promise<string>;
+  validateSession(token: string): Promise<User | null>;
 
+  // Sentiment Analysis
   getSentimentPosts(): Promise<SentimentPost[]>;
   getSentimentPostsByFileId(fileId: number): Promise<SentimentPost[]>;
   createSentimentPost(post: InsertSentimentPost): Promise<SentimentPost>;
   createManySentimentPosts(posts: InsertSentimentPost[]): Promise<SentimentPost[]>;
 
+  // Disaster Events
   getDisasterEvents(): Promise<DisasterEvent[]>;
   createDisasterEvent(event: InsertDisasterEvent): Promise<DisasterEvent>;
 
+  // File Analysis
   getAnalyzedFiles(): Promise<AnalyzedFile[]>;
   getAnalyzedFile(id: number): Promise<AnalyzedFile | undefined>;
   createAnalyzedFile(file: InsertAnalyzedFile): Promise<AnalyzedFile>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private sentimentPosts: Map<number, SentimentPost>;
-  private disasterEvents: Map<number, DisasterEvent>;
-  private analyzedFiles: Map<number, AnalyzedFile>;
-
-  private userCurrentId: number;
-  private sentimentPostCurrentId: number;
-  private disasterEventCurrentId: number;
-  private analyzedFileCurrentId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.sentimentPosts = new Map();
-    this.disasterEvents = new Map();
-    this.analyzedFiles = new Map();
-
-    this.userCurrentId = 1;
-    this.sentimentPostCurrentId = 1;
-    this.disasterEventCurrentId = 1;
-    this.analyzedFileCurrentId = 1;
-
-    // Initialize with sample data
-    this.initializeSampleData();
-  }
-
-  private async initializeSampleData() {
-    // Add a sample analyzed file
-    const sampleFile = await this.createAnalyzedFile({
-      originalName: "sample-data.csv",
-      storedName: "sample-data.csv",
-      recordCount: 100,
-      evaluationMetrics: {
-        accuracy: 0.85,
-        precision: 0.82,
-        recall: 0.88,
-        f1Score: 0.85
-      },
-      timestamp: new Date()
-    });
-
-    // Add some sample sentiment posts
-    const samplePosts = [
-      {
-        text: "Earthquake hit our area, but community is helping each other.",
-        timestamp: new Date(),
-        source: "Twitter",
-        language: "en",
-        sentiment: "Resilience",
-        confidence: 0.89,
-        location: "Manila",
-        disasterType: "Earthquake",
-        fileId: sampleFile.id
-      },
-      {
-        text: "Flooding getting worse in downtown area.",
-        timestamp: new Date(),
-        source: "Facebook",
-        language: "en",
-        sentiment: "Fear/Anxiety",
-        confidence: 0.92,
-        location: "Cebu",
-        disasterType: "Flood",
-        fileId: sampleFile.id
-      }
-    ];
-
-    await this.createManySentimentPosts(samplePosts);
-
-    // Add a sample disaster event
-    await this.createDisasterEvent({
-      name: "Manila Earthquake 2025",
-      description: "6.2 magnitude earthquake in Metro Manila area",
-      timestamp: new Date(),
-      location: "Manila",
-      type: "Earthquake",
-      sentimentImpact: "Mixed"
-    });
-  }
-
+export class DatabaseStorage implements IStorage {
+  // User Management
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userCurrentId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: Omit<InsertUser, "confirmPassword">): Promise<User> {
+    const hashedPassword = await bcrypt.hash(insertUser.password, 10);
+    const [user] = await db.insert(users).values({
+      ...insertUser,
+      password: hashedPassword
+    }).returning();
+    return user;
+  }
+
+  async loginUser(credentials: LoginUser): Promise<User | null> {
+    const user = await this.getUserByUsername(credentials.username);
+    if (!user) return null;
+
+    const valid = await bcrypt.compare(credentials.password, user.password);
+    if (!valid) return null;
+
+    return user;
+  }
+
+  async createSession(userId: number): Promise<string> {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
+
+    await db.insert(sessions).values({
+      userId,
+      token,
+      expiresAt
+    });
+
+    return token;
+  }
+
+  async validateSession(token: string): Promise<User | null> {
+    const [session] = await db.select()
+      .from(sessions)
+      .where(eq(sessions.token, token));
+
+    if (!session || new Date() > session.expiresAt) {
+      return null;
+    }
+
+    const user = await this.getUser(session.userId);
+    return user || null;
+  }
+
+  // Sentiment Analysis
   async getSentimentPosts(): Promise<SentimentPost[]> {
-    return Array.from(this.sentimentPosts.values());
+    return db.select().from(sentimentPosts);
   }
 
   async getSentimentPostsByFileId(fileId: number): Promise<SentimentPost[]> {
-    return Array.from(this.sentimentPosts.values()).filter(
-      post => post.fileId === fileId
-    );
+    return db.select()
+      .from(sentimentPosts)
+      .where(eq(sentimentPosts.fileId, fileId));
   }
 
-  async createSentimentPost(insertPost: InsertSentimentPost): Promise<SentimentPost> {
-    const id = this.sentimentPostCurrentId++;
-    const post: SentimentPost = { 
-      ...insertPost, 
-      id,
-      timestamp: insertPost.timestamp || new Date()
-    };
-    this.sentimentPosts.set(id, post);
-    return post;
+  async createSentimentPost(post: InsertSentimentPost): Promise<SentimentPost> {
+    const [result] = await db.insert(sentimentPosts)
+      .values(post)
+      .returning();
+    return result;
   }
 
   async createManySentimentPosts(posts: InsertSentimentPost[]): Promise<SentimentPost[]> {
-    return Promise.all(posts.map(post => this.createSentimentPost(post)));
+    return db.insert(sentimentPosts)
+      .values(posts)
+      .returning();
   }
 
+  // Disaster Events
   async getDisasterEvents(): Promise<DisasterEvent[]> {
-    return Array.from(this.disasterEvents.values());
+    return db.select().from(disasterEvents);
   }
 
-  async createDisasterEvent(insertEvent: InsertDisasterEvent): Promise<DisasterEvent> {
-    const id = this.disasterEventCurrentId++;
-    const event: DisasterEvent = { 
-      ...insertEvent, 
-      id,
-      timestamp: insertEvent.timestamp || new Date()
-    };
-    this.disasterEvents.set(id, event);
-    return event;
+  async createDisasterEvent(event: InsertDisasterEvent): Promise<DisasterEvent> {
+    const [result] = await db.insert(disasterEvents)
+      .values(event)
+      .returning();
+    return result;
   }
 
+  // File Analysis
   async getAnalyzedFiles(): Promise<AnalyzedFile[]> {
-    return Array.from(this.analyzedFiles.values());
+    return db.select().from(analyzedFiles);
   }
 
   async getAnalyzedFile(id: number): Promise<AnalyzedFile | undefined> {
-    return this.analyzedFiles.get(id);
+    const [file] = await db.select()
+      .from(analyzedFiles)
+      .where(eq(analyzedFiles.id, id));
+    return file;
   }
 
-  async createAnalyzedFile(insertFile: InsertAnalyzedFile): Promise<AnalyzedFile> {
-    const id = this.analyzedFileCurrentId++;
-    const file: AnalyzedFile = { 
-      ...insertFile, 
-      id,
-      timestamp: insertFile.timestamp || new Date()
-    };
-    this.analyzedFiles.set(id, file);
-    return file;
+  async createAnalyzedFile(file: InsertAnalyzedFile): Promise<AnalyzedFile> {
+    const [result] = await db.insert(analyzedFiles)
+      .values(file)
+      .returning();
+    return result;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

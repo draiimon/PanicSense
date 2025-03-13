@@ -29,21 +29,95 @@ const upload = multer({
 const uploadProgressEmitter = new EventEmitter();
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication Routes
+  app.post('/api/auth/signup', async (req: Request, res: Response) => {
+    try {
+      const { username, password, email, fullName } = req.body;
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already taken" });
+      }
+
+      // Create new user
+      const user = await storage.createUser({
+        username,
+        password,
+        email,
+        fullName,
+        role: 'user'
+      });
+
+      // Create session
+      const token = await storage.createSession(user.id);
+
+      res.json({ token });
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Failed to create user",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post('/api/auth/login', async (req: Request, res: Response) => {
+    try {
+      const { username, password } = req.body;
+      const user = await storage.loginUser({ username, password });
+
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      const token = await storage.createSession(user.id);
+      res.json({ token });
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Login failed",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get('/api/auth/me', async (req: Request, res: Response) => {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return res.status(401).json({ error: "No token provided" });
+      }
+
+      const user = await storage.validateSession(token);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+
+      // Don't send password in response
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Failed to get user info",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Helper function to generate disaster events from sentiment posts
   const generateDisasterEvents = async (posts: SentimentPost[]): Promise<void> => {
     if (posts.length === 0) return;
-    
+
     // Group posts by day to identify patterns
     const postsByDay: {[key: string]: {
       posts: SentimentPost[],
       count: number,
       sentiments: {[key: string]: number}
     }} = {};
-    
+
     // Group posts by day (YYYY-MM-DD)
     for (const post of posts) {
       const day = new Date(post.timestamp).toISOString().split('T')[0];
-      
+
       if (!postsByDay[day]) {
         postsByDay[day] = {
           posts: [],
@@ -51,93 +125,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sentiments: {}
         };
       }
-      
+
       postsByDay[day].posts.push(post);
       postsByDay[day].count++;
-      
+
       // Count sentiment occurrences
       const sentiment = post.sentiment;
       postsByDay[day].sentiments[sentiment] = (postsByDay[day].sentiments[sentiment] || 0) + 1;
     }
-    
+
     // Process each day with sufficient posts (at least 3)
     for (const [day, data] of Object.entries(postsByDay)) {
       if (data.count < 3) continue;
-      
+
       // Find dominant sentiment
       let maxCount = 0;
       let dominantSentiment: string | null = null;
-      
+
       for (const [sentiment, count] of Object.entries(data.sentiments)) {
         if (count > maxCount) {
           maxCount = count;
           dominantSentiment = sentiment;
         }
       }
-      
-      // Analyze text to determine disaster type
-      const combinedText = data.posts.map(p => p.text.toLowerCase()).join(' ');
-      let disasterType = "Undetermined";
-      
-      if (combinedText.includes('earthquake') || combinedText.includes('quake') || 
-          combinedText.includes('lindol') || combinedText.includes('tremor')) {
+
+      // Extract disaster type and location from text content
+      const texts = data.posts.map(p => p.text.toLowerCase());
+      let disasterType = null;
+      let location = null;
+
+      // Check for disaster type mentions
+      if (texts.some(t => t.includes('lindol') || t.includes('earthquake'))) {
         disasterType = "Earthquake";
-      } else if (combinedText.includes('flood') || combinedText.includes('baha') || 
-                combinedText.includes('water level')) {
+      } else if (texts.some(t => t.includes('baha') || t.includes('flood'))) {
         disasterType = "Flood";
-      } else if (combinedText.includes('typhoon') || combinedText.includes('bagyo') || 
-                combinedText.includes('storm')) {
+      } else if (texts.some(t => t.includes('bagyo') || t.includes('typhoon'))) {
         disasterType = "Typhoon";
-      } else if (combinedText.includes('fire') || combinedText.includes('sunog')) {
+      } else if (texts.some(t => t.includes('sunog') || t.includes('fire'))) {
         disasterType = "Fire";
-      } else if (combinedText.includes('landslide') || combinedText.includes('guho')) {
-        disasterType = "Landslide";
-      } else if (combinedText.includes('volcanic') || combinedText.includes('volcano') || 
-                combinedText.includes('bulkan') || combinedText.includes('ash')) {
-        disasterType = "Volcanic Activity";
       }
-      
-      // Find potential location
-      let location: string | null = null;
-      
-      // Common Philippines locations to check for in the text
+
+      // Check for location mentions
+      // Common Philippine locations to check in text
       const locations = [
         'Manila', 'Quezon City', 'Cebu', 'Davao', 'Mindanao', 'Luzon',
         'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
         'Batangas', 'Zambales', 'Pampanga', 'Bicol', 'Leyte', 'Samar',
         'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna'
       ];
-      
-      for (const loc of locations) {
-        if (combinedText.includes(loc.toLowerCase())) {
-          location = loc;
-          break;
+
+      for (const text of texts) {
+        for (const loc of locations) {
+          if (text.includes(loc.toLowerCase())) {
+            location = loc;
+            break;
+          }
         }
+        if (location) break;
       }
-      
-      // Generate a summary from the posts
-      const sampleTexts = data.posts.slice(0, 3).map(p => 
-        p.text.length > 50 ? p.text.substring(0, 50) + '...' : p.text
-      ).join(' | ');
-      
-      const description = `Based on ${data.count} social media reports. Sample content: ${sampleTexts}`;
-      
-      // Create the disaster event
-      await storage.createDisasterEvent(
-        insertDisasterEventSchema.parse({
+
+      if (disasterType && (location || dominantSentiment)) {
+        // Create the disaster event
+        await storage.createDisasterEvent({
           name: `${disasterType} Incident on ${new Date(day).toLocaleDateString()}`,
-          description,
+          description: `Based on ${data.count} social media reports. Sample content: ${data.posts[0].text}`,
           timestamp: new Date(day),
           location,
           type: disasterType,
-          sentimentImpact: dominantSentiment
-        })
-      );
+          sentimentImpact: dominantSentiment || undefined
+        });
+      }
     }
   };
 
-  // API Routes
-  
   // Add SSE endpoint for upload progress
   app.get('/api/upload-progress', (req: Request, res: Response) => {
     res.writeHead(200, {
@@ -366,6 +426,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-
   return httpServer;
 }

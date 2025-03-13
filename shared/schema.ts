@@ -2,12 +2,26 @@ import { pgTable, text, serial, integer, boolean, timestamp, real, json } from "
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Authentication Tables
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  email: text("email").notNull().unique(),
+  fullName: text("full_name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  role: text("role").default("user").notNull(),
 });
 
+export const sessions = pgTable("sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+// Sentiment Analysis Tables
 export const sentimentPosts = pgTable("sentiment_posts", {
   id: serial("id").primaryKey(),
   text: text("text").notNull(),
@@ -16,10 +30,11 @@ export const sentimentPosts = pgTable("sentiment_posts", {
   language: text("language"),
   sentiment: text("sentiment").notNull(),
   confidence: real("confidence").notNull(),
-  location: text("location"),
-  disasterType: text("disaster_type"),
+  location: text("location"), // Now only populated when location is mentioned in text
+  disasterType: text("disaster_type"), // Now only populated when disaster type is mentioned
   fileId: integer("file_id"),
-  explanation: text("explanation") // Added explanation field
+  explanation: text("explanation"),
+  processedBy: integer("processed_by").references(() => users.id),
 });
 
 export const disasterEvents = pgTable("disaster_events", {
@@ -30,6 +45,7 @@ export const disasterEvents = pgTable("disaster_events", {
   location: text("location"),
   type: text("type").notNull(),
   sentimentImpact: text("sentiment_impact"),
+  createdBy: integer("created_by").references(() => users.id),
 });
 
 export const analyzedFiles = pgTable("analyzed_files", {
@@ -39,11 +55,23 @@ export const analyzedFiles = pgTable("analyzed_files", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   recordCount: integer("record_count").notNull(),
   evaluationMetrics: json("evaluation_metrics"),
+  uploadedBy: integer("uploaded_by").references(() => users.id),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+// Schema Validation
+export const insertUserSchema = createInsertSchema(users).extend({
+  confirmPassword: z.string(),
+  email: z.string().email("Invalid email format"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+export const loginSchema = z.object({
+  username: z.string(),
+  password: z.string(),
 });
 
 export const insertSentimentPostSchema = createInsertSchema(sentimentPosts).pick({
@@ -56,7 +84,8 @@ export const insertSentimentPostSchema = createInsertSchema(sentimentPosts).pick
   location: true,
   disasterType: true,
   fileId: true,
-  explanation: true // Added explanation field to the insert schema
+  explanation: true,
+  processedBy: true,
 });
 
 export const insertDisasterEventSchema = createInsertSchema(disasterEvents).pick({
@@ -66,6 +95,7 @@ export const insertDisasterEventSchema = createInsertSchema(disasterEvents).pick
   location: true,
   type: true,
   sentimentImpact: true,
+  createdBy: true,
 });
 
 export const insertAnalyzedFileSchema = createInsertSchema(analyzedFiles).pick({
@@ -73,10 +103,13 @@ export const insertAnalyzedFileSchema = createInsertSchema(analyzedFiles).pick({
   storedName: true,
   recordCount: true,
   evaluationMetrics: true,
+  uploadedBy: true,
 });
 
+// Type Exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type LoginUser = z.infer<typeof loginSchema>;
 
 export type InsertSentimentPost = z.infer<typeof insertSentimentPostSchema>;
 export type SentimentPost = typeof sentimentPosts.$inferSelect;
