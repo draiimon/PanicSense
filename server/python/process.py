@@ -92,7 +92,7 @@ class DisasterSentimentBackend:
         language_name = "Filipino/Tagalog" if language == "tl" else "English"
         
         logging.info(f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
-        print(f"LOADING... Processing {language_name} text through Groq API")
+        logging.info(f"LOADING... Processing {language_name} text through Groq API")
         
         # Try using the actual API 
         try:
@@ -114,12 +114,12 @@ class DisasterSentimentBackend:
                 "max_tokens": 20,
             }
             
-            print(f"LOADING... Sending request to Groq API (Key #{self.current_api_index + 1})")
+            logging.info(f"LOADING... Sending request to Groq API (Key #{self.current_api_index + 1})")
             result = self.fetch_groq(headers, payload)
             
             if result and 'choices' in result and result['choices']:
                 raw_output = result['choices'][0]['message']['content'].strip()
-                print(f"PROCESSED... Got response from Groq: '{raw_output}'")
+                logging.info(f"PROCESSED... Got response from Groq: '{raw_output}'")
                 
                 # Extract model's confidence from output if present
                 confidence_match = re.search(r'(\d+(?:\.\d+)?)%', raw_output)
@@ -136,7 +136,7 @@ class DisasterSentimentBackend:
                         
                         # If confidence was expressed in output, use that, otherwise generate a reasonable value
                         if model_confidence:
-                            print(f"DONE... Sentiment: {sentiment}, Model Confidence: {model_confidence:.2f}")
+                            logging.info(f"DONE... Sentiment: {sentiment}, Model Confidence: {model_confidence:.2f}")
                             return sentiment, model_confidence
                         else:
                             # Generate confidence based on sentiment type (different ranges for different sentiments)
@@ -147,18 +147,18 @@ class DisasterSentimentBackend:
                             else:
                                 confidence = random.uniform(0.78, 0.95)
                                 
-                            print(f"DONE... Sentiment: {sentiment}, Model Confidence: {confidence:.2f}")
+                            logging.info(f"DONE... Sentiment: {sentiment}, Model Confidence: {confidence:.2f}")
                             return sentiment, confidence
                 
                 # If no specific sentiment was found but we got a response
                 self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
                 confidence = random.uniform(0.70, 0.85)
-                print(f"DONE... Sentiment: Neutral (default), Model Confidence: {confidence:.2f}")
+                logging.info(f"DONE... Sentiment: Neutral (default), Model Confidence: {confidence:.2f}")
                 return "Neutral", confidence
                 
         except Exception as e:
             logging.error(f"Error using Groq API: {e}")
-            print(f"ERROR... Groq API failed: {str(e)[:100]}")
+            logging.error(f"ERROR... Groq API failed: {str(e)[:100]}")
             # Fall back to the rule-based approach if API fails
         
         # Fallback: Enhanced rule-based sentiment analysis with language awareness
@@ -199,7 +199,7 @@ class DisasterSentimentBackend:
         else:
             confidence = random.uniform(0.77, 0.93)
             
-        print(f"DONE (FALLBACK)... Sentiment: {sentiment}, Model Confidence: {confidence:.2f}")
+        logging.info(f"DONE (FALLBACK)... Sentiment: {sentiment}, Model Confidence: {confidence:.2f}")
         return sentiment, confidence
     
     def detect_language(self, text):
