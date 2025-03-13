@@ -16,10 +16,10 @@ export const sentimentPosts = pgTable("sentiment_posts", {
   language: text("language"),
   sentiment: text("sentiment").notNull(),
   confidence: real("confidence").notNull(),
-  explanation: text("explanation"), // Added explanation field
   location: text("location"),
   disasterType: text("disaster_type"),
   fileId: integer("file_id"),
+  explanation: text("explanation") // Added explanation field
 });
 
 export const disasterEvents = pgTable("disaster_events", {
@@ -53,10 +53,10 @@ export const insertSentimentPostSchema = createInsertSchema(sentimentPosts).pick
   language: true,
   sentiment: true,
   confidence: true,
-  explanation: true, // Added explanation field to the schema
   location: true,
   disasterType: true,
   fileId: true,
+  explanation: true // Added explanation field to the insert schema
 });
 
 export const insertDisasterEventSchema = createInsertSchema(disasterEvents).pick({

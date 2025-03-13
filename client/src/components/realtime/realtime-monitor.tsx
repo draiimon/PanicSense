@@ -7,13 +7,15 @@ import { Separator } from '@/components/ui/separator';
 import { analyzeText } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { getSentimentBadgeClasses } from '@/lib/colors';
+import { AlertCircle } from 'lucide-react';
 
 interface AnalyzedText {
   text: string;
   sentiment: string;
   confidence: number;
-  explanation: string;
   timestamp: Date;
+  language: 'en' | 'tl'; // Added language field
+  explanation?: string; // Added explanation field
 }
 
 export function RealtimeMonitor() {
@@ -43,36 +45,25 @@ export function RealtimeMonitor() {
 
     setIsAnalyzing(true);
     try {
-      const response = await fetch('/api/analyze-text', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to analyze text');
-      }
+      const result = await analyzeText(text);
 
       setAnalyzedTexts(prev => [
         ...prev,
         {
           text,
-          sentiment: data.post.sentiment,
-          confidence: data.post.confidence,
-          explanation: data.post.explanation || "No explanation available",
+          sentiment: result.post.sentiment,
+          confidence: result.post.confidence,
           timestamp: new Date(),
-        },
+          language: result.post.language, // Added language assignment
+          explanation: result.post.explanation // Added explanation assignment
+        }
       ]);
 
       setText('');
 
       toast({
         title: 'Analysis complete',
-        description: `Sentiment detected: ${data.post.sentiment}`,
+        description: `Sentiment detected: ${result.post.sentiment}`,
       });
     } catch (error) {
       toast({
@@ -161,19 +152,32 @@ export function RealtimeMonitor() {
                 <div key={index} className="p-4 bg-slate-50 rounded-lg">
                   <div className="flex justify-between items-start">
                     <p className="text-sm text-slate-900">{item.text}</p>
-                    <Badge
-                      className={getSentimentBadgeClasses(item.sentiment)}
-                    >
-                      {item.sentiment}
-                    </Badge>
+                    <div className="flex items-center gap-2"> {/* Added div for badges */}
+                      <Badge
+                        className={getSentimentBadgeClasses(item.sentiment)}
+                      >
+                        {item.sentiment}
+                      </Badge>
+                      <Badge variant="outline" className="bg-slate-100">
+                        {item.language === 'tl' ? 'Tagalog' : 'English'}
+                      </Badge>
+                    </div>
                   </div>
                   <div className="mt-2 flex justify-between text-xs text-slate-500">
                     <span>Confidence: {(item.confidence * 100).toFixed(1)}%</span>
                     <span>{item.timestamp.toLocaleTimeString()}</span>
                   </div>
-                  <div className="mt-2 text-sm text-slate-600 italic">
-                    <span className="font-medium">Analysis:</span> {item.explanation}
-                  </div>
+                  {item.explanation && (
+                    <div className="bg-slate-50 p-3 rounded-md border border-slate-200 mt-2">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-slate-600 mt-0.5" />
+                        <div>
+                          <h4 className="text-sm font-medium mb-1">Analysis Explanation</h4>
+                          <p className="text-sm text-slate-700">{item.explanation}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
               <div ref={resultsEndRef} />
@@ -194,7 +198,7 @@ export function RealtimeMonitor() {
               className="text-blue-600"
               onClick={() => {
                 const text = analyzedTexts.map(item =>
-                  `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(1)}%) - ${item.explanation}`
+                  `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(1)}%) - Language: ${item.language === 'tl' ? 'Tagalog' : 'English'}`
                 ).join('\n');
                 navigator.clipboard.writeText(text);
                 toast({

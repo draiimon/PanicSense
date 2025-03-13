@@ -7,7 +7,7 @@ export default function RealTime() {
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Real-Time Mode</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Analyze disaster-related text in real-time with detailed sentiment explanations
+          Analyze disaster-related text in real-time with detailed emotion analysis
         </p>
       </div>
 

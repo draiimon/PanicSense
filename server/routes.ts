@@ -264,15 +264,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = await pythonService.analyzeSentiment(text);
         
         // Save the sentiment post
-        // Get full language name instead of code
-        const languageName = text.match(/[ñÑáéíóúÁÉÍÓÚ]/) ? 'Tagalog' : 'English';
-        
         const sentimentPost = await storage.createSentimentPost(
           insertSentimentPostSchema.parse({
             text,
             timestamp: new Date(),
             source,
-            language: languageName,
+            language: result.language,
             sentiment: result.sentiment,
             confidence: result.confidence,
             explanation: result.explanation,
@@ -289,15 +286,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sentimentPromises = texts.map(async (textItem: string) => {
         const result = await pythonService.analyzeSentiment(textItem);
         
-        // Get full language name instead of code
-        const languageName = textItem.match(/[ñÑáéíóúÁÉÍÓÚ]/) ? 'Tagalog' : 'English';
-        
         return storage.createSentimentPost(
           insertSentimentPostSchema.parse({
             text: textItem,
             timestamp: new Date(),
             source,
-            language: languageName,
+            language: result.language,
             sentiment: result.sentiment,
             confidence: result.confidence,
             explanation: result.explanation,
