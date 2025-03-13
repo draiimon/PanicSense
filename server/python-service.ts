@@ -19,7 +19,6 @@ interface ProcessCSVResult {
     precision: number;
     recall: number;
     f1Score: number;
-    confusionMatrix: number[][];
   };
 }
 
@@ -39,7 +38,11 @@ export class PythonService {
     }
   }
 
-  public async processCSV(fileBuffer: Buffer, originalFilename: string): Promise<{
+  public async processCSV(
+    fileBuffer: Buffer, 
+    originalFilename: string,
+    onProgress?: (processed: number, stage: string) => void
+  ): Promise<{
     data: ProcessCSVResult,
     storedFilename: string,
     recordCount: number
@@ -48,15 +51,15 @@ export class PythonService {
     const uniqueId = nanoid();
     const storedFilename = `${uniqueId}-${originalFilename}`;
     const tempFilePath = path.join(this.tempDir, storedFilename);
-    
+
     fs.writeFileSync(tempFilePath, fileBuffer);
-    
+
     try {
       // Run the Python script with the file
-      const result = await this.runPythonScript(tempFilePath);
-      
+      const result = await this.runPythonScript(tempFilePath, '', onProgress);
+
       const data = JSON.parse(result) as ProcessCSVResult;
-      
+
       return {
         data,
         storedFilename,
@@ -81,40 +84,56 @@ export class PythonService {
     return JSON.parse(result);
   }
 
-  private runPythonScript(filePath: string = '', textToAnalyze: string = ''): Promise<string> {
+  private runPythonScript(
+    filePath: string = '', 
+    textToAnalyze: string = '',
+    onProgress?: (processed: number, stage: string) => void
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const args = [this.scriptPath];
-      
+
       if (filePath) {
         args.push('--file', filePath);
       }
-      
+
       if (textToAnalyze) {
         args.push('--text', textToAnalyze);
       }
 
       log(`Running Python script with args: ${args.join(' ')}`, 'python-service');
-      
+
       const pythonProcess = spawn(this.pythonBinary, args);
-      
+
       let output = '';
       let errorOutput = '';
-      
+
       pythonProcess.stdout.on('data', (data) => {
-        output += data.toString();
+        const dataStr = data.toString();
+
+        // Check for progress updates
+        if (onProgress && dataStr.includes('PROGRESS:')) {
+          try {
+            const progressData = JSON.parse(dataStr.split('PROGRESS:')[1]);
+            onProgress(progressData.processed, progressData.stage);
+          } catch (e) {
+            // Ignore progress parsing errors
+          }
+        } else {
+          output += dataStr;
+        }
       });
-      
+
       pythonProcess.stderr.on('data', (data) => {
         errorOutput += data.toString();
       });
-      
+
       pythonProcess.on('close', (code) => {
         if (code !== 0) {
           log(`Python process error: ${errorOutput}`, 'python-service');
           reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
           return;
         }
-        
+
         resolve(output);
       });
     });

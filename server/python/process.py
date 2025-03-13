@@ -21,7 +21,15 @@ parser.add_argument('--file', help='Path to the CSV file to analyze')
 parser.add_argument('--text', help='Text to analyze for sentiment')
 args = parser.parse_args()
 
-# Implement the full DisasterSentimentBackend class
+def report_progress(processed: int, stage: str):
+    """Print progress in a format that can be parsed by the Node.js service"""
+    progress = {
+        "processed": processed,
+        "stage": stage
+    }
+    print(f"PROGRESS:{json.dumps(progress)}")
+    sys.stdout.flush()
+
 class DisasterSentimentBackend:
     def __init__(self):
         self.sentiment_labels = ['Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral']
@@ -337,11 +345,18 @@ Explanation: [brief explanation]"""
     def process_csv(self, file_path):
         df = pd.read_csv(file_path)
         processed_results = []
+        total_records = len(df)
+
+        report_progress(0, "Starting analysis")
 
         for index, row in df.iterrows():
             text = row['text']
             timestamp = row.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             source = row.get('source', 'Unknown')
+
+            # Report progress every 10 records
+            if index % 10 == 0:
+                report_progress(index, "Processing records")
 
             analysis_result = self.analyze_sentiment(text)
 
@@ -354,6 +369,9 @@ Explanation: [brief explanation]"""
                 'confidence': analysis_result['confidence'],
                 'explanation': analysis_result['explanation']
             })
+
+        # Final progress update
+        report_progress(total_records, "Completing analysis")
 
         return processed_results
 

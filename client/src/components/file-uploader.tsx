@@ -12,6 +12,8 @@ interface FileUploaderProps {
 export function FileUploader({ onSuccess, className }: FileUploaderProps) {
   const [uploadProgress, setUploadProgress] = useState('Preparing...');
   const [progressPercentage, setProgressPercentage] = useState(0);
+  const [processedRecords, setProcessedRecords] = useState(0);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [loadingDots, setLoadingDots] = useState('');
   const { toast } = useToast();
   const { isUploading, setIsUploading } = useDisasterContext();
@@ -27,34 +29,18 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
           return prev + '.';
         });
       }, 500);
-
-      // Simulate progression of loading phases
-      const phases = [
-        { message: 'Uploading file', delay: 1000, percentage: 20 },
-        { message: 'Processing data', delay: 2000, percentage: 40 },
-        { message: 'Analyzing text', delay: 3000, percentage: 60 },
-        { message: 'Detecting languages', delay: 4000, percentage: 80 },
-        { message: 'Running sentiment analysis', delay: 5000, percentage: 90 }
-      ];
-
-      let timeout: NodeJS.Timeout;
-      phases.forEach(({message, delay, percentage}) => {
-        timeout = setTimeout(() => {
-          if (isUploading) {
-            setUploadProgress(message);
-            setProgressPercentage(percentage);
-          }
-        }, delay);
-      });
-
-      return () => {
-        clearInterval(intervalId);
-        clearTimeout(timeout);
-      };
-    } else {
-      setProgressPercentage(0);
     }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [isUploading]);
+
+  const calculateProgress = (processed: number, total: number) => {
+    if (total === 0) return 0;
+    const progress = (processed / total) * 100;
+    return Math.min(Math.round(progress), 100);
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -71,31 +57,55 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
     }
 
     setIsUploading(true);
+    setProgressPercentage(0);
+    setProcessedRecords(0);
+    setTotalRecords(0);
+
     try {
-      const result = await uploadCSV(file);
+      // Start file reading
+      setUploadProgress('Reading file...');
 
-      // Set to 100% when complete
-      setProgressPercentage(100);
-      setUploadProgress('Upload Complete');
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split('\n').length - 1; // -1 for header
+        setTotalRecords(lines);
 
-      toast({
-        title: 'File uploaded successfully',
-        description: `Analyzed ${result.posts.length} posts`,
-      });
+        try {
+          const result = await uploadCSV(file, (progress) => {
+            setProcessedRecords(progress.processed);
+            setProgressPercentage(calculateProgress(progress.processed, lines));
+            setUploadProgress(`Processing records (${progress.processed}/${lines})`);
+          });
 
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/sentiment-posts'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/analyzed-files'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/disaster-events'] });
+          // Set to 100% when complete
+          setProgressPercentage(100);
+          setUploadProgress('Analysis Complete');
 
-      if (onSuccess) {
-        onSuccess(result);
-      }
+          toast({
+            title: 'File uploaded successfully',
+            description: `Analyzed ${result.posts.length} posts`,
+          });
 
-      // Short delay before resetting the upload state
-      setTimeout(() => {
-        setIsUploading(false);
-      }, 1000);
+          // Invalidate queries to refresh data
+          queryClient.invalidateQueries({ queryKey: ['/api/sentiment-posts'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/analyzed-files'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/disaster-events'] });
+
+          if (onSuccess) {
+            onSuccess(result);
+          }
+
+          // Short delay before resetting the upload state
+          setTimeout(() => {
+            setIsUploading(false);
+          }, 1000);
+        } catch (error) {
+          throw error;
+        }
+      };
+
+      reader.readAsText(file);
     } catch (error) {
       toast({
         title: 'Upload failed',
@@ -130,9 +140,11 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
             />
           </div>
 
-          <div className="text-xs text-gray-500 text-center">
-            Processing sentiment analysis
-          </div>
+          {totalRecords > 0 && (
+            <div className="text-xs text-gray-500 text-center">
+              Processed {processedRecords} of {totalRecords} records
+            </div>
+          )}
         </div>
       ) : (
         <label className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md cursor-pointer transition-colors">

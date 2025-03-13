@@ -7,6 +7,7 @@ import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertDisasterEven
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { EventEmitter } from 'events';
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -23,6 +24,9 @@ const upload = multer({
     }
   }
 });
+
+// Create a global event emitter for upload progress
+const uploadProgressEmitter = new EventEmitter();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to generate disaster events from sentiment posts
@@ -134,6 +138,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // API Routes
   
+  // Add SSE endpoint for upload progress
+  app.get('/api/upload-progress', (req: Request, res: Response) => {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
+
+    const sendProgress = (progress: { processed: number; stage: string }) => {
+      res.write(`data: ${JSON.stringify(progress)}\n\n`);
+    };
+
+    uploadProgressEmitter.on('progress', sendProgress);
+
+    req.on('close', () => {
+      uploadProgressEmitter.off('progress', sendProgress);
+    });
+  });
+
   // Get all sentiment posts
   app.get('/api/sentiment-posts', async (req: Request, res: Response) => {
     try {
@@ -191,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload and analyze CSV file
+  // Modify upload-csv endpoint to emit progress
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
@@ -201,8 +224,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileBuffer = req.file.buffer;
       const originalFilename = req.file.originalname;
 
-      const { data, storedFilename, recordCount } = await pythonService.processCSV(fileBuffer, originalFilename);
-      
+      // Read the file content to count total records
+      const fileContent = fileBuffer.toString('utf-8');
+      const totalRecords = fileContent.split('\n').length - 1; // -1 for header
+
+      // Emit initial progress
+      uploadProgressEmitter.emit('progress', {
+        processed: 0,
+        stage: 'Starting analysis'
+      });
+
+      const { data, storedFilename, recordCount } = await pythonService.processCSV(
+        fileBuffer, 
+        originalFilename,
+        (processed: number, stage: string) => {
+          uploadProgressEmitter.emit('progress', { processed, stage });
+        }
+      );
+
       // Save the analyzed file record
       const analyzedFile = await storage.createAnalyzedFile(
         insertAnalyzedFileSchema.parse({
@@ -231,9 +270,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
         )
       );
-      
+
       // Generate disaster events from the sentiment posts
       await generateDisasterEvents(sentimentPosts);
+
+      // Emit completion progress
+      uploadProgressEmitter.emit('progress', {
+        processed: totalRecords,
+        stage: 'Analysis complete'
+      });
 
       res.json({
         file: analyzedFile,

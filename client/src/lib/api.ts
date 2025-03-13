@@ -38,6 +38,11 @@ export interface AnalyzedFile {
   } | null;
 }
 
+export interface UploadProgress {
+  processed: number;
+  stage: string;
+}
+
 // Sentiment Posts API
 export async function getSentimentPosts(): Promise<SentimentPost[]> {
   const response = await apiRequest('GET', '/api/sentiment-posts');
@@ -67,7 +72,10 @@ export async function getAnalyzedFile(id: number): Promise<AnalyzedFile> {
 }
 
 // File Upload
-export async function uploadCSV(file: File): Promise<{
+export async function uploadCSV(
+  file: File,
+  onProgress?: (progress: UploadProgress) => void
+): Promise<{
   file: AnalyzedFile;
   posts: SentimentPost[];
   metrics: {
@@ -75,24 +83,37 @@ export async function uploadCSV(file: File): Promise<{
     precision: number;
     recall: number;
     f1Score: number;
-    confusionMatrix: number[][];
   } | null;
 }> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch('/api/upload-csv', {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to upload CSV: ${errorText}`);
+  // Set up event source for progress updates
+  const eventSource = new EventSource('/api/upload-progress');
+
+  eventSource.onmessage = (event) => {
+    const progress = JSON.parse(event.data);
+    if (onProgress) {
+      onProgress(progress);
+    }
+  };
+
+  try {
+    const response = await fetch('/api/upload-csv', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to upload CSV: ${errorText}`);
+    }
+
+    return response.json();
+  } finally {
+    eventSource.close();
   }
-  
-  return response.json();
 }
 
 // Text Analysis
