@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { uploadCSV } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
+import { useDisasterContext } from '@/context/disaster-context';
 
 interface FileUploaderProps {
   onSuccess?: (data: any) => void;
@@ -9,15 +10,15 @@ interface FileUploaderProps {
 }
 
 export function FileUploader({ onSuccess, className }: FileUploaderProps) {
-  const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('Preparing...');
   const [loadingDots, setLoadingDots] = useState('');
   const { toast } = useToast();
+  const { isUploading, setIsUploading } = useDisasterContext();
 
   // Create animated loading dots effect
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
-    
+
     if (isUploading) {
       intervalId = setInterval(() => {
         setLoadingDots(prev => {
@@ -25,7 +26,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
           return prev + '.';
         });
       }, 500);
-      
+
       // Simulate progression of loading phases
       const phases = [
         { message: 'Uploading file', delay: 1000 },
@@ -34,14 +35,14 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
         { message: 'Detecting languages', delay: 4000 },
         { message: 'Running sentiment analysis', delay: 5000 }
       ];
-      
+
       let timeout: NodeJS.Timeout;
       phases.forEach(({message, delay}) => {
         timeout = setTimeout(() => {
           if (isUploading) setUploadProgress(message);
         }, delay);
       });
-      
+
       return () => {
         clearInterval(intervalId);
         clearTimeout(timeout);
@@ -66,16 +67,17 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
     setIsUploading(true);
     try {
       const result = await uploadCSV(file);
-      
+
       toast({
         title: 'File uploaded successfully',
         description: `Analyzed ${result.posts.length} posts`,
       });
-      
+
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/sentiment-posts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/analyzed-files'] });
-      
+      queryClient.invalidateQueries({ queryKey: ['/api/disaster-events'] });
+
       if (onSuccess) {
         onSuccess(result);
       }
@@ -103,11 +105,11 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
             </svg>
             <span className="text-blue-800 font-medium">{uploadProgress}{loadingDots}</span>
           </div>
-          
+
           <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
             <div className="bg-blue-600 h-2.5 rounded-full animate-pulse w-full"></div>
           </div>
-          
+
           <div className="text-xs text-gray-500 text-center">
             Processing sentiment analysis
           </div>

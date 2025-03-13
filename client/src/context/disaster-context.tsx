@@ -14,27 +14,31 @@ interface DisasterContextType {
   sentimentPosts: SentimentPost[];
   disasterEvents: DisasterEvent[];
   analyzedFiles: AnalyzedFile[];
-  
+
   // Loading states
   isLoadingSentimentPosts: boolean;
   isLoadingDisasterEvents: boolean;
   isLoadingAnalyzedFiles: boolean;
-  
+  isUploading: boolean;
+
   // Error states
   errorSentimentPosts: Error | null;
   errorDisasterEvents: Error | null;
   errorAnalyzedFiles: Error | null;
-  
+
   // Stats
   activeDiastersCount: number;
   analyzedPostsCount: number;
   dominantSentiment: string;
   modelConfidence: number;
-  
+
   // Filters
   selectedDisasterType: string;
   setSelectedDisasterType: (type: string) => void;
-  
+
+  // Upload state management
+  setIsUploading: (state: boolean) => void;
+
   // Refresh function
   refreshData: () => void;
 }
@@ -42,9 +46,10 @@ interface DisasterContextType {
 const DisasterContext = createContext<DisasterContextType | undefined>(undefined);
 
 export function DisasterContextProvider({ children }: { children: ReactNode }) {
-  // State for filters
+  // State for filters and upload
   const [selectedDisasterType, setSelectedDisasterType] = useState<string>("All");
-  
+  const [isUploading, setIsUploading] = useState(false);
+
   // Queries
   const { 
     data: sentimentPosts = [], 
@@ -55,7 +60,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     queryKey: ['/api/sentiment-posts'],
     queryFn: getSentimentPosts
   });
-  
+
   const { 
     data: disasterEvents = [], 
     isLoading: isLoadingDisasterEvents,
@@ -65,7 +70,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     queryKey: ['/api/disaster-events'],
     queryFn: getDisasterEvents
   });
-  
+
   const { 
     data: analyzedFiles = [], 
     isLoading: isLoadingAnalyzedFiles,
@@ -79,7 +84,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   // Calculate stats
   const activeDiastersCount = disasterEvents.length;
   const analyzedPostsCount = sentimentPosts.length;
-  
+
   // Calculate dominant sentiment
   const sentimentCounts: Record<string, number> = {};
   sentimentPosts.forEach(post => {
@@ -88,9 +93,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     }
     sentimentCounts[post.sentiment]++;
   });
-  
+
   const dominantSentiment = Object.entries(sentimentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "Neutral";
-  
+
   // Calculate average model confidence
   const totalConfidence = sentimentPosts.reduce((sum, post) => sum + post.confidence, 0);
   const modelConfidence = sentimentPosts.length > 0 ? totalConfidence / sentimentPosts.length : 0;
@@ -111,6 +116,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         isLoadingSentimentPosts,
         isLoadingDisasterEvents,
         isLoadingAnalyzedFiles,
+        isUploading,
         errorSentimentPosts: errorSentimentPosts as Error | null,
         errorDisasterEvents: errorDisasterEvents as Error | null,
         errorAnalyzedFiles: errorAnalyzedFiles as Error | null,
@@ -120,6 +126,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         modelConfidence,
         selectedDisasterType,
         setSelectedDisasterType,
+        setIsUploading,
         refreshData
       }}
     >
