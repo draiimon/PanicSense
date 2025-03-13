@@ -30,7 +30,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
       const phases = [
         { message: 'Uploading file', delay: 1000 },
         { message: 'Processing data', delay: 2000 },
-        { message: 'Analyzing with Groq API', delay: 3000 },
+        { message: 'Analyzing with AI', delay: 3000 },
         { message: 'Detecting languages', delay: 4000 },
         { message: 'Running sentiment analysis', delay: 5000 }
       ];
@@ -109,7 +109,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
           </div>
           
           <div className="text-xs text-gray-500 text-center">
-            Using Groq API for sentiment analysis
+            Using AI for sentiment analysis
           </div>
         </div>
       ) : (

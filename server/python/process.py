@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 import sys
 import json
@@ -61,7 +60,7 @@ class DisasterSentimentBackend:
                 "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"
             ]
 
-        self.api_url = "https://api.groq.com/openai/v1/chat/completions"
+        self.api_url = "https://api.groq.com/openai/v1/chat/completions" # Needs to be changed to remove Groq reference
         self.retry_delay = 1
         self.limit_delay = 0.5
         self.current_api_index = 0
@@ -80,7 +79,7 @@ class DisasterSentimentBackend:
             return response.json()
         except requests.exceptions.RequestException as e:
             if hasattr(e, 'response') and e.response and e.response.status_code == 429:
-                logging.warning(f"LOADING SENTIMENTS..... (Data {self.current_api_index + 1}/{len(self.api_keys)}). Data Fetching.....")
+                logging.warning(f"LOADING SENTIMENTS..... (Data {self.current_api_index + 1}/{len(self.api_keys)}). Data Fetching...")
                 self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
                 logging.info(f"Waiting {self.limit_delay} seconds before trying next key")
                 time.sleep(self.limit_delay)
