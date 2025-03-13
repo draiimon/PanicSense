@@ -26,13 +26,14 @@ export function SentimentMap({ regions, onRegionSelect }: SentimentMapProps) {
 
     // Dynamically import Leaflet - needed for client-side only use
     import('leaflet').then((L) => {
-      mapInstanceRef.current = L.map(mapRef.current).setView([12.8797, 121.7740], 5);
-      
+      // Center map on Philippines
+      mapInstanceRef.current = L.map(mapRef.current).setView([12.8797, 121.7740], 6);
+
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(mapInstanceRef.current);
     });
-    
+
     // Cleanup function
     return () => {
       if (mapInstanceRef.current) {
@@ -45,42 +46,52 @@ export function SentimentMap({ regions, onRegionSelect }: SentimentMapProps) {
   // Update markers when regions change
   useEffect(() => {
     if (!mapInstanceRef.current || typeof window === 'undefined') return;
-    
+
     import('leaflet').then((L) => {
       // Clear previous markers
       markersRef.current.forEach(marker => marker.remove());
       markersRef.current = [];
-      
+
       // Add new markers
       regions.forEach(region => {
         const color = getSentimentColor(region.sentiment);
-        
+
         // Calculate radius based on intensity (min 10, max 50)
         const radius = 10 + (region.intensity / 100) * 40;
-        
+
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
           fillOpacity: 0.5,
           radius: radius * 1000 // Convert to meters
         }).addTo(mapInstanceRef.current);
-        
+
         // Add a popup
         circle.bindPopup(`
           <strong>${region.name}</strong><br>
           Sentiment: ${region.sentiment}<br>
-          Intensity: ${region.intensity}%
+          Intensity: ${region.intensity.toFixed(1)}%
         `);
-        
+
         // Handle click event
         if (onRegionSelect) {
           circle.on('click', () => {
             onRegionSelect(region);
           });
         }
-        
+
         markersRef.current.push(circle);
       });
+
+      // If no regions, show a message
+      if (regions.length === 0) {
+        const message = L.popup()
+          .setLatLng([12.8797, 121.7740])
+          .setContent('No sentiment data available for regions')
+          .openOn(mapInstanceRef.current);
+
+        markersRef.current.push(message);
+      }
     });
   }, [regions, onRegionSelect]);
 

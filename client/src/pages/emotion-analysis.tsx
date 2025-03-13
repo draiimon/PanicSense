@@ -3,6 +3,7 @@ import { useDisasterContext } from "@/context/disaster-context";
 import { SentimentMap } from "@/components/analysis/sentiment-map";
 import { SentimentLegend } from "@/components/analysis/sentiment-legend";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useMemo } from "react";
 
 export default function EmotionAnalysis() {
   const { sentimentPosts, disasterEvents } = useDisasterContext();
@@ -15,59 +16,95 @@ export default function EmotionAnalysis() {
   // Create a list of unique disaster types
   const disasterTypes = ["All Disaster Types", ...new Set(disasterEvents.map(event => event.type))];
 
-  // Mock regions data for the map
-  // In a real app, this would be derived from sentimentPosts with location data
-  const regions = [
-    {
-      name: "Metro Manila",
-      coordinates: [14.5995, 120.9842],
-      sentiment: "Panic",
-      intensity: 89
-    },
-    {
-      name: "Batangas",
-      coordinates: [13.7565, 121.0583],
-      sentiment: "Fear/Anxiety",
-      intensity: 72
-    },
-    {
-      name: "Rizal",
-      coordinates: [14.6042, 121.3035],
-      sentiment: "Disbelief",
-      intensity: 65
-    },
-    {
-      name: "Laguna",
-      coordinates: [14.2691, 121.4113],
-      sentiment: "Fear/Anxiety",
-      intensity: 53
-    },
-    {
-      name: "Bulacan",
-      coordinates: [14.7969, 120.8787],
-      sentiment: "Resilience",
-      intensity: 48
-    }
-  ];
+  // Process real data for regions
+  const regions = useMemo(() => {
+    const locationData = new Map<string, {
+      count: number;
+      sentiments: Map<string, number>;
+      coordinates: [number, number];
+    }>();
 
-  // Mock most affected areas
-  const mostAffectedAreas = [
-    { name: "Metro Manila", sentiment: "Panic" },
-    { name: "Batangas", sentiment: "Fear/Anxiety" },
-    { name: "Rizal", sentiment: "Disbelief" }
-  ];
+    // Philippine region coordinates (you can extend this map)
+    const regionCoordinates: Record<string, [number, number]> = {
+      "Metro Manila": [14.5995, 120.9842],
+      "Batangas": [13.7565, 121.0583],
+      "Rizal": [14.6042, 121.3035],
+      "Laguna": [14.2691, 121.4113],
+      "Bulacan": [14.7969, 120.8787],
+      "Cavite": [14.4791, 120.8970],
+      "Cebu": [10.3157, 123.8854],
+      "Davao": [7.0707, 125.6087],
+      "Pampanga": [15.0794, 120.6200]
+    };
+
+    // Process posts to gather location data
+    sentimentPosts.forEach(post => {
+      if (!post.location || !regionCoordinates[post.location]) return;
+
+      if (!locationData.has(post.location)) {
+        locationData.set(post.location, {
+          count: 0,
+          sentiments: new Map(),
+          coordinates: regionCoordinates[post.location]
+        });
+      }
+
+      const data = locationData.get(post.location)!;
+      data.count++;
+
+      const currentSentimentCount = data.sentiments.get(post.sentiment) || 0;
+      data.sentiments.set(post.sentiment, currentSentimentCount + 1);
+    });
+
+    // Convert to array and calculate dominant sentiments and intensities
+    return Array.from(locationData.entries()).map(([name, data]) => {
+      // Find dominant sentiment
+      let maxCount = 0;
+      let dominantSentiment = "Neutral";
+
+      data.sentiments.forEach((count, sentiment) => {
+        if (count > maxCount) {
+          maxCount = count;
+          dominantSentiment = sentiment;
+        }
+      });
+
+      // Calculate intensity based on post count relative to maximum
+      const maxPosts = Math.max(...Array.from(locationData.values()).map(d => d.count));
+      const intensity = (data.count / maxPosts) * 100;
+
+      return {
+        name,
+        coordinates: data.coordinates,
+        sentiment: dominantSentiment,
+        intensity
+      };
+    });
+  }, [sentimentPosts]);
+
+  // Calculate most affected areas
+  const mostAffectedAreas = useMemo(() => {
+    return regions
+      .sort((a, b) => b.intensity - a.intensity)
+      .slice(0, 3)
+      .map(region => ({
+        name: region.name,
+        sentiment: region.sentiment
+      }));
+  }, [regions]);
 
   const handleRegionSelect = (region: any) => {
-    // In a real app, sentiment distribution would be calculated based on actual data
+    const regionData = locationData.get(region.name);
+    if (!regionData) return;
+
+    const totalSentiments = Array.from(regionData.sentiments.values()).reduce((sum, count) => sum + count, 0);
+
     setSelectedRegion({
       name: region.name,
-      sentiments: [
-        { name: "Panic", percentage: region.sentiment === "Panic" ? 65 : 15 },
-        { name: "Fear/Anxiety", percentage: region.sentiment === "Fear/Anxiety" ? 45 : 20 },
-        { name: "Disbelief", percentage: region.sentiment === "Disbelief" ? 55 : 25 },
-        { name: "Resilience", percentage: region.sentiment === "Resilience" ? 40 : 10 },
-        { name: "Neutral", percentage: 10 }
-      ]
+      sentiments: Array.from(regionData.sentiments.entries()).map(([name, count]) => ({
+        name,
+        percentage: (count / totalSentiments) * 100
+      }))
     });
   };
 
