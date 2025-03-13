@@ -9,6 +9,7 @@ import Timeline from "@/pages/timeline";
 import Comparison from "@/pages/comparison";
 import RawData from "@/pages/raw-data";
 import Evaluation from "@/pages/evaluation";
+import RealTime from "@/pages/real-time";
 import About from "@/pages/about";
 import { DisasterContextProvider } from "@/context/disaster-context";
 import { MainLayout } from "@/components/layout/main-layout";
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/comparison" component={Comparison} />
       <Route path="/raw-data" component={RawData} />
       <Route path="/evaluation" component={Evaluation} />
+      <Route path="/real-time" component={RealTime} />
       <Route path="/about" component={About} />
       <Route component={NotFound} />
     </Switch>

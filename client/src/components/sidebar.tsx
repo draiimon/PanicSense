@@ -8,7 +8,8 @@ import {
   LineChart, 
   Database,
   Activity,
-  Info
+  Info,
+  Timer
 } from "lucide-react";
 
 interface SidebarProps {
@@ -62,6 +63,11 @@ export function Sidebar({ className }: SidebarProps) {
       href: "/evaluation",
       label: "Evaluation Metrics",
       icon: <FileText className="h-5 w-5" />,
+    },
+    {
+      href: "/real-time",
+      label: "Real-Time Mode",
+      icon: <Timer className="h-5 w-5" />,
     },
     {
       href: "/about",
