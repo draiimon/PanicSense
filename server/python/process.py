@@ -162,7 +162,7 @@ class DisasterSentimentBackend:
 
                         # If confidence was expressed in output, use that, otherwise generate a reasonable value
                         if model_confidence:
-                            logging.info(f"Sentiment: {sentiment}, AI Confidence: {model_confidence:.2f}")
+                            logging.info(f"Sentiment: {sentiment}, Confidence: {model_confidence:.2f}")
                             return sentiment, model_confidence
                         else:
                             # Generate confidence based on sentiment type (different ranges for different sentiments)
@@ -173,18 +173,18 @@ class DisasterSentimentBackend:
                             else:
                                 confidence = random.uniform(0.78, 0.95)
 
-                            logging.info(f"Sentiment: {sentiment}, AI Confidence: {confidence:.2f}")
+                            logging.info(f"Sentiment: {sentiment}, Confidence: {confidence:.2f}")
                             return sentiment, confidence
 
                 # If no specific sentiment was found but we got a response
                 self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
                 confidence = random.uniform(0.70, 0.85)
-                logging.info(f"Sentiment: Neutral (default), AI Confidence: {confidence:.2f}")
+                logging.info(f"Sentiment: Neutral (default), Confidence: {confidence:.2f}")
                 return "Neutral", confidence
 
         except Exception as e:
-            logging.error(f"Error using AI: {e}")
-            logging.error(f"AI analysis failed: {str(e)[:100]}")
+            logging.error(f"Error in analysis: {e}")
+            logging.error(f"Analysis failed: {str(e)[:100]}")
             # Fall back to the rule-based approach if API fails
 
         # Fallback: Enhanced rule-based sentiment analysis with language awareness
@@ -225,7 +225,7 @@ class DisasterSentimentBackend:
         else:
             confidence = random.uniform(0.77, 0.93)
 
-        logging.info(f"DONE (FALLBACK)... Sentiment: {sentiment}, AI Confidence: {confidence:.2f}")
+        logging.info(f"DONE (FALLBACK)... Sentiment: {sentiment}, Confidence: {confidence:.2f}")
         return sentiment, confidence
 
     def detect_language(self, text):
