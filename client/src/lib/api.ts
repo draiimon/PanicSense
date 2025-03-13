@@ -1,3 +1,35 @@
+
+import axios from 'axios';
+
+export async function uploadCSV(formData: FormData) {
+  const response = await axios.post('/api/upload-csv', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+}
+
+export async function fetchSentimentPosts() {
+  const response = await axios.get('/api/sentiment-posts');
+  return response.data;
+}
+
+export async function fetchDisasterEvents() {
+  const response = await axios.get('/api/disaster-events');
+  return response.data;
+}
+
+export async function fetchAnalyzedFiles() {
+  const response = await axios.get('/api/analyzed-files');
+  return response.data;
+}
+
+export async function analyzeText(text: string) {
+  const response = await axios.post('/api/analyze-text', { text });
+  return response.data;
+}
+
 import { apiRequest } from './queryClient';
 
 export interface SentimentPost {
