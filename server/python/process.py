@@ -207,7 +207,7 @@ backend = DisasterSentimentBackend()
 if args.file:
     # Process CSV file
     results = backend.process_csv(args.file)
-    metrics = backend.simulate_evaluation(results)
+    metrics = backend.calculate_real_metrics(results)
     
     output = {
         'results': results,

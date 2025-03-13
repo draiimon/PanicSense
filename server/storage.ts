@@ -43,34 +43,6 @@ export class MemStorage implements IStorage {
     this.sentimentPostCurrentId = 1;
     this.disasterEventCurrentId = 1;
     this.analyzedFileCurrentId = 1;
-
-    // Add some sample disaster events
-    this.createDisasterEvent({
-      name: "Magnitude 6.4 Earthquake",
-      description: "Strong earthquake felt across Metro Manila and surrounding provinces resulting in panic and evacuation of buildings.",
-      timestamp: new Date("2023-05-10T15:45:00"),
-      location: "Metro Manila",
-      type: "Earthquake",
-      sentimentImpact: "Panic"
-    });
-
-    this.createDisasterEvent({
-      name: "Aftershocks Continue",
-      description: "Multiple aftershocks recorded in the following 24 hours, with residents expressing fear about returning to their homes.",
-      timestamp: new Date("2023-05-11T12:30:00"),
-      location: "Metro Manila",
-      type: "Earthquake",
-      sentimentImpact: "Fear/Anxiety"
-    });
-
-    this.createDisasterEvent({
-      name: "Relief Operations Begin",
-      description: "Government and NGOs mobilize relief operations for affected areas, with community volunteers joining efforts.",
-      timestamp: new Date("2023-05-12T09:00:00"),
-      location: "Metro Manila",
-      type: "Earthquake",
-      sentimentImpact: "Resilience"
-    });
   }
 
   // User methods

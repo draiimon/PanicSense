@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
 import { pythonService } from "./python-service";
-import { insertSentimentPostSchema, insertAnalyzedFileSchema } from "@shared/schema";
+import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertDisasterEventSchema, type SentimentPost, type DisasterEvent } from "@shared/schema";
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -25,6 +25,113 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Helper function to generate disaster events from sentiment posts
+  const generateDisasterEvents = async (posts: SentimentPost[]): Promise<void> => {
+    if (posts.length === 0) return;
+    
+    // Group posts by day to identify patterns
+    const postsByDay: {[key: string]: {
+      posts: SentimentPost[],
+      count: number,
+      sentiments: {[key: string]: number}
+    }} = {};
+    
+    // Group posts by day (YYYY-MM-DD)
+    for (const post of posts) {
+      const day = new Date(post.timestamp).toISOString().split('T')[0];
+      
+      if (!postsByDay[day]) {
+        postsByDay[day] = {
+          posts: [],
+          count: 0,
+          sentiments: {}
+        };
+      }
+      
+      postsByDay[day].posts.push(post);
+      postsByDay[day].count++;
+      
+      // Count sentiment occurrences
+      const sentiment = post.sentiment;
+      postsByDay[day].sentiments[sentiment] = (postsByDay[day].sentiments[sentiment] || 0) + 1;
+    }
+    
+    // Process each day with sufficient posts (at least 3)
+    for (const [day, data] of Object.entries(postsByDay)) {
+      if (data.count < 3) continue;
+      
+      // Find dominant sentiment
+      let maxCount = 0;
+      let dominantSentiment: string | null = null;
+      
+      for (const [sentiment, count] of Object.entries(data.sentiments)) {
+        if (count > maxCount) {
+          maxCount = count;
+          dominantSentiment = sentiment;
+        }
+      }
+      
+      // Analyze text to determine disaster type
+      const combinedText = data.posts.map(p => p.text.toLowerCase()).join(' ');
+      let disasterType = "Undetermined";
+      
+      if (combinedText.includes('earthquake') || combinedText.includes('quake') || 
+          combinedText.includes('lindol') || combinedText.includes('tremor')) {
+        disasterType = "Earthquake";
+      } else if (combinedText.includes('flood') || combinedText.includes('baha') || 
+                combinedText.includes('water level')) {
+        disasterType = "Flood";
+      } else if (combinedText.includes('typhoon') || combinedText.includes('bagyo') || 
+                combinedText.includes('storm')) {
+        disasterType = "Typhoon";
+      } else if (combinedText.includes('fire') || combinedText.includes('sunog')) {
+        disasterType = "Fire";
+      } else if (combinedText.includes('landslide') || combinedText.includes('guho')) {
+        disasterType = "Landslide";
+      } else if (combinedText.includes('volcanic') || combinedText.includes('volcano') || 
+                combinedText.includes('bulkan') || combinedText.includes('ash')) {
+        disasterType = "Volcanic Activity";
+      }
+      
+      // Find potential location
+      let location: string | null = null;
+      
+      // Common Philippines locations to check for in the text
+      const locations = [
+        'Manila', 'Quezon City', 'Cebu', 'Davao', 'Mindanao', 'Luzon',
+        'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
+        'Batangas', 'Zambales', 'Pampanga', 'Bicol', 'Leyte', 'Samar',
+        'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna'
+      ];
+      
+      for (const loc of locations) {
+        if (combinedText.includes(loc.toLowerCase())) {
+          location = loc;
+          break;
+        }
+      }
+      
+      // Generate a summary from the posts
+      const sampleTexts = data.posts.slice(0, 3).map(p => 
+        p.text.length > 50 ? p.text.substring(0, 50) + '...' : p.text
+      ).join(' | ');
+      
+      const description = `Based on ${data.count} social media reports. Sample content: ${sampleTexts}`;
+      
+      // Create the disaster event
+      await storage.createDisasterEvent(
+        insertDisasterEventSchema.parse({
+          name: `${disasterType} Incident on ${new Date(day).toLocaleDateString()}`,
+          description,
+          timestamp: new Date(day),
+          location,
+          type: disasterType,
+          sentimentImpact: dominantSentiment
+        })
+      );
+    }
+  };
+
   // API Routes
   
   // Get all sentiment posts
@@ -124,6 +231,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
         )
       );
+      
+      // Generate disaster events from the sentiment posts
+      await generateDisasterEvents(sentimentPosts);
 
       res.json({
         file: analyzedFile,
@@ -139,34 +249,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analyze single text
+  // Analyze text (single or batch)
   app.post('/api/analyze-text', async (req: Request, res: Response) => {
     try {
-      const { text } = req.body;
+      const { text, texts, source = 'Manual Input' } = req.body;
       
-      if (!text) {
-        return res.status(400).json({ error: "No text provided" });
+      // Check if we have either a single text or an array of texts
+      if (!text && (!texts || !Array.isArray(texts) || texts.length === 0)) {
+        return res.status(400).json({ error: "No text provided. Send either 'text' or 'texts' array in the request body" });
       }
-
-      const result = await pythonService.analyzeSentiment(text);
       
-      // Save the sentiment post
-      const sentimentPost = await storage.createSentimentPost(
-        insertSentimentPostSchema.parse({
-          text,
-          timestamp: new Date(),
-          source: 'Manual Input',
-          language: 'en',
-          sentiment: result.sentiment,
-          confidence: result.confidence,
-          location: null,
-          disasterType: null,
-          fileId: null
-        })
-      );
-
+      // Process single text
+      if (text) {
+        const result = await pythonService.analyzeSentiment(text);
+        
+        // Save the sentiment post
+        const sentimentPost = await storage.createSentimentPost(
+          insertSentimentPostSchema.parse({
+            text,
+            timestamp: new Date(),
+            source,
+            language: 'en', // Could be improved to detect language
+            sentiment: result.sentiment,
+            confidence: result.confidence,
+            location: null,
+            disasterType: null,
+            fileId: null
+          })
+        );
+        
+        return res.json({ post: sentimentPost });
+      }
+      
+      // Process multiple texts
+      const sentimentPromises = texts.map(async (textItem: string) => {
+        const result = await pythonService.analyzeSentiment(textItem);
+        
+        return storage.createSentimentPost(
+          insertSentimentPostSchema.parse({
+            text: textItem,
+            timestamp: new Date(),
+            source,
+            language: 'en', // Could be improved to detect language
+            sentiment: result.sentiment,
+            confidence: result.confidence,
+            location: null,
+            disasterType: null,
+            fileId: null
+          })
+        );
+      });
+      
+      const sentimentPosts = await Promise.all(sentimentPromises);
+      
+      // Generate disaster events from the new posts if we have at least 3
+      if (sentimentPosts.length >= 3) {
+        await generateDisasterEvents(sentimentPosts);
+      }
+      
       res.json({
-        post: sentimentPost
+        posts: sentimentPosts
       });
     } catch (error) {
       res.status(500).json({ 
