@@ -34,7 +34,6 @@ export default function Evaluation() {
         <FileUploader 
           className="mt-4 sm:mt-0"
           onSuccess={(data) => {
-            // On success, select the newly uploaded file
             if (data.file?.id) {
               setSelectedFileId(data.file.id.toString());
             }
@@ -136,7 +135,7 @@ export default function Evaluation() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
@@ -150,7 +149,7 @@ export default function Evaluation() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
@@ -165,7 +164,7 @@ export default function Evaluation() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
@@ -176,20 +175,6 @@ export default function Evaluation() {
                 <h3 className="text-sm font-medium text-slate-800">F1 Score</h3>
                 <p className="mt-1 text-sm text-slate-600">
                   The harmonic mean of precision and recall. Balances both metrics for an overall performance measure.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-slate-800">Confusion Matrix</h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  Shows predicted vs. true labels across all classes. Diagonal elements represent correct predictions.
                 </p>
               </div>
             </div>
