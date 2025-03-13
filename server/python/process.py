@@ -242,11 +242,11 @@ class DisasterSentimentBackend:
         try:
             from langdetect import detect
             language = detect(text)
-            
+
             # Explicitly detect Tagalog/Filipino
             tagalog_keywords = ['ang', 'mga', 'na', 'sa', 'ng', 'ko', 'ay', 'mo', 'po', 'namin', 'ako', 'kami', 'siya', 'niya', 'nila', 'natin']
             tagalog_count = sum(1 for word in text.lower().split() if word in tagalog_keywords)
-            
+
             # If more than 2 Tagalog keywords are found, classify as Tagalog
             if tagalog_count > 2 or language == 'tl' or language == 'fil':
                 return 'Tagalog'  # Return 'Tagalog' instead of code 'tl'
@@ -300,14 +300,6 @@ class DisasterSentimentBackend:
             sentiment = result['sentiment']
             sentiment_counts[sentiment] = sentiment_counts.get(sentiment, 0) + 1
 
-        # Create a simple confusion matrix (5x5 for our 5 sentiment labels)
-        # In a real system, we would need ground truth labels to calculate this properly
-        cm = np.zeros((len(self.sentiment_labels), len(self.sentiment_labels)), dtype=int)
-
-        # For each sentiment, place the count in the diagonal of the confusion matrix
-        for i, sentiment in enumerate(self.sentiment_labels):
-            if sentiment in sentiment_counts:
-                cm[i][i] = sentiment_counts[sentiment]
 
         # Use confidence as a proxy for accuracy
         accuracy = avg_confidence
@@ -320,7 +312,6 @@ class DisasterSentimentBackend:
             'precision': precision,
             'recall': recall,
             'f1Score': f1,
-            'confusionMatrix': cm.tolist()
         }
 
 # Main execution

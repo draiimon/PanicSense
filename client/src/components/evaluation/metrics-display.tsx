@@ -8,7 +8,7 @@ interface MetricsData {
   precision: number;
   recall: number;
   f1Score: number;
-  confusionMatrix: number[][];
+  // confusionMatrix: number[][]; // Removed
 }
 
 interface MetricsDisplayProps {
@@ -23,9 +23,9 @@ export function MetricsDisplay({
   description = 'Model performance metrics'
 }: MetricsDisplayProps) {
   const metricsChartRef = useRef<HTMLCanvasElement>(null);
-  const confusionMatrixChartRef = useRef<HTMLCanvasElement>(null);
+  // const confusionMatrixChartRef = useRef<HTMLCanvasElement>(null); // Removed
   const metricsChartInstance = useRef<Chart | null>(null);
-  const confusionMatrixChartInstance = useRef<Chart | null>(null);
+  // const confusionMatrixChartInstance = useRef<Chart | null>(null); // Removed
 
   const sentimentLabels = ['Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'];
 
@@ -81,126 +81,15 @@ export function MetricsDisplay({
       });
     }
 
-    // Confusion Matrix Chart
-    if (confusionMatrixChartRef.current && data.confusionMatrix) {
-      if (confusionMatrixChartInstance.current) {
-        confusionMatrixChartInstance.current.destroy();
-      }
-
-      const ctx = confusionMatrixChartRef.current.getContext('2d');
-      if (!ctx) return;
-
-      // Flatten confusion matrix for heatmap
-      const matrixData = [];
-      const matrixLabels = [];
-      
-      for (let i = 0; i < data.confusionMatrix.length; i++) {
-        for (let j = 0; j < data.confusionMatrix[i].length; j++) {
-          matrixData.push({
-            x: j,
-            y: i,
-            v: data.confusionMatrix[i][j]
-          });
-        }
-      }
-
-      confusionMatrixChartInstance.current = new Chart(ctx, {
-        type: 'scatter',
-        data: {
-          datasets: [{
-            label: 'Confusion Matrix',
-            data: matrixData,
-            backgroundColor: (context) => {
-              const value = context.raw?.v;
-              // Create a color gradient based on the value
-              const alpha = Math.min(1, Math.max(0.1, value / Math.max(...data.confusionMatrix.flat())));
-              return `rgba(66, 153, 225, ${alpha})`;
-            },
-            borderColor: 'rgba(0, 0, 0, 0.1)',
-            borderWidth: 1,
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            pointHitRadius: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              type: 'linear',
-              position: 'bottom',
-              min: -0.5,
-              max: data.confusionMatrix[0].length - 0.5,
-              ticks: {
-                callback: function(value) {
-                  return sentimentLabels[value as number] || '';
-                },
-                stepSize: 1,
-                font: {
-                  weight: 'bold'
-                },
-                color: '#4A5568'  // Darker color for better readability
-              },
-              title: {
-                display: true,
-                text: 'Predicted Emotion',
-                font: {
-                  weight: 'bold',
-                  size: 14
-                }
-              }
-            },
-            y: {
-              type: 'linear',
-              min: -0.5,
-              max: data.confusionMatrix.length - 0.5,
-              ticks: {
-                callback: function(value) {
-                  return sentimentLabels[value as number] || '';
-                },
-                stepSize: 1,
-                reverse: true
-              },
-              title: {
-                display: true,
-                text: 'True'
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              callbacks: {
-                title: function() {
-                  return '';
-                },
-                label: function(context) {
-                  const dataPoint = context.raw as { x: number, y: number, v: number };
-                  const trueLabel = sentimentLabels[dataPoint.y];
-                  const predictedLabel = sentimentLabels[dataPoint.x];
-                  return [
-                    `True: ${trueLabel}`,
-                    `Predicted: ${predictedLabel}`,
-                    `Count: ${dataPoint.v}`
-                  ];
-                }
-              }
-            }
-          }
-        }
-      });
-    }
+    // Confusion Matrix Chart Removed
 
     return () => {
       if (metricsChartInstance.current) {
         metricsChartInstance.current.destroy();
       }
-      if (confusionMatrixChartInstance.current) {
-        confusionMatrixChartInstance.current.destroy();
-      }
+      // if (confusionMatrixChartInstance.current) { // Removed
+      //   confusionMatrixChartInstance.current.destroy();
+      // } // Removed
     };
   }, [data]);
 
@@ -261,21 +150,8 @@ export function MetricsDisplay({
           </div>
         </CardContent>
       </Card>
-      
-      {/* Confusion Matrix */}
-      <Card className="bg-white rounded-lg shadow">
-        <CardHeader className="p-5 border-b border-gray-200">
-          <CardTitle className="text-lg font-medium text-slate-800">Confusion Matrix</CardTitle>
-          <CardDescription className="text-sm text-slate-500">
-            True vs Predicted Sentiments
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-5">
-          <div className="h-80">
-            <canvas ref={confusionMatrixChartRef} />
-          </div>
-        </CardContent>
-      </Card>
+
+      {/* Confusion Matrix Removed */}
     </div>
   );
 }

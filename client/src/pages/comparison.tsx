@@ -1,64 +1,117 @@
-import { useState } from "react";
-import { useDisasterContext } from "@/context/disaster-context";
 import { DisasterComparison } from "@/components/comparison/disaster-comparison";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { SentimentChart } from "@/components/dashboard/sentiment-chart";
+import { SentimentChart } from "@/components/charts/sentiment-chart";
+import { useDisasterContext } from "@/context/disaster-context";
+import { useState, useEffect } from "react";
+import { SentimentPost } from "@shared/schema";
 
 export default function Comparison() {
   const { sentimentPosts, disasterEvents } = useDisasterContext();
-
-  // Simulate disaster type data
-  // In a real app, this would be derived from sentimentPosts grouped by disasterType
-  const disasterData = [
-    {
-      type: "Earthquake",
-      sentiments: [
-        { label: "Panic", percentage: 45 },
-        { label: "Fear/Anxiety", percentage: 30 },
-        { label: "Disbelief", percentage: 15 },
-        { label: "Resilience", percentage: 5 },
-        { label: "Neutral", percentage: 5 }
-      ]
-    },
-    {
-      type: "Typhoon",
-      sentiments: [
-        { label: "Panic", percentage: 20 },
-        { label: "Fear/Anxiety", percentage: 35 },
-        { label: "Disbelief", percentage: 15 },
-        { label: "Resilience", percentage: 20 },
-        { label: "Neutral", percentage: 10 }
-      ]
-    },
-    {
-      type: "Flood",
-      sentiments: [
-        { label: "Panic", percentage: 25 },
-        { label: "Fear/Anxiety", percentage: 40 },
-        { label: "Disbelief", percentage: 20 },
-        { label: "Resilience", percentage: 10 },
-        { label: "Neutral", percentage: 5 }
-      ]
-    },
-    {
-      type: "Volcanic Eruption",
-      sentiments: [
-        { label: "Panic", percentage: 50 },
-        { label: "Fear/Anxiety", percentage: 25 },
-        { label: "Disbelief", percentage: 10 },
-        { label: "Resilience", percentage: 5 },
-        { label: "Neutral", percentage: 10 }
-      ]
-    }
-  ];
-
-  // Comparison metrics for timeline
-  const timeComparisonData = {
+  const [disasterData, setDisasterData] = useState<any[]>([]);
+  const [timelineData, setTimelineData] = useState<any>({
     labels: ["Initial Phase", "Peak Phase", "Recovery Phase"],
-    values: [50, 75, 25],
+    values: [0, 0, 0],
     title: "Sentiment Intensity by Disaster Phase",
     description: "How emotions evolve throughout disaster lifecycle"
-  };
+  });
+
+  // Process sentiment data when it changes
+  useEffect(() => {
+    if (sentimentPosts.length === 0) return;
+
+    // Group sentiment posts by disaster type
+    const groupedByDisasterType: Record<string, SentimentPost[]> = {};
+
+    // First try to use disasterType from posts
+    sentimentPosts.forEach(post => {
+      if (post.disasterType) {
+        if (!groupedByDisasterType[post.disasterType]) {
+          groupedByDisasterType[post.disasterType] = [];
+        }
+        groupedByDisasterType[post.disasterType].push(post);
+      } else {
+        // If no disaster type, try to infer from text
+        const text = post.text.toLowerCase();
+        let inferredType = "Other";
+
+        if (text.includes('earthquake') || text.includes('lindol')) {
+          inferredType = "Earthquake";
+        } else if (text.includes('flood') || text.includes('baha')) {
+          inferredType = "Flood";
+        } else if (text.includes('typhoon') || text.includes('bagyo')) {
+          inferredType = "Typhoon";
+        } else if (text.includes('fire') || text.includes('sunog')) {
+          inferredType = "Fire";
+        } else if (text.includes('volcano') || text.includes('bulkan')) {
+          inferredType = "Volcanic Eruption";
+        }
+
+        if (!groupedByDisasterType[inferredType]) {
+          groupedByDisasterType[inferredType] = [];
+        }
+        groupedByDisasterType[inferredType].push(post);
+      }
+    });
+
+    // Calculate sentiment distribution for each disaster type
+    const processedData = Object.entries(groupedByDisasterType).map(([type, posts]) => {
+      // Count sentiments
+      const sentimentCounts: Record<string, number> = {};
+      posts.forEach(post => {
+        sentimentCounts[post.sentiment] = (sentimentCounts[post.sentiment] || 0) + 1;
+      });
+
+      // Convert to percentages
+      const totalPosts = posts.length;
+      const sentiments = Object.entries(sentimentCounts).map(([label, count]) => ({
+        label,
+        percentage: Math.round((count / totalPosts) * 100)
+      }));
+
+      return {
+        type,
+        sentiments: sentiments.sort((a, b) => b.percentage - a.percentage)
+      };
+    });
+
+    setDisasterData(processedData);
+
+    // Calculate timeline data based on post timestamps
+    if (sentimentPosts.length > 0) {
+      // Sort posts by timestamp
+      const sortedPosts = [...sentimentPosts].sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
+      const totalPosts = sortedPosts.length;
+      const postsPerPhase = Math.ceil(totalPosts / 3);
+
+      // Split posts into three phases
+      const initialPosts = sortedPosts.slice(0, postsPerPhase);
+      const peakPosts = sortedPosts.slice(postsPerPhase, postsPerPhase * 2);
+      const recoveryPosts = sortedPosts.slice(postsPerPhase * 2);
+
+      // Calculate average sentiment intensity per phase
+      // (Simple version: count percentage of negative emotions)
+      const negativeEmotions = ['Panic', 'Fear/Anxiety', 'Disbelief'];
+
+      const getPhaseIntensity = (posts: SentimentPost[]) => {
+        if (posts.length === 0) return 0;
+        const negativeCount = posts.filter(p => negativeEmotions.includes(p.sentiment)).length;
+        return Math.round((negativeCount / posts.length) * 100);
+      };
+
+      setTimelineData({
+        labels: ["Initial Phase", "Peak Phase", "Recovery Phase"],
+        values: [
+          getPhaseIntensity(initialPosts),
+          getPhaseIntensity(peakPosts),
+          getPhaseIntensity(recoveryPosts)
+        ],
+        title: "Negative Sentiment Intensity by Disaster Phase",
+        description: "How negative emotions evolve throughout disaster lifecycle"
+      });
+    }
+  }, [sentimentPosts, disasterEvents]);
 
   return (
     <div className="space-y-6">
@@ -72,16 +125,15 @@ export default function Comparison() {
       <DisasterComparison 
         disasters={disasterData}
         title="Disaster Type Comparison"
-        description="Sentiment distribution across different disasters"
+        description="Sentiment distribution from actual social media data analysis"
       />
 
       {/* Additional comparison insights */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <SentimentChart 
-          data={timeComparisonData}
+          data={timelineData}
           type="bar"
         />
-
         <Card className="bg-white rounded-lg shadow">
           <CardHeader className="p-5 border-b border-gray-200">
             <CardTitle className="text-lg font-medium text-slate-800">Key Insights</CardTitle>
