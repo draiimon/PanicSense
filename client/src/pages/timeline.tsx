@@ -2,37 +2,59 @@ import { useState } from "react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { SentimentTimeline } from "@/components/timeline/sentiment-timeline";
 import { KeyEvents } from "@/components/timeline/key-events";
+import { format, subDays } from "date-fns";
 
 export default function Timeline() {
   const { disasterEvents, sentimentPosts } = useDisasterContext();
 
-  // Mock timeline data for sentiment evolution
-  // In a real app, this would be derived from sentimentPosts grouped by date
-  const timelineData = {
-    labels: ["May 10", "May 11", "May 12", "May 13", "May 14", "May 15", "May 16"],
-    datasets: [
-      {
-        label: "Panic",
-        data: [45, 28, 20, 15, 10, 8, 5]
-      },
-      {
-        label: "Fear/Anxiety",
-        data: [30, 42, 35, 30, 25, 20, 15]
-      },
-      {
-        label: "Disbelief",
-        data: [15, 20, 18, 15, 12, 10, 8]
-      },
-      {
-        label: "Resilience",
-        data: [5, 8, 15, 25, 35, 40, 45]
-      },
-      {
-        label: "Neutral",
-        data: [5, 2, 12, 15, 18, 22, 27]
+  // Process sentiment posts to create timeline data
+  const processTimelineData = () => {
+    // Get the last 7 days
+    const dates = Array.from({ length: 7 }, (_, i) => {
+      const date = subDays(new Date(), i);
+      return format(date, "MMM dd");
+    }).reverse();
+
+    // Initialize datasets for each sentiment
+    const sentiments = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"];
+    const sentimentCounts = {};
+
+    // Initialize counts for each sentiment on each date
+    dates.forEach(date => {
+      sentimentCounts[date] = {};
+      sentiments.forEach(sentiment => {
+        sentimentCounts[date][sentiment] = 0;
+      });
+    });
+
+    // Count sentiments for each date
+    sentimentPosts.forEach(post => {
+      const postDate = format(new Date(post.timestamp), "MMM dd");
+      if (sentimentCounts[postDate] && sentimentCounts[postDate][post.sentiment] !== undefined) {
+        sentimentCounts[postDate][post.sentiment]++;
       }
-    ]
+    });
+
+    // Convert counts to percentages and create datasets
+    const datasets = sentiments.map(sentiment => {
+      const data = dates.map(date => {
+        const total = Object.values(sentimentCounts[date]).reduce((sum: number, count: number) => sum + count, 0);
+        return total > 0 ? (sentimentCounts[date][sentiment] / total) * 100 : 0;
+      });
+
+      return {
+        label: sentiment,
+        data
+      };
+    });
+
+    return {
+      labels: dates,
+      datasets
+    };
   };
+
+  const timelineData = processTimelineData();
 
   return (
     <div className="space-y-6">
@@ -51,7 +73,10 @@ export default function Timeline() {
 
       {/* Key Events */}
       <KeyEvents 
-        events={disasterEvents}
+        events={disasterEvents.map(event => ({
+          ...event,
+          description: event.description || '' // Convert null to empty string
+        }))}
         title="Key Events"
         description="Major shifts in sentiment patterns"
       />
