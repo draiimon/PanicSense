@@ -1,15 +1,14 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { uploadCSV } from '@/lib/api';
-import { useToast } from '@/hooks/use-toast';
-import { queryClient } from '@/lib/queryClient';
+import { createContext, useContext, useState, ReactNode } from 'react';
+import axios from 'axios';
+import { useToast } from '@/components/ui/use-toast';
 
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
 
 interface UploadContextType {
   status: UploadStatus;
   progress: string;
-  uploadFile: (file: File) => Promise<void>;
+  uploadFile: (file: File) => Promise<any>;
   reset: () => void;
 }
 
@@ -40,56 +39,62 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: File): Promise<any> => {
     if (status === 'uploading') return;
     
-    setStatus('uploading');
-    setProgress('Preparing...');
-    simulateProgressUpdates();
-    
     try {
+      setStatus('uploading');
+      setProgress('Preparing upload...');
+      
+      // Start progress simulation
+      simulateProgressUpdates();
+      
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await uploadCSV(formData);
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/analyzed-files'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/sentiment-posts'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/disaster-events'] });
-      
-      toast({
-        title: "Upload Successful",
-        description: `Analyzed ${response.posts.length} entries with sentiment data.`,
+      const response = await axios.post('/api/upload-csv', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            updateProgress(`Uploading: ${percentCompleted}%`);
+          }
+        },
       });
       
       setStatus('success');
+      setProgress('Upload complete');
       
-      return response;
+      toast({
+        title: "Success",
+        description: `Analyzed ${response.data.posts.length} posts from ${file.name}`,
+      });
+      
+      return response.data;
     } catch (error) {
       console.error('Upload error:', error);
+      setStatus('error');
+      setProgress('Upload failed');
+      
       toast({
-        title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Failed to upload file",
+        title: "Error",
+        description: "Failed to upload and process file. Please try again.",
         variant: "destructive",
       });
       
-      setStatus('error');
+      return null;
     }
   };
-
+  
   const reset = () => {
     setStatus('idle');
     setProgress('Preparing...');
   };
 
   return (
-    <UploadContext.Provider value={{ 
-      status, 
-      progress, 
-      uploadFile, 
-      reset 
-    }}>
+    <UploadContext.Provider value={{ status, progress, uploadFile, reset }}>
       {children}
     </UploadContext.Provider>
   );

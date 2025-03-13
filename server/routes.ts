@@ -200,9 +200,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
+        console.error("Upload failed: No file received in request");
         return res.status(400).json({ error: "No file uploaded" });
       }
 
+      console.log(`Processing file: ${req.file.originalname}, size: ${req.file.size} bytes`);
       const fileBuffer = req.file.buffer;
       const originalFilename = req.file.originalname;
 
