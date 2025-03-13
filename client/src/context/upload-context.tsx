@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface UploadContextType {
@@ -11,15 +12,7 @@ interface UploadContextType {
 
 const UploadContext = createContext<UploadContextType | undefined>(undefined);
 
-export function useUpload() {
-  const context = useContext(UploadContext);
-  if (!context) {
-    throw new Error("useUpload must be used within an UploadProvider");
-  }
-  return context;
-}
-
-export function UploadProvider({ children }: { children: React.ReactNode }) {
+export function UploadProvider({ children }: { children: ReactNode }) {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -54,4 +47,12 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
       {children}
     </UploadContext.Provider>
   );
+}
+
+export function useUpload() {
+  const context = useContext(UploadContext);
+  if (!context) {
+    throw new Error("useUpload must be used within an UploadProvider");
+  }
+  return context;
 }
