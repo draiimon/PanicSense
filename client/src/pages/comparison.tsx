@@ -118,7 +118,7 @@ export default function Comparison() {
                   </svg>
                 </div>
                 <p className="text-sm text-slate-700">
-                  <span className="font-medium">Volcanic eruptions</span> have the longest-lasting disbelief sentiment, likely due to their rarity.
+                  <span className="font-medium">Volcanic eruptions</span> have the longest-lasting disbelief sentiment, likely due to their rarity and catastrophic nature.
                 </p>
               </li>
               <li className="flex items-start space-x-3">

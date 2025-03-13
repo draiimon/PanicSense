@@ -24,8 +24,6 @@ args = parser.parse_args()
 class DisasterSentimentBackend:
     def __init__(self):
         self.sentiment_labels = ['Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral']
-
-        # Get API keys from environment variables
         self.api_keys = []
         import os
 
@@ -45,15 +43,26 @@ class DisasterSentimentBackend:
         if not self.api_keys and os.getenv("API_KEY"):
             self.api_keys.append(os.getenv("API_KEY"))
 
-        # If no keys are found in environment variables, use a placeholder
-        # This will cause the model to fall back to rule-based analysis
+        # If no keys are found in environment variables, use the provided keys
         if not self.api_keys:
-            logging.warning("No API keys found in environment variables. Using rule-based analysis only.")
-            self.api_keys = ["no_api_key_found"]
+            self.api_keys = [
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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"
+            ]
 
-        self.api_url = "https://api.example.com/v1/chat/completions" #Replaced API URL
-        self.groq_retry_delay = 1
-        self.groq_limit_delay = 0.5
+        self.api_url = "https://api.groq.com/openai/v1/chat/completions" # Needs to be changed to remove Groq reference
+        self.retry_delay = 1
+        self.limit_delay = 0.5
         self.current_api_index = 0
         self.max_retries = 3  # Maximum retry attempts for API requests
 
@@ -63,53 +72,124 @@ class DisasterSentimentBackend:
     def detect_slang(self, text):
         return text
 
-    def fetch_groq(self, headers, payload, retry_count=0):
+    def fetch_api(self, headers, payload, retry_count=0):
         try:
             response = requests.post(self.api_url, headers=headers, json=payload)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
             if hasattr(e, 'response') and e.response and e.response.status_code == 429:
-                logging.warning(f"Data {self.current_api_index + 1}/{len(self.api_keys)}). Data Fetching.....")
+                logging.warning(f"LOADING SENTIMENTS..... (Data {self.current_api_index + 1}/{len(self.api_keys)}). Data Fetching...")
                 self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
-                logging.info(f"Waiting {self.groq_retry_delay} seconds before trying next key")
-                time.sleep(self.groq_limit_delay)
+                logging.info(f"Waiting {self.limit_delay} seconds before trying next key")
+                time.sleep(self.limit_delay)
                 if retry_count < self.max_retries:
-                    return self.fetch_groq(headers, payload, retry_count + 1)
+                    return self.fetch_api(headers, payload, retry_count + 1)
                 else:
                     logging.error("Max retries exceeded for rate limit.")
                     return None
             else:
                 logging.error(f"API Error: {e}")
-                time.sleep(self.groq_retry_delay)
+                time.sleep(self.retry_delay)
                 if retry_count < self.max_retries:
-                    return self.fetch_groq(headers, payload, retry_count + 1)
+
+    def generate_sentiment_explanation(self, text, sentiment, language):
+        """Generate an explanation for why a particular sentiment was assigned"""
+        text_lower = text.lower()
+        
+        # Define explanation templates based on language
+        if language == "tl":
+            # Tagalog explanations
+            if sentiment == "Panic":
+                triggers = ["tulong", "saklolo", "emergency", "takot", "natakot", "natatakot"]
+                for word in triggers:
+                    if word in text_lower:
+                        return f"Naglalaman ng salitang '{word}' na nagpapahiwatig ng matinding pagkatakot o pangangailangan ng agarang tulong."
+                return "Naglalaman ng mga salitang nagpapahiwatig ng matinding pagkatakot o pangangailangan ng agarang tulong."
+            
+            elif sentiment == "Fear/Anxiety":
+                triggers = ["nag-aalala", "kabado", "natatakot", "mag-ingat"]
+                for word in triggers:
+                    if word in text_lower:
+                        return f"Naglalaman ng salitang '{word}' na nagpapahiwatig ng pag-aalala o pagkabalisa."
+                return "Naglalaman ng mga salitang nagpapahiwatig ng pag-aalala o pagkabalisa."
+            
+            elif sentiment == "Disbelief":
+                triggers = ["hindi kapani-paniwala", "gulat", "nagulat", "nakakagulat"]
+                for word in triggers:
+                    if word in text_lower:
+                        return f"Naglalaman ng salitang '{word}' na nagpapahiwatig ng pagkagulat o hindi paniniwala."
+                return "Naglalaman ng mga salitang nagpapahiwatig ng pagkagulat o hindi paniniwala."
+            
+            elif sentiment == "Resilience":
+                triggers = ["ligtas", "kaya natin", "malalagpasan", "tulong", "magtulungan"]
+                for word in triggers:
+                    if word in text_lower:
+                        return f"Naglalaman ng salitang '{word}' na nagpapahiwatig ng katatagan o pagkakaisa."
+                return "Naglalaman ng mga salitang nagpapahiwatig ng katatagan o pagkakaisa."
+            
+            else:  # Neutral
+                return "Walang malinaw na pagpapahiwatig ng emosyon o naglalaman ng balanseng pananaw."
+        
+        else:  # English explanations
+            if sentiment == "Panic":
+                triggers = ["help", "emergency", "panic", "scared", "terrified", "desperate"]
+                for word in triggers:
+                    if word in text_lower:
+                        return f"Contains the word '{word}' which indicates extreme fear or need for immediate assistance."
+                return "Contains words indicating extreme fear or need for immediate assistance."
+            
+            elif sentiment == "Fear/Anxiety":
+                triggers = ["afraid", "fear", "worried", "anxiety", "concerned", "scared"]
+                for word in triggers:
+                    if word in text_lower:
+                        return f"Contains the word '{word}' which indicates worry or apprehension."
+                return "Contains words indicating worry or apprehension."
+            
+            elif sentiment == "Disbelief":
+                triggers = ["can't believe", "unbelievable", "shocked", "no way", "impossible"]
+                for word in triggers:
+                    if word in text_lower:
+                        return f"Contains expressions like '{word}' which indicates shock or disbelief."
+                return "Contains expressions indicating shock or disbelief."
+            
+            elif sentiment == "Resilience":
+                triggers = ["safe", "okay", "hope", "strong", "recover", "rebuild", "together"]
+                for word in triggers:
+                    if word in text_lower:
+                        return f"Contains the word '{word}' which indicates strength or unity in the face of disaster."
+                return "Contains words indicating strength or unity in the face of disaster."
+            
+            else:  # Neutral
+                return "No clear emotional indicators or contains balanced viewpoints."
+
+                    return self.fetch_api(headers, payload, retry_count + 1)
                 else:
                     logging.error("Max retries exceeded for API error.")
                     return None
         except Exception as e:
             logging.error(f"API Request Error: {e}")
-            time.sleep(self.groq_retry_delay)
+            time.sleep(self.retry_delay)
             if retry_count < self.max_retries:
-                return self.fetch_groq(headers, payload, retry_count + 1)
+                return self.fetch_api(headers, payload, retry_count + 1)
             else:
                 logging.error("Max retries exceeded for request error.")
                 return None
 
     def analyze_sentiment(self, text):
         """
-        Analyze sentiment using API with detailed logging
+        Analyze sentiment using AI with detailed logging
         """
         # Detect language first for better prompting
         language = self.detect_language(text)
-        language_name = "Filipino/Tagalog" if language == "tl" else "English"
+        language_name = "Tagalog" if language == "tl" else "English"
 
         logging.info(f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
-        logging.info(f"Processing {language_name} text through API")
+        logging.info(f"Processing {language_name} text")
 
         # Try using the API if keys are available
         try:
-            if len(self.api_keys) > 0 and self.api_keys[0] != "no_api_key_found":
+            if len(self.api_keys) > 0:
                 api_key = self.api_keys[self.current_api_index]
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
@@ -124,19 +204,19 @@ class DisasterSentimentBackend:
                 payload = {
                     "messages": [{"role": "user", "content": prompt}],
                     "model": "mixtral-8x7b-32768",
-                    "temperature": 0.5,
+                    "temperature": 0.6,
                     "max_tokens": 20,
                 }
 
-                logging.info(f"Sending request to API (Key #{self.current_api_index + 1})")
-                result = self.fetch_groq(headers, payload)
+                logging.info(f"Sending request to AI (Key #{self.current_api_index + 1})")
+                result = self.fetch_api(headers, payload)
             else:
                 # No valid API keys, skip to rule-based approach
                 raise Exception("No valid API keys available")
 
             if result and 'choices' in result and result['choices']:
                 raw_output = result['choices'][0]['message']['content'].strip()
-                logging.info(f"Got response from API: '{raw_output}'")
+                logging.info(f"Got response from AI: '{raw_output}'")
 
                 # Extract model's confidence from output if present
                 confidence_match = re.search(r'(\d+(?:\.\d+)?)%', raw_output)
@@ -153,7 +233,7 @@ class DisasterSentimentBackend:
 
                         # If confidence was expressed in output, use that, otherwise generate a reasonable value
                         if model_confidence:
-                            logging.info(f"Sentiment: {sentiment}, Model Confidence: {model_confidence:.2f}")
+                            logging.info(f"Sentiment: {sentiment}, Confidence: {model_confidence:.2f}")
                             return sentiment, model_confidence
                         else:
                             # Generate confidence based on sentiment type (different ranges for different sentiments)
@@ -164,18 +244,21 @@ class DisasterSentimentBackend:
                             else:
                                 confidence = random.uniform(0.78, 0.95)
 
-                            logging.info(f"Sentiment: {sentiment}, Model Confidence: {confidence:.2f}")
-                            return sentiment, confidence
+                            # Generate explanation for the sentiment
+                            explanation = self.generate_sentiment_explanation(text, sentiment, language)
+                            logging.info(f"Sentiment: {sentiment}, Confidence: {confidence:.2f}")
+                            return sentiment, confidence, explanation
 
                 # If no specific sentiment was found but we got a response
                 self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
                 confidence = random.uniform(0.70, 0.85)
-                logging.info(f"Sentiment: Neutral (default), Model Confidence: {confidence:.2f}")
-                return "Neutral", confidence
+                explanation = self.generate_sentiment_explanation(text, "Neutral", language)
+                logging.info(f"Sentiment: Neutral (default), Confidence: {confidence:.2f}")
+                return "Neutral", confidence, explanation
 
         except Exception as e:
-            logging.error(f"Error using API: {e}")
-            logging.error(f"API failed: {str(e)[:100]}")
+            logging.error(f"Error in analysis: {e}")
+            logging.error(f"Analysis failed: {str(e)[:100]}")
             # Fall back to the rule-based approach if API fails
 
         # Fallback: Enhanced rule-based sentiment analysis with language awareness
@@ -216,8 +299,9 @@ class DisasterSentimentBackend:
         else:
             confidence = random.uniform(0.77, 0.93)
 
-        logging.info(f"DONE (FALLBACK)... Sentiment: {sentiment}, Model Confidence: {confidence:.2f}")
-        return sentiment, confidence
+        explanation = self.generate_sentiment_explanation(text, sentiment, self.detect_language(text))
+        logging.info(f"DONE (FALLBACK)... Sentiment: {sentiment}, Confidence: {confidence:.2f}")
+        return sentiment, confidence, explanation
 
     def detect_language(self, text):
         """
@@ -301,7 +385,7 @@ class DisasterSentimentBackend:
     def calculate_real_metrics(self, results):
         """
         Instead of simulating evaluation, this returns actual metrics based on 
-        confidence values from the API
+        confidence values from the AI
         """
         logging.info("Generating real metrics from sentiment analysis")
 
@@ -359,11 +443,8 @@ elif args.text:
 
     output = {
         'sentiment': sentiment,
-        'confidence': confidence
+        'confidence': confidence,
+        'explanation': explanation
     }
 
     print(json.dumps(output))
-
-else:
-    print('Error: Either --file or --text argument is required.')
-    sys.exit(1)
