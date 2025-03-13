@@ -196,17 +196,23 @@ class DisasterSentimentBackend:
                 api_key = self.api_keys[self.current_api_index]
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-                # Enhanced prompt with language-specific context
-                prompt = f"""Analyze the sentiment in this disaster-related {'Tagalog/Filipino' if language == 'tl' else 'English'} text.
+                # Advanced ML prompt with enhanced context awareness and sentiment analysis
+                prompt = f"""Analyze the sentiment in this disaster-related {'Tagalog/Filipino' if language == 'tl' else 'English'} text using advanced machine learning techniques.
 Choose exactly one option from: Panic, Fear/Anxiety, Disbelief, Resilience, or Neutral.
-Consider cultural context and local expressions.
+Consider cultural context, local expressions, and disaster-specific indicators.
+
+For Tagalog text, consider the nuances and intensity markers specific to Filipino culture during disasters.
+Analyze both explicit statements and implicit emotional indicators.
 
 Text: {text}
 
-Provide sentiment and brief explanation in this format:
+Provide detailed sentiment analysis in this format:
 Sentiment: [chosen sentiment]
 Confidence: [percentage]
-Explanation: [brief explanation]"""
+Explanation: [brief explanation]
+DisasterType: [identify disaster type if mentioned]
+Location: [identify Philippine location if mentioned]
+"""
 
                 payload = {
                     "messages": [{"role": "user", "content": prompt}],
@@ -220,10 +226,12 @@ Explanation: [brief explanation]"""
                 if result and 'choices' in result and result['choices']:
                     raw_output = result['choices'][0]['message']['content'].strip()
 
-                    # Extract sentiment, confidence, and explanation
+                    # Extract sentiment, confidence, explanation, and additional disaster info
                     sentiment_match = re.search(r'Sentiment:\s*(.*?)(?:\n|$)', raw_output)
                     confidence_match = re.search(r'Confidence:\s*(\d+(?:\.\d+)?)%', raw_output)
                     explanation_match = re.search(r'Explanation:\s*(.*?)(?:\n|$)', raw_output)
+                    disaster_type_match = re.search(r'DisasterType:\s*(.*?)(?:\n|$)', raw_output)
+                    location_match = re.search(r'Location:\s*(.*?)(?:\n|$)', raw_output)
 
                     sentiment = None
                     if sentiment_match:
@@ -238,6 +246,15 @@ Explanation: [brief explanation]"""
                         confidence = max(0.7, min(0.98, confidence))  # Clamp between 0.7 and 0.98
 
                     explanation = explanation_match.group(1) if explanation_match else None
+                    
+                    # Extract disaster type and location if available from GROQ
+                    disaster_type = disaster_type_match.group(1) if disaster_type_match else None
+                    if disaster_type and disaster_type.lower() == "none" or disaster_type and disaster_type.lower() == "n/a":
+                        disaster_type = None
+                        
+                    location = location_match.group(1) if location_match else None
+                    if location and location.lower() == "none" or location and location.lower() == "n/a":
+                        location = None
 
                     self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
 
@@ -246,7 +263,9 @@ Explanation: [brief explanation]"""
                             "sentiment": sentiment,
                             "confidence": confidence,
                             "explanation": explanation,
-                            "language": language
+                            "language": language,
+                            "disasterType": disaster_type,
+                            "location": location
                         }
 
         except Exception as e:

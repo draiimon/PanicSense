@@ -21,22 +21,46 @@ export function AffectedAreas({
 }: AffectedAreasProps) {
   const { sentimentPosts } = useDisasterContext();
 
-  // Calculate affected areas from actual sentiment posts
+  // Calculate affected areas from actual sentiment posts with enhanced detection
   const areas = useMemo(() => {
     const locationCounts = new Map<string, { total: number; sentiments: Map<string, number> }>();
+    
+    // List of Philippine locations to detect in text
+    const philippineLocations = [
+      'Manila', 'Quezon City', 'Cebu', 'Davao', 'Mindanao', 'Luzon',
+      'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
+      'Batangas', 'Zambales', 'Pampanga', 'Bicol', 'Leyte', 'Samar',
+      'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna', 
+      'Rizal', 'Nueva Ecija', 'Benguet', 'Albay', 'Marikina', 'Pasig',
+      'Makati', 'Mandaluyong', 'Pasay', 'Taguig', 'Parañaque', 'Caloocan'
+    ];
 
     // Count posts by location and track sentiments
     sentimentPosts.forEach(post => {
-      if (!post.location) return;
+      let foundLocation = post.location;
+      
+      // If no location is assigned, try to detect from text
+      if (!foundLocation) {
+        const text = post.text.toLowerCase();
+        // Check for known Philippine locations in the text
+        for (const location of philippineLocations) {
+          if (text.includes(location.toLowerCase())) {
+            foundLocation = location;
+            break;
+          }
+        }
+      }
+      
+      if (!foundLocation) return;
 
-      if (!locationCounts.has(post.location)) {
-        locationCounts.set(post.location, {
+      if (!locationCounts.has(foundLocation)) {
+        locationCounts.set(foundLocation, {
           total: 0,
           sentiments: new Map()
         });
       }
 
-      const locationData = locationCounts.get(post.location)!;
+      const locationData = locationCounts.get(foundLocation)!;
       locationData.total++;
 
       const currentSentimentCount = locationData.sentiments.get(post.sentiment) || 0;
@@ -44,7 +68,8 @@ export function AffectedAreas({
     });
 
     // Convert to array and calculate percentages
-    const totalPosts = sentimentPosts.filter(post => post.location).length;
+    const totalPosts = locationCounts.size > 0 ? 
+      Array.from(locationCounts.values()).reduce((sum, data) => sum + data.total, 0) : 0;
 
     const areaData: AffectedArea[] = Array.from(locationCounts.entries())
       .map(([location, data]) => {

@@ -154,29 +154,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let disasterType = null;
       let location = null;
 
-      // Check for disaster type mentions
-      if (texts.some(t => t.includes('lindol') || t.includes('earthquake'))) {
-        disasterType = "Earthquake";
-      } else if (texts.some(t => t.includes('baha') || t.includes('flood'))) {
-        disasterType = "Flood";
-      } else if (texts.some(t => t.includes('bagyo') || t.includes('typhoon'))) {
-        disasterType = "Typhoon";
-      } else if (texts.some(t => t.includes('sunog') || t.includes('fire'))) {
-        disasterType = "Fire";
+      // Enhanced disaster type detection with more variations
+      const disasterKeywords = {
+        "Earthquake": ['lindol', 'earthquake', 'quake', 'tremor', 'lumindol', 'yugto', 'lindol na malakas', 'paglindol'],
+        "Flood": ['baha', 'flood', 'pagbaha', 'pagbabaha', 'bumaha', 'tubig', 'binaha', 'napabaha', 'flash flood'],
+        "Typhoon": ['bagyo', 'typhoon', 'storm', 'cyclone', 'hurricane', 'bagyong', 'unos', 'habagat', 'super typhoon'],
+        "Fire": ['sunog', 'fire', 'nasunog', 'burning', 'apoy', 'silab', 'nagkasunog', 'wildfire', 'forest fire'],
+        "Volcanic Eruption": ['bulkan', 'volcano', 'eruption', 'ash fall', 'lava', 'ashfall', 'bulkang', 'pumutok', 'sumabog'],
+        "Landslide": ['landslide', 'pagguho', 'guho', 'mudslide', 'rockslide', 'avalanche', 'pagguho ng lupa', 'collapsed'],
+        "Tsunami": ['tsunami', 'tidal wave', 'daluyong', 'alon', 'malalaking alon']
+      };
+
+      // Check each disaster type in texts
+      for (const [type, keywords] of Object.entries(disasterKeywords)) {
+        if (texts.some(text => keywords.some(keyword => text.includes(keyword)))) {
+          disasterType = type;
+          break;
+        }
       }
 
-      // Check for location mentions
-      // Common Philippine locations to check in text
+      // Enhanced location detection with more Philippine locations
       const locations = [
         'Manila', 'Quezon City', 'Cebu', 'Davao', 'Mindanao', 'Luzon',
         'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
         'Batangas', 'Zambales', 'Pampanga', 'Bicol', 'Leyte', 'Samar',
-        'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna'
+        'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna',
+        'Rizal', 'Marikina', 'Makati', 'Pasig', 'Taguig', 'Pasay', 'Mandaluyong',
+        'Parañaque', 'Caloocan', 'Valenzuela', 'Muntinlupa', 'Malabon', 'Navotas',
+        'San Juan', 'Las Piñas', 'Pateros', 'Nueva Ecija', 'Benguet', 'Albay',
+        'Catanduanes', 'Sorsogon', 'Camarines Sur', 'Camarines Norte', 'Marinduque'
       ];
 
+      // Try to find locations in text more aggressively
       for (const text of texts) {
+        const textLower = text.toLowerCase();
         for (const loc of locations) {
-          if (text.includes(loc.toLowerCase())) {
+          if (textLower.includes(loc.toLowerCase())) {
             location = loc;
             break;
           }
