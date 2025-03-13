@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { uploadCSV } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
@@ -10,7 +10,44 @@ interface FileUploaderProps {
 
 export function FileUploader({ onSuccess, className }: FileUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('Preparing...');
+  const [loadingDots, setLoadingDots] = useState('');
   const { toast } = useToast();
+
+  // Create animated loading dots effect
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    
+    if (isUploading) {
+      intervalId = setInterval(() => {
+        setLoadingDots(prev => {
+          if (prev.length >= 3) return '';
+          return prev + '.';
+        });
+      }, 500);
+      
+      // Simulate progression of loading phases
+      const phases = [
+        { message: 'Uploading file', delay: 1000 },
+        { message: 'Processing data', delay: 2000 },
+        { message: 'Analyzing with Groq API', delay: 3000 },
+        { message: 'Detecting languages', delay: 4000 },
+        { message: 'Running sentiment analysis', delay: 5000 }
+      ];
+      
+      let timeout: NodeJS.Timeout;
+      phases.forEach(({message, delay}) => {
+        timeout = setTimeout(() => {
+          if (isUploading) setUploadProgress(message);
+        }, delay);
+      });
+      
+      return () => {
+        clearInterval(intervalId);
+        clearTimeout(timeout);
+      };
+    }
+  }, [isUploading]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;

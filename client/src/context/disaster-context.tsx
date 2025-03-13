@@ -91,9 +91,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   
   const dominantSentiment = Object.entries(sentimentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "Neutral";
   
-  // Calculate average AI confidence
+  // Calculate average model confidence
   const totalConfidence = sentimentPosts.reduce((sum, post) => sum + post.confidence, 0);
-  const aiConfidence = sentimentPosts.length > 0 ? totalConfidence / sentimentPosts.length : 0;
+  const modelConfidence = sentimentPosts.length > 0 ? totalConfidence / sentimentPosts.length : 0;
 
   // Refresh function for fetching all data
   const refreshData = () => {
@@ -117,7 +117,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         activeDiastersCount,
         analyzedPostsCount,
         dominantSentiment,
-        aiConfidence,
+        modelConfidence,
         selectedDisasterType,
         setSelectedDisasterType,
         refreshData
