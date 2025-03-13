@@ -1,85 +1,140 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useUpload } from '@/context/upload-context';
-import { useToast } from '@/hooks/use-toast';
 
 interface FileUploaderProps {
-  onSuccess?: (data: any) => void;
-  className?: string;
+  onUploadSuccess?: (data: any) => void;
 }
 
-export function FileUploader({ onSuccess, className }: FileUploaderProps) {
-  const { status, progress, uploadFile, reset } = useUpload();
-  const [loadingDots, setLoadingDots] = useState('');
-  const isUploading = status === 'uploading';
+export default function FileUploader({ onUploadSuccess }: FileUploaderProps) {
+  const { isUploading, uploadProgress, uploadError, uploadFile } = useUpload();
+  const [dragActive, setDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Handle file selection
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const result = await uploadFile(file);
-      if (result && onSuccess) {
-        onSuccess(result);
-      }
-    } finally {
-      // Reset the input so the same file can be selected again
-      e.target.value = '';
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
     }
   };
 
-  // Create animated loading dots effect
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-
-    if (isUploading) {
-      intervalId = setInterval(() => {
-        setLoadingDots(prev => {
-          if (prev.length >= 3) return '';
-          return prev + '.';
-        });
-      }, 500);
-
-      return () => {
-        clearInterval(intervalId);
-      };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
     }
-  }, [isUploading]);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleFile = (file: File) => {
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      setSelectedFile(file);
+    } else {
+      alert('Please upload a CSV file only.');
+    }
+  };
+
+  const onButtonClick = () => {
+    inputRef.current?.click();
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    
+    try {
+      const result = await uploadFile(selectedFile);
+      if (onUploadSuccess) {
+        onUploadSuccess(result);
+      }
+      setSelectedFile(null);
+    } catch (error) {
+      console.error('Upload failed:', error);
+    }
+  };
 
   return (
-    <div className={className}>
-      {isUploading ? (
-        <div className="flex flex-col items-center p-4 bg-blue-50 border border-blue-200 rounded-lg min-w-[300px]">
-          <div className="flex items-center mb-3">
-            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span className="text-blue-800 font-medium">{progress}{loadingDots}</span>
-          </div>
-
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-            <div className="bg-blue-600 h-2.5 rounded-full animate-pulse w-full"></div>
-          </div>
-
-          <div className="text-xs text-gray-500 text-center">
-            Processing sentiment analysis
-          </div>
-        </div>
-      ) : (
-        <label className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md cursor-pointer transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+    <div className="w-full">
+      <Card className={`p-6 border-2 border-dashed ${dragActive ? 'border-primary bg-primary/5' : 'border-border'} rounded-lg`}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}>
+        
+        <div className="flex flex-col items-center justify-center py-4 text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-muted-foreground mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
-          Upload CSV
-          <input 
-            type="file" 
-            className="hidden" 
-            accept=".csv" 
-            onChange={handleFileUpload}
-            disabled={isUploading}
+          
+          <h3 className="font-medium text-lg mb-1">Upload a CSV file</h3>
+          <p className="text-sm text-muted-foreground mb-4">Drag and drop your file here, or click to select</p>
+          
+          <Input
+            ref={inputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleChange}
+            className="hidden"
           />
-        </label>
+          
+          <Button 
+            variant="outline" 
+            onClick={onButtonClick}
+            disabled={isUploading}
+          >
+            Select File
+          </Button>
+        </div>
+      </Card>
+
+      {selectedFile && (
+        <div className="mt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">{selectedFile.name}</span>
+              <span className="text-muted-foreground">({(selectedFile.size / 1024).toFixed(2)} KB)</span>
+            </div>
+            
+            <Button 
+              onClick={handleUpload}
+              disabled={isUploading}
+            >
+              {isUploading ? 'Uploading...' : 'Upload'}
+            </Button>
+          </div>
+
+          {isUploading && (
+            <Progress value={uploadProgress} className="mt-2" />
+          )}
+        </div>
+      )}
+
+      {uploadError && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertDescription>{uploadError}</AlertDescription>
+        </Alert>
       )}
     </div>
   );

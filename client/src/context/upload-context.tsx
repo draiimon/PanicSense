@@ -102,3 +102,82 @@ export function useUpload() {
   }
   return context;
 }
+import React, { createContext, useContext, useState } from 'react';
+
+interface UploadContextType {
+  isUploading: boolean;
+  setIsUploading: (uploading: boolean) => void;
+  uploadProgress: number;
+  setUploadProgress: (progress: number) => void;
+  uploadError: string | null;
+  setUploadError: (error: string | null) => void;
+  uploadFile: (file: File) => Promise<any>;
+}
+
+const UploadContext = createContext<UploadContextType | undefined>(undefined);
+
+export const useUpload = () => {
+  const context = useContext(UploadContext);
+  if (!context) {
+    throw new Error('useUpload must be used within an UploadProvider');
+  }
+  return context;
+};
+
+export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const uploadFile = async (file: File) => {
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+      setUploadError(null);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/upload-csv', {
+        method: 'POST',
+        body: formData,
+        // Simulate progress for better UX
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(progress);
+          }
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+      
+      setUploadProgress(100);
+      return await response.json();
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Unknown error occurred');
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <UploadContext.Provider
+      value={{
+        isUploading,
+        setIsUploading,
+        uploadProgress,
+        setUploadProgress,
+        uploadError,
+        setUploadError,
+        uploadFile,
+      }}
+    >
+      {children}
+    </UploadContext.Provider>
+  );
+};
