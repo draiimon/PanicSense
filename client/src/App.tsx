@@ -35,7 +35,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <DisasterContextProvider>
-        <UploadProvider>
+        <UploadProvider> {/* This line was already present, but the changes incorrectly tried to remove and re-add it. */}
           <Toaster />
           <UploadIndicator />
           <MainLayout>
