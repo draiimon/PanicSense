@@ -48,6 +48,7 @@ export default function Login() {
           description: "Successfully logged in to PanicSense PH",
         });
         // Force page reload to ensure auth state is fresh
+        window.location.reload();
         window.location.href = '/dashboard';
       }
     } catch (error) {

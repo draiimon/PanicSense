@@ -31,11 +31,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
       } else {
+        // If token is invalid, clear it
         localStorage.removeItem('auth_token');
         setUser(null);
       }
@@ -56,6 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     localStorage.removeItem('auth_token');
     setUser(null);
+    // Force reload to clear any cached state
+    window.location.href = '/login';
   };
 
   return (
