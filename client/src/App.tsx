@@ -42,13 +42,27 @@ function ProtectedRoute({ component: Component, ...rest }: { component: React.Co
 }
 
 function Router() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+
+  // Redirect to dashboard if user is already logged in
+  React.useEffect(() => {
+    if (user && window.location.pathname === '/login') {
+      setLocation('/dashboard');
+    }
+  }, [user, setLocation]);
+
   return (
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/about" component={About} />
-      <Route path="/" component={Dashboard} />
-      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/">
+        <ProtectedRoute component={Dashboard} />
+      </Route>
+      <Route path="/dashboard">
+        <ProtectedRoute component={Dashboard} />
+      </Route>
       <Route path="/emotion-analysis">
         <ProtectedRoute component={EmotionAnalysis} />
       </Route>

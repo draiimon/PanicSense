@@ -47,8 +47,7 @@ export default function Login() {
           title: "Welcome back!",
           description: "Successfully logged in to PanicSense PH",
         });
-        // Small delay to ensure auth context is updated
-        setTimeout(() => setLocation('/dashboard'), 100);
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       toast({
