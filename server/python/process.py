@@ -24,21 +24,34 @@ args = parser.parse_args()
 class DisasterSentimentBackend:
     def __init__(self):
         self.sentiment_labels = ['Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral']
-        self.groq_api_keys = [
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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"
-        ]
-        self.groq_api_url = "https://api.groq.com/openai/v1/chat/completions"
+        
+        # Get API keys from environment variables
+        self.api_keys = []
+        import os
+        
+        # Look for API keys in environment variables (API_KEY_1, API_KEY_2, etc.)
+        i = 1
+        while True:
+            key_name = f"API_KEY_{i}"
+            api_key = os.getenv(key_name)
+            if api_key:
+                self.api_keys.append(api_key)
+                i += 1
+            else:
+                # No more keys found
+                break
+                
+        # Fallback to a single API key if no numbered keys are found
+        if not self.api_keys and os.getenv("API_KEY"):
+            self.api_keys.append(os.getenv("API_KEY"))
+            
+        # If no keys are found in environment variables, use a placeholder
+        # This will cause the model to fall back to rule-based analysis
+        if not self.api_keys:
+            logging.warning("No API keys found in environment variables. Using rule-based analysis only.")
+            self.api_keys = ["no_api_key_found"]
+            
+        self.api_url = "https://api.groq.com/openai/v1/chat/completions"
         self.groq_retry_delay = 1
         self.groq_limit_delay = 0.5
         self.current_api_index = 0
@@ -52,14 +65,14 @@ class DisasterSentimentBackend:
 
     def fetch_groq(self, headers, payload, retry_count=0):
         try:
-            response = requests.post(self.groq_api_url, headers=headers, json=payload)
+            response = requests.post(self.api_url, headers=headers, json=payload)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
             if hasattr(e, 'response') and e.response and e.response.status_code == 429:
-                logging.warning(f"LOADING SENTIMENTS..... (Data {self.current_api_index + 1}/{len(self.groq_api_keys)}). Data Fetching.....")
-                self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
-                logging.info(f"Waiting {self.groq_limit_delay} seconds before trying next key")
+                logging.warning(f"LOADING SENTIMENTS..... (Data {self.current_api_index + 1}/{len(self.api_keys)}). Data Fetching.....")
+                self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
+                logging.info(f"Waiting {self.groq_retry_delay} seconds before trying next key")
                 time.sleep(self.groq_limit_delay)
                 if retry_count < self.max_retries:
                     return self.fetch_groq(headers, payload, retry_count + 1)
@@ -67,7 +80,7 @@ class DisasterSentimentBackend:
                     logging.error("Max retries exceeded for rate limit.")
                     return None
             else:
-                logging.error(f"Groq API Error: {e}")
+                logging.error(f"API Error: {e}")
                 time.sleep(self.groq_retry_delay)
                 if retry_count < self.max_retries:
                     return self.fetch_groq(headers, payload, retry_count + 1)
@@ -75,7 +88,7 @@ class DisasterSentimentBackend:
                     logging.error("Max retries exceeded for API error.")
                     return None
         except Exception as e:
-            logging.error(f"Groq API Request Error: {e}")
+            logging.error(f"API Request Error: {e}")
             time.sleep(self.groq_retry_delay)
             if retry_count < self.max_retries:
                 return self.fetch_groq(headers, payload, retry_count + 1)
@@ -94,28 +107,32 @@ class DisasterSentimentBackend:
         logging.info(f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
         logging.info(f"LOADING... Processing {language_name} text through Groq API")
         
-        # Try using the actual API 
+        # Try using the API if keys are available
         try:
-            api_key = self.groq_api_keys[self.current_api_index]
-            headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-            
-            # Customize prompt based on detected language
-            prompt = f"Analyze the overall sentiment of this disaster-related text."
-            if language == "tl":
-                prompt += " Note that this text may be in Filipino/Tagalog language."
-            
-            prompt += " Choose exactly one option from these categories: Panic, Fear/Anxiety, Disbelief, Resilience, or Neutral."
-            prompt += f" Text: {text}\nSentiment:"
-            
-            payload = {
-                "messages": [{"role": "user", "content": prompt}],
-                "model": "mixtral-8x7b-32768",
-                "temperature": 0.5,
-                "max_tokens": 20,
-            }
-            
-            logging.info(f"LOADING... Sending request to Groq API (Key #{self.current_api_index + 1})")
-            result = self.fetch_groq(headers, payload)
+            if len(self.api_keys) > 0 and self.api_keys[0] != "no_api_key_found":
+                api_key = self.api_keys[self.current_api_index]
+                headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+                
+                # Customize prompt based on detected language
+                prompt = f"Analyze the overall sentiment of this disaster-related text."
+                if language == "tl":
+                    prompt += " Note that this text may be in Filipino/Tagalog language."
+                
+                prompt += " Choose exactly one option from these categories: Panic, Fear/Anxiety, Disbelief, Resilience, or Neutral."
+                prompt += f" Text: {text}\nSentiment:"
+                
+                payload = {
+                    "messages": [{"role": "user", "content": prompt}],
+                    "model": "mixtral-8x7b-32768",
+                    "temperature": 0.5,
+                    "max_tokens": 20,
+                }
+                
+                logging.info(f"LOADING... Sending request to API (Key #{self.current_api_index + 1})")
+                result = self.fetch_groq(headers, payload)
+            else:
+                # No valid API keys, skip to rule-based approach
+                raise Exception("No valid API keys available")
             
             if result and 'choices' in result and result['choices']:
                 raw_output = result['choices'][0]['message']['content'].strip()
