@@ -92,77 +92,6 @@ class DisasterSentimentBackend:
                 logging.error(f"API Error: {e}")
                 time.sleep(self.retry_delay)
                 if retry_count < self.max_retries:
-
-    def generate_sentiment_explanation(self, text, sentiment, language):
-        """Generate an explanation for why a particular sentiment was assigned"""
-        text_lower = text.lower()
-        
-        # Define explanation templates based on language
-        if language == "tl":
-            # Tagalog explanations
-            if sentiment == "Panic":
-                triggers = ["tulong", "saklolo", "emergency", "takot", "natakot", "natatakot"]
-                for word in triggers:
-                    if word in text_lower:
-                        return f"Naglalaman ng salitang '{word}' na nagpapahiwatig ng matinding pagkatakot o pangangailangan ng agarang tulong."
-                return "Naglalaman ng mga salitang nagpapahiwatig ng matinding pagkatakot o pangangailangan ng agarang tulong."
-            
-            elif sentiment == "Fear/Anxiety":
-                triggers = ["nag-aalala", "kabado", "natatakot", "mag-ingat"]
-                for word in triggers:
-                    if word in text_lower:
-                        return f"Naglalaman ng salitang '{word}' na nagpapahiwatig ng pag-aalala o pagkabalisa."
-                return "Naglalaman ng mga salitang nagpapahiwatig ng pag-aalala o pagkabalisa."
-            
-            elif sentiment == "Disbelief":
-                triggers = ["hindi kapani-paniwala", "gulat", "nagulat", "nakakagulat"]
-                for word in triggers:
-                    if word in text_lower:
-                        return f"Naglalaman ng salitang '{word}' na nagpapahiwatig ng pagkagulat o hindi paniniwala."
-                return "Naglalaman ng mga salitang nagpapahiwatig ng pagkagulat o hindi paniniwala."
-            
-            elif sentiment == "Resilience":
-                triggers = ["ligtas", "kaya natin", "malalagpasan", "tulong", "magtulungan"]
-                for word in triggers:
-                    if word in text_lower:
-                        return f"Naglalaman ng salitang '{word}' na nagpapahiwatig ng katatagan o pagkakaisa."
-                return "Naglalaman ng mga salitang nagpapahiwatig ng katatagan o pagkakaisa."
-            
-            else:  # Neutral
-                return "Walang malinaw na pagpapahiwatig ng emosyon o naglalaman ng balanseng pananaw."
-        
-        else:  # English explanations
-            if sentiment == "Panic":
-                triggers = ["help", "emergency", "panic", "scared", "terrified", "desperate"]
-                for word in triggers:
-                    if word in text_lower:
-                        return f"Contains the word '{word}' which indicates extreme fear or need for immediate assistance."
-                return "Contains words indicating extreme fear or need for immediate assistance."
-            
-            elif sentiment == "Fear/Anxiety":
-                triggers = ["afraid", "fear", "worried", "anxiety", "concerned", "scared"]
-                for word in triggers:
-                    if word in text_lower:
-                        return f"Contains the word '{word}' which indicates worry or apprehension."
-                return "Contains words indicating worry or apprehension."
-            
-            elif sentiment == "Disbelief":
-                triggers = ["can't believe", "unbelievable", "shocked", "no way", "impossible"]
-                for word in triggers:
-                    if word in text_lower:
-                        return f"Contains expressions like '{word}' which indicates shock or disbelief."
-                return "Contains expressions indicating shock or disbelief."
-            
-            elif sentiment == "Resilience":
-                triggers = ["safe", "okay", "hope", "strong", "recover", "rebuild", "together"]
-                for word in triggers:
-                    if word in text_lower:
-                        return f"Contains the word '{word}' which indicates strength or unity in the face of disaster."
-                return "Contains words indicating strength or unity in the face of disaster."
-            
-            else:  # Neutral
-                return "No clear emotional indicators or contains balanced viewpoints."
-
                     return self.fetch_api(headers, payload, retry_count + 1)
                 else:
                     logging.error("Max retries exceeded for API error.")
@@ -182,10 +111,10 @@ class DisasterSentimentBackend:
         """
         # Detect language first for better prompting
         language = self.detect_language(text)
-        language_name = "Tagalog" if language == "tl" else "English"
+        language_name = "Filipino/Tagalog" if language == "tl" else "English"
 
         logging.info(f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
-        logging.info(f"Processing {language_name} text")
+        logging.info(f"Processing {language_name} text through AI")
 
         # Try using the API if keys are available
         try:
@@ -244,17 +173,14 @@ class DisasterSentimentBackend:
                             else:
                                 confidence = random.uniform(0.78, 0.95)
 
-                            # Generate explanation for the sentiment
-                            explanation = self.generate_sentiment_explanation(text, sentiment, language)
                             logging.info(f"Sentiment: {sentiment}, Confidence: {confidence:.2f}")
-                            return sentiment, confidence, explanation
+                            return sentiment, confidence
 
                 # If no specific sentiment was found but we got a response
                 self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
                 confidence = random.uniform(0.70, 0.85)
-                explanation = self.generate_sentiment_explanation(text, "Neutral", language)
                 logging.info(f"Sentiment: Neutral (default), Confidence: {confidence:.2f}")
-                return "Neutral", confidence, explanation
+                return "Neutral", confidence
 
         except Exception as e:
             logging.error(f"Error in analysis: {e}")
@@ -299,9 +225,8 @@ class DisasterSentimentBackend:
         else:
             confidence = random.uniform(0.77, 0.93)
 
-        explanation = self.generate_sentiment_explanation(text, sentiment, self.detect_language(text))
         logging.info(f"DONE (FALLBACK)... Sentiment: {sentiment}, Confidence: {confidence:.2f}")
-        return sentiment, confidence, explanation
+        return sentiment, confidence
 
     def detect_language(self, text):
         """
@@ -443,8 +368,7 @@ elif args.text:
 
     output = {
         'sentiment': sentiment,
-        'confidence': confidence,
-        'explanation': explanation
+        'confidence': confidence
     }
 
     print(json.dumps(output))

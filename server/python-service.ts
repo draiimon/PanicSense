@@ -48,15 +48,15 @@ export class PythonService {
     const uniqueId = nanoid();
     const storedFilename = `${uniqueId}-${originalFilename}`;
     const tempFilePath = path.join(this.tempDir, storedFilename);
-
+    
     fs.writeFileSync(tempFilePath, fileBuffer);
-
+    
     try {
       // Run the Python script with the file
       const result = await this.runPythonScript(tempFilePath);
-
+      
       const data = JSON.parse(result) as ProcessCSVResult;
-
+      
       return {
         data,
         storedFilename,
@@ -74,7 +74,6 @@ export class PythonService {
   public async analyzeSentiment(text: string): Promise<{
     sentiment: string; 
     confidence: number;
-    explanation: string;
   }> {
     const result = await this.runPythonScript('', text);
     return JSON.parse(result);
@@ -83,37 +82,37 @@ export class PythonService {
   private runPythonScript(filePath: string = '', textToAnalyze: string = ''): Promise<string> {
     return new Promise((resolve, reject) => {
       const args = [this.scriptPath];
-
+      
       if (filePath) {
         args.push('--file', filePath);
       }
-
+      
       if (textToAnalyze) {
         args.push('--text', textToAnalyze);
       }
 
       log(`Running Python script with args: ${args.join(' ')}`, 'python-service');
-
+      
       const pythonProcess = spawn(this.pythonBinary, args);
-
+      
       let output = '';
       let errorOutput = '';
-
+      
       pythonProcess.stdout.on('data', (data) => {
         output += data.toString();
       });
-
+      
       pythonProcess.stderr.on('data', (data) => {
         errorOutput += data.toString();
       });
-
+      
       pythonProcess.on('close', (code) => {
         if (code !== 0) {
           log(`Python process error: ${errorOutput}`, 'python-service');
           reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
           return;
         }
-
+        
         resolve(output);
       });
     });
