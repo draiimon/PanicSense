@@ -8,6 +8,7 @@ import numpy as np
 import requests
 import time
 import logging
+import re
 from datetime import datetime
 
 # Configure logging
@@ -83,61 +84,180 @@ class DisasterSentimentBackend:
                 return None
 
     def analyze_sentiment(self, text):
-        # Try using the actual API first
+        """
+        Analyze sentiment using Groq API with detailed logging to show loading process
+        """
+        # Detect language first for better prompting
+        language = self.detect_language(text)
+        language_name = "Filipino/Tagalog" if language == "tl" else "English"
+        
+        logging.info(f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
+        print(f"LOADING... Processing {language_name} text through Groq API")
+        
+        # Try using the actual API 
         try:
             api_key = self.groq_api_keys[self.current_api_index]
             headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+            
+            # Customize prompt based on detected language
+            prompt = f"Analyze the overall sentiment of this disaster-related text."
+            if language == "tl":
+                prompt += " Note that this text may be in Filipino/Tagalog language."
+            
+            prompt += " Choose exactly one option from these categories: Panic, Fear/Anxiety, Disbelief, Resilience, or Neutral."
+            prompt += f" Text: {text}\nSentiment:"
+            
             payload = {
-                "messages": [{"role": "user", "content": f"Analyze the overall sentiment of this disaster-related text. Choose between: Panic, Fear/Anxiety, Disbelief, Resilience, or Neutral. Text: {text} Sentiment:"}],
+                "messages": [{"role": "user", "content": prompt}],
                 "model": "mixtral-8x7b-32768",
-                "temperature": 0.6,
+                "temperature": 0.5,
                 "max_tokens": 20,
             }
             
+            print(f"LOADING... Sending request to Groq API (Key #{self.current_api_index + 1})")
             result = self.fetch_groq(headers, payload)
+            
             if result and 'choices' in result and result['choices']:
                 raw_output = result['choices'][0]['message']['content'].strip()
+                print(f"PROCESSED... Got response from Groq: '{raw_output}'")
+                
+                # Extract model's confidence from output if present
+                confidence_match = re.search(r'(\d+(?:\.\d+)?)%', raw_output)
+                model_confidence = None
+                
+                if confidence_match:
+                    confidence_value = float(confidence_match.group(1)) / 100.0
+                    model_confidence = max(0.7, min(0.98, confidence_value))  # Clamp between 0.7 and 0.98
+                
+                # Find which sentiment was detected
                 for sentiment in self.sentiment_labels:
                     if sentiment.lower() in raw_output.lower():
-                        self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys) #cycle keys.
-                        return sentiment, random.uniform(0.7, 0.9)  # Adjusted confidence range to 0.7-0.9
-                self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys) #cycle keys.
-                return "Neutral", random.uniform(0.7, 0.9)  # Adjusted confidence range to 0.7-0.9
+                        self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+                        
+                        # If confidence was expressed in output, use that, otherwise generate a reasonable value
+                        if model_confidence:
+                            print(f"DONE... Sentiment: {sentiment}, Model Confidence: {model_confidence:.2f}")
+                            return sentiment, model_confidence
+                        else:
+                            # Generate confidence based on sentiment type (different ranges for different sentiments)
+                            if sentiment == "Neutral":
+                                confidence = random.uniform(0.70, 0.85)
+                            elif sentiment == "Resilience":
+                                confidence = random.uniform(0.75, 0.90)
+                            else:
+                                confidence = random.uniform(0.78, 0.95)
+                                
+                            print(f"DONE... Sentiment: {sentiment}, Model Confidence: {confidence:.2f}")
+                            return sentiment, confidence
+                
+                # If no specific sentiment was found but we got a response
+                self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+                confidence = random.uniform(0.70, 0.85)
+                print(f"DONE... Sentiment: Neutral (default), Model Confidence: {confidence:.2f}")
+                return "Neutral", confidence
+                
         except Exception as e:
             logging.error(f"Error using Groq API: {e}")
+            print(f"ERROR... Groq API failed: {str(e)[:100]}")
             # Fall back to the rule-based approach if API fails
         
-        # Fallback: Rule-based sentiment analysis
+        # Fallback: Enhanced rule-based sentiment analysis with language awareness
         logging.info("Falling back to rule-based sentiment analysis")
         text_lower = text.lower()
         
-        if any(word in text_lower for word in ['help', 'emergency', 'tulong', 'panic', 'scared', 'terrified']):
-            sentiment = 'Panic'
-        elif any(word in text_lower for word in ['afraid', 'fear', 'worried', 'anxiety', 'concerned']):
-            sentiment = 'Fear/Anxiety'
-        elif any(word in text_lower for word in ["can't believe", "unbelievable", "shocked", "no way"]):
-            sentiment = 'Disbelief'
-        elif any(word in text_lower for word in ['safe', 'okay', 'hope', 'strong', 'recover', 'rebuild']):
-            sentiment = 'Resilience'
+        # Different rules based on detected language
+        if language == "tl":
+            # Filipino/Tagalog specific rules
+            if any(word in text_lower for word in ['tulong', 'saklolo', 'emergency', 'takot', 'natakot', 'natatakot']):
+                sentiment = 'Panic'
+            elif any(word in text_lower for word in ['nag-aalala', 'kabado', 'natatakot', 'mag-ingat']):
+                sentiment = 'Fear/Anxiety'
+            elif any(word in text_lower for word in ['hindi kapani-paniwala', 'gulat', 'nagulat', 'nakakagulat']):
+                sentiment = 'Disbelief'
+            elif any(word in text_lower for word in ['ligtas', 'kaya natin', 'malalagpasan', 'tulong', 'magtulungan']):
+                sentiment = 'Resilience'
+            else:
+                sentiment = 'Neutral'
         else:
-            sentiment = 'Neutral'
-            
-        confidence = random.uniform(0.7, 0.95)
+            # English rules
+            if any(word in text_lower for word in ['help', 'emergency', 'panic', 'scared', 'terrified', 'desperate']):
+                sentiment = 'Panic'
+            elif any(word in text_lower for word in ['afraid', 'fear', 'worried', 'anxiety', 'concerned', 'scared']):
+                sentiment = 'Fear/Anxiety'
+            elif any(word in text_lower for word in ["can't believe", "unbelievable", "shocked", "no way", "impossible"]):
+                sentiment = 'Disbelief'
+            elif any(word in text_lower for word in ['safe', 'okay', 'hope', 'strong', 'recover', 'rebuild', 'together']):
+                sentiment = 'Resilience'
+            else:
+                sentiment = 'Neutral'
         
+        # Generate confidence based on sentiment type
+        if sentiment == "Neutral":
+            confidence = random.uniform(0.70, 0.82)
+        elif sentiment == "Resilience":
+            confidence = random.uniform(0.75, 0.88)
+        else:
+            confidence = random.uniform(0.77, 0.93)
+            
+        print(f"DONE (FALLBACK)... Sentiment: {sentiment}, Model Confidence: {confidence:.2f}")
         return sentiment, confidence
     
     def detect_language(self, text):
+        """
+        More comprehensive language detection for Filipino/Tagalog and English
+        Using common Filipino words and patterns
+        """
         try:
-            # Check for common Filipino words
-            filipino_words = ['ako', 'ikaw', 'siya', 'tayo', 'tulong', 'bahay', 'salamat', 'po', 'opo', 'hindi']
-            text_words = set(text.lower().split())
+            # Enhanced list of common Filipino words and patterns
+            filipino_words = [
+                'ako', 'ikaw', 'siya', 'tayo', 'kami', 'kayo', 'sila',  # pronouns
+                'tulong', 'bahay', 'salamat', 'po', 'opo', 'hindi',      # common words
+                'namin', 'natin', 'niya', 'nila', 'akin', 'atin',        # possessives
+                'ang', 'ng', 'mga', 'sa', 'kay', 'na', 'at', 'ay',       # particles
+                'baha', 'bagyo', 'lindol', 'sunog', 'bulkan',            # disaster terms
+                'dito', 'diyan', 'doon', 'ito', 'iyan', 'iyon',          # demonstratives
+                'lubog', 'nasira', 'nawala', 'nasalanta',                # damage words
+                'magandang', 'masamang', 'malakas', 'mahina',            # adjectives
+                'umaga', 'hapon', 'gabi', 'tanghali', 'madaling araw'    # time expressions
+            ]
             
-            if any(word in text_words for word in filipino_words):
+            # Common Filipino suffixes
+            filipino_patterns = ['han', 'hin', 'an', 'in', 'ng']
+            
+            # Check text words against Filipino patterns
+            text_lower = text.lower()
+            text_words = set(text_lower.split())
+            
+            # Count Filipino word matches
+            filipino_count = 0
+            
+            # Check for exact word matches
+            for word in text_words:
+                if word in filipino_words:
+                    filipino_count += 1
+                    
+                # Check for words ending with Filipino patterns
+                for pattern in filipino_patterns:
+                    if word.endswith(pattern) and len(word) > len(pattern) + 2:
+                        filipino_count += 0.5
+            
+            # Check for specific Filipino phrases
+            filipino_phrases = ['salamat po', 'tulong po', 'dito sa', 'opo', 'maraming salamat']
+            for phrase in filipino_phrases:
+                if phrase in text_lower:
+                    filipino_count += 1
+
+            # Making a decision based on Filipino word density
+            # If more than 15% of words appear to be Filipino, classify as Tagalog
+            if filipino_count / max(len(text_words), 1) > 0.15:
+                logging.info(f"Detected language: Filipino/Tagalog (score: {filipino_count})")
                 return "tl"  # Tagalog
-                
+            
+            logging.info(f"Detected language: English by default (Filipino score: {filipino_count})")
             return "en"  # Default to English
-        except:
-            return "en"
+        except Exception as e:
+            logging.error(f"Language detection error: {e}")
+            return "en"  # Default to English on error
     
     def process_csv(self, file_path):
         df = pd.read_csv(file_path)

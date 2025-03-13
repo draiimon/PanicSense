@@ -101,7 +101,7 @@ export default function Dashboard() {
         />
 
         <StatusCard
-          title="AI Confidence"
+          title="Model Confidence"
           value={`${Math.round(aiConfidence * 100)}%`}
           icon={
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">

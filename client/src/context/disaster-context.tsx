@@ -29,7 +29,7 @@ interface DisasterContextType {
   activeDiastersCount: number;
   analyzedPostsCount: number;
   dominantSentiment: string;
-  aiConfidence: number;
+  modelConfidence: number;
   
   // Filters
   selectedDisasterType: string;
