@@ -9,7 +9,6 @@ import { Link, useLocation } from "wouter";
 import { loginSchema, type LoginUser } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -33,7 +32,8 @@ export default function Login() {
           title: "Login successful",
           description: "Welcome back!",
         });
-        setLocation('/dashboard');
+        // Force a proper navigation to dashboard
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       toast({
@@ -50,7 +50,7 @@ export default function Login() {
     <div className="container flex items-center justify-center min-h-screen">
       <Card className="w-full max-w-lg">
         <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-3xl font-bold">PanicSense PH</CardTitle>
+          <CardTitle className="text-3xl font-bold">Disaster Sentiment Analysis</CardTitle>
           <CardDescription className="text-lg">
             Login to access the dashboard
           </CardDescription>
@@ -88,9 +88,10 @@ export default function Login() {
 
               <Button
                 type="submit"
-                className="w-full py-6 text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
+                className="w-full"
+                disabled={isLoading}
               >
-                {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Login to PanicSense"}
+                {isLoading ? "Loading..." : "Login"}
               </Button>
             </form>
           </Form>

@@ -1,78 +1,68 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function About() {
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">About PanicSense PH</h1>
+    <div className="space-y-8 max-w-4xl mx-auto">
+      <section>
+        <h1 className="text-3xl font-bold text-slate-800 mb-4">About Disaster Sentiment Analysis</h1>
+        <p className="text-slate-600 mb-6">
+          The Disaster Sentiment Analysis System is an advanced platform designed to analyze and categorize emotional responses 
+          during disaster events through social media and other text sources. By leveraging artificial intelligence and natural
+          language processing techniques, our system helps emergency responders, government agencies, and disaster management
+          teams understand public sentiment to better respond to crisis situations.
+        </p>
+      </section>
+
+      <section className="bg-white p-6 rounded-lg shadow-sm">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">Our Mission</h2>
+        <p className="text-slate-600 mb-4">
+          To provide accurate, real-time sentiment analysis of disaster-related communications to improve
+          response coordination, resource allocation, and public support during crisis events.
+        </p>
+      </section>
       
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Our Mission</CardTitle>
-          <CardDescription>Empowering communities through disaster sentiment analysis</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4">
-            PanicSense PH is dedicated to providing real-time disaster sentiment analysis to help communities
-            and emergency responders better understand public reactions during crisis situations. By analyzing
-            social media posts and other text sources, we identify patterns of panic, fear, resilience, and
-            other emotions to guide more effective disaster response.
-          </p>
-        </CardContent>
-      </Card>
+      <section className="bg-white p-6 rounded-lg shadow-sm">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">System Features</h2>
+        <ul className="list-disc pl-6 text-slate-600 space-y-2">
+          <li>Multi-language support with focus on English and Filipino/Tagalog</li>
+          <li>Real-time analysis of social media posts</li>
+          <li>CSV file batch processing for large datasets</li>
+          <li>Sentiment categorization (Panic, Fear/Anxiety, Disbelief, Resilience, Neutral)</li>
+          <li>Confidence scoring and detailed explanation of analysis</li>
+          <li>Geographic and temporal visualization of sentiment trends</li>
+          <li>Automatic disaster event detection and categorization</li>
+        </ul>
+      </section>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Our Team</CardTitle>
-            <CardDescription>The founders behind PanicSense PH</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-semibold">John Doe</h3>
-                <p className="text-sm text-slate-500">Co-Founder & CEO</p>
-                <p className="mt-1">Disaster management specialist with 10+ years of experience in emergency response systems.</p>
-              </div>
-              <div>
-                <h3 className="font-semibold">Jane Smith</h3>
-                <p className="text-sm text-slate-500">Co-Founder & CTO</p>
-                <p className="mt-1">AI researcher specializing in natural language processing and sentiment analysis.</p>
-              </div>
+      <section className="bg-white p-6 rounded-lg shadow-sm">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">Our Team</h2>
+        <div className="grid md:grid-cols-3 gap-6 mt-4">
+          <div className="text-center">
+            <div className="w-32 h-32 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <span className="text-4xl text-gray-500">MC</span>
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Our Technology</CardTitle>
-            <CardDescription>Cutting-edge sentiment analysis for disaster response</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4">
-              PanicSense PH leverages advanced AI and machine learning algorithms to analyze text data in real-time.
-              Our system is capable of processing both English and Filipino content, recognizing cultural nuances
-              and local expressions to accurately assess sentiment during disaster situations.
-            </p>
-            <p>
-              The platform categorizes sentiments into Panic, Fear/Anxiety, Disbelief, Resilience, and Neutral,
-              providing actionable insights for emergency responders and community leaders.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Contact Us</CardTitle>
-          <CardDescription>Get in touch with the PanicSense PH team</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>Email: admin@panicsense.ph</p>
-          <p>Address: Manila, Philippines</p>
-        </CardContent>
-      </Card>
+            <h3 className="font-bold text-slate-800">Mark Andrei R. Castillo</h3>
+            <p className="text-slate-600">Lead Developer</p>
+          </div>
+          
+          <div className="text-center">
+            <div className="w-32 h-32 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <span className="text-4xl text-gray-500">IG</span>
+            </div>
+            <h3 className="font-bold text-slate-800">Ivahnn Garcia</h3>
+            <p className="text-slate-600">Data Scientist</p>
+          </div>
+          
+          <div className="text-center">
+            <div className="w-32 h-32 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <span className="text-4xl text-gray-500">JG</span>
+            </div>
+            <h3 className="font-bold text-slate-800">Julia Daphne Ngan Gatdula</h3>
+            <p className="text-slate-600">UX Designer</p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
