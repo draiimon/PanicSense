@@ -32,7 +32,8 @@ export default function Login() {
           title: "Login successful",
           description: "Welcome back!",
         });
-        setLocation('/dashboard');
+        // Force a proper navigation to dashboard
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       toast({

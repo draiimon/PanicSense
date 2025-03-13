@@ -28,8 +28,7 @@ export function Header() {
           <div className="flex items-center space-x-4">
             {user ? (
               <>
-                {location !== '/login' && location !== '/signup' && (
-                  <nav className="flex space-x-4">
+                <nav className="flex space-x-4">
                     <Button
                       variant={location === '/dashboard' ? 'default' : 'ghost'}
                       onClick={() => location !== '/dashboard' && window.location.assign('/dashboard')}

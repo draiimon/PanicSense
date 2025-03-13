@@ -10,6 +10,7 @@ import Timeline from "@/pages/timeline";
 import Comparison from "@/pages/comparison";
 import Login from "@/pages/auth/login";
 import Signup from "@/pages/auth/signup";
+import About from "@/pages/about";
 import { DisasterContextProvider } from "@/context/disaster-context";
 import { MainLayout } from "@/components/layout/main-layout";
 import React from 'react';
@@ -35,6 +36,7 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/about" component={About} />
       <Route path="/">
         <ProtectedRoute component={Dashboard} />
       </Route>

@@ -7,7 +7,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden flex-col"> {/* Added flex-col for vertical layout */}
       <Sidebar />
       <div className="flex-1 overflow-auto pl-0 lg:pl-64">
         {/* Header for mobile */}
@@ -51,7 +51,12 @@ export function MainLayout({ children }: MainLayoutProps) {
         </header>
 
         {/* Main content */}
-        <main className="px-4 sm:px-6 lg:px-8 py-8">{children}</main>
+        <main className="px-4 sm:px-6 lg:px-8 py-8 flex-grow"> {/* Added flex-grow to allow main content to expand */}
+          {children}
+        </main>
+        <footer className="bg-gray-100 p-4"> {/* Added a simple footer */}
+          <p>&copy; 2023 My Company</p>
+        </footer>
       </div>
     </div>
   );
