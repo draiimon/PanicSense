@@ -136,19 +136,11 @@ export function MetricsDisplay({
                 callback: function(value) {
                   return sentimentLabels[value as number] || '';
                 },
-                stepSize: 1,
-                font: {
-                  weight: 'bold'
-                },
-                color: '#4A5568'  // Darker color for better readability
+                stepSize: 1
               },
               title: {
                 display: true,
-                text: 'Predicted Emotion',
-                font: {
-                  weight: 'bold',
-                  size: 14
-                }
+                text: 'Predicted'
               }
             },
             y: {

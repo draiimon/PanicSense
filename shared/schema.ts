@@ -19,7 +19,6 @@ export const sentimentPosts = pgTable("sentiment_posts", {
   location: text("location"),
   disasterType: text("disaster_type"),
   fileId: integer("file_id"),
-  explanation: text("explanation") // Added explanation field
 });
 
 export const disasterEvents = pgTable("disaster_events", {
@@ -56,7 +55,6 @@ export const insertSentimentPostSchema = createInsertSchema(sentimentPosts).pick
   location: true,
   disasterType: true,
   fileId: true,
-  explanation: true // Added explanation field to the insert schema
 });
 
 export const insertDisasterEventSchema = createInsertSchema(disasterEvents).pick({
@@ -86,17 +84,3 @@ export type DisasterEvent = typeof disasterEvents.$inferSelect;
 
 export type InsertAnalyzedFile = z.infer<typeof insertAnalyzedFileSchema>;
 export type AnalyzedFile = typeof analyzedFiles.$inferSelect;
-
-export interface SentimentPost {
-  id: number;
-  text: string;
-  timestamp: Date;
-  source: string;
-  language: 'English' | 'Tagalog' | 'Unknown';  // More explicit language types
-  sentiment: string;
-  confidence: number;
-  location: string | null;
-  disasterType: string | null;
-  fileId: number | null;
-  explanation?: string | null;
-}
