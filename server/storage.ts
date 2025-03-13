@@ -43,9 +43,65 @@ export class MemStorage implements IStorage {
     this.sentimentPostCurrentId = 1;
     this.disasterEventCurrentId = 1;
     this.analyzedFileCurrentId = 1;
+
+    // Initialize with sample data
+    this.initializeSampleData();
   }
 
-  // User methods
+  private async initializeSampleData() {
+    // Add a sample analyzed file
+    const sampleFile = await this.createAnalyzedFile({
+      originalName: "sample-data.csv",
+      storedName: "sample-data.csv",
+      recordCount: 100,
+      evaluationMetrics: {
+        accuracy: 0.85,
+        precision: 0.82,
+        recall: 0.88,
+        f1Score: 0.85
+      },
+      timestamp: new Date()
+    });
+
+    // Add some sample sentiment posts
+    const samplePosts = [
+      {
+        text: "Earthquake hit our area, but community is helping each other.",
+        timestamp: new Date(),
+        source: "Twitter",
+        language: "en",
+        sentiment: "Resilience",
+        confidence: 0.89,
+        location: "Manila",
+        disasterType: "Earthquake",
+        fileId: sampleFile.id
+      },
+      {
+        text: "Flooding getting worse in downtown area.",
+        timestamp: new Date(),
+        source: "Facebook",
+        language: "en",
+        sentiment: "Fear/Anxiety",
+        confidence: 0.92,
+        location: "Cebu",
+        disasterType: "Flood",
+        fileId: sampleFile.id
+      }
+    ];
+
+    await this.createManySentimentPosts(samplePosts);
+
+    // Add a sample disaster event
+    await this.createDisasterEvent({
+      name: "Manila Earthquake 2025",
+      description: "6.2 magnitude earthquake in Metro Manila area",
+      timestamp: new Date(),
+      location: "Manila",
+      type: "Earthquake",
+      sentimentImpact: "Mixed"
+    });
+  }
+
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
@@ -63,7 +119,6 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  // Sentiment Posts methods
   async getSentimentPosts(): Promise<SentimentPost[]> {
     return Array.from(this.sentimentPosts.values());
   }
@@ -89,7 +144,6 @@ export class MemStorage implements IStorage {
     return Promise.all(posts.map(post => this.createSentimentPost(post)));
   }
 
-  // Disaster Events methods
   async getDisasterEvents(): Promise<DisasterEvent[]> {
     return Array.from(this.disasterEvents.values());
   }
@@ -105,7 +159,6 @@ export class MemStorage implements IStorage {
     return event;
   }
 
-  // Analyzed Files methods
   async getAnalyzedFiles(): Promise<AnalyzedFile[]> {
     return Array.from(this.analyzedFiles.values());
   }
@@ -119,7 +172,7 @@ export class MemStorage implements IStorage {
     const file: AnalyzedFile = { 
       ...insertFile, 
       id,
-      timestamp: new Date()
+      timestamp: insertFile.timestamp || new Date()
     };
     this.analyzedFiles.set(id, file);
     return file;
