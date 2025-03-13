@@ -18,6 +18,11 @@ const fadeIn = {
   visible: { opacity: 1, y: 0 }
 };
 
+interface LoginResponse {
+  token: string;
+  message: string;
+}
+
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -35,14 +40,15 @@ export default function Login() {
   const onSubmit = async (values: LoginUser) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('POST', '/api/auth/login', values);
+      const response = await apiRequest<LoginResponse>('POST', '/api/auth/login', values);
       if (response.token) {
         login(response.token);
         toast({
           title: "Welcome back!",
           description: "Successfully logged in to PanicSense PH",
         });
-        setLocation('/dashboard');
+        // Small delay to ensure auth context is updated
+        setTimeout(() => setLocation('/dashboard'), 100);
       }
     } catch (error) {
       toast({

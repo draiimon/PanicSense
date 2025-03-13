@@ -47,9 +47,8 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/about" component={About} />
-      <Route path="/">
-        <ProtectedRoute component={Dashboard} />
-      </Route>
+      <Route path="/" component={Dashboard} />
+      <Route path="/dashboard" component={Dashboard} />
       <Route path="/emotion-analysis">
         <ProtectedRoute component={EmotionAnalysis} />
       </Route>
