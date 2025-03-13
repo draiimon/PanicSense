@@ -34,16 +34,76 @@ class DisasterSentimentBackend:
         self.current_api_index = 0
         
     def analyze_sentiment(self, text):
-        # For this implementation, we'll simulate the sentiment analysis
-        # In a production environment, this would actually call the Groq API
-        sentiment = random.choice(self.sentiment_labels)
-        confidence = random.uniform(0.7, 0.9)
+        # Simulating Groq API call for now to avoid rate limits
+        # In a production environment with valid keys, we would use the actual API:
+        
+        # Mock implementation - to switch to actual API, uncomment the code below
+        # and ensure the Groq API keys are valid
+        '''
+        api_key = self.groq_api_keys[self.current_api_index]
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        payload = {
+            "messages": [{"role": "user", "content": f"Analyze the overall sentiment of this disaster-related text. Choose between: Panic, Fear/Anxiety, Disbelief, Resilience, or Neutral. Text: {text} Sentiment:"}],
+            "model": "mixtral-8x7b-32768",
+            "temperature": 0.6,
+            "max_tokens": 20,
+        }
+        
+        try:
+            import requests
+            response = requests.post("https://api.groq.com/openai/v1/chat/completions", 
+                                    headers=headers, 
+                                    json=payload)
+            if response.status_code == 200:
+                result = response.json()
+                if 'choices' in result and result['choices']:
+                    raw_output = result['choices'][0]['message']['content'].strip()
+                    for sentiment in self.sentiment_labels:
+                        if sentiment.lower() in raw_output.lower():
+                            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+                            return sentiment, random.uniform(0.7, 0.9)
+                    return "Neutral", random.uniform(0.7, 0.9)
+            
+            # Fall back to simulation if API call fails
+            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+        except Exception as e:
+            print(f"Error calling Groq API: {e}")
+        '''
+        
+        # Simulated sentiment analysis with more realistic behavior
+        # Analyze text content to make better prediction than random
+        text_lower = text.lower()
+        
+        # Simple rule-based sentiment detection
+        if any(word in text_lower for word in ['help', 'emergency', 'tulong', 'panic', 'scared', 'terrified']):
+            sentiment = 'Panic'
+        elif any(word in text_lower for word in ['afraid', 'fear', 'worried', 'anxiety', 'concerned']):
+            sentiment = 'Fear/Anxiety'
+        elif any(word in text_lower for word in ["can't believe", "unbelievable", "shocked", "no way"]):
+            sentiment = 'Disbelief'
+        elif any(word in text_lower for word in ['safe', 'okay', 'hope', 'strong', 'recover', 'rebuild']):
+            sentiment = 'Resilience'
+        else:
+            sentiment = 'Neutral'
+            
+        confidence = random.uniform(0.7, 0.95)
         
         return sentiment, confidence
     
     def detect_language(self, text):
-        # Simulate language detection
-        return "en"
+        # Simple language detection simulation
+        # In production, use actual language detection library
+        try:
+            # Check for common Filipino words
+            filipino_words = ['ako', 'ikaw', 'siya', 'tayo', 'tulong', 'bahay', 'salamat', 'po', 'opo', 'hindi']
+            text_words = set(text.lower().split())
+            
+            if any(word in text_words for word in filipino_words):
+                return "tl"  # Tagalog
+                
+            return "en"  # Default to English
+        except:
+            return "en"
     
     def process_csv(self, file_path):
         df = pd.read_csv(file_path)

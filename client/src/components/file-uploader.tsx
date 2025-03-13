@@ -17,7 +17,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
     if (!files || files.length === 0) return;
 
     const file = files[0];
-    if (file.type !== 'text/csv') {
+    if (!file.name.toLowerCase().endsWith('.csv')) {
       toast({
         title: 'Invalid file type',
         description: 'Please upload a CSV file',
