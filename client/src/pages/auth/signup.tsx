@@ -9,6 +9,7 @@ import { Link, useLocation } from "wouter";
 import { insertUserSchema, type InsertUser } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Loader2 } from "lucide-react";
 
 export default function Signup() {
   const [, setLocation] = useLocation();
@@ -32,8 +33,8 @@ export default function Signup() {
     try {
       await apiRequest('POST', '/api/auth/signup', values);
       toast({
-        title: "Account created",
-        description: "Please login with your new account",
+        title: "Account created successfully!",
+        description: "Please sign in with your new account",
       });
       setLocation('/login');
     } catch (error) {
@@ -48,101 +49,124 @@ export default function Signup() {
   };
 
   return (
-    <div className="container flex items-center justify-center min-h-screen">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-3xl font-bold">Create an Account</CardTitle>
-          <CardDescription className="text-lg">
-            Sign up to access the disaster sentiment analysis platform
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Input
-                  {...form.register("fullName")}
-                  placeholder="Full Name"
-                  type="text"
-                />
-                {form.formState.errors.fullName && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.fullName.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Input
-                  {...form.register("username")}
-                  placeholder="Username"
-                  type="text"
-                />
-                {form.formState.errors.username && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.username.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Input
-                  {...form.register("email")}
-                  placeholder="Email"
-                  type="email"
-                />
-                {form.formState.errors.email && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.email.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Input
-                  {...form.register("password")}
-                  placeholder="Password"
-                  type="password"
-                />
-                {form.formState.errors.password && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.password.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Input
-                  {...form.register("confirmPassword")}
-                  placeholder="Confirm Password"
-                  type="password"
-                />
-                {form.formState.errors.confirmPassword && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.confirmPassword.message}
-                  </p>
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? "Creating account..." : "Sign up"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-slate-500">
-            Already have an account?{" "}
-            <Link href="/login" className="text-blue-600 hover:underline">
-              Login
-            </Link>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900">
+            PanicSense PH
+          </h1>
+          <p className="text-lg text-gray-600">
+            Create your account
           </p>
-        </CardFooter>
-      </Card>
+        </div>
+
+        <Card className="border-0 shadow-xl">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl">Sign up</CardTitle>
+            <CardDescription>
+              Enter your information to create an account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-2">
+                  <Input
+                    {...form.register("fullName")}
+                    placeholder="Full Name"
+                    type="text"
+                    className="h-11"
+                  />
+                  {form.formState.errors.fullName && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.fullName.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Input
+                    {...form.register("username")}
+                    placeholder="Username"
+                    type="text"
+                    className="h-11"
+                  />
+                  {form.formState.errors.username && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.username.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Input
+                    {...form.register("email")}
+                    placeholder="Email"
+                    type="email"
+                    className="h-11"
+                  />
+                  {form.formState.errors.email && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Input
+                    {...form.register("password")}
+                    placeholder="Password"
+                    type="password"
+                    className="h-11"
+                  />
+                  {form.formState.errors.password && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Input
+                    {...form.register("confirmPassword")}
+                    placeholder="Confirm Password"
+                    type="password"
+                    className="h-11"
+                  />
+                  {form.formState.errors.confirmPassword && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.confirmPassword.message}
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    "Create Account"
+                  )}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4 border-t pt-6">
+            <p className="text-sm text-slate-600 text-center">
+              Already have an account?{" "}
+              <Link 
+                href="/login" 
+                className="font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                Sign in
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
 }

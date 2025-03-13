@@ -9,11 +9,13 @@ import { Link, useLocation } from "wouter";
 import { loginSchema, type LoginUser } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import { useAuth } from "@/context/auth-context";
+import { Loader2 } from "lucide-react";
 
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<LoginUser>({
@@ -29,9 +31,10 @@ export default function Login() {
     try {
       const response = await apiRequest('POST', '/api/auth/login', values);
       if (response.token) {
+        login(response.token);
         toast({
-          title: "Login successful",
-          description: "Welcome back!",
+          title: "Welcome back!",
+          description: "Successfully logged in to PanicSense PH",
         });
         setLocation('/dashboard');
       }
@@ -47,63 +50,84 @@ export default function Login() {
   };
 
   return (
-    <div className="container flex items-center justify-center min-h-screen">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-3xl font-bold">PanicSense PH</CardTitle>
-          <CardDescription className="text-lg">
-            Login to access the dashboard
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Input
-                  {...form.register("username")}
-                  placeholder="Username"
-                  type="text"
-                  autoComplete="username"
-                />
-                {form.formState.errors.username && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.username.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Input
-                  {...form.register("password")}
-                  placeholder="Password"
-                  type="password"
-                  autoComplete="current-password"
-                />
-                {form.formState.errors.password && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.password.message}
-                  </p>
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full py-6 text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
-              >
-                {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Login to PanicSense"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-slate-500">
-            Don't have an account?{" "}
-            <Link href="/signup" className="text-blue-600 hover:underline">
-              Sign up
-            </Link>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900">
+            PanicSense PH
+          </h1>
+          <p className="text-lg text-gray-600">
+            Disaster Sentiment Analysis Platform
           </p>
-        </CardFooter>
-      </Card>
+        </div>
+
+        <Card className="border-0 shadow-xl">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl">Sign in to your account</CardTitle>
+            <CardDescription>
+              Enter your credentials to access the dashboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-2">
+                  <Input
+                    {...form.register("username")}
+                    placeholder="Username"
+                    type="text"
+                    autoComplete="username"
+                    className="h-11"
+                  />
+                  {form.formState.errors.username && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.username.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Input
+                    {...form.register("password")}
+                    placeholder="Password"
+                    type="password"
+                    autoComplete="current-password"
+                    className="h-11"
+                  />
+                  {form.formState.errors.password && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    "Sign in"
+                  )}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4 border-t pt-6">
+            <p className="text-sm text-slate-600 text-center">
+              Don't have an account?{" "}
+              <Link 
+                href="/signup" 
+                className="font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                Sign up
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
 }
