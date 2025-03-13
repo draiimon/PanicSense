@@ -9,7 +9,7 @@ import { Link, useLocation } from "wouter";
 import { loginSchema, type LoginUser } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import Loader2 from "@/components/ui/Loader2"; // Assumed location for Loader2 component
+import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 
 export default function Login() {
   const [, setLocation] = useLocation();
