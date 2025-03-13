@@ -74,6 +74,8 @@ export class PythonService {
   public async analyzeSentiment(text: string): Promise<{
     sentiment: string; 
     confidence: number;
+    explanation: string;
+    language: string;
   }> {
     const result = await this.runPythonScript('', text);
     return JSON.parse(result);

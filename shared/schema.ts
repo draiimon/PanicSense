@@ -19,6 +19,7 @@ export const sentimentPosts = pgTable("sentiment_posts", {
   location: text("location"),
   disasterType: text("disaster_type"),
   fileId: integer("file_id"),
+  explanation: text("explanation") // Added explanation field
 });
 
 export const disasterEvents = pgTable("disaster_events", {
@@ -55,6 +56,7 @@ export const insertSentimentPostSchema = createInsertSchema(sentimentPosts).pick
   location: true,
   disasterType: true,
   fileId: true,
+  explanation: true // Added explanation field to the insert schema
 });
 
 export const insertDisasterEventSchema = createInsertSchema(disasterEvents).pick({

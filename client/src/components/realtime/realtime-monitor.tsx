@@ -7,12 +7,15 @@ import { Separator } from '@/components/ui/separator';
 import { analyzeText } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { getSentimentBadgeClasses } from '@/lib/colors';
+import { AlertCircle } from 'lucide-react';
 
 interface AnalyzedText {
   text: string;
   sentiment: string;
   confidence: number;
   timestamp: Date;
+  language: 'en' | 'tl'; // Added language field
+  explanation?: string; // Added explanation field
 }
 
 export function RealtimeMonitor() {
@@ -23,7 +26,7 @@ export function RealtimeMonitor() {
 
   // Auto-scroll to bottom of results
   const resultsEndRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     if (resultsEndRef.current) {
       resultsEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -43,19 +46,21 @@ export function RealtimeMonitor() {
     setIsAnalyzing(true);
     try {
       const result = await analyzeText(text);
-      
+
       setAnalyzedTexts(prev => [
-        ...prev, 
+        ...prev,
         {
           text,
           sentiment: result.post.sentiment,
           confidence: result.post.confidence,
-          timestamp: new Date()
+          timestamp: new Date(),
+          language: result.post.language, // Added language assignment
+          explanation: result.post.explanation // Added explanation assignment
         }
       ]);
-      
+
       setText('');
-      
+
       toast({
         title: 'Analysis complete',
         description: `Sentiment detected: ${result.post.sentiment}`,
@@ -109,14 +114,14 @@ export function RealtimeMonitor() {
           </Button>
         </CardFooter>
       </Card>
-      
+
       {/* Results Card */}
       <Card className="bg-white rounded-lg shadow">
         <CardHeader className="p-5 border-b border-gray-200">
           <CardTitle className="text-lg font-medium text-slate-800">Analysis Results</CardTitle>
           <CardDescription className="text-sm text-slate-500">
-            {analyzedTexts.length === 0 
-              ? 'No results yet - analyze some text to see results' 
+            {analyzedTexts.length === 0
+              ? 'No results yet - analyze some text to see results'
               : `Showing ${analyzedTexts.length} analyzed text${analyzedTexts.length !== 1 ? 's' : ''}`
             }
           </CardDescription>
@@ -124,18 +129,18 @@ export function RealtimeMonitor() {
         <CardContent className="p-5 max-h-[500px] overflow-y-auto">
           {analyzedTexts.length === 0 ? (
             <div className="text-center py-10 text-slate-400">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-12 w-12 mx-auto mb-4" 
-                fill="none" 
-                viewBox="0 0 24 24" 
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-12 w-12 mx-auto mb-4"
+                fill="none"
+                viewBox="0 0 24 24"
                 stroke="currentColor"
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={1.5} 
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
               <p className="font-medium">No analysis results yet</p>
@@ -147,16 +152,32 @@ export function RealtimeMonitor() {
                 <div key={index} className="p-4 bg-slate-50 rounded-lg">
                   <div className="flex justify-between items-start">
                     <p className="text-sm text-slate-900">{item.text}</p>
-                    <Badge 
-                      className={getSentimentBadgeClasses(item.sentiment)}
-                    >
-                      {item.sentiment}
-                    </Badge>
+                    <div className="flex items-center gap-2"> {/* Added div for badges */}
+                      <Badge
+                        className={getSentimentBadgeClasses(item.sentiment)}
+                      >
+                        {item.sentiment}
+                      </Badge>
+                      <Badge variant="outline" className="bg-slate-100">
+                        {item.language === 'tl' ? 'Tagalog' : 'English'}
+                      </Badge>
+                    </div>
                   </div>
                   <div className="mt-2 flex justify-between text-xs text-slate-500">
                     <span>Confidence: {(item.confidence * 100).toFixed(1)}%</span>
                     <span>{item.timestamp.toLocaleTimeString()}</span>
                   </div>
+                  {item.explanation && (
+                    <div className="bg-slate-50 p-3 rounded-md border border-slate-200 mt-2">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-slate-600 mt-0.5" />
+                        <div>
+                          <h4 className="text-sm font-medium mb-1">Analysis Explanation</h4>
+                          <p className="text-sm text-slate-700">{item.explanation}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
               <div ref={resultsEndRef} />
@@ -176,8 +197,8 @@ export function RealtimeMonitor() {
               variant="ghost"
               className="text-blue-600"
               onClick={() => {
-                const text = analyzedTexts.map(item => 
-                  `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(1)}%)`
+                const text = analyzedTexts.map(item =>
+                  `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(1)}%) - Language: ${item.language === 'tl' ? 'Tagalog' : 'English'}`
                 ).join('\n');
                 navigator.clipboard.writeText(text);
                 toast({

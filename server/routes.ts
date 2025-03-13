@@ -269,9 +269,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             text,
             timestamp: new Date(),
             source,
-            language: 'en', // Could be improved to detect language
+            language: result.language,
             sentiment: result.sentiment,
             confidence: result.confidence,
+            explanation: result.explanation,
             location: null,
             disasterType: null,
             fileId: null
@@ -290,9 +291,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             text: textItem,
             timestamp: new Date(),
             source,
-            language: 'en', // Could be improved to detect language
+            language: result.language,
             sentiment: result.sentiment,
             confidence: result.confidence,
+            explanation: result.explanation,
             location: null,
             disasterType: null,
             fileId: null
