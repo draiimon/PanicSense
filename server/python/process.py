@@ -641,17 +641,20 @@ Prioritize accuracy in categorization. Consider:
 
 Text: {text}
 
-ALWAYS extract any Philippine location if mentioned in the text, even briefly.
-If the text mentions a specific location like 'Manila', 'Cebu', 'Davao', or any other Philippine city/province/region, always include it.
-If it mentions broader regions like 'Luzon', 'Visayas', 'Mindanao', or 'Philippines', include that as well.
-If it mentions multiple locations, choose the most specific one.
+ONLY if the text clearly mentions a Philippine location, extract it. Otherwise, return NONE.
+If the text explicitly mentions a specific location like 'Manila', 'Cebu', 'Davao', or other Philippine city/province/region, include it.
+If it clearly mentions broader regions like 'Luzon', 'Visayas', 'Mindanao', or 'Philippines', include that.
+Otherwise, if no location is mentioned or if it's ambiguous, strictly return NONE.
+
+ONLY if the text clearly mentions a disaster type, extract it. Otherwise, return NONE.
+If there is any ambiguity, strictly return NONE.
 
 Provide detailed sentiment analysis in this exact format:
 Sentiment: [chosen sentiment]
 Confidence: [percentage]
-Explanation: [brief explanation]
-DisasterType: [identify disaster type if mentioned, even if vague]
-Location: [identify Philippine location if mentioned, even faintly implied - NEVER leave this blank if any location is mentioned]
+Explanation: [brief explanation only for disaster-related content]
+DisasterType: [identify disaster type if clearly mentioned, otherwise NONE - be very strict here]
+Location: [identify Philippine location ONLY if explicitly mentioned, otherwise NONE - be very strict here]
 """
 
                 payload = {
@@ -816,12 +819,41 @@ Location: [identify Philippine location if mentioned, even faintly implied - NEV
         text_word_count = len(text_lower.split())
         
         # Improved confidence calculation
+        # Check for emotional cues in text that indicate this is not a neutral message
+        has_emotional_markers = (
+            any(c in text for c in "!?¡¿") or                # Exclamation/question marks
+            text.isupper() or                                # ALL CAPS
+            re.search(r'([A-Z]{2,})', text) or              # Words in ALL CAPS
+            "please" in text_lower or                        # Pleading
+            "help" in text_lower or "tulong" in text_lower or # Help requests
+            re.search(r'(\w)\1{2,}', text_lower)             # Repeated letters (e.g., "heeeelp")
+        )
+        
+        # Penalize Neutral sentiment for texts with emotional markers
+        if max_sentiment == 'Neutral' and has_emotional_markers:
+            # Try to find second highest sentiment
+            second_max_score = 0
+            second_sentiment = 'Neutral'
+            for sentiment, score in scores.items():
+                if score > second_max_score and sentiment != max_sentiment:
+                    second_max_score = score
+                    second_sentiment = sentiment
+            
+            # If we have a decent second choice, use it instead
+            if second_max_score > 0:
+                max_sentiment = second_sentiment
+                max_score = second_max_score
+            else:
+                # If no good second choice, default to Fear/Anxiety for emotional texts
+                # that would otherwise be misclassified as Neutral
+                max_sentiment = 'Fear/Anxiety'
+        
         if max_sentiment == 'Neutral':
-            # Higher baseline for Neutral sentiment (min 0.7)
-            confidence = min(0.9, 0.7 + (max_score / max(10, text_word_count)) * 0.3)
+            # Higher baseline for Neutral sentiment but not too high
+            confidence = min(0.85, 0.65 + (max_score / max(10, text_word_count)) * 0.3)
         else:
-            # Regular confidence calculation with higher baseline (min 0.6)
-            confidence = min(0.9, 0.6 + (max_score / max(10, text_word_count)) * 0.4)
+            # Regular confidence calculation with higher baseline
+            confidence = min(0.95, 0.7 + (max_score / max(10, text_word_count)) * 0.4)
 
         # Create a custom explanation
         custom_explanation = explanations[max_sentiment]
