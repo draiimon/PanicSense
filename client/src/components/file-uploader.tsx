@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { uploadCSV } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
@@ -12,13 +12,14 @@ interface FileUploaderProps {
 }
 
 export function FileUploader({ onSuccess, className }: FileUploaderProps) {
-  const [uploadProgress, setUploadProgress] = useState('Preparing...');
-  const [progressPercentage, setProgressPercentage] = useState(0);
-  const [processedRecords, setProcessedRecords] = useState(0);
-  const [totalRecords, setTotalRecords] = useState(0);
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const { toast } = useToast();
-  const { isUploading, setIsUploading } = useDisasterContext();
+  const { 
+    isUploading, 
+    setIsUploading,
+    uploadProgress,
+    updateUploadProgress,
+    resetUploadProgress
+  } = useDisasterContext();
   const progressTimeout = useRef<NodeJS.Timeout>();
 
   // Cleanup on unmount
@@ -29,12 +30,6 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
       }
     };
   }, []);
-
-  const calculateProgress = (processed: number, total: number) => {
-    if (total === 0) return 0;
-    const progress = (processed / total) * 100;
-    return Math.min(Math.round(progress), 100);
-  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -51,34 +46,39 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
     }
 
     setIsUploading(true);
-    setUploadStatus('uploading');
-    setProgressPercentage(0);
-    setProcessedRecords(0);
-    setTotalRecords(0);
+    updateUploadProgress({
+      status: 'uploading',
+      message: 'Reading file...',
+      percentage: 0,
+      processedRecords: 0,
+      totalRecords: 0
+    });
 
     try {
-      setUploadProgress('Reading file...');
-
       const reader = new FileReader();
       reader.onload = async (e) => {
         const text = e.target?.result as string;
         const lines = text.split('\n').length - 1;
-        setTotalRecords(lines);
+        updateUploadProgress({ totalRecords: lines });
 
         try {
           const result = await uploadCSV(file, (progress) => {
-            setProcessedRecords(progress.processed);
-            setProgressPercentage(calculateProgress(progress.processed, lines));
-            setUploadProgress(`Processing records (${progress.processed}/${lines})`);
+            updateUploadProgress({
+              processedRecords: progress.processed,
+              percentage: Math.min(Math.round((progress.processed / lines) * 100), 100),
+              message: `Processing records (${progress.processed}/${lines})`
+            });
 
             if (progress.error) {
               throw new Error(progress.error);
             }
           });
 
-          setProgressPercentage(100);
-          setUploadProgress('Analysis Complete');
-          setUploadStatus('success');
+          updateUploadProgress({
+            status: 'success',
+            message: 'Analysis Complete',
+            percentage: 100
+          });
 
           toast({
             title: 'Success!',
@@ -96,19 +96,25 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
 
           // Delay resetting the upload state
           progressTimeout.current = setTimeout(() => {
-            setIsUploading(false);
-            setUploadStatus('idle');
+            resetUploadProgress();
           }, 2000);
 
         } catch (error) {
-          setUploadStatus('error');
+          updateUploadProgress({
+            status: 'error',
+            message: error instanceof Error ? error.message : 'Upload failed'
+          });
           throw error;
         }
       };
 
       reader.readAsText(file);
     } catch (error) {
-      setUploadStatus('error');
+      updateUploadProgress({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Upload failed'
+      });
+
       toast({
         title: 'Upload failed',
         description: error instanceof Error ? error.message : 'An unexpected error occurred',
@@ -117,8 +123,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
 
       // Reset state after error
       progressTimeout.current = setTimeout(() => {
-        setIsUploading(false);
-        setUploadStatus('idle');
+        resetUploadProgress();
       }, 2000);
     } finally {
       event.target.value = '';
@@ -128,7 +133,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
   return (
     <div className={className}>
       <AnimatePresence mode="wait">
-        {uploadStatus === 'idle' ? (
+        {uploadProgress.status === 'idle' ? (
           <motion.label
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -153,21 +158,21 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
             className="flex flex-col items-center p-4 bg-white border rounded-lg shadow-lg min-w-[300px]"
           >
             <div className="flex items-center mb-3">
-              {uploadStatus === 'uploading' && (
+              {uploadProgress.status === 'uploading' && (
                 <Loader2 className="animate-spin h-5 w-5 mr-3 text-blue-600" />
               )}
-              {uploadStatus === 'success' && (
+              {uploadProgress.status === 'success' && (
                 <CheckCircle className="h-5 w-5 mr-3 text-green-600" />
               )}
-              {uploadStatus === 'error' && (
+              {uploadProgress.status === 'error' && (
                 <AlertCircle className="h-5 w-5 mr-3 text-red-600" />
               )}
               <span className={`font-medium ${
-                uploadStatus === 'error' ? 'text-red-800' :
-                uploadStatus === 'success' ? 'text-green-800' :
+                uploadProgress.status === 'error' ? 'text-red-800' :
+                uploadProgress.status === 'success' ? 'text-green-800' :
                 'text-blue-800'
               }`}>
-                {uploadProgress}
+                {uploadProgress.message}
               </span>
             </div>
 
@@ -176,23 +181,23 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
             >
               <motion.div 
                 className={`h-2.5 rounded-full ${
-                  uploadStatus === 'error' ? 'bg-red-600' :
-                  uploadStatus === 'success' ? 'bg-green-600' :
+                  uploadProgress.status === 'error' ? 'bg-red-600' :
+                  uploadProgress.status === 'success' ? 'bg-green-600' :
                   'bg-blue-600'
                 }`}
                 initial={{ width: 0 }}
-                animate={{ width: `${progressPercentage}%` }}
+                animate={{ width: `${uploadProgress.percentage}%` }}
                 transition={{ duration: 0.3 }}
               />
             </motion.div>
 
-            {totalRecords > 0 && (
+            {uploadProgress.totalRecords > 0 && (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="text-xs text-gray-500 text-center"
               >
-                Processed {processedRecords} of {totalRecords} records
+                Processed {uploadProgress.processedRecords} of {uploadProgress.totalRecords} records
               </motion.div>
             )}
           </motion.div>

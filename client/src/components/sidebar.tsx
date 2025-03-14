@@ -101,7 +101,7 @@ export function Sidebar({ className }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile Menu Button - Always Visible */}
+      {/* Mobile Menu Button */}
       <motion.button 
         onClick={() => setIsMobileOpen(true)}
         className="lg:hidden fixed z-50 top-4 left-4 p-2 rounded-md bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200 text-slate-700 hover:bg-slate-100 transition-all duration-300"
@@ -126,13 +126,16 @@ export function Sidebar({ className }: SidebarProps) {
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
+      {/* Sidebar - Always visible on desktop */}
       <motion.aside
         variants={sidebarVariants}
         initial={false}
-        animate={isMobileOpen ? "open" : "closed"}
+        animate={{ x: 0 }}
         className={cn(
-          "fixed inset-y-0 left-0 bg-gradient-to-b from-slate-800 to-slate-900 text-white w-[280px] z-50 shadow-xl lg:translate-x-0",
+          "fixed inset-y-0 left-0 bg-gradient-to-b from-slate-800 to-slate-900 text-white w-[280px] z-50 shadow-xl",
+          "lg:relative lg:translate-x-0",
+          "transform transition-transform duration-300",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           className
         )}
       >

@@ -21,6 +21,15 @@ interface DisasterContextType {
   isLoadingAnalyzedFiles: boolean;
   isUploading: boolean;
 
+  // Upload progress
+  uploadProgress: {
+    status: 'idle' | 'uploading' | 'success' | 'error';
+    message: string;
+    percentage: number;
+    processedRecords: number;
+    totalRecords: number;
+  };
+
   // Error states
   errorSentimentPosts: Error | null;
   errorDisasterEvents: Error | null;
@@ -38,10 +47,20 @@ interface DisasterContextType {
 
   // Upload state management
   setIsUploading: (state: boolean) => void;
+  updateUploadProgress: (progress: Partial<DisasterContextType['uploadProgress']>) => void;
+  resetUploadProgress: () => void;
 
   // Refresh function
   refreshData: () => void;
 }
+
+const initialUploadProgress = {
+  status: 'idle' as const,
+  message: '',
+  percentage: 0,
+  processedRecords: 0,
+  totalRecords: 0,
+};
 
 const DisasterContext = createContext<DisasterContextType | undefined>(undefined);
 
@@ -49,6 +68,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   // State for filters and upload
   const [selectedDisasterType, setSelectedDisasterType] = useState<string>("All");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(initialUploadProgress);
 
   // Queries
   const { 
@@ -100,6 +120,17 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   const totalConfidence = sentimentPosts.reduce((sum, post) => sum + post.confidence, 0);
   const modelConfidence = sentimentPosts.length > 0 ? totalConfidence / sentimentPosts.length : 0;
 
+  // Update upload progress
+  const updateUploadProgress = (progress: Partial<DisasterContextType['uploadProgress']>) => {
+    setUploadProgress(prev => ({ ...prev, ...progress }));
+  };
+
+  // Reset upload progress
+  const resetUploadProgress = () => {
+    setUploadProgress(initialUploadProgress);
+    setIsUploading(false);
+  };
+
   // Refresh function for fetching all data
   const refreshData = () => {
     refetchSentimentPosts();
@@ -117,6 +148,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         isLoadingDisasterEvents,
         isLoadingAnalyzedFiles,
         isUploading,
+        uploadProgress,
         errorSentimentPosts: errorSentimentPosts as Error | null,
         errorDisasterEvents: errorDisasterEvents as Error | null,
         errorAnalyzedFiles: errorAnalyzedFiles as Error | null,
@@ -127,6 +159,8 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         selectedDisasterType,
         setSelectedDisasterType,
         setIsUploading,
+        updateUploadProgress,
+        resetUploadProgress,
         refreshData
       }}
     >
