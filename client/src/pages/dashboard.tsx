@@ -108,7 +108,7 @@ export default function Dashboard() {
         variants={fadeInUp}
         className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
-        <Card className="bg-white/50 backdrop-blur-sm">
+        <Card className="bg-white/50 backdrop-blur-sm border-none">
           <CardHeader>
             <CardTitle className="text-lg font-semibold">Sentiment Distribution</CardTitle>
           </CardHeader>
@@ -117,7 +117,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/50 backdrop-blur-sm">
+        <Card className="bg-white/50 backdrop-blur-sm border-none">
           <CardHeader>
             <CardTitle className="text-lg font-semibold">Recent Posts</CardTitle>
           </CardHeader>
