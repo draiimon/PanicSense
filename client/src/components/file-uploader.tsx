@@ -23,7 +23,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-[8.1px] right-[8.1px] z-[200]"
+            className="fixed bottom-[8.1px] right-[8.1px] z-[9999]"
           >
             <div className="bg-white/95 backdrop-blur-lg rounded-xl border border-blue-100 p-4 max-w-md">
               <div className="flex items-center mb-3">
