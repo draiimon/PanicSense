@@ -25,6 +25,9 @@ interface NavItem {
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Added state for expansion
+
+  const toggleExpanded = () => setIsExpanded(!isExpanded); // Added toggle function
 
   // Close sidebar on route change on mobile
   useEffect(() => {
@@ -99,7 +102,8 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 bg-slate-800 text-white w-[280px] z-50 transform transition-transform duration-300 shadow-xl",
+          "fixed inset-y-0 left-0 bg-slate-800 text-white z-50 transform transition-all duration-300 shadow-xl",
+          isExpanded ? "w-64" : "w-16", // Added width toggle
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           className
         )}
@@ -123,6 +127,14 @@ export function Sidebar({ className }: SidebarProps) {
           </button>
         </div>
 
+        <button 
+          onClick={toggleExpanded} 
+          className="absolute -right-3 top-4 hidden lg:flex items-center justify-center h-6 w-6 rounded-full bg-slate-700 text-white cursor-pointer hover:bg-slate-600"
+        >
+          {isExpanded ? "←" : "→"}
+        </button>
+
+
         <nav className="pt-5 px-4 space-y-2">
           {navItems.map((item) => (
             <Link
@@ -136,7 +148,7 @@ export function Sidebar({ className }: SidebarProps) {
               )}
             >
               {item.icon}
-              <span>{item.label}</span>
+              <span className={isExpanded ? "" : "hidden"} >{item.label}</span> {/* Hide labels when collapsed */}
             </Link>
           ))}
         </nav>
