@@ -768,7 +768,6 @@ Location: [identify Philippine location if mentioned, even faintly implied - NEV
             'Flood': ['flood', 'flooding', 'submerged', 'baha', 'bumabaha', 'tubig-baha', 'bumaha', 'pagbaha'],
             'Landslide': ['landslide', 'mudslide', 'erosion', 'guho', 'pagguho', 'pagguho ng lupa', 'rumaragasa'],
             'Fire': ['fire', 'burning', 'flame', 'sunog', 'nasusunog', 'apoy', 'nagliliyab'],
-            'Tsunami': ['tsunami', 'tidal wave', 'tsunamis', 'malaking alon'],
             'Volcanic Eruption': ['volcano', 'eruption', 'ash', 'lava', 'bulkan', 'pagputok', 'abo', 'pagputok ng bulkan']
         }
         
@@ -941,12 +940,12 @@ Location: [identify Philippine location if mentioned, even faintly implied - NEV
         final_confidence = min(0.98, base_confidence + confidence_boost)
         
         # Extract disaster type with proper handling for None values
-        # Always use "Unspecified" as the standardized unknown value
-        final_disaster_type = "Unspecified"  # Default value
+        # Always use "Not Specified" as the standardized unknown value
+        final_disaster_type = "Not Specified"  # Default value
         
         # Only override the default if we have a specific type
         if disaster_types:
-            specific_types = [dt for dt in disaster_types if dt and dt != "Unspecified" and dt != "None"]
+            specific_types = [dt for dt in disaster_types if dt and dt != "Not Specified" and dt != "Unspecified" and dt != "None"]
             if specific_types:
                 # Get the most frequent specific disaster type
                 type_counts = {}
@@ -1011,7 +1010,7 @@ Location: [identify Philippine location if mentioned, even faintly implied - NEV
                 'sentiment': analysis_result['sentiment'],
                 'confidence': analysis_result['confidence'],
                 'explanation': analysis_result['explanation'],
-                'disasterType': analysis_result.get('disasterType', "Unspecified"),
+                'disasterType': analysis_result.get('disasterType', "Not Specified"),
                 'location': analysis_result.get('location', None),
                 'modelType': analysis_result.get('modelType', "Hybrid Analysis")
             })
@@ -1086,7 +1085,7 @@ elif args.text:
         'confidence': analysis_result['confidence'],
         'explanation': analysis_result['explanation'],
         'language': analysis_result['language'],
-        'disasterType': analysis_result.get('disasterType', "Unspecified"),
+        'disasterType': analysis_result.get('disasterType', "Not Specified"),
         'location': analysis_result.get('location', None),
         'modelType': analysis_result.get('modelType', "Hybrid Analysis")
     }
