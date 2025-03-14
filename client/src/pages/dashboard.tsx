@@ -1,50 +1,19 @@
-import { useState } from "react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { FileUploader } from "@/components/file-uploader";
 import { StatusCard } from "@/components/dashboard/status-card";
 import { SentimentChart } from "@/components/dashboard/sentiment-chart";
 import { AffectedAreas } from "@/components/dashboard/affected-areas";
 import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
-import { Button } from "@/components/ui/button";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { deleteAllData } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
-  const { toast } = useToast();
   const { 
     sentimentPosts,
     activeDiastersCount,
     analyzedPostsCount,
     dominantSentiment,
     modelConfidence,
-    isLoadingSentimentPosts,
-    refreshData
+    isLoadingSentimentPosts
   } = useDisasterContext();
-  
-  const [isDeleting, setIsDeleting] = useState(false);
-  
-  const handleDeleteAllData = async () => {
-    try {
-      setIsDeleting(true);
-      const result = await deleteAllData();
-      toast({
-        title: "Success",
-        description: result.message,
-        variant: "default",
-      });
-      // Refresh the data
-      refreshData();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete data. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   // Calculate sentiment distribution
   const sentimentCounts: Record<string, number> = {
@@ -84,37 +53,12 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
           <p className="mt-1 text-sm text-slate-500">Real-time disaster sentiment analysis overview</p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" disabled={isDeleting}>
-                {isDeleting ? "Deleting..." : "Delete All Data"}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action will permanently delete all sentiment posts, disaster events, and analyzed files from the database.
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteAllData}>
-                  Yes, Delete All Data
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          
-          <FileUploader 
-            className=""
-            onSuccess={() => {
-              // The disaster context will handle refetching data
-            }}
-          />
-        </div>
+        <FileUploader 
+          className="mt-4 sm:mt-0"
+          onSuccess={() => {
+            // The disaster context will handle refetching data
+          }}
+        />
       </div>
 
       {/* Status Cards */}

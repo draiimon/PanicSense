@@ -4,7 +4,21 @@ import { DataTable } from "@/components/data/data-table";
 import { FileUploader } from "@/components/file-uploader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
+import { deleteAllData } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 // Language mapping
 const languageMap: Record<string, string> = {
@@ -13,13 +27,38 @@ const languageMap: Record<string, string> = {
 };
 
 export default function RawData() {
+  const { toast } = useToast();
   const { 
     sentimentPosts, 
     analyzedFiles, 
     isLoadingSentimentPosts,
-    isLoadingAnalyzedFiles
+    isLoadingAnalyzedFiles,
+    refreshData
   } = useDisasterContext();
   const [selectedFileId, setSelectedFileId] = useState<string>("all");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAllData = async () => {
+    try {
+      setIsDeleting(true);
+      const result = await deleteAllData();
+      toast({
+        title: "Success",
+        description: result.message,
+        variant: "default",
+      });
+      // Refresh the data
+      refreshData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Filter posts by file ID if selected
   const filteredPosts = selectedFileId === "all" 
@@ -78,12 +117,41 @@ export default function RawData() {
             View and analyze bilingual sentiment data from social media during disasters
           </p>
         </div>
-        <FileUploader 
-          className="mt-4 sm:mt-0"
-          onSuccess={() => {
-            // The disaster context will handle refetching data
-          }}
-        />
+        <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                className="w-[140px] h-[40px]"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete All Data"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action will permanently delete all sentiment posts, disaster events, and analyzed files from the database.
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteAllData}>
+                  Yes, Delete All Data
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          
+          <FileUploader 
+            className="w-[140px]"
+            onSuccess={() => {
+              // The disaster context will handle refetching data
+            }}
+          />
+        </div>
       </div>
 
       {/* Filter Controls */}
