@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { 
-  BarChart3, 
+import {
+  BarChart3,
   BrainCircuit,
-  Clock, 
-  LineChart, 
+  Clock,
+  LineChart,
   Database,
   FileText,
   Activity,
@@ -14,7 +14,7 @@ import {
   Menu,
   X,
   User,
-  LogOut
+  LogOut,
 } from "lucide-react";
 
 interface NavItem {
@@ -93,8 +93,8 @@ export function Sidebar() {
               <User className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">John Doe</h1>
-              <p className="text-xs text-slate-400">Disaster Analyst</p>
+              <h1 className="text-lg font-bold text-white">Andrei Castillo</h1>
+              <p className="text-xs text-slate-400">@Rae</p>
             </div>
           </div>
         </div>
@@ -103,16 +103,13 @@ export function Sidebar() {
         <nav className="flex-1 px-4 pb-4">
           <div className="space-y-1">
             {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-              >
+              <Link key={item.href} href={item.href}>
                 <a
                   className={cn(
                     "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200",
                     location === item.href
                       ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
-                      : "text-slate-400 hover:text-white hover:bg-white/10"
+                      : "text-slate-400 hover:text-white hover:bg-white/10",
                   )}
                 >
                   {item.icon}
@@ -121,7 +118,11 @@ export function Sidebar() {
                     <motion.div
                       layoutId="activeNav"
                       className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full"
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                      }}
                     />
                   )}
                 </a>
@@ -132,8 +133,8 @@ export function Sidebar() {
 
         {/* Logout Button */}
         <div className="p-4 border-t border-slate-700">
-          <button 
-            onClick={() => console.log('Logout clicked')}
+          <button
+            onClick={() => console.log("Logout clicked")}
             className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200"
           >
             <LogOut className="h-5 w-5" />
@@ -146,7 +147,7 @@ export function Sidebar() {
       {isMobileMenuOpen && (
         <>
           {/* Backdrop */}
-          <div 
+          <div
             className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
             onClick={() => setIsMobileMenuOpen(false)}
           />
@@ -154,7 +155,9 @@ export function Sidebar() {
           {/* Mobile Menu Content */}
           <div className="lg:hidden fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-slate-900 to-slate-800 z-50 shadow-xl">
             {/* Profile Section */}
-            <div className="p-6 mt-16"> {/* Added margin-top to account for the fixed button */}
+            <div className="p-6 mt-16">
+              {" "}
+              {/* Added margin-top to account for the fixed button */}
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
                   <User className="h-6 w-6 text-white" />
@@ -175,12 +178,14 @@ export function Sidebar() {
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <a className={cn(
-                      "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200",
-                      location === item.href
-                        ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
-                        : "text-slate-400 hover:text-white hover:bg-white/10"
-                    )}>
+                    <a
+                      className={cn(
+                        "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200",
+                        location === item.href
+                          ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
+                          : "text-slate-400 hover:text-white hover:bg-white/10",
+                      )}
+                    >
                       {item.icon}
                       <span>{item.label}</span>
                     </a>
@@ -191,8 +196,8 @@ export function Sidebar() {
 
             {/* Mobile Logout Button */}
             <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
-              <button 
-                onClick={() => console.log('Logout clicked')}
+              <button
+                onClick={() => console.log("Logout clicked")}
                 className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200"
               >
                 <LogOut className="h-5 w-5" />
