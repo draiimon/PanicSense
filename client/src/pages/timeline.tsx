@@ -9,15 +9,38 @@ export default function Timeline() {
 
   // Process sentiment posts to create timeline data
   const processTimelineData = () => {
-    // Get the last 7 days
-    const dates = Array.from({ length: 7 }, (_, i) => {
-      const date = subDays(new Date(), i);
-      return format(date, "MMM dd");
-    }).reverse();
+    let dates: string[] = [];
+    
+    // Extract actual dates from sentiment posts
+    if (sentimentPosts.length > 0) {
+      // Extract unique dates from actual data
+      const uniqueDates = new Set<string>();
+      
+      sentimentPosts.forEach(post => {
+        const postDate = format(new Date(post.timestamp), "MMM dd");
+        uniqueDates.add(postDate);
+      });
+      
+      // Convert to array and sort chronologically
+      dates = Array.from(uniqueDates).sort((a, b) => {
+        // Convert to proper date objects for comparison (add current year to handle sorting correctly)
+        const dateA = new Date(`${a} ${new Date().getFullYear()}`);
+        const dateB = new Date(`${b} ${new Date().getFullYear()}`);
+        return dateA.getTime() - dateB.getTime();
+      });
+    } else {
+      // Fallback to using the last 7 days if no posts
+      dates = Array.from({ length: 7 }, (_, i) => {
+        const date = subDays(new Date(), i);
+        return format(date, "MMM dd");
+      }).reverse();
+    }
 
     // Initialize datasets for each sentiment
     const sentiments = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"];
-    const sentimentCounts = {};
+    
+    // Define proper type for sentiment counts
+    const sentimentCounts: Record<string, Record<string, number>> = {};
 
     // Initialize counts for each sentiment on each date
     dates.forEach(date => {
@@ -38,7 +61,10 @@ export default function Timeline() {
     // Convert counts to percentages and create datasets
     const datasets = sentiments.map(sentiment => {
       const data = dates.map(date => {
-        const total = Object.values(sentimentCounts[date]).reduce((sum: number, count: number) => sum + count, 0);
+        const total = Object.values(sentimentCounts[date]).reduce(
+          (sum: number, count: number) => sum + count, 
+          0
+        );
         return total > 0 ? (sentimentCounts[date][sentiment] / total) * 100 : 0;
       });
 
@@ -68,7 +94,9 @@ export default function Timeline() {
       <SentimentTimeline 
         data={timelineData}
         title="Sentiment Evolution"
-        description="Last 7 days"
+        description={sentimentPosts.length > 0 ? 
+          `${timelineData.labels.length} date${timelineData.labels.length !== 1 ? 's' : ''} from actual data` : 
+          "Last 7 days"}
       />
 
       {/* Key Events */}

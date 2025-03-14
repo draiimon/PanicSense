@@ -8,8 +8,9 @@ interface TimelineEvent {
   name: string;
   description: string;
   timestamp: string;
-  location: string;
-  sentimentImpact: string;
+  location: string | null;
+  type: string;
+  sentimentImpact: string | null;
 }
 
 interface KeyEventsProps {
@@ -23,7 +24,9 @@ export function KeyEvents({
   title = 'Key Events',
   description = 'Major shifts in sentiment patterns'
 }: KeyEventsProps) {
-  const getSentimentBadgeText = (sentiment: string) => {
+  const getSentimentBadgeText = (sentiment: string | null) => {
+    if (!sentiment) return 'Neutral sentiment change';
+    
     switch (sentiment) {
       case 'Panic': return 'Panic sentiment spike';
       case 'Fear/Anxiety': return 'Fear/Anxiety sentiment spike';
@@ -34,7 +37,9 @@ export function KeyEvents({
     }
   };
 
-  const getSentimentVariant = (sentiment: string) => {
+  const getSentimentVariant = (sentiment: string | null) => {
+    if (!sentiment) return 'neutral';
+    
     switch (sentiment) {
       case 'Panic': return 'panic';
       case 'Fear/Anxiety': return 'fear';

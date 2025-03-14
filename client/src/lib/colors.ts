@@ -49,7 +49,9 @@ export const chartColors = [
   '#6b7280'  // Neutral - Gray
 ];
 
-export function getSentimentColor(sentiment: string): string {
+export function getSentimentColor(sentiment: string | null): string {
+  if (!sentiment) return '#6b7280'; // Default gray for null
+
   switch (sentiment) {
     case 'Panic':
       return '#ef4444';
@@ -65,7 +67,8 @@ export function getSentimentColor(sentiment: string): string {
   }
 }
 
-export function getSentimentBadgeClasses(sentiment: string): string {
+export function getSentimentBadgeClasses(sentiment: string | null): string {
+  if (!sentiment) return 'bg-slate-100 text-slate-600'; // Default for null
   switch (sentiment) {
     case 'Panic':
       return 'bg-red-100 text-red-600';

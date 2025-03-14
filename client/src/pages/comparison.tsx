@@ -14,8 +14,29 @@ export default function Comparison() {
     
     // Manual collection to avoid TypeScript issues with Set
     sentimentPosts.forEach(post => {
-      if (post.disasterType) {
-        disasterTypeSet.add(post.disasterType);
+      if (post.disasterType && post.disasterType !== "Not Specified") {
+        // Normalize disaster type names to ensure consistency
+        let disasterType = post.disasterType;
+        
+        // Handle common variations to standardize
+        const normalized = disasterType.toLowerCase().trim();
+        if (normalized.includes("earthquake") || normalized.includes("quake") || normalized.includes("lindol")) {
+          disasterType = "Earthquake";
+        } else if (normalized.includes("flood") || normalized.includes("baha")) {
+          disasterType = "Flood";
+        } else if (normalized.includes("typhoon") || normalized.includes("storm") || normalized.includes("bagyo")) {
+          disasterType = "Typhoon";
+        } else if (normalized.includes("fire") || normalized.includes("sunog")) {
+          disasterType = "Fire";
+        } else if (normalized.includes("volcano") || normalized.includes("eruption") || normalized.includes("bulkan")) {
+          disasterType = "Volcano";
+        } else if (normalized.includes("landslide") || normalized.includes("mudslide") || normalized.includes("guho")) {
+          disasterType = "Landslide";
+        } else if (normalized.includes("drought") || normalized.includes("tagtuyot")) {
+          disasterType = "Drought";
+        }
+        
+        disasterTypeSet.add(disasterType);
       }
     });
     
@@ -38,7 +59,39 @@ export default function Comparison() {
     });
 
     return validDisasterTypes.map(type => {
-      const postsForType = sentimentPosts.filter(post => post.disasterType === type);
+      // Find posts for this disaster type including partial matches
+      const postsForType = sentimentPosts.filter(post => {
+        if (!post.disasterType) return false;
+        
+        // Handle exact matches
+        if (post.disasterType === type) return true;
+        
+        // Handle partial/similar matches based on keywords
+        const disasterLower = post.disasterType.toLowerCase();
+        const typeLower = type.toLowerCase();
+        
+        // Check if the disaster type is part of the post disaster type or has similar keywords
+        if (disasterLower.includes(typeLower)) return true;
+        
+        // Check specific keyword matches by disaster type
+        switch (type) {
+          case "Earthquake":
+            return disasterLower.includes("quake") || disasterLower.includes("lindol") || disasterLower.includes("linog");
+          case "Flood":
+            return disasterLower.includes("baha") || disasterLower.includes("tubig") || disasterLower.includes("inundation");
+          case "Typhoon":
+            return disasterLower.includes("bagyo") || disasterLower.includes("storm") || disasterLower.includes("hurricane");
+          case "Fire":
+            return disasterLower.includes("sunog") || disasterLower.includes("apoy") || disasterLower.includes("burning");
+          case "Volcano":
+            return disasterLower.includes("bulkan") || disasterLower.includes("eruption") || disasterLower.includes("lahar");
+          case "Landslide":
+            return disasterLower.includes("guho") || disasterLower.includes("mudslide") || disasterLower.includes("avalanche");
+          default:
+            return false;
+        }
+      });
+      
       const totalPosts = postsForType.length;
 
       // Fix TypeScript type issues with sentiment counts
