@@ -13,26 +13,29 @@ export default function Timeline() {
     
     // Extract actual dates from sentiment posts
     if (sentimentPosts.length > 0) {
-      // Extract unique dates from actual data
+      // Extract unique dates from actual data with full year information
       const uniqueDates = new Set<string>();
+      const dateObjectMap = new Map<string, Date>();
       
       sentimentPosts.forEach(post => {
-        const postDate = format(new Date(post.timestamp), "MMM dd");
-        uniqueDates.add(postDate);
+        const postDateObj = new Date(post.timestamp);
+        const postDateFormatted = format(postDateObj, "yyyy-MM-dd");
+        const displayDate = format(postDateObj, "MMM dd, yyyy");
+        uniqueDates.add(displayDate);
+        dateObjectMap.set(displayDate, postDateObj);
       });
       
-      // Convert to array and sort chronologically
+      // Convert to array and sort chronologically by actual date timestamps
       dates = Array.from(uniqueDates).sort((a, b) => {
-        // Convert to proper date objects for comparison (add current year to handle sorting correctly)
-        const dateA = new Date(`${a} ${new Date().getFullYear()}`);
-        const dateB = new Date(`${b} ${new Date().getFullYear()}`);
+        const dateA = dateObjectMap.get(a) || new Date();
+        const dateB = dateObjectMap.get(b) || new Date();
         return dateA.getTime() - dateB.getTime();
       });
     } else {
       // Fallback to using the last 7 days if no posts
       dates = Array.from({ length: 7 }, (_, i) => {
         const date = subDays(new Date(), i);
-        return format(date, "MMM dd");
+        return format(date, "MMM dd, yyyy");
       }).reverse();
     }
 
@@ -52,7 +55,7 @@ export default function Timeline() {
 
     // Count sentiments for each date
     sentimentPosts.forEach(post => {
-      const postDate = format(new Date(post.timestamp), "MMM dd");
+      const postDate = format(new Date(post.timestamp), "MMM dd, yyyy");
       if (sentimentCounts[postDate] && sentimentCounts[postDate][post.sentiment] !== undefined) {
         sentimentCounts[postDate][post.sentiment]++;
       }

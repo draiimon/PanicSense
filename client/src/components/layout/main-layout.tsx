@@ -37,7 +37,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100 relative overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 z-0">
         <div className="wave-animation"></div>
@@ -150,7 +150,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       </motion.header>
 
       {/* Main Content */}
-      <main className="relative z-10">
+      <main className="relative z-10 flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {children}
         </div>

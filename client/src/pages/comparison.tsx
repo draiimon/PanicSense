@@ -12,31 +12,100 @@ export default function Comparison() {
     // Get unique disaster types, but filter out "Not Specified", "Not mentioned", "Unspecified" etc.
     const disasterTypeSet = new Set<string>();
     
-    // Manual collection to avoid TypeScript issues with Set
+    // Create a map of standard disaster types
+    const standardDisasterTypes = {
+      'earthquake': 'Earthquake',
+      'quake': 'Earthquake',
+      'lindol': 'Earthquake',
+      'linog': 'Earthquake',
+      'seismic': 'Earthquake',
+      'tremor': 'Earthquake',
+      'magnitude': 'Earthquake',
+      
+      'flood': 'Flood',
+      'baha': 'Flood',
+      'tubig': 'Flood',
+      'inundation': 'Flood',
+      'submerged': 'Flood',
+      'overflow': 'Flood',
+      
+      'typhoon': 'Typhoon',
+      'storm': 'Typhoon',
+      'bagyo': 'Typhoon',
+      'hurricane': 'Typhoon',
+      'cyclone': 'Typhoon',
+      'tropical': 'Typhoon',
+      
+      'fire': 'Fire',
+      'sunog': 'Fire',
+      'apoy': 'Fire',
+      'blaze': 'Fire',
+      'burning': 'Fire',
+      'flames': 'Fire',
+      
+      'volcano': 'Volcano',
+      'bulkan': 'Volcano',
+      'eruption': 'Volcano',
+      'lava': 'Volcano',
+      'ash': 'Volcano',
+      'lahar': 'Volcano',
+      
+      'landslide': 'Landslide',
+      'mudslide': 'Landslide',
+      'avalanche': 'Landslide',
+      'guho': 'Landslide',
+      'pagguho': 'Landslide',
+      'rockslide': 'Landslide',
+      
+      'drought': 'Drought',
+      'tagtuyot': 'Drought',
+      'dry': 'Drought'
+    };
+    
+    // Add standard disaster types from disasterEvents
+    disasterEvents.forEach(event => {
+      if (event.type && 
+          event.type !== "Not Specified" && 
+          event.type !== "null" && 
+          event.type !== "undefined" &&
+          event.type.toLowerCase() !== "none") {
+        disasterTypeSet.add(event.type);
+      }
+    });
+    
+    // Add standardized disaster types from posts
     sentimentPosts.forEach(post => {
-      if (post.disasterType && post.disasterType !== "Not Specified") {
-        // Normalize disaster type names to ensure consistency
-        let disasterType = post.disasterType;
-        
-        // Handle common variations to standardize
-        const normalized = disasterType.toLowerCase().trim();
-        if (normalized.includes("earthquake") || normalized.includes("quake") || normalized.includes("lindol")) {
-          disasterType = "Earthquake";
-        } else if (normalized.includes("flood") || normalized.includes("baha")) {
-          disasterType = "Flood";
-        } else if (normalized.includes("typhoon") || normalized.includes("storm") || normalized.includes("bagyo")) {
-          disasterType = "Typhoon";
-        } else if (normalized.includes("fire") || normalized.includes("sunog")) {
-          disasterType = "Fire";
-        } else if (normalized.includes("volcano") || normalized.includes("eruption") || normalized.includes("bulkan")) {
-          disasterType = "Volcano";
-        } else if (normalized.includes("landslide") || normalized.includes("mudslide") || normalized.includes("guho")) {
-          disasterType = "Landslide";
-        } else if (normalized.includes("drought") || normalized.includes("tagtuyot")) {
-          disasterType = "Drought";
+      if (!post.disasterType) return;
+      if (post.disasterType === "Not Specified" || 
+          post.disasterType === "NONE" || 
+          post.disasterType === "None" || 
+          post.disasterType === "null" || 
+          post.disasterType === "undefined") {
+        return;
+      }
+      
+      // Try to standardize the disaster type
+      const postDisasterType = post.disasterType.trim();
+      const normalized = postDisasterType.toLowerCase();
+      
+      // Check if this is already a standardized type name (exact match)
+      if (["Earthquake", "Flood", "Typhoon", "Fire", "Volcano", "Landslide", "Drought"].includes(postDisasterType)) {
+        disasterTypeSet.add(postDisasterType);
+      } else {
+        // Look for keywords to standardize
+        let matched = false;
+        for (const [keyword, standardType] of Object.entries(standardDisasterTypes)) {
+          if (normalized.includes(keyword)) {
+            disasterTypeSet.add(standardType);
+            matched = true;
+            break;
+          }
         }
         
-        disasterTypeSet.add(disasterType);
+        // If no match found but not a generic term, add as-is
+        if (!matched && postDisasterType.length < 30) {
+          disasterTypeSet.add(postDisasterType);
+        }
       }
     });
     
