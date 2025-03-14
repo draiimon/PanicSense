@@ -71,65 +71,10 @@ export function Sidebar() {
   ];
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-slate-900 to-slate-800">
-      {/* Profile Section */}
-      <div className="p-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
-            <User className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-white">John Doe</h1>
-            <p className="text-xs text-slate-400">Disaster Analyst</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Links */}
-      <nav className="flex-1 px-4 pb-4">
-        <div className="space-y-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-            >
-              <a
-                className={cn(
-                  "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200",
-                  location === item.href
-                    ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
-                    : "text-slate-400 hover:text-white hover:bg-white/10"
-                )}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-                {location === item.href && (
-                  <motion.div
-                    layoutId="activeNav"
-                    className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-              </a>
-            </Link>
-          ))}
-        </div>
-      </nav>
-
-      {/* Logout Button */}
-      <div className="p-4 border-t border-slate-700">
-        <button 
-          onClick={() => console.log('Logout clicked')}
-          className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200"
-        >
-          <LogOut className="h-5 w-5" />
-          <span>Logout</span>
-        </button>
-      </div>
-
-      {/* Mobile Menu Button - Fixed to top left */}
+    <>
+      {/* Mobile Menu Button - Always visible on mobile */}
       <button
-        className="lg:hidden fixed top-4 left-4 p-3 rounded-lg bg-slate-800 text-white shadow-lg z-50"
+        className="lg:hidden fixed top-4 left-4 p-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg z-50 transition-colors"
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       >
         {isMobileMenuOpen ? (
@@ -139,12 +84,77 @@ export function Sidebar() {
         )}
       </button>
 
-      {/* Mobile Menu */}
+      {/* Desktop Sidebar */}
+      <div className="h-full flex flex-col bg-gradient-to-b from-slate-900 to-slate-800">
+        {/* Profile Section */}
+        <div className="p-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
+              <User className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-white">John Doe</h1>
+              <p className="text-xs text-slate-400">Disaster Analyst</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Links */}
+        <nav className="flex-1 px-4 pb-4">
+          <div className="space-y-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+              >
+                <a
+                  className={cn(
+                    "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200",
+                    location === item.href
+                      ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
+                      : "text-slate-400 hover:text-white hover:bg-white/10"
+                  )}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                  {location === item.href && (
+                    <motion.div
+                      layoutId="activeNav"
+                      className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full"
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
+                  )}
+                </a>
+              </Link>
+            ))}
+          </div>
+        </nav>
+
+        {/* Logout Button */}
+        <div className="p-4 border-t border-slate-700">
+          <button 
+            onClick={() => console.log('Logout clicked')}
+            className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200"
+          >
+            <LogOut className="h-5 w-5" />
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 bg-slate-900/90 z-40">
-          <div className="h-full w-64 bg-gradient-to-b from-slate-900 to-slate-800">
+        <>
+          {/* Backdrop */}
+          <div 
+            className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+
+          {/* Mobile Menu Content */}
+          <div className="lg:hidden fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-slate-900 to-slate-800 z-50 shadow-xl">
             {/* Profile Section */}
-            <div className="p-6">
+            <div className="p-6 mt-16"> {/* Added margin-top to account for the fixed button */}
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
                   <User className="h-6 w-6 text-white" />
@@ -157,25 +167,27 @@ export function Sidebar() {
             </div>
 
             {/* Mobile Navigation */}
-            <div className="px-4">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <a className={cn(
-                    "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200",
-                    location === item.href
-                      ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
-                      : "text-slate-400 hover:text-white hover:bg-white/10"
-                  )}>
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </a>
-                </Link>
-              ))}
-            </div>
+            <nav className="px-4">
+              <div className="space-y-1">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <a className={cn(
+                      "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200",
+                      location === item.href
+                        ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
+                        : "text-slate-400 hover:text-white hover:bg-white/10"
+                    )}>
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </a>
+                  </Link>
+                ))}
+              </div>
+            </nav>
 
             {/* Mobile Logout Button */}
             <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
@@ -188,8 +200,8 @@ export function Sidebar() {
               </button>
             </div>
           </div>
-        </div>
+        </>
       )}
-    </div>
+    </>
   );
 }
