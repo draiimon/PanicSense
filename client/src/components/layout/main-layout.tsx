@@ -1,6 +1,19 @@
 import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { BrainCircuit, Menu, ChevronDown, User, LogOut } from "lucide-react";
+import { 
+  BrainCircuit, 
+  BarChart2, 
+  Clock, 
+  Layers, 
+  Database, 
+  ChartPie, 
+  Activity, 
+  HelpCircle,
+  Menu, 
+  ChevronDown, 
+  User, 
+  LogOut 
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -14,18 +27,23 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [location] = useLocation();
 
   const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: <BrainCircuit className="w-4 h-4" /> },
+    { path: '/dashboard', label: 'Dashboard', icon: <BarChart2 className="w-4 h-4" /> },
     { path: '/emotion-analysis', label: 'Emotion Analysis', icon: <BrainCircuit className="w-4 h-4" /> },
-    { path: '/timeline', label: 'Timeline', icon: <BrainCircuit className="w-4 h-4" /> },
-    { path: '/comparison', label: 'Comparison', icon: <BrainCircuit className="w-4 h-4" /> },
-    { path: '/raw-data', label: 'Raw Data', icon: <BrainCircuit className="w-4 h-4" /> },
-    { path: '/evaluation', label: 'Evaluation', icon: <BrainCircuit className="w-4 h-4" /> },
-    { path: '/real-time', label: 'Real-time', icon: <BrainCircuit className="w-4 h-4" /> },
-    { path: '/about', label: 'About', icon: <BrainCircuit className="w-4 h-4" /> }
+    { path: '/timeline', label: 'Timeline', icon: <Clock className="w-4 h-4" /> },
+    { path: '/comparison', label: 'Comparison', icon: <Layers className="w-4 h-4" /> },
+    { path: '/raw-data', label: 'Raw Data', icon: <Database className="w-4 h-4" /> },
+    { path: '/evaluation', label: 'Evaluation', icon: <ChartPie className="w-4 h-4" /> },
+    { path: '/real-time', label: 'Real-time', icon: <Activity className="w-4 h-4" /> },
+    { path: '/about', label: 'About', icon: <HelpCircle className="w-4 h-4" /> }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 z-0">
+        <div className="wave-animation"></div>
+      </div>
+
       {/* Header with Dropdown Navigation */}
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
@@ -63,31 +81,29 @@ export function MainLayout({ children }: MainLayoutProps) {
                 </div>
               </div>
 
-              {/* Menu Button */}
+              {/* Menu Button - Icon Only */}
               <Button
                 variant="ghost"
-                size="sm"
-                className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100 transition-colors"
+                size="icon"
+                className="w-10 h-10 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 <Menu className="w-5 h-5" />
-                <span className="font-medium">Menu</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
               </Button>
             </div>
 
             {/* User Profile Section */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
+              <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer group">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <User className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-sm font-medium text-slate-700">John Doe</span>
+                <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600">John Doe</span>
               </div>
               <Button 
                 variant="outline" 
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
                 onClick={() => console.log('Logout clicked')}
               >
                 <LogOut className="w-4 h-4" />
@@ -122,10 +138,10 @@ export function MainLayout({ children }: MainLayoutProps) {
                           <a className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                             location === item.path 
                               ? 'bg-blue-50 text-blue-600 shadow-sm' 
-                              : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
+                              : 'hover:bg-blue-50/50 text-slate-600 hover:text-blue-600 hover:translate-x-1'
                           }`}>
                             {item.icon}
-                            <span className="font-medium">{item.label}</span>
+                            {/* Removed label */}
                           </a>
                         </Link>
                       ))}
@@ -139,14 +155,14 @@ export function MainLayout({ children }: MainLayoutProps) {
       </motion.header>
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main className="relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {children}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto bg-white/80 backdrop-blur-sm border-t border-slate-200 py-4 px-8">
+      <footer className="mt-auto bg-white/80 backdrop-blur-sm border-t border-slate-200 py-4 px-8 relative z-10">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-sm text-slate-600">
           <div className="flex items-center space-x-2">
             <BrainCircuit className="h-5 w-5 text-blue-600" />
@@ -157,6 +173,43 @@ export function MainLayout({ children }: MainLayoutProps) {
           </div>
         </div>
       </footer>
+
+      {/* Add wave animation styles */}
+      <style>{`
+        .wave-animation {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(60deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+          animation: wave 8s ease-in-out infinite;
+          background-size: 400% 400%;
+        }
+
+        .wave-animation::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(60deg, rgba(255, 255, 255, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+          animation: wave 8s ease-in-out infinite;
+          animation-delay: -4s;
+          background-size: 400% 400%;
+        }
+
+        @keyframes wave {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+      `}</style>
     </div>
   );
 }
