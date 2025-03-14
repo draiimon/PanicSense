@@ -12,7 +12,8 @@ import {
   Info,
   Timer,
   Menu,
-  X
+  X,
+  BrainCircuit
 } from "lucide-react";
 
 interface SidebarProps {
@@ -50,13 +51,14 @@ export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  // Close sidebar on route change
   useEffect(() => {
     if (isMobileOpen) {
       setIsMobileOpen(false);
     }
   }, [location]);
 
-  // Handle click outside to close sidebar on mobile
+  // Handle click outside to close sidebar
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const sidebar = document.getElementById('mobile-sidebar');
@@ -119,7 +121,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Mobile Menu Button */}
       <motion.button 
         onClick={() => setIsMobileOpen(true)}
-        className="lg:hidden fixed z-50 top-4 left-4 p-2 rounded-md bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200 text-slate-700 hover:bg-slate-100 transition-all duration-300"
+        className="lg:hidden fixed z-50 top-4 left-4 p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-lg border border-slate-200/50 text-slate-700 hover:bg-slate-100 transition-all duration-300"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         initial={{ opacity: 0 }}
@@ -128,7 +130,7 @@ export function Sidebar({ className }: SidebarProps) {
         <Menu className="h-6 w-6" />
       </motion.button>
 
-      {/* Backdrop */}
+      {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobileOpen && (
           <motion.div 
@@ -146,30 +148,23 @@ export function Sidebar({ className }: SidebarProps) {
         id="mobile-sidebar"
         variants={sidebarVariants}
         initial={false}
-        animate={{ x: 0 }}
+        animate={isMobileOpen ? "open" : "closed"}
         className={cn(
           "fixed inset-y-0 left-0 bg-gradient-to-b from-slate-900 to-slate-800 text-white w-[280px] z-50 shadow-xl",
           "lg:relative lg:translate-x-0",
           "transform transition-transform duration-300 ease-in-out",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           className
         )}
       >
-        {/* Logo Section - Only show on mobile */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700/50 lg:hidden">
+        {/* Logo Section - Mobile Only */}
+        <motion.div 
+          className="flex items-center justify-between h-16 px-4 border-b border-slate-700/50 lg:hidden"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
-              <motion.svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-5 w-5"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200 }}
-                viewBox="0 0 20 20" 
-                fill="currentColor"
-              >
-                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-              </motion.svg>
+              <BrainCircuit className="h-5 w-5 text-white" />
             </div>
             <h1 className="text-lg font-bold bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-transparent">
               PanicSense PH
@@ -179,13 +174,13 @@ export function Sidebar({ className }: SidebarProps) {
           {/* Close Button - Mobile Only */}
           <motion.button 
             onClick={() => setIsMobileOpen(false)}
-            className="text-slate-400 hover:text-white transition-colors"
+            className="p-1 rounded-full hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
             <X className="h-6 w-6" />
           </motion.button>
-        </div>
+        </motion.div>
 
         {/* Navigation */}
         <nav className="h-[calc(100vh-4rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent pt-5 px-4 space-y-1">

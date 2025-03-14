@@ -4,21 +4,23 @@ import { DataTable } from "@/components/data/data-table";
 import { FileUploader } from "@/components/file-uploader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle, 
-  AlertDialogTrigger 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import { deleteAllData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2, Trash2 } from 'lucide-react'; // Assuming these icons are needed
+
 
 // Language mapping
 const languageMap: Record<string, string> = {
@@ -28,9 +30,9 @@ const languageMap: Record<string, string> = {
 
 export default function RawData() {
   const { toast } = useToast();
-  const { 
-    sentimentPosts, 
-    analyzedFiles, 
+  const {
+    sentimentPosts,
+    analyzedFiles,
     isLoadingSentimentPosts,
     isLoadingAnalyzedFiles,
     refreshData
@@ -61,8 +63,8 @@ export default function RawData() {
   };
 
   // Filter posts by file ID if selected
-  const filteredPosts = selectedFileId === "all" 
-    ? sentimentPosts 
+  const filteredPosts = selectedFileId === "all"
+    ? sentimentPosts
     : sentimentPosts.filter(post => post.fileId === parseInt(selectedFileId));
 
   const isLoading = isLoadingSentimentPosts || isLoadingAnalyzedFiles;
@@ -110,25 +112,35 @@ export default function RawData() {
       </Card>
 
       {/* Raw Data Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Raw Data Analysis</h1>
           <p className="mt-1 text-sm text-slate-500">
             View and analyze bilingual sentiment data from social media during disasters
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
+        <div className="flex flex-col sm:flex-row gap-3 mt-4 sm:mt-0">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button 
-                variant="destructive" 
-                className="w-[140px] h-[40px]"
+              <Button
+                variant="destructive"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
                 disabled={isDeleting}
               >
-                {isDeleting ? "Deleting..." : "Delete All Data"}
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-5 w-5 mr-2" />
+                    Delete All Data
+                  </>
+                )}
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="bg-white/95 backdrop-blur-sm border-slate-200">
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
@@ -137,20 +149,18 @@ export default function RawData() {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteAllData}>
+                <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAllData}
+                  className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700"
+                >
                   Yes, Delete All Data
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          
-          <FileUploader 
-            className="w-[140px]"
-            onSuccess={() => {
-              // The disaster context will handle refetching data
-            }}
-          />
+
+          <FileUploader className="w-auto" />
         </div>
       </div>
 
@@ -204,7 +214,7 @@ export default function RawData() {
       </Card>
 
       {/* Data Table */}
-      <DataTable 
+      <DataTable
         data={transformedPosts}
         title={selectedFileId === "all" ? "Complete Sentiment Dataset" : `Data from ${analyzedFiles.find(f => f.id.toString() === selectedFileId)?.originalName || "Selected File"}`}
         description="Bilingual sentiment analysis results with filtering capabilities"

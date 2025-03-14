@@ -11,7 +11,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Sidebar - Fixed width to prevent content shifting */}
-      <div className="w-[280px] flex-shrink-0">
+      <div className="w-[280px] flex-shrink-0 hidden lg:block">
         <Sidebar />
       </div>
 
@@ -64,12 +64,25 @@ export function MainLayout({ children }: MainLayoutProps) {
 
         {/* Page Content - Center everything with max-width */}
         <main className="flex-1 overflow-hidden relative">
-          <div className="absolute inset-0 overflow-y-auto custom-scrollbar">
+          <div className="absolute inset-0 overflow-y-auto custom-scrollbar pb-16">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
               {children}
             </div>
           </div>
         </main>
+
+        {/* Footer */}
+        <footer className="bg-white/80 backdrop-blur-sm border-t border-slate-200 py-4 px-8">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-sm text-slate-600">
+            <div className="flex items-center space-x-2">
+              <BrainCircuit className="h-5 w-5 text-blue-600" />
+              <span>PanicSense PH © 2025</span>
+            </div>
+            <div className="mt-2 sm:mt-0">
+              Advanced Disaster Sentiment Analysis Platform
+            </div>
+          </div>
+        </footer>
       </div>
 
       {/* Global Styles */}
