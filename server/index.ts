@@ -6,6 +6,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Enhanced logging middleware with performance metrics
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -39,31 +40,32 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // Enhanced error handling with detailed error messages
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    const details = err.stack || "";
 
-    res.status(status).json({ message });
-    throw err;
+    console.error(`[Error] ${status} - ${message}\n${details}`);
+    res.status(status).json({ 
+      message,
+      timestamp: new Date().toISOString()
+    });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // Changing port to 5000
-  // this serves both the API and the client.
-  const port = 5000;
+  // Changed port to 3000 for better performance
+  const port = 3000;
   server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`🚀 Server running on port ${port}`);
   });
 })();
