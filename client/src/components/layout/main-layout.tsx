@@ -23,8 +23,8 @@ export function MainLayout({ children }: MainLayoutProps) {
           animate={{ opacity: 1, y: 0 }}
           className="sticky top-0 bg-white/80 backdrop-blur-sm border-b border-slate-200 px-8 py-4 shadow-sm z-20"
         >
-          <div className="flex items-center space-x-4 max-w-7xl mx-auto">
-            <div className="flex items-center">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center space-x-3">
               <div className="relative w-10 h-10">
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl"
@@ -40,23 +40,13 @@ export function MainLayout({ children }: MainLayoutProps) {
                 />
                 <BrainCircuit className="absolute inset-0 w-full h-full text-white p-2" />
               </div>
-              <div className="ml-3">
-                <motion.h1 
-                  className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   PanicSense PH
-                </motion.h1>
-                <motion.p 
-                  className="text-sm text-slate-600"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                >
+                </h1>
+                <p className="text-sm text-slate-500">
                   Real-time Disaster Sentiment Analysis
-                </motion.p>
+                </p>
               </div>
             </div>
           </div>
