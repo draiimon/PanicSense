@@ -39,7 +39,7 @@ export default function AboutPage() {
               </svg>
             </div>
             <h3 className="text-xl font-bold text-slate-800">
-              Mark Andrei Castillo
+              Mark Andrei R. Castillo
             </h3>
             <p className="text-slate-600">Core System Architecture &amp; Machine Learning</p>
           </div>
@@ -49,7 +49,7 @@ export default function AboutPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-slate-800">Ivahnn Dela Cruz</h3>
+            <h3 className="text-xl font-bold text-slate-800">Ivahnn B. Garcia</h3>
             <p className="text-slate-600">Frontend Development &amp; User Experience</p>
           </div>
           <div className="space-y-4">
@@ -58,7 +58,7 @@ export default function AboutPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-slate-800">Julia Reyes</h3>
+            <h3 className="text-xl font-bold text-slate-800">Julia Daphne Ngan-Gatdula</h3>
             <p className="text-slate-600">Data Resources &amp; Information Engineering</p>
           </div>
         </div>
