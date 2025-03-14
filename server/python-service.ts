@@ -15,7 +15,10 @@ interface ProcessCSVResult {
     confidence: number;
     explanation?: string;
     disasterType?: string;
+    disasterConfidence?: number;
+    disasterExplanation?: string;
     location?: string;
+    locationType?: string;
   }[];
   metrics?: {
     accuracy: number;
@@ -92,12 +95,15 @@ export class PythonService {
   }
 
   public async analyzeSentiment(text: string): Promise<{
-    sentiment: string; 
+    sentiment: string;
     confidence: number;
     explanation: string;
     language: string;
     disasterType?: string;
+    disasterConfidence?: number;
+    disasterExplanation?: string;
     location?: string;
+    locationType?: string;
   }> {
     // Run the Python script with retries
     let attempt = 0;

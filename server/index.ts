@@ -6,10 +6,10 @@ const startTime = Date.now();
 log("Starting application initialization...", "startup");
 
 const app = express();
-app.use(express.json({ limit: '50mb' })); // Increased limit for better performance
+app.use(express.json({ limit: '50mb' })); 
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Enhanced logging middleware with better performance metrics
+// Enhanced logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -38,14 +38,28 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    log("Initializing server components...", "startup");
-    log(`Time since start: ${Date.now() - startTime}ms`, "startup");
+    // Bind to port first to ensure server is listening
+    const port = 5000;
+    const server = app.listen(port, "0.0.0.0", () => {
+      log(`🚀 Server ready and listening on port ${port}`, "startup");
+    });
+
+    // Set up error handling for server
+    server.on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${port} is already in use`);
+        process.exit(1);
+      } else {
+        console.error('❌ Server error:', error);
+        process.exit(1);
+      }
+    });
 
     log("Registering routes...", "startup");
-    const server = await registerRoutes(app);
+    await registerRoutes(app);
     log(`Routes registered in ${Date.now() - startTime}ms`, "startup");
 
-    // Enhanced error handling with structured error response
+    // Enhanced error handling
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
@@ -71,34 +85,8 @@ app.use((req, res, next) => {
       log("Static file serving configured", "startup");
     }
 
-    // ALWAYS serve the app on port 5000
-    const port = 5000;
-    try {
-      log("Attempting to start server...", "startup");
-      server.listen({
-        port,
-        host: "0.0.0.0",
-        reusePort: true,
-      }, () => {
-        log(`🚀 Server ready and listening on port ${port}`, "startup");
-        log(`Server running in ${app.get("env")} mode`, "startup");
-        log(`Total startup time: ${Date.now() - startTime}ms`, "startup");
-      });
+    log(`Total startup time: ${Date.now() - startTime}ms`, "startup");
 
-      // Handle server errors
-      server.on('error', (error: NodeJS.ErrnoException) => {
-        if (error.code === 'EADDRINUSE') {
-          console.error(`❌ Port ${port} is already in use`);
-          process.exit(1);
-        } else {
-          console.error('❌ Server error:', error);
-          process.exit(1);
-        }
-      });
-    } catch (error) {
-      console.error('❌ Failed to start server:', error);
-      process.exit(1);
-    }
   } catch (error) {
     console.error('❌ Fatal error during startup:', error);
     process.exit(1);
