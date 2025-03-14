@@ -123,24 +123,22 @@ export function Sidebar({ className }: SidebarProps) {
           </button>
         </div>
 
-        <nav className="fixed top-0 right-0 pt-5 px-4 space-y-2 z-50 bg-slate-800 rounded-bl-lg shadow-lg">
-          <div className="flex flex-row gap-4 items-center">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-2 py-2 px-3 rounded-md transition-colors duration-200",
-                  location === item.href
-                    ? "bg-slate-700 text-white"
-                    : "text-slate-300 hover:bg-slate-700 hover:text-white"
-                )}
-              >
-                {item.icon}
-                <span className="hidden md:inline">{item.label}</span>
-              </Link>
-            ))}
-          </div>
+        <nav className="pt-5 px-4 space-y-2">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center space-x-2 py-2 px-3 rounded-md transition-colors duration-200",
+                location === item.href
+                  ? "bg-slate-700 text-white"
+                  : "text-slate-300 hover:bg-slate-700 hover:text-white"
+              )}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </Link>
+          ))}
         </nav>
       </div>
     </>
