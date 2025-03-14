@@ -828,32 +828,45 @@ Location: [identify Philippine location if mentioned, even faintly implied - NEV
         if matched_keywords[max_sentiment]:
             custom_explanation += f" Key indicators: {', '.join(matched_keywords[max_sentiment][:3])}."
             
+        # Skip disaster/location analysis for very short or non-meaningful inputs
+        is_meaningful_input = len(text.strip()) > 5 and not all(c in '?!.,;:' for c in text.strip())
+        
         # Detect disaster type from text with better handling of unspecified types
         disaster_type = "Not Specified"  # Default to "Not Specified" instead of None
         
-        # Search for specific disaster types
-        for dtype, words in disaster_keywords.items():
-            for word in words:
-                if word.lower() in text_lower:
-                    disaster_type = dtype
+        # For very short messages or punctuation-only messages, don't try to detect disaster type
+        if is_meaningful_input:
+            # Search for specific disaster types
+            for dtype, words in disaster_keywords.items():
+                for word in words:
+                    if word.lower() in text_lower:
+                        disaster_type = dtype
+                        break
+                if disaster_type != "Not Specified":
                     break
-            if disaster_type != "Not Specified":
-                break
-                
-        # Detect location from text
-        location = None
-        specific_location = None
-        for region, places in location_keywords.items():
-            for place in places:
-                if place.lower() in text_lower:
-                    location = region
-                    specific_location = place
+                    
+            # Detect location from text
+            location = None
+            specific_location = None
+            for region, places in location_keywords.items():
+                for place in places:
+                    if place.lower() in text_lower:
+                        location = region
+                        specific_location = place
+                        break
+                if location:
                     break
-            if location:
-                break
-                
+        else:
+            # For non-meaningful inputs, don't assign a location
+            location = None
+            specific_location = None
+            
         # If specific location was found, use it instead of the region
         final_location = specific_location if specific_location else location
+        
+        # For non-meaningful inputs, don't provide explanations
+        if not is_meaningful_input:
+            custom_explanation = None
 
         return {
             "sentiment": max_sentiment,
@@ -966,11 +979,21 @@ Location: [identify Philippine location if mentioned, even faintly implied - NEV
                 if location_counts:
                     final_location = max(location_counts.items(), key=lambda x: x[1])[0]
         
-        # Generate enhanced explanation
-        if explanations:
-            final_explanation = max(explanations, key=len)  # Use the most detailed explanation
+        # Check if this is a non-meaningful input (very short or just punctuation)
+        is_meaningful_input = len(text.strip()) > 5 and not all(c in '?!.,;:' for c in text.strip())
+        
+        # Generate enhanced explanation only for meaningful inputs
+        if is_meaningful_input:
+            if explanations:
+                final_explanation = max(explanations, key=len)  # Use the most detailed explanation
+            else:
+                final_explanation = f"Ensemble model detected {final_sentiment} sentiment."
         else:
-            final_explanation = f"Ensemble model detected {final_sentiment} sentiment."
+            final_explanation = None  # No explanation for non-meaningful inputs
+            
+            # For non-meaningful inputs, reset disaster type and location
+            final_disaster_type = "Not Specified"
+            final_location = None
             
         # Final enhanced prediction with BiGRU/LSTM-inspired confidence
         return {

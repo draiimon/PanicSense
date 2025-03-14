@@ -24,11 +24,16 @@ export default function Comparison() {
       if (!type) return false;
       
       const lowerType = type.toLowerCase();
+      
+      // Filter out placeholder values and long phrases
       return !(
         lowerType === "not specified" || 
         lowerType === "not mentioned" || 
         lowerType === "unspecified" || 
-        lowerType === "none"
+        lowerType === "none" ||
+        lowerType.includes("none specifically mentioned") ||
+        lowerType.includes("but it implies") ||
+        type.length > 40  // Filter out very long descriptions which are likely placeholders
       );
     });
 

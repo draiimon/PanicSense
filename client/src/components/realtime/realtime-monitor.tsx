@@ -98,7 +98,19 @@ export function RealtimeMonitor() {
 
       setText('');
 
-      if (!autoAnalyze) {
+      // Check if this appears to be a very short or random input
+      const isShortRandomInput = result.post.text.length < 6 || 
+                                 !result.post.explanation || 
+                                 (!result.post.disasterType || result.post.disasterType === "Not Specified");
+      
+      if (isShortRandomInput) {
+        toast({
+          title: 'Non-Disaster Input',
+          description: 'This appears to be a short non-disaster related input. For best results, please enter more detailed text about disaster situations.',
+          variant: 'destructive',
+          duration: 5000,
+        });
+      } else if (!autoAnalyze) {
         toast({
           title: 'Analysis complete',
           description: `Sentiment detected: ${result.post.sentiment}`,
@@ -238,7 +250,8 @@ export function RealtimeMonitor() {
                   )}
                   
                   {/* Warning for non-disaster related short texts */}
-                  {((!item.disasterType || item.disasterType === "Not Specified") && item.text.length < 5) && (
+                  {((!item.disasterType || item.disasterType === "Not Specified" || item.disasterType.toLowerCase().includes("none")) && 
+                    (item.text.length < 6 || item.text.match(/^[!?.,;:]+$/))) && (
                     <div className="bg-amber-50 p-3 rounded-md border border-amber-200 mt-2">
                       <div className="flex items-start gap-2">
                         <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
@@ -253,8 +266,10 @@ export function RealtimeMonitor() {
                     </div>
                   )}
                   
-                  {/* Regular explanation */}
-                  {item.explanation && !((!item.disasterType || item.disasterType === "Not Specified") && item.text.length < 5) && (
+                  {/* Regular explanation - only show for meaningful inputs that have explanations */}
+                  {item.explanation && 
+                   !((!item.disasterType || item.disasterType === "Not Specified" || item.disasterType.toLowerCase().includes("none")) && 
+                     (item.text.length < 6 || item.text.match(/^[!?.,;:]+$/))) && (
                     <div className="bg-slate-50 p-3 rounded-md border border-slate-200 mt-2">
                       <div className="flex items-start gap-2">
                         <AlertCircle className="h-5 w-5 text-slate-600 mt-0.5" />
