@@ -999,45 +999,14 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                     max_confidence = result['confidence']
                     final_sentiment = result['sentiment']
         
-        # Calculate AI-based ensemble confidence with advanced weighting
+        # Calculate combined confidence (higher than any individual method)
         base_confidence = 0
-        model_agreements = 0
-        total_models = len(model_results)
-        weighted_confidences = []
-        
-        # Weight factors for different model types
-        model_weights = {
-            'API': 0.40,      # API/LLM weight
-            'BiGRU': 0.20,    # Neural network weight
-            'LSTM': 0.20,     # Neural network weight
-            'mBERT': 0.15,    # Multilingual model weight
-            'Rule-based': 0.05 # Baseline rules weight
-        }
-        
-        # Calculate weighted confidence and model agreement
         for result in model_results:
             if result['sentiment'] == final_sentiment:
-                model_agreements += 1
-                model_type = result.get('modelType', 'Rule-based').split()[0]
-                weight = model_weights.get(model_type, 0.05)
-                weighted_confidences.append(result['confidence'] * weight)
+                # For matching sentiments, use maximum confidence as base
+                base_confidence = max(base_confidence, result['confidence'])
         
-        # Base confidence is weighted average of agreeing models
-        if weighted_confidences:
-            base_confidence = sum(weighted_confidences) / sum(weight for weight in model_weights.values() if weight in [conf/score for conf, score in zip(weighted_confidences, weighted_confidences)])
-        
-        # Agreement boost factor (non-linear scaling)
-        agreement_ratio = model_agreements / total_models
-        agreement_boost = 0.15 * (agreement_ratio ** 2)  # Quadratic scaling
-        
-        # Dynamic confidence adjustment
-        final_confidence = min(0.98, base_confidence + agreement_boost)
-        
-        # Ensure minimum confidence threshold based on sentiment type
-        if final_sentiment == 'Neutral':
-            final_confidence = max(0.45, min(0.85, final_confidence))  # Neutral has lower max confidence
-        else:
-            final_confidence = max(0.60, final_confidence)  # Non-neutral minimum thresholdls
+        # Boost confidence based on agreement between models
         confidence_boost = 0.05 * (len(model_results) - 1)  # 5% boost per extra model
         
         # Enhanced confidence for neutral content - always ensure it's at least 40%
