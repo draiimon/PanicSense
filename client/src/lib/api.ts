@@ -42,6 +42,7 @@ export interface AnalyzedFile {
 export interface UploadProgress {
   processed: number;
   stage: string;
+  error?: string;
 }
 
 // Sentiment Posts API
