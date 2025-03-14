@@ -473,46 +473,109 @@ class DisasterSentimentBackend:
         return text
 
     def extract_disaster_type(self, text):
-        """Extract disaster type from text using keyword matching"""
+        """Extract disaster type from text using strict keyword matching"""
         text_lower = text.lower()
+        text_words = set(re.findall(r'\b\w+\b', text_lower))  # Extract whole words only
 
+        # Strict disaster type detection by word boundaries
         disaster_types = {
-            "Earthquake":
-            ["earthquake", "quake", "tremor", "seismic", "lindol", "linog"],
-            "Flood": ["flood", "flooding", "inundation", "baha", "tubig"],
-            "Typhoon": ["typhoon", "storm", "cyclone", "hurricane", "bagyo"],
-            "Fire": ["fire", "blaze", "burning", "sunog", "apoy"],
-            "Landslide":
-            ["landslide", "mudslide", "avalanche", "guho", "pagguho"],
-            "Volcano":
-            ["volcano", "eruption", "lava", "ash", "bulkan", "lahar"],
-            "Drought": ["drought", "dry spell", "water shortage", "tagtuyot"]
+            "Earthquake": [
+                "earthquake", "quake", "tremor", "seismic", "lindol", "linog", 
+                "shaking", "magnitude", "epicenter", "aftershock"
+            ],
+            "Flood": [
+                "flood", "flooding", "inundation", "baha", "tubig", "submerged",
+                "overflow", "water level", "rising water", "flash flood"
+            ],
+            "Typhoon": [
+                "typhoon", "storm", "cyclone", "hurricane", "bagyo", "super typhoon",
+                "tropical depression", "signal", "wind", "heavy rain"
+            ],
+            "Fire": [
+                "fire", "blaze", "burning", "sunog", "apoy", "flames", "smoke", 
+                "combustion", "wildfire", "bushfire", "forest fire", "burned"
+            ],
+            "Landslide": [
+                "landslide", "mudslide", "avalanche", "guho", "pagguho", "rockslide",
+                "rockfall", "debris flow", "mudflow", "land collapse"
+            ],
+            "Volcano": [
+                "volcano", "eruption", "lava", "ash", "bulkan", "lahar", "magma",
+                "volcanic", "crater", "pyroclastic", "phreatic"
+            ],
+            "Drought": [
+                "drought", "dry spell", "water shortage", "tagtuyot", "arid",
+                "dryness", "rainless", "water crisis", "no rain"
+            ]
         }
 
+        # First check for exact word matches
         for disaster_type, keywords in disaster_types.items():
-            if any(keyword in text_lower for keyword in keywords):
+            if any(keyword in text_words for keyword in keywords if " " not in keyword):
+                return disaster_type
+            
+            # For multi-word keywords, check if they exist in the original text
+            if any(keyword in text_lower for keyword in keywords if " " in keyword):
                 return disaster_type
 
         # Standardize the return value for unknown disaster types
-        return "Not Specified"
+        return None  # Return None instead of "Not Specified" for cleaner data
 
     def extract_location(self, text):
-        """Extract location from text using common Philippine location names"""
+        """Extract location from text using improved Philippine location detection"""
         text_lower = text.lower()
+        text_words = set(re.findall(r'\b\w+\b', text_lower))  # Extract whole words only
 
-        ph_locations = [
+        # Hierarchical location detection (regions first, then cities)
+        ph_regions = {
+            "Luzon": ["north luzon", "northern luzon", "central luzon", "southern luzon"],
+            "Visayas": ["western visayas", "central visayas", "eastern visayas"],
+            "Mindanao": ["northern mindanao", "southern mindanao", "western mindanao", "eastern mindanao"],
+            "NCR": ["metro manila", "national capital region", "ncr", "metro"],
+            "CAR": ["cordillera", "car", "mountain province"],
+            "CALABARZON": ["calabarzon", "region 4a"],
+            "MIMAROPA": ["mimaropa", "region 4b"],
+            "Bicol": ["bicol", "region 5", "albay"],
+            "Ilocos": ["ilocos", "region 1"],
+            "Cagayan Valley": ["cagayan valley", "region 2"],
+            "Central Luzon": ["central luzon", "region 3"],
+            "Western Visayas": ["western visayas", "region 6"],
+            "Central Visayas": ["central visayas", "region 7"],
+            "Eastern Visayas": ["eastern visayas", "region 8"],
+            "Zamboanga Peninsula": ["zamboanga peninsula", "region 9"],
+            "Northern Mindanao": ["northern mindanao", "region 10"],
+            "Davao Region": ["davao region", "region 11"],
+            "SOCCSKSARGEN": ["soccsksargen", "region 12"],
+            "CARAGA": ["caraga", "region 13"],
+            "BARMM": ["barmm", "bangsamoro", "armm"]
+        }
+
+        # Major cities and municipalities
+        ph_cities = [
             "Manila", "Quezon City", "Davao", "Cebu", "Makati", "Taguig",
             "Pasig", "Caloocan", "Mandaluyong", "Baguio", "Iloilo", "Bacolod",
-            "Tacloban", "Zamboanga", "Cagayan", "Bicol", "Batangas", "Cavite",
-            "Laguna", "Pampanga", "Bulacan", "Mindanao", "Luzon", "Visayas",
-            "NCR", "CAR", "CALABARZON", "MIMAROPA", "Philippines", "Pilipinas"
+            "Tacloban", "Zamboanga", "Cagayan de Oro", "Batangas", "Cavite", 
+            "Laguna", "Pampanga", "Bulacan", "Antipolo", "Marikina", "Valenzuela",
+            "Parañaque", "Las Piñas", "San Juan", "Pasay", "Muntinlupa", "Malabon",
+            "Navotas", "Pateros", "Lucena", "Olongapo", "Legazpi", "Naga"
         ]
+        
+        # First check for regions
+        for region, keywords in ph_regions.items():
+            # Check for exact region name or its variations
+            if region.lower() in text_words or any(keyword in text_lower for keyword in keywords):
+                return region
+        
+        # Then check for major cities
+        for city in ph_cities:
+            if city.lower() in text_words or city.lower() in text_lower:
+                return city
+                
+        # Generic "Philippines" reference
+        if "philippines" in text_words or "pilipinas" in text_words:
+            return "Philippines"
 
-        for location in ph_locations:
-            if location.lower() in text_lower:
-                return location
-
-        return None
+        return None  # Return None if no location is found
 
     def fetch_api(self, headers, payload, retry_count=0):
         try:
@@ -1196,17 +1259,17 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
 
     def create_ensemble_prediction(self, model_results, text):
         """
-        Combines results from different detection methods using a weighted ensemble approach
+        Combines results from different detection methods using a strict weighted ensemble approach 
+        with minimal explanations
         """
-        # Weight assignments for different models
-        # API results are given higher weight (0.7) than rule-based (0.3)
+        # Weight assignments for different models (prefer API results)
         weights = {
-            'api': 0.7,  # Groq API result
-            'rule': 0.3,  # Rule-based result
+            'api': 0.7,    # Groq API result 
+            'bigru': 0.5,  # BiGRU model
+            'lstm': 0.5,   # LSTM model
+            'mbert': 0.6,  # mBERT model (higher for multilingual)
+            'rule': 0.3,   # Rule-based result
         }
-
-        # Count of models of each type
-        model_counts = {'api': 0, 'rule': 0}
 
         # Initialize weighted votes for each sentiment
         sentiment_votes = {sentiment: 0 for sentiment in self.sentiment_labels}
@@ -1214,25 +1277,44 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
         # Track disaster types and locations
         disaster_types = []
         locations = []
-        explanations = []
 
+        # Neutral bias prevention
+        neutral_penalty = 0.15  # Reduce "Neutral" votes by 15%
+        
         # Process each model's prediction with appropriate weight
-        for i, result in enumerate(model_results):
-            model_type = 'api' if i == 0 and len(model_results) > 1 else 'rule'
-            model_counts[model_type] += 1
+        for result in model_results:
+            # Determine model type and apply appropriate weight
+            model_type = result.get('modelType', '').lower()
+            if model_type == 'api':
+                weight = weights['api']
+            elif model_type == 'bigru':
+                weight = weights['bigru']
+            elif model_type == 'lstm':
+                weight = weights['lstm']
+            elif model_type == 'mbert':
+                weight = weights['mbert']
+            else:
+                weight = weights['rule']  # Default to rule-based weight
 
-            # Record sentiment vote with confidence weighting
+            # Apply neutral penalty to discourage neutral classification
             sentiment = result['sentiment']
             confidence = result['confidence']
-            sentiment_votes[sentiment] += confidence * weights[model_type]
+            
+            if sentiment == 'Neutral':
+                # Apply neutral penalty
+                adjusted_confidence = confidence * (1 - neutral_penalty)
+            else:
+                # Boost non-neutral sentiments
+                adjusted_confidence = confidence * 1.1  # 10% boost
+                adjusted_confidence = min(0.98, adjusted_confidence)  # Cap at 98%
+                
+            sentiment_votes[sentiment] += adjusted_confidence * weight
 
             # Collect disaster types and locations for later consensus
             if result.get('disasterType'):
-                disaster_types.append(result['disasterType'])
+                disaster_types.append(result.get('disasterType'))
             if result.get('location'):
-                locations.append(result['location'])
-            if result.get('explanation'):
-                explanations.append(result['explanation'])
+                locations.append(result.get('location'))
 
         # Find the winning sentiment
         max_votes = 0
@@ -1242,7 +1324,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 max_votes = votes
                 final_sentiment = sentiment
 
-        # If no clear winner, use the highest confidence prediction
+        # Fall back to highest confidence model if no clear winner
         if not final_sentiment:
             max_confidence = 0
             for result in model_results:
@@ -1250,50 +1332,57 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                     max_confidence = result['confidence']
                     final_sentiment = result['sentiment']
 
-        # Calculate combined confidence (higher than any individual method)
-        weighted_confidences = [
-            result['confidence'] *
-            weights['api' if i == 0 and len(model_results) > 1 else 'rule']
-            for i, result in enumerate(model_results)
-        ]
+        # Calculate combined confidence with higher baseline
+        weighted_confidences = []
+        for result in model_results:
+            model_type = result.get('modelType', '').lower()
+            if model_type == 'api':
+                weight = weights['api']
+            elif model_type == 'bigru':
+                weight = weights['bigru'] 
+            elif model_type == 'lstm':
+                weight = weights['lstm']
+            elif model_type == 'mbert':
+                weight = weights['mbert']
+            else:
+                weight = weights['rule']
+            weighted_confidences.append(result['confidence'] * weight)
+            
         if weighted_confidences:
-            base_confidence = sum(weighted_confidences) / len(
-                weighted_confidences)
+            base_confidence = sum(weighted_confidences) / len(weighted_confidences)
         else:
-            base_confidence = 0.7  # Default confidence if no weighted scores
+            base_confidence = 0.75  # Higher default confidence
 
         # Boost confidence based on agreement between models
-        confidence_boost = 0.05 * (len(model_results) - 1
-                                   )  # 5% boost per extra model
+        confidence_boost = 0.05 * (len(model_results) - 1)  # 5% boost per extra model
 
-        # Enhanced confidence for neutral content - always ensure it's at least 40%
-        if final_sentiment == 'Neutral':
-            # Ensure neutral sentiment has at least 0.45 confidence (45%)
-            base_confidence = max(base_confidence, 0.45)
-
+        # Push sentiment away from neutral if confidence is low
+        if final_sentiment == 'Neutral' and base_confidence < 0.7:
+            # Find next highest sentiment
+            sentiment_votes_without_neutral = {k: v for k, v in sentiment_votes.items() if k != 'Neutral'}
+            if sentiment_votes_without_neutral:
+                next_sentiment = max(sentiment_votes_without_neutral.items(), key=lambda x: x[1])[0]
+                if sentiment_votes[next_sentiment] > sentiment_votes['Neutral'] * 0.7:  # If close enough
+                    final_sentiment = next_sentiment
+                    # Lower confidence for this switch
+                    base_confidence = base_confidence * 0.9
+        
         final_confidence = min(0.98, base_confidence + confidence_boost)
 
-        # Extract disaster type with proper handling for None values
-        # Always use "NONE" as the standardized unknown value
-        final_disaster_type = "NONE"  # Default value
-
-        # Only override the default if we have a specific type
+        # Extract disaster type with strict handling
+        final_disaster_type = None  # Default to None for cleaner data
+        
         if disaster_types:
-            specific_types = [
-                dt for dt in disaster_types
-                if dt and dt != "NONE" and dt != "Not Specified"
-                and dt != "Unspecified" and dt != "None"
-            ]
-            if specific_types:
-                # Get the most frequent specific disaster type
+            valid_types = [dt for dt in disaster_types if dt]
+            if valid_types:
                 type_counts = {}
-                for dtype in specific_types:
+                for dtype in valid_types:
                     type_counts[dtype] = type_counts.get(dtype, 0) + 1
+                
+                if type_counts:
+                    final_disaster_type = max(type_counts.items(), key=lambda x: x[1])[0]
 
-                final_disaster_type = max(type_counts.items(),
-                                          key=lambda x: x[1])[0]
-
-        # Find consensus for location (use the most common one)
+        # Find consensus for location 
         final_location = None
         if locations:
             valid_locations = [loc for loc in locations if loc]
@@ -1301,42 +1390,35 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 location_counts = {}
                 for loc in valid_locations:
                     location_counts[loc] = location_counts.get(loc, 0) + 1
-
+                
                 if location_counts:
-                    final_location = max(location_counts.items(),
-                                         key=lambda x: x[1])[0]
+                    final_location = max(location_counts.items(), key=lambda x: x[1])[0]
 
-        # More strict check for non-meaningful inputs (same as in analyze_sentiment)
-        text_without_punct = ''.join(c for c in text.strip()
-                                     if c.isalnum() or c.isspace())
-        meaningful_words = [
-            w for w in text_without_punct.split() if len(w) > 1
-        ]
-        word_count = len(meaningful_words)
+        # Validate meaningful input
+        word_count = len([w for w in text.split() if len(w) > 1])
+        is_meaningful_input = len(text.strip()) > 5 and word_count >= 1
 
-        # Define what makes a meaningful input for disaster analysis (same as above)
-        is_meaningful_input = (
-            len(text.strip()) > 8 and  # Longer than 8 chars
-            word_count >= 2 and  # At least 2 meaningful words
-            not all(c in '?!.,;:'
-                    for c in text.strip())  # Not just punctuation
-        )
-
-        # Generate enhanced explanation only for meaningful inputs
+        # Generate concise or no explanation as requested
         if is_meaningful_input:
-            if explanations:
-                final_explanation = max(
-                    explanations, key=len)  # Use the most detailed explanation
+            # Determine a very concise explanation
+            if final_sentiment == 'Panic':
+                final_explanation = "Urgent distress detected."
+            elif final_sentiment == 'Fear/Anxiety':
+                final_explanation = "Concern expressed."
+            elif final_sentiment == 'Disbelief':
+                final_explanation = "Skepticism present."
+            elif final_sentiment == 'Resilience':
+                final_explanation = "Shows strength."
+            elif final_sentiment == 'Neutral':
+                final_explanation = "Factual content."
             else:
-                final_explanation = f"Ensemble model detected {final_sentiment} sentiment."
+                final_explanation = None
         else:
-            final_explanation = None  # No explanation for non-meaningful inputs
-
-            # For non-meaningful inputs, reset disaster type and location
-            final_disaster_type = "NONE"
+            final_explanation = None
+            final_disaster_type = None
             final_location = None
 
-        # Final enhanced prediction
+        # Final prediction with minimal explanation
         return {
             "sentiment": final_sentiment,
             "confidence": final_confidence,
@@ -1344,7 +1426,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
             "language": self.detect_language(text),
             "disasterType": final_disaster_type,
             "location": final_location,
-            "modelType": "Ensemble Analysis"
+            "modelType": "Ensemble"
         }
 
     def process_csv(self, file_path):
