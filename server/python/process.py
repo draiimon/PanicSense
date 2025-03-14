@@ -126,11 +126,11 @@ class BiGRUSimulator(NeuralNetworkSimulator):
             base_confidence = self.weights['Neutral'] * 0.8
             return {
                 'sentiment':
-                'Neutral',
+                    'Neutral',
                 'confidence':
-                base_confidence,
+                    base_confidence,
                 'explanation':
-                f"BiGRU model detected neutral content with {base_confidence:.2f} confidence."
+                    f"BiGRU model detected neutral content with {base_confidence:.2f} confidence."
             }
 
         # Calculate confidence based on scores and model weights
@@ -141,11 +141,11 @@ class BiGRUSimulator(NeuralNetworkSimulator):
 
         return {
             'sentiment':
-            max_sentiment[0],
+                max_sentiment[0],
             'confidence':
-            confidence,
+                confidence,
             'explanation':
-            f"BiGRU model detected {max_sentiment[0]} sentiment with {confidence:.2f} confidence."
+                f"BiGRU model detected {max_sentiment[0]} sentiment with {confidence:.2f} confidence."
         }
 
 
@@ -282,11 +282,11 @@ class LSTMSimulator(NeuralNetworkSimulator):
             base_confidence = self.weights['Neutral'] * 0.82
             return {
                 'sentiment':
-                'Neutral',
+                    'Neutral',
                 'confidence':
-                base_confidence,
+                    base_confidence,
                 'explanation':
-                f"LSTM model detected neutral content with {base_confidence:.2f} confidence."
+                    f"LSTM model detected neutral content with {base_confidence:.2f} confidence."
             }
 
         # Calculate confidence based on scores and model weights
@@ -297,11 +297,11 @@ class LSTMSimulator(NeuralNetworkSimulator):
 
         return {
             'sentiment':
-            max_sentiment[0],
+                max_sentiment[0],
             'confidence':
-            confidence,
+                confidence,
             'explanation':
-            f"LSTM model detected {max_sentiment[0]} sentiment with {confidence:.2f} confidence."
+                f"LSTM model detected {max_sentiment[0]} sentiment with {confidence:.2f} confidence."
         }
 
 
@@ -349,9 +349,9 @@ class MBERTSimulator(NeuralNetworkSimulator):
         # Panic indicators
         panic_terms = {
             'en':
-            ['help', 'emergency', 'trapped', 'dying', 'evacuate', 'death'],
+                ['help', 'emergency', 'trapped', 'dying', 'evacuate', 'death'],
             'tl':
-            ['tulong', 'saklolo', 'naiipit', 'mamamatay', 'lumikas', 'patay']
+                ['tulong', 'saklolo', 'naiipit', 'mamamatay', 'lumikas', 'patay']
         }
 
         for term in panic_terms.get(language, panic_terms['en']):
@@ -362,7 +362,7 @@ class MBERTSimulator(NeuralNetworkSimulator):
         fear_terms = {
             'en': ['worried', 'scared', 'afraid', 'fear', 'terrified'],
             'tl':
-            ['natatakot', 'takot', 'kabado', 'nangangamba', 'kinakabahan']
+                ['natatakot', 'takot', 'kabado', 'nangangamba', 'kinakabahan']
         }
 
         for term in fear_terms.get(language, fear_terms['en']):
@@ -388,11 +388,11 @@ class MBERTSimulator(NeuralNetworkSimulator):
                                                          code_switching_boost)
             return {
                 'sentiment':
-                'Neutral',
+                    'Neutral',
                 'confidence':
-                base_confidence,
+                    base_confidence,
                 'explanation':
-                f"mBERT model detected neutral content with {base_confidence:.2f} confidence in {language}."
+                    f"mBERT model detected neutral content with {base_confidence:.2f} confidence in {language}."
             }
 
         # Calculate confidence with language and code-switching adjustments
@@ -403,11 +403,11 @@ class MBERTSimulator(NeuralNetworkSimulator):
 
         return {
             'sentiment':
-            max_sentiment[0],
+                max_sentiment[0],
             'confidence':
-            confidence,
+                confidence,
             'explanation':
-            f"mBERT model detected {max_sentiment[0]} sentiment with {confidence:.2f} confidence in {language}."
+                f"mBERT model detected {max_sentiment[0]} sentiment with {confidence:.2f} confidence in {language}."
         }
 
 
@@ -481,31 +481,52 @@ class DisasterSentimentBackend:
         disaster_types = {
             "Earthquake": [
                 "earthquake", "quake", "tremor", "seismic", "lindol", "linog",
-                "shaking", "magnitude", "epicenter", "aftershock"
+                "shaking", "magnitude", "epicenter", "aftershock", "lumindol",
+                "yanig", "yumanig", "pagyanig"
             ],
             "Flood": [
                 "flood", "flooding", "inundation", "baha", "tubig", "submerged",
-                "overflow", "water level", "rising water", "flash flood"
+                "overflow", "water level", "rising water", "flash flood", "bumabaha",
+                "pagbaha", "binabaha", "bumabaha", "bumabatok", "nalulunod",
+                "mataas na tubig", "tumataas ang tubig"
+            ],
+            "Rain": [
+                "ulan", "bumubuhos", "umuulan", "malakas na ulan", "monsoon",
+                "thunderstorm", "heavy rain", "rainfall", "pagulan", "bumubuhos",
+                "pagbuhos", "malakas na pag-ulan", "ulap", "bagyo"
             ],
             "Typhoon": [
                 "typhoon", "storm", "cyclone", "hurricane", "bagyo", "super typhoon",
-                "tropical depression", "signal", "wind", "heavy rain"
+                "tropical depression", "signal", "wind", "heavy rain", "habagat",
+                "amihan", "hanging habagat", "malakas na hangin", "malalakas na ulan",
+                "storm surge", "landfall", "low pressure"
             ],
             "Fire": [
                 "fire", "blaze", "burning", "sunog", "apoy", "flames", "smoke",
-                "combustion", "wildfire", "bushfire", "forest fire", "burned"
+                "combustion", "wildfire", "bushfire", "forest fire", "burned",
+                "nasusunog", "nagliliyab", "nakasunog", "nasunog", "burning",
+                "usok", "sinunog", "nagliliyab"
             ],
             "Landslide": [
                 "landslide", "mudslide", "avalanche", "guho", "pagguho", "rockslide",
-                "rockfall", "debris flow", "mudflow", "land collapse"
+                "rockfall", "debris flow", "mudflow", "land collapse", "gumuguho",
+                "pagguho ng lupa", "pagguho ng bundok", "napaguho"
             ],
             "Volcano": [
                 "volcano", "eruption", "lava", "ash", "bulkan", "lahar", "magma",
-                "volcanic", "crater", "pyroclastic", "phreatic"
+                "volcanic", "crater", "pyroclastic", "phreatic", "pumutok",
+                "nagputok", "pumuputok", "bulkang", "abo", "volcanic ash",
+                "ash fall", "pagputok"
             ],
             "Drought": [
                 "drought", "dry spell", "water shortage", "tagtuyot", "arid",
-                "dryness", "rainless", "water crisis", "no rain"
+                "dryness", "rainless", "water crisis", "no rain", "walang tubig",
+                "kakulangan ng tubig", "tagtuyot", "tuyot", "init"
+            ],
+            "Heatwave": [
+                "heatwave", "extreme heat", "high temperature", "init", "mainit",
+                "napakainit", "matinding init", "sobrang init", "heat index",
+                "heat stress", "temperature", "feels like"
             ]
         }
 
@@ -522,60 +543,36 @@ class DisasterSentimentBackend:
         return None  # Return None instead of "Not Specified" for cleaner data
 
     def extract_location(self, text):
-        """Extract location from text using improved Philippine location detection"""
+        """Extract location from text - returns only city/region name"""
         text_lower = text.lower()
-        text_words = set(re.findall(r'\b\w+\b', text_lower))  # Extract whole words only
+        text_words = set(re.findall(r'\b\w+\b', text_lower))
 
-        # Hierarchical location detection (regions first, then cities)
-        ph_regions = {
-            "Luzon": ["north luzon", "northern luzon", "central luzon", "southern luzon"],
-            "Visayas": ["western visayas", "central visayas", "eastern visayas"],
-            "Mindanao": ["northern mindanao", "southern mindanao", "western mindanao", "eastern mindanao"],
-            "NCR": ["metro manila", "national capital region", "ncr", "metro"],
-            "CAR": ["cordillera", "car", "mountain province"],
-            "CALABARZON": ["calabarzon", "region 4a"],
-            "MIMAROPA": ["mimaropa", "region 4b"],
-            "Bicol": ["bicol", "region 5", "albay"],
-            "Ilocos": ["ilocos", "region 1"],
-            "Cagayan Valley": ["cagayan valley", "region 2"],
-            "Central Luzon": ["central luzon", "region 3"],
-            "Western Visayas": ["western visayas", "region 6"],
-            "Central Visayas": ["central visayas", "region 7"],
-            "Eastern Visayas": ["eastern visayas", "region 8"],
-            "Zamboanga Peninsula": ["zamboanga peninsula", "region 9"],
-            "Northern Mindanao": ["northern mindanao", "region 10"],
-            "Davao Region": ["davao region", "region 11"],
-            "SOCCSKSARGEN": ["soccsksargen", "region 12"],
-            "CARAGA": ["caraga", "region 13"],
-            "BARMM": ["barmm", "bangsamoro", "armm"]
+        # Simplified location detection - only major cities and regions
+        major_locations = {
+            "NCR": ["metro manila", "ncr"],
+            "Manila": ["manila"],
+            "Quezon City": ["quezon city", "qc"],
+            "Cebu": ["cebu"],
+            "Davao": ["davao"],
+            "Cavite": ["cavite"],
+            "Laguna": ["laguna"],
+            "Batangas": ["batangas"],
+            "Makati": ["makati"],
+            "Taguig": ["taguig"],
+            "Pasig": ["pasig"],
+            "Mandaluyong": ["mandaluyong"],
+            "Luzon": ["luzon"],
+            "Visayas": ["visayas"],
+            "Mindanao": ["mindanao"]
         }
 
-        # Major cities and municipalities
-        ph_cities = [
-            "Manila", "Quezon City", "Davao", "Cebu", "Makati", "Taguig",
-            "Pasig", "Caloocan", "Mandaluyong", "Baguio", "Iloilo", "Bacolod",
-            "Tacloban", "Zamboanga", "Cagayan de Oro", "Batangas", "Cavite",
-            "Laguna", "Pampanga", "Bulacan", "Antipolo", "Marikina", "Valenzuela",
-            "Parañaque", "Las Piñas", "San Juan", "Pasay", "Muntinlupa", "Malabon",
-            "Navotas", "Pateros", "Lucena", "Olongapo", "Legazpi", "Naga"
-        ]
+        # Check for exact matches
+        for location, keywords in major_locations.items():
+            if any(keyword in text_lower for keyword in keywords):
+                return location
 
-        # First check for regions
-        for region, keywords in ph_regions.items():
-            # Check for exact region name or its variations
-            if region.lower() in text_words or any(keyword in text_lower for keyword in keywords):
-                return region
-
-        # Then check for major cities
-        for city in ph_cities:
-            if city.lower() in text_words or city.lower() in text_lower:
-                return city
-
-        # Generic "Philippines" reference
-        if "philippines" in text_words or "pilipinas" in text_words:
-            return "Philippines"
-
-        return None  # Return None if no location is found
+        # Default return None instead of explanation
+        return None
 
     def fetch_api(self, headers, payload, retry_count=0):
         try:
@@ -693,23 +690,11 @@ class DisasterSentimentBackend:
             return 'en'  # Fallback to English on detection failure
 
     def analyze_sentiment(self, text):
-        """
-        Enhanced sentiment analysis using multi-model ensemble:
-        1. Groq API for primary analysis
-        2. BiGRU for sequence pattern detection
-        3. LSTM for long-range dependencies
-        4. mBERT for multilingual understanding
-        5. Rule-based analysis as fallback
-        6. Advanced ensemble for higher accuracy
-        """
-        # Detect language first for better prompting
+        """Enhanced sentiment analysis with focus on disaster detection"""
         language = self.detect_language(text)
         language_name = "Filipino/Tagalog" if language == "tl" else "English"
 
-        logging.info(
-            f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
-
-        # Initialize advanced models
+        # Initialize models
         bigru_model = BiGRUSimulator()
         lstm_model = LSTMSimulator()
         mbert_model = MBERTSimulator()
@@ -717,60 +702,50 @@ class DisasterSentimentBackend:
         # Create placeholder for ensemble results
         ensemble_results = []
 
-        # Step 1: Try API-based analysis first
+        # Try API-based analysis first
         api_result = self.get_api_sentiment_analysis(text, language)
         if api_result:
             api_result['modelType'] = 'API'
             ensemble_results.append(api_result)
 
-        # Step 2: Apply BiGRU model
+        # Apply BiGRU model
         try:
             bigru_result = bigru_model.predict(text, language)
             bigru_result['modelType'] = 'BiGRU'
             bigru_result['language'] = language
-            bigru_result['disasterType'] = self.extract_disaster_type(
-                text) or "Not Specified"
+            bigru_result['disasterType'] = self.extract_disaster_type(text)
             bigru_result['location'] = self.extract_location(text)
             ensemble_results.append(bigru_result)
         except Exception as e:
             logging.error(f"BiGRU model error: {e}")
 
-        # Step 3: Apply LSTM model
+        # Apply LSTM model
         try:
             lstm_result = lstm_model.predict(text, language)
             lstm_result['modelType'] = 'LSTM'
             lstm_result['language'] = language
-            lstm_result['disasterType'] = self.extract_disaster_type(
-                text) or "Not Specified"
+            lstm_result['disasterType'] = self.extract_disaster_type(text)
             lstm_result['location'] = self.extract_location(text)
             ensemble_results.append(lstm_result)
         except Exception as e:
             logging.error(f"LSTM model error: {e}")
 
-        # Step 4: Apply mBERT model (especially valuable for Tagalog content)
+        # Apply mBERT model
         try:
             mbert_result = mbert_model.predict(text, language)
             mbert_result['modelType'] = 'mBERT'
             mbert_result['language'] = language
-            mbert_result['disasterType'] = self.extract_disaster_type(
-                text) or "Not Specified"
+            mbert_result['disasterType'] = self.extract_disaster_type(text)
             mbert_result['location'] = self.extract_location(text)
             ensemble_results.append(mbert_result)
         except Exception as e:
             logging.error(f"mBERT model error: {e}")
 
-        # Step 5: Get rule-based analysis as fallback
-        rule_result = self.rule_based_sentiment_analysis(text)
-        rule_result['modelType'] = 'Rule-based'
-        ensemble_results.append(rule_result)
-
-        # Step 6: Create final ensemble prediction
+        # Create final ensemble prediction
         return self.create_ensemble_prediction(ensemble_results, text)
 
     def get_api_sentiment_analysis(self, text, language):
-        """
-        Get sentiment analysis from Groq API
-        """
+        """Get sentiment analysis from API with improved prompting"""
         try:
             if len(self.api_keys) > 0:
                 api_key = self.api_keys[self.current_api_index]
@@ -779,53 +754,20 @@ class DisasterSentimentBackend:
                     "Content-Type": "application/json"
                 }
 
-                # Advanced ML prompt with enhanced context awareness and anti-neutral bias
-                prompt = f"""You are a disaster sentiment analysis expert specializing in both English and Tagalog text analysis.
-Analyze this disaster-related {'Tagalog/Filipino' if language == 'tl' else 'English'} text with high precision.
+                # Focused prompt with minimal location tokens
+                prompt = f"""Analyze this disaster-related {'Tagalog/Filipino' if language == 'tl' else 'English'} text.
+Return ONLY:
+1. Sentiment: [PANIC/FEAR/DISBELIEF/RESILIENCE/NEUTRAL]
+2. Disaster Type: [type if mentioned]
+3. Location: [city/region name only if mentioned]
+4. Brief Analysis: [2-3 sentences explaining sentiment choice]
 
-REQUIRED: RETURN ALL OF THESE FIELDS:
-1. Sentiment (Choose ONE): PANIC, FEAR/ANXIETY, DISBELIEF, RESILIENCE, or NEUTRAL
-2. Disaster Type: Look for specific disaster mentions (earthquake/lindol, flood/baha, typhoon/bagyo, fire/sunog, etc.)
-3. Location: Extract any Philippine location (cities, provinces, regions)
-4. Brief Explanation: 2-3 sentences max explaining the sentiment choice
+Guidelines:
+- For location, return ONLY city/region name
+- Focus on emotional content and disaster indicators
+- Provide clear explanation of sentiment choice
 
-Analysis Guidelines:
-PANIC (Extreme Distress/Emergency):
-- Immediate danger mentions
-- Urgent calls for help
-- Extreme agitation markers (CAPS, !!!)
-Example: "HELP! TRAPPED IN BUILDING!"
-
-FEAR/ANXIETY (Worried but Composed):
-- Expressions of worry/concern
-- Less urgent safety concerns
-Example: "Worried about aftershocks"
-
-DISBELIEF (Skepticism):
-- Information questioning
-- Fake news callouts
-Example: "These reports can't be true"
-
-RESILIENCE (Hope/Strength):
-- Community support
-- Recovery mentions
-Example: "We will rebuild"
-
-NEUTRAL (Factual):
-- Official updates
-- Plain observations
-Example: "Magnitude 5 recorded"
-
-Analyze this text: "{text}"
-
-FOCUS ON:
-- Explicit disaster mentions
-- Clear location references
-- Emotional intensity markers
-- Cultural context (Filipino expressions)
-
-Return a concise, clear explanation focusing on WHY this sentiment was chosen.
-"""
+Analyze: {text}"""
 
                 payload = {
                     "messages": [{
@@ -833,407 +775,41 @@ Return a concise, clear explanation focusing on WHY this sentiment was chosen.
                         "content": prompt
                     }],
                     "model": "mixtral-8x7b-32768",
-                    "temperature": 0.6,
-                    "max_tokens": 150,
+                    "temperature": 0.1,
+                    "max_tokens": 250
                 }
 
-                result = self.fetch_groq(headers, payload)
-
-                if result and 'choices' in result and result['choices']:
-                    raw_output = result['choices'][0]['message'][
-                        'content'].strip()
-
-                    # Extract sentiment, confidence, explanation, and additional disaster info
-                    sentiment_match = re.search(r'Sentiment:\s*(.*?)(?:\n|$)',
-                                                 raw_output)
-                    confidence_match = re.search(
-                        r'Confidence:\s*(\d+(?:\.\d+)?)%', raw_output)
-                    explanation_match = re.search(
-                        r'Explanation:\s*(.*?)(?:\n|$)', raw_output)
-                    disaster_type_match = re.search(
-                        r'DisasterType:\s*(.*?)(?:\n|$)', raw_output)
-                    location_match = re.search(r'Location:\s*(.*?)(?:\n|$)',
-                                                raw_output)
-
-                    sentiment = None
-                    if sentiment_match:
-                        for label in self.sentiment_labels:
-                            if label.lower() in sentiment_match.group(
-                                    1).lower():
-                                sentiment = label
-                                break
-
-                    confidence = 0.85  # Default confidence
-                    if confidence_match:
-                        confidence = float(confidence_match.group(1)) / 100.0
-                        confidence = max(0.7, min(
-                            0.98, confidence))  # Clamp between 0.7 and 0.98
-
-                    explanation = explanation_match.group(
-                        1) if explanation_match else None
-
-                    # Extract disaster type and location if available from GROQ with better handling
-                    disaster_type = disaster_type_match.group(
-                        1) if disaster_type_match else "Not Specified"
-
-                    # Normalize disaster type values with strict NONE handling
-                    if not disaster_type or disaster_type.lower() in [
-                            "none", "n/a", "unknown", "unmentioned", "null"
-                    ]:
-                        disaster_type = "Not Specified"
-
-                    location = location_match.group(
-                        1) if location_match else None
-
-                    # Be stricter about NONE values - if the API returns NONE, make sure it's None in our system
-                    if not location or (location and location.lower() in [
-                            "none", "n/a", "unknown", "not specified",
-                            "unmentioned", "null"
-                    ]):
-                        location = None
-
-                    self.current_api_index = (self.current_api_index +
-                                              1) % len(self.api_keys)
-
-                    if sentiment:
-                        return {
-                            "sentiment": sentiment,
-                            "confidence": confidence,
-                            "explanation": explanation,
-                            "language": language,
-                            "disasterType": disaster_type,
-                            "location": location
-                        }
-
+                response = self.fetch_api(headers, payload)
+                if response and 'choices' in response:
+                    return self.parse_api_response(response['choices'][0]['message']['content'])
+            return None
         except Exception as e:
-            logging.error(f"Error in sentiment analysis: {e}")
+            logging.error(f"API Analysis Error: {e}")
+            return None
 
-        # Fallback to rule-based analysis
-        return self.rule_based_sentiment_analysis(text)
 
-    def rule_based_sentiment_analysis(self, text):
-        """
-        Enhanced rule-based sentiment analysis with precise bilingual keyword matching
-        """
-        # Bilingual keywords with weighted scores
-        keywords = {
-            'Panic': [
-                # High intensity English panic indicators
-                'HELP!',
-                'EMERGENCY',
-                'TRAPPED',
-                'DYING',
-                'DANGEROUS',
-                'EVACUATE NOW',
-                # High intensity Tagalog panic indicators
-                'TULONG!',
-                'SAKLOLO',
-                'NAIIPIT',
-                'NALULUNOD',
-                'MAMATAY',
-                'PATAY',
-                'PUTANGINA',
-                'TANGINA',
-                'PUTA',  # When used in panic context
-                # Emergency situations
-                'SUNOG',
-                'BAHA',
-                'LINDOL',  # When in ALL CAPS
-            ],
-            'Fear/Anxiety': [
-                # English
-                'fear',
-                'afraid',
-                'scared',
-                'worried',
-                'anxious',
-                'concern',
-                # Tagalog
-                'kaba',
-                'kabado',
-                'nag-aalala',
-                'natatakot',
-                'nangangamba',
-                'pangamba',
-                'balisa',
-                'Hindi mapakali',
-                'nerbiyoso'
-            ],
-            'Disbelief': [
-                # English
-                'disbelief',
-                'unbelievable',
-                'impossible',
-                "can't believe",
-                'shocked',
-                # Tagalog
-                'hindi makapaniwala',
-                'gulat',
-                'nagulat',
-                'menganga',
-                'hindi matanggap',
-                'nakakabalikwas',
-                'nakakagulat'
-            ],
-            'Resilience': [
-                # English
-                'safe',
-                'survive',
-                'hope',
-                'rebuild',
-                'recover',
-                'endure',
-                'strength',
-                # Tagalog
-                'ligtas',
-                'kaya natin',
-                'malalagpasan',
-                'magkaisa',
-                'tulong',
-                'magtulungan',
-                'babangon',
-                'matatag',
-                'lakas ng loob'
-            ],
-            'Neutral': [
-                # English
-                'update',
-                'information',
-                'news',
-                'report',
-                'status',
-                'advisory',
-                # Tagalog
-                'balita',
-                'impormasyon',
-                'ulat',
-                'abiso',
-                'paalala',
-                'kalagayan',
-                'sitwasyon',
-                'pangyayari'
-            ]
-        }
-
-        # Disaster type mappings (English and Tagalog)
-        disaster_keywords = {
-            'Earthquake': [
-                'earthquake', 'quake', 'tremor', 'seismic', 'lindol',
-                'pagyanig', 'yanig'
-            ],
-            'Typhoon': [
-                'typhoon', 'storm', 'cyclone', 'bagyo', 'unos', 'bagyong',
-                'hanging', 'malakas na hangin'
-            ],
-            'Flood': [
-                'flood', 'flooding', 'submerged', 'baha', 'bumabaha',
-                'tubig-baha', 'bumaha', 'pagbaha'
-            ],
-            'Landslide': [
-                'landslide', 'mudslide', 'erosion', 'guho', 'pagguho',
-                'pagguho ng lupa', 'rumaragasa'
-            ],
-            'Fire': [
-                'fire', 'burning', 'flame', 'sunog', 'nasusunog', 'apoy',
-                'nagliliyab'
-            ],
-            'Volcanic Eruption': [
-                'volcano', 'eruption', 'ash', 'lava', 'bulkan', 'pagputok',
-                'abo', 'pagputok ng bulkan'
-            ]
-        }
-
-        # Philippine regions and locations
-        location_keywords = {
-            'Luzon': [
-                'Luzon', 'Manila', 'Quezon City', 'Makati', 'Taguig', 'Pasig',
-                'Batangas', 'Pampanga', 'Bulacan', 'Cavite', 'Laguna', 'Rizal',
-                'Bataan', 'Zambales', 'Pangasinan', 'Ilocos', 'Cagayan',
-                'Isabela', 'Aurora', 'Batanes', 'Bicol', 'Albay', 'Sorsogon',
-                'Camarines', 'Catanduanes', 'Baguio', 'La Union', 'Benguet',
-                'CAR', 'Cordillera', 'NCR', 'Metro Manila'
-            ],
-            'Visayas': [
-                'Visayas', 'Cebu', 'Iloilo', 'Bacolod', 'Tacloban', 'Leyte',
-                'Samar', 'Bohol', 'Negros', 'Panay', 'Boracay', 'Aklan',
-                'Antique', 'Capiz', 'Siquijor', 'Biliran'
-            ],
-            'Mindanao': [
-                'Mindanao', 'Davao', 'Cagayan de Oro', 'Zamboanga',
-                'General Santos', 'Cotabato', 'Surigao', 'Butuan', 'Marawi',
-                'Iligan', 'Maguindanao', 'Sulu', 'Basilan', 'Tawi-Tawi',
-                'BARMM', 'Lanao', 'Bukidnon', 'Agusan', 'Misamis'
-            ]
-        }
-
-        explanations = {
-            'Panic':
-            "The text shows immediate distress and urgent need for help, indicating panic.",
-            'Fear/Anxiety':
-            "The message expresses worry and concern about the situation.",
-            'Disbelief':
-            "The content indicates shock and difficulty accepting the situation.",
-            'Resilience':
-            "The text shows strength and community support in face of adversity.",
-            'Neutral':
-            "The message primarily shares information without strong emotion."
-        }
-
-        text_lower = text.lower()
-        scores = {sentiment: 0 for sentiment in self.sentiment_labels}
-        matched_keywords = {
-            sentiment: []
-            for sentiment in self.sentiment_labels
-        }
-
-        # Score each sentiment based on keyword matches
-        for sentiment, words in keywords.items():
-            for word in words:
-                if word in text_lower:
-                    scores[sentiment] += 1
-                    matched_keywords[sentiment].append(word)
-
-        # Find the sentiment with the highest score
-        max_score = 0
-        max_sentiment = 'Neutral'  # Default
-
-        for sentiment, score in scores.items():
-            if score > max_score:
-                max_score = score
-                max_sentiment = sentiment
-
-        # Calculate confidence based on match strength with improved baseline for Neutral
-        text_word_count = len(text_lower.split())
-
-        # Improved confidence calculation
-        # Check for emotional cues in text that indicate this is not a neutral message
-        has_emotional_markers = (
-            any(c in text for c in "!?¡¿") or  # Exclamation/question marks
-            text.isupper() or  # ALL CAPS
-            re.search(r'([A-Z]{2,})', text) or  # Words in ALL CAPS
-            "please" in text_lower or  # Pleading
-            "help" in text_lower or "tulong" in text_lower or  # Help requests
-            re.search(r'(\w)\1{2,}',
-                      text_lower)  # Repeated letters (e.g., "heeeelp")
-        )
-
-        # Penalize Neutral sentiment for texts with emotional markers
-        if max_sentiment == 'Neutral' and has_emotional_markers:
-            # Try to find second highest sentiment
-            second_max_score = 0
-            second_sentiment = 'Neutral'
-            for sentiment, score in scores.items():
-                if score > second_max_score and sentiment != max_sentiment:
-                    second_max_score = score
-                    second_sentiment = sentiment
-
-            # If we have a decent second choice, use it instead
-            if second_max_score > 0:
-                max_sentiment = second_sentiment
-                max_score = second_max_score
-            else:
-                # If no good second choice, default to Fear/Anxiety for emotional texts
-                # that would otherwise be misclassified as Neutral
-                max_sentiment = 'Fear/Anxiety'
-
-        if max_sentiment == 'Neutral':
-            # Higher baseline for Neutral sentiment but not too high
-            confidence = min(
-                0.85, 0.65 + (max_score / max(10, text_word_count)) * 0.3)
-        else:
-            # Regular confidence calculation with higher baseline
-            confidence = min(
-                0.95, 0.7 + (max_score / max(10, text_word_count)) * 0.4)
-
-        # Create a custom explanation
-        custom_explanation = explanations[max_sentiment]
-        if matched_keywords[max_sentiment]:
-            custom_explanation += f" Key indicators: {', '.join(matched_keywords[max_sentiment][:3])}."
-
-        # More strict and robust detection of non-meaningful inputs
-        # Check for very short inputs, punctuation-only, or messages with no clear disaster reference
-        text_without_punct = ''.join(c for c in text.strip()
-                                     if c.isalnum() or c.isspace())
-        meaningful_words = [
-            w for w in text_without_punct.split() if len(w) > 1
-        ]
-        word_count = len(meaningful_words)
-
-        # Define what makes a meaningful input for disaster analysis
-        is_meaningful_input = (
-            len(text.strip()) > 8 and  # Longer than 8 chars
-            word_count >= 2 and  # At least 2 meaningful words
-            not all(c in '?!.,;:'
-                    for c in text.strip())  # Not just punctuation
-        )
-
-        # Default: non-disaster text shouldn't have disaster type or location
-        # Always use NONE consistently instead of "Not Specified"
-        disaster_type = "NONE"
-        location = None
-        specific_location = None
-
-        # Only try to detect disasters and locations in meaningful inputs
-        if is_meaningful_input:
-            # Detect if this text is actually about disasters (quick check)
-            disaster_keywords_flat = []
-            for words in disaster_keywords.values():
-                disaster_keywords_flat.extend(words)
-
-            # Look for disaster-related words in the text
-            found_disaster_reference = False
-            for word in disaster_keywords_flat:
-                if word.lower() in text_lower:
-                    found_disaster_reference = True
-                    break
-
-            # Emergency keywords that should trigger disaster detection
-            emergency_keywords = [
-                "help", "tulong", "emergency", "evacuation", "evacuate",
-                "rescue", "save", "trapped", "stranded", "victims", "casualty",
-                "casualties"
-            ]
-            for word in emergency_keywords:
-                if word.lower() in text_lower:
-                    found_disaster_reference = True
-                    break
-
-            # Only proceed with actual disaster-related text
-            if found_disaster_reference:
-                # Search for specific disaster types
-                for dtype, words in disaster_keywords.items():
-                    for word in words:
-                        if word.lower() in text_lower:
-                            disaster_type = dtype
-                            break
-                    if disaster_type != "NONE":
-                        break
-
-                # Detect location from text only for disaster-related content
-                for region, places in location_keywords.items():
-                    for place in places:
-                        if place.lower() in text_lower:
-                            location = region
-                            specific_location = place
-                            break
-                    if location:
-                        break
-
-        # If specific location was found, use it instead of the region
-        final_location = specific_location if specific_location else location
-
-        # For non-meaningful inputs, don't provide explanations
-        if not is_meaningful_input:
-            custom_explanation = None
-
-        return {
-            "sentiment": max_sentiment,
-            "confidence": confidence,
-            "explanation": custom_explanation,
-            "language": self.detect_language(text),
-            "disasterType": disaster_type,
-            "location": final_location
-        }
+    def parse_api_response(self, response_text):
+        """Parses the API response and extracts relevant information."""
+        try:
+            lines = response_text.strip().splitlines()
+            result = {}
+            for line in lines:
+                parts = line.split(":", 1)
+                if len(parts) == 2:
+                    key = parts[0].strip().lower()
+                    value = parts[1].strip()
+                    if key == "sentiment":
+                        result["sentiment"] = value
+                    elif key == "disaster type":
+                        result["disasterType"]= value
+                    elif key == "location":
+                        result["location"] = value
+                    elif key == "brief analysis":
+                        result["explanation"] = value
+            return result
+        except Exception as e:
+            logging.error(f"Error parsing API response: {e}")
+            return None
 
     def create_ensemble_prediction(self, model_results, text):
         """
@@ -1429,25 +1005,25 @@ Return a concise, clear explanation focusing on WHY this sentiment was chosen.
             # Process result with standardized fields, better null handling, and model type
             processed_results.append({
                 'text':
-                text,
+                    text,
                 'timestamp':
-                timestamp,
+                    timestamp,
                 'source':
-                source,
+                    source,
                 'language':
-                analysis_result['language'],
+                    analysis_result['language'],
                 'sentiment':
-                analysis_result['sentiment'],
+                    analysis_result['sentiment'],
                 'confidence':
-                analysis_result['confidence'],
+                    analysis_result['confidence'],
                 'explanation':
-                analysis_result['explanation'],
+                    analysis_result['explanation'],
                 'disasterType':
-                analysis_result.get('disasterType', "NONE"),
+                    analysis_result.get('disasterType', "NONE"),
                 'location':
-                analysis_result.get('location', None),
+                    analysis_result.get('location', None),
                 'modelType':
-                analysis_result.get('modelType', "Hybrid Analysis")
+                    analysis_result.get('modelType', "Hybrid Analysis")
             })
 
         # Final progress update
