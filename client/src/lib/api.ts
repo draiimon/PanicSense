@@ -11,6 +11,7 @@ export interface SentimentPost {
   location: string | null;
   disasterType: string | null;
   fileId: number | null;
+  explanation?: string | null;
 }
 
 export interface DisasterEvent {

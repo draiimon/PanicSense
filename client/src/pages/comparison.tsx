@@ -10,32 +10,41 @@ export default function Comparison() {
   // Process sentiment data by disaster type
   const processDisasterData = () => {
     // Get unique disaster types, but filter out "Not Specified", "Not mentioned", "Unspecified" etc.
-    const validDisasterTypes = [...new Set(sentimentPosts.map(post => post.disasterType))]
-      .filter(type => {
-        if (!type) return false;
-        
-        // Filter out generic unknown values for more professional presentation
-        const lowerType = type.toLowerCase();
-        return !(
-          lowerType === "not specified" || 
-          lowerType === "not mentioned" || 
-          lowerType === "unspecified" || 
-          lowerType === "none"
-        );
-      });
+    const disasterTypeSet = new Set<string>();
+    
+    // Manual collection to avoid TypeScript issues with Set
+    sentimentPosts.forEach(post => {
+      if (post.disasterType) {
+        disasterTypeSet.add(post.disasterType);
+      }
+    });
+    
+    // Filter out generic unknown values for more professional presentation
+    const validDisasterTypes = Array.from(disasterTypeSet).filter(type => {
+      if (!type) return false;
+      
+      const lowerType = type.toLowerCase();
+      return !(
+        lowerType === "not specified" || 
+        lowerType === "not mentioned" || 
+        lowerType === "unspecified" || 
+        lowerType === "none"
+      );
+    });
 
     return validDisasterTypes.map(type => {
       const postsForType = sentimentPosts.filter(post => post.disasterType === type);
       const totalPosts = postsForType.length;
 
-      const sentimentCounts = {};
+      // Fix TypeScript type issues with sentiment counts
+      const sentimentCounts: Record<string, number> = {};
       postsForType.forEach(post => {
         sentimentCounts[post.sentiment] = (sentimentCounts[post.sentiment] || 0) + 1;
       });
 
       const sentiments = Object.entries(sentimentCounts).map(([label, count]) => ({
         label,
-        percentage: totalPosts > 0 ? (count as number / totalPosts) * 100 : 0
+        percentage: totalPosts > 0 ? (count / totalPosts) * 100 : 0
       }));
 
       return {

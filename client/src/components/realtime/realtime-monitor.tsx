@@ -12,13 +12,14 @@ import { getSentimentBadgeClasses } from '@/lib/colors';
 import { AlertCircle } from 'lucide-react';
 import { useDisasterContext } from '@/context/disaster-context';
 
+// Extend from SentimentPost but with a Date object for timestamp
 interface AnalyzedText {
   text: string;
   sentiment: string;
   confidence: number;
   timestamp: Date;
   language: string; 
-  explanation?: string;
+  explanation?: string | null;
   disasterType?: string | null;
   location?: string | null;
 }
