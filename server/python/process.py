@@ -590,8 +590,11 @@ class DisasterSentimentBackend:
                 api_key = self.api_keys[self.current_api_index]
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-                # Advanced ML prompt with enhanced context awareness and sentiment analysis
-                prompt = f"""Analyze the sentiment in this disaster-related {'Tagalog/Filipino' if language == 'tl' else 'English'} text with high precision.
+                # Advanced ML prompt with enhanced context awareness and anti-neutral bias
+                prompt = f"""You are a disaster sentiment analysis expert specializing in both English and Tagalog text analysis.
+Analyze this disaster-related {'Tagalog/Filipino' if language == 'tl' else 'English'} text with high precision.
+
+VERY IMPORTANT: DO NOT DEFAULT TO NEUTRAL! Carefully analyze emotional content!
 Choose exactly one option from these strictly defined categories:
 
 PANIC (Extreme Distress/Emergency):
@@ -693,12 +696,14 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                     # Extract disaster type and location if available from GROQ with better handling
                     disaster_type = disaster_type_match.group(1) if disaster_type_match else "Not Specified"
                     
-                    # Normalize disaster type values
+                    # Normalize disaster type values with strict NONE handling
                     if not disaster_type or disaster_type.lower() in ["none", "n/a", "unknown", "unmentioned", "null"]:
                         disaster_type = "Not Specified"
 
                     location = location_match.group(1) if location_match else None
-                    if location and location.lower() == "none" or location and location.lower() == "n/a":
+                    
+                    # Be stricter about NONE values - if the API returns NONE, make sure it's None in our system
+                    if not location or (location and location.lower() in ["none", "n/a", "unknown", "not specified", "unmentioned", "null"]):
                         location = None
 
                     self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
@@ -874,7 +879,8 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
         )
         
         # Default: non-disaster text shouldn't have disaster type or location
-        disaster_type = "Not Specified"  
+        # Always use NONE consistently instead of "Not Specified"
+        disaster_type = "NONE"  
         location = None
         specific_location = None
         
@@ -908,7 +914,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                         if word.lower() in text_lower:
                             disaster_type = dtype
                             break
-                    if disaster_type != "Not Specified":
+                    if disaster_type != "NONE":
                         break
                         
                 # Detect location from text only for disaster-related content
@@ -1013,8 +1019,8 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
         final_confidence = min(0.98, base_confidence + confidence_boost)
         
         # Extract disaster type with proper handling for None values
-        # Always use "Not Specified" as the standardized unknown value
-        final_disaster_type = "Not Specified"  # Default value
+        # Always use "NONE" as the standardized unknown value
+        final_disaster_type = "NONE"  # Default value
         
         # Only override the default if we have a specific type
         if disaster_types:
