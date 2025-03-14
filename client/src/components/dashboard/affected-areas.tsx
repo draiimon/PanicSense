@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { getSentimentColor } from '@/lib/colors';
+import { Badge } from '@/components/ui/badge';
+import { getSentimentVariant } from '@/lib/colors';
 import { useDisasterContext } from '@/context/disaster-context';
 import { useMemo } from 'react';
 
@@ -21,46 +22,27 @@ export function AffectedAreas({
 }: AffectedAreasProps) {
   const { sentimentPosts } = useDisasterContext();
 
-  // Calculate affected areas from actual sentiment posts with enhanced detection
+  // Calculate affected areas from posts with explicit location data only
   const areas = useMemo(() => {
     const locationCounts = new Map<string, { total: number; sentiments: Map<string, number> }>();
-    
-    // List of Philippine locations to detect in text
-    const philippineLocations = [
-      'Manila', 'Quezon City', 'Cebu', 'Davao', 'Mindanao', 'Luzon',
-      'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
-      'Batangas', 'Zambales', 'Pampanga', 'Bicol', 'Leyte', 'Samar',
-      'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna', 
-      'Rizal', 'Nueva Ecija', 'Benguet', 'Albay', 'Marikina', 'Pasig',
-      'Makati', 'Mandaluyong', 'Pasay', 'Taguig', 'Parañaque', 'Caloocan'
-    ];
+    const totalPostsWithLocation = sentimentPosts.filter(post => post.location).length;
 
-    // Count posts by location and track sentiments
+    if (totalPostsWithLocation === 0) return [];
+
+    // Only process posts that have explicit location data
     sentimentPosts.forEach(post => {
-      let foundLocation = post.location;
-      
-      // If no location is assigned, try to detect from text
-      if (!foundLocation) {
-        const text = post.text.toLowerCase();
-        // Check for known Philippine locations in the text
-        for (const location of philippineLocations) {
-          if (text.includes(location.toLowerCase())) {
-            foundLocation = location;
-            break;
-          }
-        }
-      }
-      
-      if (!foundLocation) return;
+      if (!post.location) return;
 
-      if (!locationCounts.has(foundLocation)) {
-        locationCounts.set(foundLocation, {
+      const location = post.location;
+
+      if (!locationCounts.has(location)) {
+        locationCounts.set(location, {
           total: 0,
           sentiments: new Map()
         });
       }
 
-      const locationData = locationCounts.get(foundLocation)!;
+      const locationData = locationCounts.get(location)!;
       locationData.total++;
 
       const currentSentimentCount = locationData.sentiments.get(post.sentiment) || 0;
@@ -68,10 +50,7 @@ export function AffectedAreas({
     });
 
     // Convert to array and calculate percentages
-    const totalPosts = locationCounts.size > 0 ? 
-      Array.from(locationCounts.values()).reduce((sum, data) => sum + data.total, 0) : 0;
-
-    const areaData: AffectedArea[] = Array.from(locationCounts.entries())
+    return Array.from(locationCounts.entries())
       .map(([location, data]) => {
         // Find dominant sentiment
         let maxCount = 0;
@@ -87,14 +66,12 @@ export function AffectedAreas({
         return {
           name: location,
           count: data.total,
-          percentage: (data.total / totalPosts) * 100,
+          percentage: (data.total / totalPostsWithLocation) * 100,
           sentiment: dominantSentiment
         };
       })
       .sort((a, b) => b.count - a.count)
       .slice(0, 5); // Get top 5 affected areas
-
-    return areaData;
   }, [sentimentPosts]);
 
   return (
@@ -105,38 +82,19 @@ export function AffectedAreas({
       </CardHeader>
       <CardContent className="p-5 space-y-4">
         {areas.length === 0 ? (
-          <p className="text-center text-slate-500 py-4">No affected areas data available</p>
+          <p className="text-center text-slate-500 py-4">No location data available</p>
         ) : (
-          areas.map((area, index) => {
-            const color = getSentimentColor(area.sentiment);
-
-            return (
-              <div key={index} className="flex items-center">
-                <div 
-                  className="w-2 h-2 rounded-full mr-2"
-                  style={{ backgroundColor: color }}
-                />
-                <div className="flex-1">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <span className="text-sm font-medium text-slate-700">{area.name}</span>
-                      <span className="text-xs text-slate-500 ml-2">({area.count} reports)</span>
-                    </div>
-                    <span className="text-xs font-medium text-slate-500">{area.percentage.toFixed(1)}%</span>
-                  </div>
-                  <div className="mt-1 w-full bg-slate-200 rounded-full h-2">
-                    <div 
-                      className="h-2 rounded-full transition-all duration-300" 
-                      style={{ 
-                        width: `${area.percentage}%`,
-                        backgroundColor: color
-                      }}
-                    />
-                  </div>
-                </div>
+          areas.map((area, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-slate-700">{area.name}</span>
+                <span className="text-sm text-slate-500">{Math.round(area.percentage)}%</span>
               </div>
-            );
-          })
+              <Badge variant={getSentimentVariant(area.sentiment)}>
+                {area.sentiment}
+              </Badge>
+            </div>
+          ))
         )}
       </CardContent>
     </Card>
