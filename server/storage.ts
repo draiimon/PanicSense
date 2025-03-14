@@ -23,15 +23,21 @@ export interface IStorage {
   getSentimentPostsByFileId(fileId: number): Promise<SentimentPost[]>;
   createSentimentPost(post: InsertSentimentPost): Promise<SentimentPost>;
   createManySentimentPosts(posts: InsertSentimentPost[]): Promise<SentimentPost[]>;
+  deleteAllSentimentPosts(): Promise<void>;
 
   // Disaster Events
   getDisasterEvents(): Promise<DisasterEvent[]>;
   createDisasterEvent(event: InsertDisasterEvent): Promise<DisasterEvent>;
+  deleteAllDisasterEvents(): Promise<void>;
 
   // File Analysis
   getAnalyzedFiles(): Promise<AnalyzedFile[]>;
   getAnalyzedFile(id: number): Promise<AnalyzedFile | undefined>;
   createAnalyzedFile(file: InsertAnalyzedFile): Promise<AnalyzedFile>;
+  deleteAllAnalyzedFiles(): Promise<void>;
+  
+  // Delete All Data
+  deleteAllData(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -145,6 +151,26 @@ export class DatabaseStorage implements IStorage {
       .values(file)
       .returning();
     return result;
+  }
+  
+  // Delete functions
+  async deleteAllSentimentPosts(): Promise<void> {
+    await db.delete(sentimentPosts);
+  }
+  
+  async deleteAllDisasterEvents(): Promise<void> {
+    await db.delete(disasterEvents);
+  }
+  
+  async deleteAllAnalyzedFiles(): Promise<void> {
+    await db.delete(analyzedFiles);
+  }
+  
+  async deleteAllData(): Promise<void> {
+    // Delete in order to respect foreign key constraints
+    await this.deleteAllSentimentPosts();
+    await this.deleteAllDisasterEvents();
+    await this.deleteAllAnalyzedFiles();
   }
 }
 

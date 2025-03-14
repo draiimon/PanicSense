@@ -438,6 +438,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete all data endpoint
+  app.delete('/api/delete-all-data', async (req: Request, res: Response) => {
+    try {
+      // Delete all data
+      await storage.deleteAllData();
+      
+      res.json({ 
+        success: true, 
+        message: "All data has been deleted successfully"
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Failed to delete all data",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

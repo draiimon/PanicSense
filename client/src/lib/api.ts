@@ -123,3 +123,12 @@ export async function analyzeText(text: string): Promise<{
   const response = await apiRequest('POST', '/api/analyze-text', { text });
   return response.json();
 }
+
+// Delete All Data
+export async function deleteAllData(): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const response = await apiRequest('DELETE', '/api/delete-all-data');
+  return response.json();
+}

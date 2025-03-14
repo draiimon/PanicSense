@@ -5,16 +5,46 @@ import { StatusCard } from "@/components/dashboard/status-card";
 import { SentimentChart } from "@/components/dashboard/sentiment-chart";
 import { AffectedAreas } from "@/components/dashboard/affected-areas";
 import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { deleteAllData } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
+  const { toast } = useToast();
   const { 
     sentimentPosts,
     activeDiastersCount,
     analyzedPostsCount,
     dominantSentiment,
     modelConfidence,
-    isLoadingSentimentPosts
+    isLoadingSentimentPosts,
+    refreshData
   } = useDisasterContext();
+  
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const handleDeleteAllData = async () => {
+    try {
+      setIsDeleting(true);
+      const result = await deleteAllData();
+      toast({
+        title: "Success",
+        description: result.message,
+        variant: "default",
+      });
+      // Refresh the data
+      refreshData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Calculate sentiment distribution
   const sentimentCounts: Record<string, number> = {
