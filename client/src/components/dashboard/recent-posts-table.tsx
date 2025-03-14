@@ -1,12 +1,19 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { Link } from 'wouter';
-import { SentimentPost } from '@/lib/api';
-import { getSentimentBadgeClasses } from '@/lib/colors';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
+import { format } from "date-fns";
+
+interface Post {
+  id: number;
+  text: string;
+  timestamp: string;
+  source: string;
+  sentiment: string;
+  confidence: number;
+}
 
 interface RecentPostsTableProps {
-  posts: SentimentPost[];
+  posts?: Post[];
   title?: string;
   description?: string;
   limit?: number;
@@ -20,18 +27,15 @@ export function RecentPostsTable({
   limit = 5,
   showViewAllLink = true
 }: RecentPostsTableProps) {
-  // Take only the most recent posts, limited by the limit prop
   const displayedPosts = posts?.slice(0, limit) || [];
 
-  // Get variant type for sentiment badge
   const getSentimentVariant = (sentiment: string) => {
-    switch (sentiment) {
-      case 'Panic': return 'panic';
-      case 'Fear/Anxiety': return 'fear';
-      case 'Disbelief': return 'disbelief';
-      case 'Resilience': return 'resilience';
-      case 'Neutral': 
-      default: return 'neutral';
+    switch (sentiment?.toLowerCase()) {
+      case 'panic': return 'destructive';
+      case 'fear/anxiety': return 'warning';
+      case 'disbelief': return 'secondary';
+      case 'resilience': return 'success';
+      default: return 'default';
     }
   };
 
@@ -61,37 +65,17 @@ export function RecentPostsTable({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
-              {displayedPosts.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-slate-500">
-                    No posts available
+              {displayedPosts.map((post) => (
+                <tr key={post.id}>
+                  <td className="px-6 py-4 text-sm text-slate-900 max-w-xs truncate">{post.text}</td>
+                  <td className="px-6 py-4 text-sm text-slate-500">{format(new Date(post.timestamp), 'MMM d, yyyy')}</td>
+                  <td className="px-6 py-4 text-sm text-slate-500">{post.source}</td>
+                  <td className="px-6 py-4">
+                    <Badge variant={getSentimentVariant(post.sentiment)}>{post.sentiment}</Badge>
                   </td>
+                  <td className="px-6 py-4 text-sm text-slate-500">{Math.round(post.confidence * 100)}%</td>
                 </tr>
-              ) : (
-                displayedPosts.map((post) => (
-                  <tr key={post.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <p className="text-sm text-slate-700 line-clamp-1">{post.text}</p>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      {format(new Date(post.timestamp), 'yyyy-MM-dd HH:mm')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      {post.source || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge 
-                        variant={getSentimentVariant(post.sentiment) as any}
-                      >
-                        {post.sentiment}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      {post.confidence.toFixed(2)}
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
