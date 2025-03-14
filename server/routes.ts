@@ -30,58 +30,146 @@ const uploadProgressMap = new Map<string, {
   error?: string;
 }>();
 
-// Enhanced disaster detection patterns (This section remains largely unchanged)
+// Enhanced disaster detection patterns with comprehensive synonyms and related terms
 const disasterPatterns = {
   Earthquake: {
     primaryIndicators: [
       'earthquake', 'lindol', 'quake', 'magnitude', 'aftershock', 'tremor',
       'seismic', 'fault line', 'epicenter', 'temblor', 'lumindol', 'yumanig',
-      'ground shaking', 'earth movement', 'shake', 'rumble'
+      'ground shaking', 'earth movement', 'shake', 'rumble', 'umaalog',
+      'nayayanig', 'pagyanig', 'lindol na malakas', 'intensity', 'dahan-dahan'
     ],
-    tagalogIndicators: ['lindol', 'lumindol', 'yumanig', 'paglindol', 'pagyanig'],
-    impactWords: ['damage', 'collapse', 'rubble', 'crack', 'fallen', 'trapped', 'gumuho', 'nasira'],
-    intensityWords: ['strong', 'powerful', 'massive', 'malakas', 'intensity', 'violent', 'severe'],
+    tagalogIndicators: [
+      'lindol', 'lumindol', 'yumanig', 'paglindol', 'pagyanig', 'yanig',
+      'alog', 'umaalog', 'nayayanig', 'gumalaw', 'gumugalaw', 'nayanig',
+      'paggalaw ng lupa', 'paglindol ng lupa', 'mayaning', 'nagalaw'
+    ],
+    impactWords: [
+      'damage', 'collapse', 'rubble', 'crack', 'fallen', 'trapped', 'gumuho', 'nasira',
+      'tumba', 'natumba', 'bumagsak', 'nabagsak', 'wasak', 'nawasak', 'bitak',
+      'nabitak', 'sira', 'nasira', 'basag', 'nabasag', 'guho', 'naguho'
+    ],
+    intensityWords: [
+      'strong', 'powerful', 'massive', 'malakas', 'intensity', 'violent', 'severe',
+      'malaki', 'napakalakas', 'matindi', 'sobrang lakas', 'nakakatakot',
+      'nakakabahala', 'hindi makagalaw', 'hindi makatayo'
+    ],
     weight: 2.5
   },
   Flood: {
     primaryIndicators: [
       'flood', 'baha', 'tubig', 'water level', 'rising', 'overflow',
-      'submerged', 'inundated', 'deluge', 'flash flood', 'flooding'
+      'submerged', 'inundated', 'deluge', 'flash flood', 'flooding',
+      'high water', 'water rise', 'flood warning', 'flooded areas'
     ],
-    tagalogIndicators: ['baha', 'bumabaha', 'pagbaha', 'binabaha', 'daluyong', 'lumagpas'],
-    impactWords: ['stranded', 'evacuation', 'rescue', 'trapped', 'submerged', 'nasira', 'naipit'],
-    intensityWords: ['deep', 'rising', 'severe', 'malalim', 'lubog', 'mataas', 'lumalalim'],
+    tagalogIndicators: [
+      'baha', 'bumabaha', 'pagbaha', 'binabaha', 'daluyong', 'lumagpas',
+      'tumataas ang tubig', 'lumubog', 'nalubog', 'nakalubog', 'apaw',
+      'umapaw', 'nagapaw', 'tubig-baha', 'rumaragasa', 'lumalaki'
+    ],
+    impactWords: [
+      'stranded', 'evacuation', 'rescue', 'trapped', 'submerged', 'nasira', 'naipit',
+      'lubog', 'nalubog', 'natrap', 'hindi makalabas', 'naipit', 'rescue',
+      'saklolo', 'tulong', 'walang makapasok', 'walang madaanan'
+    ],
+    intensityWords: [
+      'deep', 'rising', 'severe', 'malalim', 'lubog', 'mataas', 'lumalalim',
+      'mabilis', 'rumaragasa', 'malakas', 'hindi makatawid', 'hanggang tuhod',
+      'hanggang baywang', 'hanggang dibdib', 'hanggang leeg'
+    ],
     weight: 2.3
   },
   Typhoon: {
     primaryIndicators: [
       'typhoon', 'bagyo', 'storm', 'cyclone', 'hurricane', 'winds', 'signal',
-      'tropical depression', 'tropical storm', 'super typhoon'
+      'tropical depression', 'tropical storm', 'super typhoon', 'storm surge',
+      'low pressure', 'weather disturbance', 'heavy rain', 'gale warning'
     ],
-    tagalogIndicators: ['bagyo', 'unos', 'bagyong', 'hanging', 'ulan', 'habagat'],
-    impactWords: ['damage', 'blown', 'destroyed', 'evacuation', 'landfall', 'storm surge'],
-    intensityWords: ['strong', 'intense', 'super', 'powerful', 'malakas', 'malaks na hangin'],
+    tagalogIndicators: [
+      'bagyo', 'unos', 'bagyong', 'hanging', 'ulan', 'habagat', 'malakas na hangin',
+      'signal no', 'pag-ulan', 'daluyong', 'hampas ng alon', 'malalakas na alon',
+      'pagbugso ng hangin', 'hanging habagat', 'ulap', 'kulog', 'kidlat'
+    ],
+    impactWords: [
+      'damage', 'blown', 'destroyed', 'evacuation', 'landfall', 'storm surge',
+      'flying debris', 'toppled', 'uprooted', 'blown away', 'nasira',
+      'natangay', 'nagiba', 'nawala', 'lumipad', 'natumba'
+    ],
+    intensityWords: [
+      'strong', 'intense', 'super', 'powerful', 'malakas', 'malaks na hangin',
+      'napakalakas', 'matindi', 'rumaragasa', 'walang hinto', 'tuloy-tuloy',
+      'hindi humihina', 'lumalakas pa', 'pabagsik nang pabagsik'
+    ],
     weight: 2.4
   },
   Landslide: {
     primaryIndicators: [
       'landslide', 'mudslide', 'rockslide', 'avalanche', 'soil erosion',
-      'ground collapse', 'earth movement', 'debris flow'
+      'ground collapse', 'earth movement', 'debris flow', 'soil movement',
+      'ground failure', 'slope failure', 'mass movement'
     ],
-    tagalogIndicators: ['pagguho', 'guho', 'pagguho ng lupa', 'nagtunaw', 'nagbagsak'],
-    impactWords: ['buried', 'trapped', 'blocked', 'covered', 'natabunan', 'naipit'],
-    intensityWords: ['massive', 'major', 'significant', 'malaking', 'malawak'],
+    tagalogIndicators: [
+      'pagguho', 'guho', 'pagguho ng lupa', 'nagtunaw', 'nagbagsak',
+      'pagdaloy ng lupa', 'pagkadurog', 'pagkatibag', 'pagkatumba',
+      'pagtunaw ng lupa', 'pagkaanod', 'pagbagsak ng lupa'
+    ],
+    impactWords: [
+      'buried', 'trapped', 'blocked', 'covered', 'natabunan', 'naipit',
+      'nabulid', 'nalibing', 'natakpan', 'natabunan', 'hindi makita',
+      'nawawala', 'nalibing', 'hindi mahanap', 'nawalan ng bakas'
+    ],
+    intensityWords: [
+      'massive', 'major', 'significant', 'malaking', 'malawak', 'grabe',
+      'napakalaki', 'napakabilis', 'hindi mapigilan', 'tuloy-tuloy',
+      'walang tigil', 'patuloy', 'lumalaki pa'
+    ],
     weight: 2.2
   },
   Volcanic: {
     primaryIndicators: [
       'volcano', 'volcanic', 'eruption', 'ash fall', 'lava', 'magma',
-      'pyroclastic flow', 'volcanic activity', 'phreatic'
+      'pyroclastic flow', 'volcanic activity', 'phreatic', 'crater',
+      'volcanic ash', 'steam emission', 'sulfur dioxide', 'alert level'
     ],
-    tagalogIndicators: ['bulkan', 'bulkang', 'pagputok', 'abo', 'lahar'],
-    impactWords: ['evacuation', 'danger zone', 'alert level', 'active', 'ashfall'],
-    intensityWords: ['explosive', 'major', 'intense', 'violent', 'malakas'],
+    tagalogIndicators: [
+      'bulkan', 'bulkang', 'pagputok', 'abo', 'lahar', 'nagputok',
+      'pumutok', 'sumabog', 'nagbubuga', 'nagbuga', 'umuusok',
+      'naglalavang', 'nagbabaga', 'umalingasaw'
+    ],
+    impactWords: [
+      'evacuation', 'danger zone', 'alert level', 'active', 'ashfall',
+      'covered in ash', 'respiratory', 'masks needed', 'zero visibility',
+      'contaminated', 'health hazard', 'toxic', 'acid rain'
+    ],
+    intensityWords: [
+      'explosive', 'major', 'intense', 'violent', 'malakas', 'matindi',
+      'mapanganib', 'mapaminsala', 'nakamamatay', 'nakakalason',
+      'hindi humihinto', 'lumalala', 'tumitindi'
+    ],
     weight: 2.4
+  },
+  Fire: {
+    primaryIndicators: [
+      'fire', 'blaze', 'flames', 'burning', 'smoke', 'inferno',
+      'conflagration', 'wildfire', 'forest fire', 'bush fire',
+      'fire outbreak', 'combustion', 'fire alarm', 'fire alert'
+    ],
+    tagalogIndicators: [
+      'sunog', 'apoy', 'nasusunog', 'nagliliyab', 'nagkakasunog',
+      'nagliliyab', 'nag-aapoy', 'usok', 'nag-uusok', 'nasunog',
+      'natupok', 'nagliliyab', 'nagbabaga'
+    ],
+    impactWords: [
+      'burned', 'gutted', 'destroyed', 'damage', 'casualties',
+      'evacuation', 'rescue', 'trapped', 'smoke inhalation',
+      'property damage', 'total damage', 'ashes'
+    ],
+    intensityWords: [
+      'massive', 'huge', 'intense', 'raging', 'uncontrolled',
+      'spreading', 'wild', 'fierce', 'devastating', 'malakas',
+      'malaki', 'lumalaki', 'kumakalat', 'hindi mapigilan'
+    ],
+    weight: 2.3
   }
 };
 
