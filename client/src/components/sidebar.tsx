@@ -1,24 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   BarChart3, 
-  FileText, 
+  BrainCircuit,
   Clock, 
   LineChart, 
   Database,
+  FileText,
   Activity,
   Info,
-  Timer,
   Menu,
-  X,
-  BrainCircuit
+  X
 } from "lucide-react";
-
-interface SidebarProps {
-  className?: string;
-}
 
 interface NavItem {
   href: string;
@@ -26,52 +21,9 @@ interface NavItem {
   icon: JSX.Element;
 }
 
-const sidebarVariants = {
-  open: {
-    x: 0,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 30
-    }
-  },
-  closed: {
-    x: "-100%",
-    opacity: 0,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 30
-    }
-  }
-};
-
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar() {
   const [location] = useLocation();
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-
-  // Close sidebar on route change
-  useEffect(() => {
-    if (isMobileOpen) {
-      setIsMobileOpen(false);
-    }
-  }, [location]);
-
-  // Handle click outside to close sidebar
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const sidebar = document.getElementById('mobile-sidebar');
-      if (isMobileOpen && sidebar && !sidebar.contains(event.target as Node)) {
-        setIsMobileOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isMobileOpen]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems: NavItem[] = [
     {
@@ -82,7 +34,7 @@ export function Sidebar({ className }: SidebarProps) {
     {
       href: "/emotion-analysis",
       label: "Emotion Analysis",
-      icon: <Activity className="h-5 w-5" />,
+      icon: <BrainCircuit className="h-5 w-5" />,
     },
     {
       href: "/timeline",
@@ -106,8 +58,8 @@ export function Sidebar({ className }: SidebarProps) {
     },
     {
       href: "/real-time",
-      label: "Real-Time Mode",
-      icon: <Timer className="h-5 w-5" />,
+      label: "Real-Time",
+      icon: <Activity className="h-5 w-5" />,
     },
     {
       href: "/about",
@@ -117,106 +69,90 @@ export function Sidebar({ className }: SidebarProps) {
   ];
 
   return (
-    <>
-      {/* Mobile Menu Button */}
-      <motion.button 
-        onClick={() => setIsMobileOpen(true)}
-        className="lg:hidden fixed z-50 top-4 left-4 p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-lg border border-slate-200/50 text-slate-700 hover:bg-slate-100 transition-all duration-300"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        <Menu className="h-6 w-6" />
-      </motion.button>
-
-      {/* Mobile Backdrop */}
-      <AnimatePresence>
-        {isMobileOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
-            onClick={() => setIsMobileOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Sidebar */}
-      <motion.aside
-        id="mobile-sidebar"
-        variants={sidebarVariants}
-        initial={false}
-        animate={isMobileOpen ? "open" : "closed"}
-        className={cn(
-          "fixed inset-y-0 left-0 bg-gradient-to-b from-slate-900 to-slate-800 text-white w-[280px] z-50 shadow-xl",
-          "lg:relative lg:translate-x-0",
-          "transform transition-transform duration-300 ease-in-out",
-          className
-        )}
-      >
-        {/* Logo Section - Mobile Only */}
-        <motion.div 
-          className="flex items-center justify-between h-16 px-4 border-b border-slate-700/50 lg:hidden"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
-              <BrainCircuit className="h-5 w-5 text-white" />
-            </div>
-            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-transparent">
-              PanicSense PH
-            </h1>
+    <div className="h-full flex flex-col bg-gradient-to-b from-slate-900 to-slate-800">
+      {/* Logo Section */}
+      <div className="p-6">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center">
+            <BrainCircuit className="h-6 w-6 text-white" />
           </div>
+          <div>
+            <h1 className="text-lg font-bold text-white">PanicSense PH</h1>
+            <p className="text-xs text-slate-400">Sentiment Analysis</p>
+          </div>
+        </div>
+      </div>
 
-          {/* Close Button - Mobile Only */}
-          <motion.button 
-            onClick={() => setIsMobileOpen(false)}
-            className="p-1 rounded-full hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <X className="h-6 w-6" />
-          </motion.button>
-        </motion.div>
-
-        {/* Navigation */}
-        <nav className="h-[calc(100vh-4rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent pt-5 px-4 space-y-1">
-          <AnimatePresence>
-            {navItems.map((item, index) => (
-              <motion.div
-                key={item.href}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
+      {/* Navigation Links */}
+      <nav className="flex-1 px-4 pb-4">
+        <div className="space-y-1">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+            >
+              <a
+                className={cn(
+                  "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200",
+                  location === item.href
+                    ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
+                    : "text-slate-400 hover:text-white hover:bg-white/10"
+                )}
               >
+                {item.icon}
+                <span>{item.label}</span>
+                {location === item.href && (
+                  <motion.div
+                    layoutId="activeNav"
+                    className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+              </a>
+            </Link>
+          ))}
+        </div>
+      </nav>
+
+      {/* Mobile Menu Button */}
+      <button
+        className="lg:hidden fixed bottom-4 right-4 p-4 rounded-full bg-blue-600 text-white shadow-lg"
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      >
+        {isMobileMenuOpen ? (
+          <X className="h-6 w-6" />
+        ) : (
+          <Menu className="h-6 w-6" />
+        )}
+      </button>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 bg-slate-900/90 z-50">
+          <div className="h-full w-64 bg-gradient-to-b from-slate-900 to-slate-800">
+            {/* Mobile Navigation */}
+            <div className="p-4">
+              {navItems.map((item) => (
                 <Link
+                  key={item.href}
                   href={item.href}
-                  className={cn(
-                    "flex items-center space-x-2 py-2 px-3 rounded-md transition-all duration-200 relative group",
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <a className={cn(
+                    "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200",
                     location === item.href
                       ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
-                      : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                  )}
-                  onClick={() => setIsMobileOpen(false)}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                  {location === item.href && (
-                    <motion.div
-                      layoutId="activeNav"
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full"
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
-                  )}
+                      : "text-slate-400 hover:text-white hover:bg-white/10"
+                  )}>
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </a>
                 </Link>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </nav>
-      </motion.aside>
-    </>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
