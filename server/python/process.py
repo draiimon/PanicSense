@@ -216,12 +216,17 @@ Always classify as PANIC when there are clear signs of:
 
 Text: {text}
 
-Provide detailed sentiment analysis in this format:
+ALWAYS extract any Philippine location if mentioned in the text, even briefly.
+If the text mentions a specific location like 'Manila', 'Cebu', 'Davao', or any other Philippine city/province/region, always include it.
+If it mentions broader regions like 'Luzon', 'Visayas', 'Mindanao', or 'Philippines', include that as well.
+If it mentions multiple locations, choose the most specific one.
+
+Provide detailed sentiment analysis in this exact format:
 Sentiment: [chosen sentiment]
 Confidence: [percentage]
 Explanation: [brief explanation]
-DisasterType: [identify disaster type if mentioned]
-Location: [identify Philippine location if mentioned]
+DisasterType: [identify disaster type if mentioned, even if vague]
+Location: [identify Philippine location if mentioned, even faintly implied - NEVER leave this blank if any location is mentioned]
 """
 
                 payload = {
