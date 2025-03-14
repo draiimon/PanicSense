@@ -70,8 +70,8 @@ class DisasterSentimentBackend:
             ]
 
         self.api_url = "https://api.groq.com/openai/v1/chat/completions" # Needs to be changed to remove Groq reference
-        self.retry_delay = 1
-        self.limit_delay = 0.5
+        self.retry_delay = 2
+        self.limit_delay = 2
         self.current_api_index = 0
         self.max_retries = 3  # Maximum retry attempts for API requests
 
