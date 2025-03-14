@@ -99,7 +99,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 bg-slate-800 text-white w-64 z-50 transform transition-transform duration-300",
+          "fixed inset-y-0 left-0 bg-slate-800 text-white w-[280px] z-50 transform transition-transform duration-300 shadow-xl",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           className
         )}

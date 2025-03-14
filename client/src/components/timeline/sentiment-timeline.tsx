@@ -91,7 +91,7 @@ export function SentimentTimeline({
 
   return (
     <Card className="bg-white rounded-lg shadow">
-      <CardHeader className="p-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <CardHeader className="p-4 md:p-5 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
         <div>
           <CardTitle className="text-lg font-medium text-slate-800">{title}</CardTitle>
           <CardDescription className="text-sm text-slate-500">{description}</CardDescription>
