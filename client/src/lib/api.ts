@@ -72,7 +72,7 @@ export async function getAnalyzedFile(id: number): Promise<AnalyzedFile> {
   return response.json();
 }
 
-// File Upload
+// File Upload with session handling
 export async function uploadCSV(
   file: File,
   onProgress?: (progress: UploadProgress) => void
@@ -89,8 +89,11 @@ export async function uploadCSV(
   const formData = new FormData();
   formData.append('file', file);
 
+  // Generate a unique session ID
+  const sessionId = crypto.randomUUID();
+
   // Set up event source for progress updates
-  const eventSource = new EventSource('/api/upload-progress');
+  const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
 
   eventSource.onmessage = (event) => {
     const progress = JSON.parse(event.data);
@@ -102,13 +105,16 @@ export async function uploadCSV(
   try {
     const response = await fetch('/api/upload-csv', {
       method: 'POST',
+      headers: {
+        'X-Session-ID': sessionId
+      },
       body: formData,
       credentials: 'include',
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to upload CSV: ${errorText}`);
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to upload CSV');
     }
 
     return response.json();
