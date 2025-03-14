@@ -1068,7 +1068,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
             final_disaster_type = "NONE"
             final_location = None
             
-        # Final enhanced prediction with BiGRU/LSTM-inspired confidence
+        # Final enhanced prediction
         return {
             "sentiment": final_sentiment,
             "confidence": final_confidence,
@@ -1076,7 +1076,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
             "language": self.detect_language(text),
             "disasterType": final_disaster_type,
             "location": final_location,
-            "modelType": "Ensemble (BiGRU/LSTM-inspired)"  # Note the advanced model type
+            "modelType": "Ensemble Analysis"
         }
 
     def process_csv(self, file_path):
