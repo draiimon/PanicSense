@@ -1,8 +1,8 @@
 import { useDisasterContext } from "@/context/disaster-context";
-import { FileUploader } from "@/components/file-uploader";
 import { StatusCard } from "@/components/dashboard/status-card";
 import { SentimentChart } from "@/components/dashboard/sentiment-chart";
 import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
+import { DashboardUploader } from "@/components/dashboard/dashboard-uploader";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -49,7 +49,7 @@ export default function Dashboard() {
               </CardTitle>
               <p className="text-sm text-slate-500 mt-1">Real-time sentiment monitoring and analysis</p>
             </div>
-            <FileUploader className="mt-0" />
+            <DashboardUploader className="mt-0" />
           </CardHeader>
         </Card>
       </motion.div>
