@@ -3,20 +3,16 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
 import { pythonService } from "./python-service";
-import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertDisasterEventSchema, type SentimentPost, type DisasterEvent } from "@shared/schema";
-import fs from "fs";
-import path from "path";
-import os from "os";
+import { insertSentimentPostSchema, insertAnalyzedFileSchema } from "@shared/schema";
 import { EventEmitter } from 'events';
 
-// Configure multer for file uploads
+// Configure multer for file uploads with improved performance
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 50 * 1024 * 1024, // Increased to 50MB for faster batch processing
   },
   fileFilter: (req, file, cb) => {
-    // Accept any file with .csv extension regardless of mimetype
     if (file.originalname.toLowerCase().endsWith('.csv')) {
       cb(null, true);
     } else {
@@ -25,51 +21,51 @@ const upload = multer({
   }
 });
 
-// Enhanced upload progress tracking
+// Enhanced upload progress tracking with better performance
 const uploadProgressMap = new Map<string, {
   processed: number;
   total: number;
   stage: string;
   timestamp: number;
+  error?: string;
 }>();
 
-// Update the SSE endpoint for better progress tracking
-app.get('/api/upload-progress/:sessionId', (req: Request, res: Response) => {
-  const sessionId = req.params.sessionId;
-
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive'
-  });
-
-  const sendProgress = () => {
-    const progress = uploadProgressMap.get(sessionId);
-    if (progress) {
-      const now = Date.now();
-      // Only send updates if more than 100ms has passed
-      if (now - progress.timestamp >= 100) {
-        res.write(`data: ${JSON.stringify({
-          processed: progress.processed,
-          total: progress.total,
-          stage: progress.stage,
-          percentage: Math.round((progress.processed / progress.total) * 100)
-        })}\n\n`);
-        progress.timestamp = now;
-      }
-    }
-  };
-
-  const progressInterval = setInterval(sendProgress, 100);
-
-  req.on('close', () => {
-    clearInterval(progressInterval);
-    uploadProgressMap.delete(sessionId);
-  });
-});
-
-
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add the SSE endpoint inside registerRoutes
+  app.get('/api/upload-progress/:sessionId', (req: Request, res: Response) => {
+    const sessionId = req.params.sessionId;
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
+
+    const sendProgress = () => {
+      const progress = uploadProgressMap.get(sessionId);
+      if (progress) {
+        const now = Date.now();
+        if (now - progress.timestamp >= 50) { // Increased frequency for smoother updates
+          res.write(`data: ${JSON.stringify({
+            processed: progress.processed,
+            total: progress.total,
+            stage: progress.stage,
+            percentage: Math.round((progress.processed / progress.total) * 100),
+            error: progress.error
+          })}\n\n`);
+          progress.timestamp = now;
+        }
+      }
+    };
+
+    const progressInterval = setInterval(sendProgress, 50);
+
+    req.on('close', () => {
+      clearInterval(progressInterval);
+      uploadProgressMap.delete(sessionId);
+    });
+  });
+
   // Authentication Routes
   app.post('/api/auth/signup', async (req: Request, res: Response) => {
     try {
@@ -145,12 +141,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function to generate disaster events from sentiment posts
-  const generateDisasterEvents = async (posts: SentimentPost[]): Promise<void> => {
+  const generateDisasterEvents = async (posts: any[]): Promise<void> => {
     if (posts.length === 0) return;
 
     // Group posts by day to identify patterns
     const postsByDay: {[key: string]: {
-      posts: SentimentPost[],
+      posts: any[],
       count: number,
       sentiments: {[key: string]: number}
     }} = {};
@@ -311,12 +307,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Update file upload endpoint with better progress tracking
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
+    let sessionId: string | undefined;
+    let updateProgress: (processed: number, stage: string, error?: string) => void;
+
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const sessionId = req.headers['x-session-id'] as string;
+      sessionId = req.headers['x-session-id'] as string;
       if (!sessionId) {
         return res.status(400).json({ error: "Session ID is required" });
       }
@@ -334,12 +333,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: Date.now()
       });
 
-      const updateProgress = (processed: number, stage: string) => {
-        const progress = uploadProgressMap.get(sessionId);
-        if (progress) {
-          progress.processed = processed;
-          progress.stage = stage;
-          progress.timestamp = Date.now();
+      updateProgress = (processed: number, stage: string, error?: string) => {
+        if (sessionId) {
+          const progress = uploadProgressMap.get(sessionId);
+          if (progress) {
+            progress.processed = processed;
+            progress.stage = stage;
+            progress.timestamp = Date.now();
+            progress.error = error;
+          }
         }
       };
 
@@ -382,7 +384,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await generateDisasterEvents(sentimentPosts);
 
       // Final progress update
-      updateProgress(totalRecords, 'Analysis complete');
+      if (sessionId && updateProgress) {
+        updateProgress(totalRecords, 'Analysis complete');
+      }
 
       res.json({
         file: analyzedFile,
@@ -392,15 +396,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error processing CSV:", error);
+      if (sessionId && updateProgress) {
+        updateProgress(0, 'Error', error instanceof Error ? error.message : String(error));
+      }
       res.status(500).json({ 
         error: "Failed to process CSV file",
         details: error instanceof Error ? error.message : String(error)
       });
     } finally {
       // Cleanup progress tracking after 5 seconds
-      setTimeout(() => {
-        uploadProgressMap.delete(sessionId);
-      }, 5000);
+      if (sessionId) {
+        setTimeout(() => {
+          uploadProgressMap.delete(sessionId);
+        }, 5000);
+      }
     }
   });
 

@@ -3,10 +3,10 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '50mb' })); // Increased limit for better performance
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Enhanced logging middleware with performance metrics
+// Enhanced logging middleware with better performance metrics
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -23,13 +23,9 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        const summary = JSON.stringify(capturedJsonResponse).slice(0, 100);
+        logLine += ` :: ${summary}${summary.length > 99 ? '...' : ''}`;
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
       log(logLine);
     }
   });
@@ -40,7 +36,7 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Enhanced error handling with detailed error messages
+  // Enhanced error handling with structured error response
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -48,8 +44,10 @@ app.use((req, res, next) => {
 
     console.error(`[Error] ${status} - ${message}\n${details}`);
     res.status(status).json({ 
+      error: true,
       message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      path: _req.path
     });
   });
 
@@ -59,8 +57,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Changed port to 3000 for better performance
-  const port = 3000;
+  // Using port 5000 as required by Replit
+  const port = 5000;
   server.listen({
     port,
     host: "0.0.0.0",
