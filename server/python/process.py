@@ -547,22 +547,30 @@ class DisasterSentimentBackend:
         text_lower = text.lower()
         text_words = set(re.findall(r'\b\w+\b', text_lower))
 
-        # Simplified location detection - only major cities and regions
+        # Main cities and regions with their common variations
         major_locations = {
-            "NCR": ["metro manila", "ncr"],
-            "Manila": ["manila"],
-            "Quezon City": ["quezon city", "qc"],
-            "Cebu": ["cebu"],
+            "NCR": ["metro manila", "ncr", "kalakhang maynila"],
+            "Manila": ["manila", "maynila"],
+            "Quezon City": ["quezon city", "qc", "kyusi"],
+            "Cebu": ["cebu", "sugbo"],
             "Davao": ["davao"],
-            "Cavite": ["cavite"],
+            "Cavite": ["cavite", "kabite"],
             "Laguna": ["laguna"],
-            "Batangas": ["batangas"],
+            "Batangas": ["batangas", "batangan"],
             "Makati": ["makati"],
-            "Taguig": ["taguig"],
+            "Taguig": ["taguig", "tagyig"],
             "Pasig": ["pasig"],
             "Mandaluyong": ["mandaluyong"],
-            "Luzon": ["luzon"],
-            "Visayas": ["visayas"],
+            "Las Piñas": ["las piñas", "las pinas"],
+            "Parañaque": ["parañaque", "paranaque"],
+            "Marikina": ["marikina"],
+            "Muntinlupa": ["muntinlupa", "muntinglupa"],
+            "Pampanga": ["pampanga"],
+            "Bulacan": ["bulacan", "bulakan"],
+            "Rizal": ["rizal"],
+            "Zambales": ["zambales"],
+            "Luzon": ["luzon", "northern luzon", "central luzon", "southern luzon"],
+            "Visayas": ["visayas", "kabisayaan"],
             "Mindanao": ["mindanao"]
         }
 
@@ -571,7 +579,10 @@ class DisasterSentimentBackend:
             if any(keyword in text_lower for keyword in keywords):
                 return location
 
-        # Default return None instead of explanation
+        # Check for generic Philippines references as fallback
+        if any(word in text_lower for word in ["philippines", "pilipinas", "pinas"]):
+            return "Philippines"
+
         return None
 
     def fetch_api(self, headers, payload, retry_count=0):
@@ -754,18 +765,25 @@ class DisasterSentimentBackend:
                     "Content-Type": "application/json"
                 }
 
-                # Focused prompt with minimal location tokens
+                # Enhanced prompt with better location extraction
                 prompt = f"""Analyze this disaster-related {'Tagalog/Filipino' if language == 'tl' else 'English'} text.
 Return ONLY:
 1. Sentiment: [PANIC/FEAR/DISBELIEF/RESILIENCE/NEUTRAL]
 2. Disaster Type: [type if mentioned]
-3. Location: [city/region name only if mentioned]
-4. Brief Analysis: [2-3 sentences explaining sentiment choice]
+3. Location: [ONLY city/region name, maximum 2 words, no explanation]
+4. Brief Analysis: [2-3 sentences with detailed sentiment explanation]
 
-Guidelines:
-- For location, return ONLY city/region name
-- Focus on emotional content and disaster indicators
-- Provide clear explanation of sentiment choice
+Location Guidelines:
+- Return ONLY major Philippine cities (Manila, Cebu, etc.)
+- Or regions (NCR, Luzon, Visayas, Mindanao)
+- NO explanations or qualifiers for location
+- If no location found, return NONE
+
+Focus on:
+- Emotional intensity in text
+- Disaster indicators
+- Clear location mentions
+- Cultural context (Filipino expressions)
 
 Analyze: {text}"""
 
@@ -776,7 +794,7 @@ Analyze: {text}"""
                     }],
                     "model": "mixtral-8x7b-32768",
                     "temperature": 0.1,
-                    "max_tokens": 250
+                    "max_tokens": 350  # Increased for better analysis while keeping location concise
                 }
 
                 response = self.fetch_api(headers, payload)
@@ -786,7 +804,6 @@ Analyze: {text}"""
         except Exception as e:
             logging.error(f"API Analysis Error: {e}")
             return None
-
 
     def parse_api_response(self, response_text):
         """Parses the API response and extracts relevant information."""
@@ -799,13 +816,20 @@ Analyze: {text}"""
                     key = parts[0].strip().lower()
                     value = parts[1].strip()
                     if key == "sentiment":
-                        result["sentiment"] = value
+                        result["sentiment"] = value.strip()
                     elif key == "disaster type":
-                        result["disasterType"]= value
+                        result["disasterType"] = value.strip()
                     elif key == "location":
-                        result["location"] = value
+                        # Clean up location to ensure it's concise
+                        loc = value.strip()
+                        if loc.lower() in ['none', 'n/a', 'not found', 'not specified', 'not mentioned']:
+                            result["location"] = None
+                        else:
+                            # Keep only first two words max for location
+                            loc_words = loc.split()[:2]
+                            result["location"] = ' '.join(loc_words)
                     elif key == "brief analysis":
-                        result["explanation"] = value
+                        result["explanation"] = value.strip()
             return result
         except Exception as e:
             logging.error(f"Error parsing API response: {e}")
