@@ -9,9 +9,9 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="flex bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Sidebar - Fixed width to prevent content shifting */}
-      <div className="w-[280px] flex-shrink-0 hidden lg:block">
+      <div className="w-[280px] flex-shrink-0 hidden lg:block min-h-screen">
         <Sidebar />
       </div>
 
