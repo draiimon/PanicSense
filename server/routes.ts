@@ -7,7 +7,7 @@ import { insertSentimentPostSchema, insertAnalyzedFileSchema } from "@shared/sch
 import { EventEmitter } from 'events';
 
 // Configure multer for file uploads with improved performance
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 50 * 1024 * 1024, // Increased to 50MB for faster batch processing
@@ -29,6 +29,185 @@ const uploadProgressMap = new Map<string, {
   timestamp: number;
   error?: string;
 }>();
+
+// Enhanced emotion detection with more sophisticated patterns
+const emotionPatterns = {
+  Panic: {
+    keywords: [
+      'panic', 'terrified', 'horrified', 'scared', 'frightened', 'takot', 'natatakot',
+      'emergency', 'help', 'tulong', 'evacuate', 'evacuating', 'run', 'flee', 'escape',
+      'trapped', 'stuck', 'nasukol', 'naiipit', 'hindi makalabas', 'can\'t get out',
+      'SOS', 'mayday', 'danger', 'dangerous', 'delikado', 'mapanganib'
+    ],
+    intensifiers: ['very', 'really', 'extremely', 'sobra', 'grabe', 'napaka', 'super'],
+    contextual: ['need immediate', 'right now', 'quickly', 'urgent', 'emergency'],
+    weight: 2.0
+  },
+  'Fear/Anxiety': {
+    keywords: [
+      'fear', 'worried', 'anxious', 'nervous', 'kabado', 'nag-aalala', 'balisa',
+      'concerned', 'scared', 'afraid', 'natatakot', 'kinakabahan', 'nangangamba',
+      'uncertain', 'unsure', 'hindi sigurado', 'dread', 'warning', 'babala',
+      'incoming', 'approaching', 'papalapit', 'threatening', 'threat', 'banta'
+    ],
+    intensifiers: ['getting', 'becoming', 'more', 'increasing', 'growing', 'lumalakas'],
+    contextual: ['might', 'could', 'possibly', 'baka', 'siguro', 'posible'],
+    weight: 1.5
+  },
+  'Disbelief': {
+    keywords: [
+      'unbelievable', 'impossible', 'hindi kapani-paniwala', 'di makapaniwala',
+      'shocked', 'stunned', 'nagulat', 'nagugulat', 'cannot believe', 'di matanggap',
+      'how could', 'why would', 'bakit ganun', 'paano nangyari', 'unexpected',
+      'hindi inaasahan', 'surprising', 'nakakagulat', 'grabe'
+    ],
+    intensifiers: ['totally', 'completely', 'absolutely', 'lubos', 'sobrang'],
+    contextual: ['never thought', 'first time', 'unprecedented', 'unusual'],
+    weight: 1.3
+  },
+  'Resilience': {
+    keywords: [
+      'strong', 'brave', 'hope', 'malakas', 'matapang', 'pag-asa', 'kakayanin',
+      'survive', 'overcome', 'lalaban', 'fight', 'recover', 'rebuild', 'help',
+      'support', 'tulong', 'together', 'sama-sama', 'bayanihan', 'community',
+      'volunteers', 'rescue', 'saved', 'safe', 'ligtas', 'evacuated', 'shelter'
+    ],
+    intensifiers: ['will', 'shall', 'must', 'dapat', 'kailangan', 'always'],
+    contextual: ['we can', 'we will', 'kaya natin', 'magtulungan', 'unity'],
+    weight: 1.8
+  },
+  'Neutral': {
+    keywords: [
+      'information', 'update', 'announcement', 'balita', 'impormasyon', 'advisory',
+      'report', 'status', 'situation', 'current', 'kasalukuyan', 'official',
+      'notice', 'alert', 'bulletin', 'news', 'reported', 'according'
+    ],
+    intensifiers: ['please', 'kindly', 'pakiusap', 'paki'],
+    contextual: ['as of', 'currently', 'ngayon', 'latest'],
+    weight: 1.0
+  }
+};
+
+// Contextual disaster indicators for better detection
+const disasterContexts = {
+  Earthquake: {
+    primaryIndicators: ['earthquake', 'lindol', 'quake', 'magnitude', 'aftershock', 'tremor'],
+    locationIndicators: ['epicenter', 'fault line', 'ground', 'building', 'structure'],
+    intensityWords: ['strong', 'powerful', 'massive', 'malakas', 'devastating'],
+    weight: 2.0
+  },
+  Flood: {
+    primaryIndicators: ['flood', 'baha', 'tubig', 'water level', 'rising', 'overflow'],
+    locationIndicators: ['street', 'road', 'area', 'community', 'river', 'dam'],
+    intensityWords: ['deep', 'rising', 'severe', 'malalim', 'lumalalim'],
+    weight: 1.8
+  },
+  Typhoon: {
+    primaryIndicators: ['typhoon', 'bagyo', 'storm', 'wind', 'rain', 'signal'],
+    locationIndicators: ['eye', 'path', 'track', 'landfall', 'coastal', 'area'],
+    intensityWords: ['strong', 'intense', 'super', 'powerful', 'malakas'],
+    weight: 1.9
+  }
+};
+
+// Function to analyze emotion with context
+function analyzeEmotionWithContext(text: string, disasterType: string | null | undefined): {
+  emotion: string;
+  confidence: number;
+  explanation: string;
+} {
+  const textLower = text.toLowerCase();
+  let scores: Record<string, number> = {};
+  let explanations: Record<string, string[]> = {};
+
+  // Calculate base emotion scores with context
+  for (const [emotion, pattern] of Object.entries(emotionPatterns)) {
+    let score = 0;
+    let reasons: string[] = [];
+
+    // Check keywords
+    pattern.keywords.forEach(keyword => {
+      const matches = (textLower.match(new RegExp(keyword, 'g')) || []).length;
+      if (matches > 0) {
+        score += matches * pattern.weight;
+        reasons.push(`Found "${keyword}" ${matches} time(s)`);
+      }
+    });
+
+    // Check intensifiers
+    pattern.intensifiers.forEach(intensifier => {
+      const matches = (textLower.match(new RegExp(intensifier, 'g')) || []).length;
+      if (matches > 0) {
+        score += matches * 0.5 * pattern.weight;
+        reasons.push(`Intensifier "${intensifier}" present`);
+      }
+    });
+
+    // Check contextual patterns
+    pattern.contextual.forEach(context => {
+      const matches = (textLower.match(new RegExp(context, 'g')) || []).length;
+      if (matches > 0) {
+        score += matches * 0.7 * pattern.weight;
+        reasons.push(`Contextual pattern "${context}" found`);
+      }
+    });
+
+    scores[emotion] = score;
+    explanations[emotion] = reasons;
+  }
+
+  // Apply disaster context boost
+  const normalizedDisasterType = disasterType ?? null;
+  if (normalizedDisasterType) {
+    const disasterContext = disasterContexts[normalizedDisasterType as keyof typeof disasterContexts];
+    if (disasterContext) {
+      // Boost emotional scores based on disaster context
+      disasterContext.primaryIndicators.forEach(indicator => {
+        if (textLower.includes(indicator)) {
+          scores['Fear/Anxiety'] *= 1.2;
+          scores['Panic'] *= 1.3;
+        }
+      });
+
+      disasterContext.intensityWords.forEach(word => {
+        if (textLower.includes(word)) {
+          scores['Fear/Anxiety'] *= 1.1;
+          scores['Panic'] *= 1.2;
+        }
+      });
+    }
+  }
+
+  // Find dominant emotion
+  let maxScore = 0;
+  let dominantEmotion = 'Neutral';
+  for (const [emotion, score] of Object.entries(scores)) {
+    if (score > maxScore) {
+      maxScore = score;
+      dominantEmotion = emotion;
+    }
+  }
+
+  // Calculate confidence (normalized score)
+  const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
+  const confidence = totalScore > 0 ? (maxScore / totalScore) : 0.5;
+
+  // Generate detailed explanation
+  const explanation = `Primary emotion detected: ${dominantEmotion} (Confidence: ${(confidence * 100).toFixed(1)}%)
+Reasons: ${explanations[dominantEmotion].join(', ')}
+${normalizedDisasterType ? `Disaster Context: ${normalizedDisasterType} - Enhanced emotional analysis applied` : ''}
+Contributing factors: ${Object.entries(scores)
+    .filter(([emotion, score]) => score > 0 && emotion !== dominantEmotion)
+    .map(([emotion, score]) => `${emotion} (${(score / totalScore * 100).toFixed(1)}%)`)
+    .join(', ')}`;
+
+  return {
+    emotion: dominantEmotion,
+    confidence,
+    explanation
+  };
+}
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add the SSE endpoint inside registerRoutes
@@ -91,7 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ token });
     } catch (error) {
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to create user",
         details: error instanceof Error ? error.message : String(error)
       });
@@ -110,7 +289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = await storage.createSession(user.id);
       res.json({ token });
     } catch (error) {
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Login failed",
         details: error instanceof Error ? error.message : String(error)
       });
@@ -133,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (error) {
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to get user info",
         details: error instanceof Error ? error.message : String(error)
       });
@@ -294,21 +473,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const file = await storage.getAnalyzedFile(id);
-      
+
       if (!file) {
         return res.status(404).json({ error: "Analyzed file not found" });
       }
-      
+
       res.json(file);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch analyzed file" });
     }
   });
 
-  // Update file upload endpoint with better progress tracking
+  // Update file upload endpoint with enhanced emotion analysis
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
     let sessionId: string | undefined;
-    let updateProgress: (processed: number, stage: string, error?: string) => void;
+    let updateProgress: ((processed: number, stage: string, error?: string) => void) | undefined;
 
     try {
       if (!req.file) {
@@ -345,10 +524,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
+      // Process the CSV with enhanced emotion analysis
       const { data, storedFilename, recordCount } = await pythonService.processCSV(
         fileBuffer,
         originalFilename,
-        updateProgress
+        (processed: number, stage: string) => {
+          updateProgress?.(processed, `Analyzing emotions in raw data: ${stage}`);
+        }
       );
 
       // Save the analyzed file record
@@ -361,45 +543,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
 
-      // Save all sentiment posts
+      // Enhanced processing of sentiment posts with emotion analysis
       const sentimentPosts = await Promise.all(
-        data.results.map(post => 
-          storage.createSentimentPost(
+        data.results.map(async (result: any) => {
+          const emotionAnalysis = analyzeEmotionWithContext(result.text, result.disasterType);
+
+          return storage.createSentimentPost(
             insertSentimentPostSchema.parse({
-              text: post.text,
-              timestamp: new Date(post.timestamp),
-              source: post.source,
-              language: post.language,
-              sentiment: post.sentiment,
-              confidence: post.confidence,
-              location: null,
-              disasterType: null,
+              text: result.text,
+              timestamp: new Date(result.timestamp),
+              source: `CSV Upload: ${originalFilename}`,
+              language: result.language,
+              sentiment: emotionAnalysis.emotion,
+              confidence: emotionAnalysis.confidence,
+              explanation: emotionAnalysis.explanation,
+              location: result.location || null,
+              disasterType: result.disasterType || null,
               fileId: analyzedFile.id
             })
-          )
-        )
+          );
+        })
       );
 
-      // Generate disaster events from the sentiment posts
+      // Prioritize disaster event generation for uploaded data
       await generateDisasterEvents(sentimentPosts);
 
       // Final progress update
-      if (sessionId && updateProgress) {
-        updateProgress(totalRecords, 'Analysis complete');
-      }
+      updateProgress?.(totalRecords, 'Analysis complete');
 
       res.json({
         file: analyzedFile,
         posts: sentimentPosts,
-        metrics: data.metrics,
-        sessionId
+        metrics: {
+          ...data.metrics,
+          emotionBreakdown: sentimentPosts.reduce((acc: Record<string, number>, post) => {
+            acc[post.sentiment] = (acc[post.sentiment] || 0) + 1;
+            return acc;
+          }, {}),
+          averageConfidence: sentimentPosts.reduce((sum, post) => sum + post.confidence, 0) / sentimentPosts.length
+        }
       });
     } catch (error) {
       console.error("Error processing CSV:", error);
       if (sessionId && updateProgress) {
         updateProgress(0, 'Error', error instanceof Error ? error.message : String(error));
       }
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to process CSV file",
         details: error instanceof Error ? error.message : String(error)
       });
@@ -407,7 +596,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Cleanup progress tracking after 5 seconds
       if (sessionId) {
         setTimeout(() => {
-          uploadProgressMap.delete(sessionId);
+          if (sessionId) {  // Additional check to satisfy TypeScript
+            uploadProgressMap.delete(sessionId);
+          }
         }, 5000);
       }
     }
@@ -417,142 +608,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/analyze-text', async (req: Request, res: Response) => {
     try {
       const { text, texts, source = 'Manual Input' } = req.body;
-      
-      // Check if we have either a single text or an array of texts
+
       if (!text && (!texts || !Array.isArray(texts) || texts.length === 0)) {
         return res.status(400).json({ error: "No text provided. Send either 'text' or 'texts' array in the request body" });
       }
-      
+
       // Process single text
       if (text) {
         const result = await pythonService.analyzeSentiment(text);
-        
-        // Check if this is a disaster-related post before saving
-        // We consider text disaster-related if:
-        // 1. It has a specific disaster type that's not "NONE"
-        // 2. OR it has a specific location AND a sentiment that's not Neutral
-        // 3. OR it has Fear/Anxiety or Panic sentiment which strongly suggests disaster context
-        const isDisasterRelated = (
-          (result.disasterType && result.disasterType !== "NONE" && result.disasterType !== "Not Specified") ||
-          (result.location && result.sentiment !== "Neutral") ||
-          ["Panic", "Fear/Anxiety"].includes(result.sentiment)
-        );
-        
-        let sentimentPost;
-        
-        // Only save to database if it's disaster-related
-        if (isDisasterRelated) {
-          sentimentPost = await storage.createSentimentPost(
-            insertSentimentPostSchema.parse({
-              text,
-              timestamp: new Date(),
-              source,
-              language: result.language,
-              sentiment: result.sentiment,
-              confidence: result.confidence,
-              explanation: result.explanation,
-              location: result.location || null,
-              disasterType: result.disasterType || null,
-              fileId: null
-            })
-          );
-          
-          return res.json({ 
-            post: sentimentPost, 
-            saved: true,
-            message: "Disaster-related content detected and saved to database."
-          });
-        } else {
-          // For non-disaster content, return the analysis but don't save it
-          sentimentPost = {
-            id: -1, // Use negative ID to indicate this wasn't saved
+        const emotionAnalysis = analyzeEmotionWithContext(text, result.disasterType ?? null);
+
+        const sentimentPost = await storage.createSentimentPost(
+          insertSentimentPostSchema.parse({
             text,
-            timestamp: new Date().toISOString(),
-            source: 'Manual Input (Not Saved - Non-Disaster)',
+            timestamp: new Date(),
+            source,
             language: result.language,
-            sentiment: result.sentiment,
-            confidence: result.confidence,
-            location: result.location,
-            disasterType: result.disasterType,
-            explanation: result.explanation,
+            sentiment: emotionAnalysis.emotion,
+            confidence: emotionAnalysis.confidence,
+            explanation: emotionAnalysis.explanation,
+            location: result.location || null,
+            disasterType: result.disasterType || null,
             fileId: null
-          };
-          
-          return res.json({ 
-            post: sentimentPost, 
-            saved: false,
-            message: "Non-disaster content detected. Analysis shown but not saved to database."
-          });
-        }
+          })
+        );
+
+        return res.json({
+          post: sentimentPost,
+          analysis: emotionAnalysis
+        });
       }
-      
-      // Process multiple texts
+
+      // Process multiple texts with enhanced analysis
       const processResults = await Promise.all(texts.map(async (textItem: string) => {
         const result = await pythonService.analyzeSentiment(textItem);
-        
-        // Check if this is a disaster-related post
-        const isDisasterRelated = (
-          (result.disasterType && result.disasterType !== "NONE" && result.disasterType !== "Not Specified") ||
-          (result.location && result.sentiment !== "Neutral") ||
-          ["Panic", "Fear/Anxiety"].includes(result.sentiment)
+        const emotionAnalysis = analyzeEmotionWithContext(textItem, result.disasterType ?? null);
+
+        const post = await storage.createSentimentPost(
+          insertSentimentPostSchema.parse({
+            text: textItem,
+            timestamp: new Date(),
+            source,
+            language: result.language,
+            sentiment: emotionAnalysis.emotion,
+            confidence: emotionAnalysis.confidence,
+            explanation: emotionAnalysis.explanation,
+            location: result.location || null,
+            disasterType: result.disasterType || null,
+            fileId: null
+          })
         );
-        
-        if (isDisasterRelated) {
-          // Only save disaster-related content
-          const post = await storage.createSentimentPost(
-            insertSentimentPostSchema.parse({
-              text: textItem,
-              timestamp: new Date(),
-              source,
-              language: result.language,
-              sentiment: result.sentiment,
-              confidence: result.confidence,
-              explanation: result.explanation,
-              location: result.location || null,
-              disasterType: result.disasterType || null,
-              fileId: null
-            })
-          );
-          return { post, saved: true };
-        } else {
-          // Return analysis but don't save
-          return { 
-            post: {
-              id: -1,
-              text: textItem,
-              timestamp: new Date().toISOString(),
-              source: 'Manual Input (Not Saved - Non-Disaster)',
-              language: result.language,
-              sentiment: result.sentiment,
-              confidence: result.confidence,
-              location: result.location,
-              disasterType: result.disasterType,
-              explanation: result.explanation,
-              fileId: null
-            }, 
-            saved: false 
-          };
-        }
+
+        return {
+          post,
+          analysis: emotionAnalysis
+        };
       }));
-      
-      // Extract just the saved posts for disaster event generation
-      const savedPosts = processResults
-        .filter(item => item.saved)
-        .map(item => item.post);
-      
-      // Generate disaster events from the saved posts if we have at least 3
-      if (savedPosts.length >= 3) {
-        await generateDisasterEvents(savedPosts);
+
+      // Process uploaded file data with priority
+      if (source.includes('CSV') || source.includes('Upload')) {
+        await generateDisasterEvents(processResults.map(r => r.post));
       }
-      
+
       res.json({
         results: processResults,
-        savedCount: savedPosts.length,
-        skippedCount: processResults.length - savedPosts.length,
-        message: `Processed ${processResults.length} texts. Saved ${savedPosts.length} disaster-related posts. Skipped ${processResults.length - savedPosts.length} non-disaster posts.`
+        summary: {
+          totalAnalyzed: processResults.length,
+          emotionBreakdown: processResults.reduce((acc: Record<string, number>, curr) => {
+            const emotion = curr.analysis.emotion;
+            acc[emotion] = (acc[emotion] || 0) + 1;
+            return acc;
+          }, {}),
+          averageConfidence: processResults.reduce((sum, curr) => sum + curr.analysis.confidence, 0) / processResults.length
+        }
       });
     } catch (error) {
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to analyze text",
         details: error instanceof Error ? error.message : String(error)
       });
@@ -564,19 +695,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Delete all data
       await storage.deleteAllData();
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         message: "All data has been deleted successfully"
       });
     } catch (error) {
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to delete all data",
         details: error instanceof Error ? error.message : String(error)
       });
     }
   });
-  
+
   // Delete specific sentiment post endpoint
   app.delete('/api/sentiment-posts/:id', async (req: Request, res: Response) => {
     try {
@@ -584,15 +715,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid post ID" });
       }
-      
+
       await storage.deleteSentimentPost(id);
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         message: `Sentiment post with ID ${id} has been deleted successfully`
       });
     } catch (error) {
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to delete sentiment post",
         details: error instanceof Error ? error.message : String(error)
       });
