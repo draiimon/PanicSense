@@ -74,8 +74,12 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <SentimentChart data={sentimentData} />
-        <RecentPostsTable posts={sentimentPosts} limit={5} />
+        <div className="w-full">
+          <SentimentChart data={sentimentData} />
+        </div>
+        <div className="w-full">
+          <RecentPostsTable posts={sentimentPosts} limit={5} />
+        </div>
       </div>
     </div>
   );
