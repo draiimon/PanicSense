@@ -1,88 +1,57 @@
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import { Link } from "wouter";
+import { SentimentPost } from "@/types";
 
 interface RecentPostsTableProps {
-  data: any[];
+  posts?: SentimentPost[];
+  limit?: number;
   title?: string;
   description?: string;
-  limit?: number;
-  showViewAllLink?: boolean;
 }
 
-export function RecentPostsTable({ 
-  data = [],
-  title = 'Recent Analyzed Posts',
-  description = 'Latest social media sentiment',
-  limit = 5,
-  showViewAllLink = true
+export function RecentPostsTable({
+  posts = [],
+  title = "Recent Posts",
+  description = "Latest analyzed social media posts",
+  limit = 5
 }: RecentPostsTableProps) {
-  const displayedPosts = data.slice(0, limit);
-
-  const getSentimentVariant = (sentiment: string) => {
-    switch (sentiment) {
-      case 'Panic': return 'panic';
-      case 'Fear/Anxiety': return 'fear';
-      case 'Disbelief': return 'disbelief';
-      case 'Resilience': return 'resilience';
-      case 'Neutral': 
-      default: return 'neutral';
-    }
-  };
+  const displayedPosts = posts?.slice(0, limit) || [];
 
   return (
-    <div className="overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Content</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Time</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Source</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Sentiment</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Confidence</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-slate-200">
-            {displayedPosts.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-sm text-slate-500">
-                  No posts available
-                </td>
-              </tr>
-            ) : (
-              displayedPosts.map((post) => (
-                <tr key={post.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <p className="text-sm text-slate-700 line-clamp-1">{post.text}</p>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {format(new Date(post.timestamp), 'yyyy-MM-dd HH:mm')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {post.source || 'Unknown'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant={getSentimentVariant(post.sentiment)}>
-                      {post.sentiment}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {(post.confidence * 100).toFixed(1)}%
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      {showViewAllLink && (
-        <div className="mt-4 text-right">
-          <Link href="/raw-data" className="text-sm text-blue-600 hover:text-blue-800">
-            View all posts →
-          </Link>
-        </div>
-      )}
-    </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {displayedPosts.length === 0 ? (
+          <div className="text-center py-8 text-slate-500">
+            No posts available
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Text</TableHead>
+                <TableHead>Sentiment</TableHead>
+                <TableHead>Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {displayedPosts.map((post) => (
+                <TableRow key={post.id}>
+                  <TableCell className="max-w-[300px] truncate">{post.text}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{post.sentiment}</Badge>
+                  </TableCell>
+                  <TableCell>{new Date(post.timestamp).toLocaleDateString()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
