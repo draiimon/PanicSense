@@ -4,6 +4,7 @@ import { StatusCard } from "@/components/dashboard/status-card";
 import { SentimentChart } from "@/components/dashboard/sentiment-chart";
 import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
 import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -34,49 +35,97 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto">
+    <div className="space-y-8">
       <motion.div 
         initial="hidden"
         animate="visible"
         variants={fadeInUp}
-        className="mb-6"
       >
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800">Disaster Response Dashboard</h1>
-            <p className="text-sm text-slate-500">Real-time sentiment monitoring and analysis</p>
-          </div>
-          <FileUploader className="mt-0" />
-        </div>
+        <Card className="bg-white/50 backdrop-blur-sm border-none shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
+            <div>
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Disaster Response Dashboard
+              </CardTitle>
+              <p className="text-sm text-slate-500 mt-1">Real-time sentiment monitoring and analysis</p>
+            </div>
+            <FileUploader className="mt-0" />
+          </CardHeader>
+        </Card>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <motion.div 
+        initial="hidden"
+        animate="visible"
+        variants={fadeInUp}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+      >
         <StatusCard 
           title="Active Disasters"
-          value={activeDiastersCount}
-          description="Currently monitored disasters"
+          value={activeDiastersCount.toString()}
+          icon="alert-triangle"
+          trend={{
+            value: "+2",
+            isUpward: true,
+            label: "from last week"
+          }}
         />
         <StatusCard 
           title="Analyzed Posts"
-          value={analyzedPostsCount}
-          description="Total posts processed"
+          value={analyzedPostsCount.toString()}
+          icon="bar-chart"
+          trend={{
+            value: "+15%",
+            isUpward: true,
+            label: "increase in analysis"
+          }}
         />
         <StatusCard 
           title="Dominant Sentiment"
           value={dominantSentiment}
-          description="Most common sentiment"
+          icon="brain"
+          trend={{
+            value: "stable",
+            isUpward: null,
+            label: "sentiment trend"
+          }}
         />
         <StatusCard 
           title="Model Confidence"
           value={`${(modelConfidence * 100).toFixed(1)}%`}
-          description="Average prediction confidence"
+          icon="check-circle"
+          trend={{
+            value: "+5%",
+            isUpward: true,
+            label: "accuracy improvement"
+          }}
         />
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <SentimentChart data={sentimentData} />
-        <RecentPostsTable posts={sentimentPosts} limit={5} />
-      </div>
+      <motion.div 
+        initial="hidden"
+        animate="visible"
+        variants={fadeInUp}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+      >
+        <Card className="bg-white/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Sentiment Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SentimentChart data={sentimentData} />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Recent Posts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RecentPostsTable posts={sentimentPosts} limit={5} />
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }
