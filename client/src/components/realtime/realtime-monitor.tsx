@@ -98,12 +98,14 @@ export function RealtimeMonitor() {
 
       setText('');
 
-      // Check if this appears to be a very short or random input
-      const isShortRandomInput = result.post.text.length < 6 || 
-                                 !result.post.explanation || 
-                                 (!result.post.disasterType || result.post.disasterType === "Not Specified");
+      // Strict check for non-disaster inputs
+      const isNonDisasterInput = result.post.text.length < 9 || 
+                                !result.post.explanation || 
+                                result.post.disasterType === "Not Specified" ||
+                                !result.post.disasterType ||
+                                result.post.text.match(/^[!?.,;:*\s]+$/);
       
-      if (isShortRandomInput) {
+      if (isNonDisasterInput) {
         toast({
           title: 'Non-Disaster Input',
           description: 'This appears to be a short non-disaster related input. For best results, please enter more detailed text about disaster situations.',
@@ -249,9 +251,14 @@ export function RealtimeMonitor() {
                     </div>
                   )}
                   
-                  {/* Warning for non-disaster related short texts */}
-                  {((!item.disasterType || item.disasterType === "Not Specified" || item.disasterType.toLowerCase().includes("none")) && 
-                    (item.text.length < 6 || item.text.match(/^[!?.,;:]+$/))) && (
+                  {/* Warning for non-disaster related short texts - using same strict check as analyze function */}
+                  {((!item.disasterType || 
+                     item.disasterType === "Not Specified" || 
+                     item.disasterType.toLowerCase().includes("none") || 
+                     item.disasterType.toLowerCase().includes("unspecified")) && 
+                    (item.text.length < 9 || 
+                     item.text.match(/^[!?.,;:*\s]+$/) || 
+                     !item.explanation)) && (
                     <div className="bg-amber-50 p-3 rounded-md border border-amber-200 mt-2">
                       <div className="flex items-start gap-2">
                         <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
@@ -268,8 +275,12 @@ export function RealtimeMonitor() {
                   
                   {/* Regular explanation - only show for meaningful inputs that have explanations */}
                   {item.explanation && 
-                   !((!item.disasterType || item.disasterType === "Not Specified" || item.disasterType.toLowerCase().includes("none")) && 
-                     (item.text.length < 6 || item.text.match(/^[!?.,;:]+$/))) && (
+                   !((!item.disasterType || 
+                      item.disasterType === "Not Specified" || 
+                      item.disasterType.toLowerCase().includes("none") || 
+                      item.disasterType.toLowerCase().includes("unspecified")) && 
+                     (item.text.length < 9 || 
+                      item.text.match(/^[!?.,;:*\s]+$/))) && (
                     <div className="bg-slate-50 p-3 rounded-md border border-slate-200 mt-2">
                       <div className="flex items-start gap-2">
                         <AlertCircle className="h-5 w-5 text-slate-600 mt-0.5" />

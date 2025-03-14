@@ -828,38 +828,66 @@ Location: [identify Philippine location if mentioned, even faintly implied - NEV
         if matched_keywords[max_sentiment]:
             custom_explanation += f" Key indicators: {', '.join(matched_keywords[max_sentiment][:3])}."
             
-        # Skip disaster/location analysis for very short or non-meaningful inputs
-        is_meaningful_input = len(text.strip()) > 5 and not all(c in '?!.,;:' for c in text.strip())
+        # More strict and robust detection of non-meaningful inputs
+        # Check for very short inputs, punctuation-only, or messages with no clear disaster reference
+        text_without_punct = ''.join(c for c in text.strip() if c.isalnum() or c.isspace())
+        meaningful_words = [w for w in text_without_punct.split() if len(w) > 1]
+        word_count = len(meaningful_words)
         
-        # Detect disaster type from text with better handling of unspecified types
-        disaster_type = "Not Specified"  # Default to "Not Specified" instead of None
+        # Define what makes a meaningful input for disaster analysis
+        is_meaningful_input = (
+            len(text.strip()) > 8 and                # Longer than 8 chars
+            word_count >= 2 and                      # At least 2 meaningful words
+            not all(c in '?!.,;:' for c in text.strip())  # Not just punctuation
+        )
         
-        # For very short messages or punctuation-only messages, don't try to detect disaster type
+        # Default: non-disaster text shouldn't have disaster type or location
+        disaster_type = "Not Specified"  
+        location = None
+        specific_location = None
+        
+        # Only try to detect disasters and locations in meaningful inputs
         if is_meaningful_input:
-            # Search for specific disaster types
-            for dtype, words in disaster_keywords.items():
-                for word in words:
-                    if word.lower() in text_lower:
-                        disaster_type = dtype
-                        break
-                if disaster_type != "Not Specified":
+            # Detect if this text is actually about disasters (quick check)
+            disaster_keywords_flat = []
+            for words in disaster_keywords.values():
+                disaster_keywords_flat.extend(words)
+                
+            # Look for disaster-related words in the text
+            found_disaster_reference = False
+            for word in disaster_keywords_flat:
+                if word.lower() in text_lower:
+                    found_disaster_reference = True
+                    break
+            
+            # Emergency keywords that should trigger disaster detection
+            emergency_keywords = ["help", "tulong", "emergency", "evacuation", "evacuate", "rescue", 
+                                 "save", "trapped", "stranded", "victims", "casualty", "casualties"]
+            for word in emergency_keywords:
+                if word.lower() in text_lower:
+                    found_disaster_reference = True
                     break
                     
-            # Detect location from text
-            location = None
-            specific_location = None
-            for region, places in location_keywords.items():
-                for place in places:
-                    if place.lower() in text_lower:
-                        location = region
-                        specific_location = place
+            # Only proceed with actual disaster-related text
+            if found_disaster_reference:
+                # Search for specific disaster types
+                for dtype, words in disaster_keywords.items():
+                    for word in words:
+                        if word.lower() in text_lower:
+                            disaster_type = dtype
+                            break
+                    if disaster_type != "Not Specified":
                         break
-                if location:
-                    break
-        else:
-            # For non-meaningful inputs, don't assign a location
-            location = None
-            specific_location = None
+                        
+                # Detect location from text only for disaster-related content
+                for region, places in location_keywords.items():
+                    for place in places:
+                        if place.lower() in text_lower:
+                            location = region
+                            specific_location = place
+                            break
+                    if location:
+                        break
             
         # If specific location was found, use it instead of the region
         final_location = specific_location if specific_location else location
@@ -979,8 +1007,17 @@ Location: [identify Philippine location if mentioned, even faintly implied - NEV
                 if location_counts:
                     final_location = max(location_counts.items(), key=lambda x: x[1])[0]
         
-        # Check if this is a non-meaningful input (very short or just punctuation)
-        is_meaningful_input = len(text.strip()) > 5 and not all(c in '?!.,;:' for c in text.strip())
+        # More strict check for non-meaningful inputs (same as in analyze_sentiment)
+        text_without_punct = ''.join(c for c in text.strip() if c.isalnum() or c.isspace())
+        meaningful_words = [w for w in text_without_punct.split() if len(w) > 1]
+        word_count = len(meaningful_words)
+        
+        # Define what makes a meaningful input for disaster analysis (same as above)
+        is_meaningful_input = (
+            len(text.strip()) > 8 and                 # Longer than 8 chars
+            word_count >= 2 and                       # At least 2 meaningful words
+            not all(c in '?!.,;:' for c in text.strip())  # Not just punctuation
+        )
         
         # Generate enhanced explanation only for meaningful inputs
         if is_meaningful_input:

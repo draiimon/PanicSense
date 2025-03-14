@@ -51,8 +51,15 @@ export function AffectedAreas({
         }
       }
       
-      // Skip posts without location as requested by user
-      if (!foundLocation || foundLocation === "Not mentioned" || foundLocation === "Not specified") return;
+      // Skip posts without location or with generic non-specific locations
+      if (!foundLocation || 
+          foundLocation === "Not mentioned" || 
+          foundLocation === "Not specified" || 
+          foundLocation === "Not Specified" ||
+          foundLocation === "None" ||
+          foundLocation.toLowerCase().includes("none") ||
+          foundLocation.toLowerCase().includes("unspecified") ||
+          foundLocation.toLowerCase().includes("not mentioned")) return;
 
       if (!locationCounts.has(foundLocation)) {
         locationCounts.set(foundLocation, {
