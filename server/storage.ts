@@ -23,6 +23,7 @@ export interface IStorage {
   getSentimentPostsByFileId(fileId: number): Promise<SentimentPost[]>;
   createSentimentPost(post: InsertSentimentPost): Promise<SentimentPost>;
   createManySentimentPosts(posts: InsertSentimentPost[]): Promise<SentimentPost[]>;
+  deleteSentimentPost(id: number): Promise<void>;
   deleteAllSentimentPosts(): Promise<void>;
 
   // Disaster Events
@@ -120,6 +121,11 @@ export class DatabaseStorage implements IStorage {
     return db.insert(sentimentPosts)
       .values(posts)
       .returning();
+  }
+  
+  async deleteSentimentPost(id: number): Promise<void> {
+    await db.delete(sentimentPosts)
+      .where(eq(sentimentPosts.id, id));
   }
 
   // Disaster Events

@@ -455,6 +455,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Delete specific sentiment post endpoint
+  app.delete('/api/sentiment-posts/:id', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid post ID" });
+      }
+      
+      await storage.deleteSentimentPost(id);
+      
+      res.json({ 
+        success: true, 
+        message: `Sentiment post with ID ${id} has been deleted successfully`
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Failed to delete sentiment post",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

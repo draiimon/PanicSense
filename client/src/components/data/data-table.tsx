@@ -18,8 +18,22 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getSentimentBadgeClasses } from "@/lib/colors";
-import { SentimentPost } from "@/lib/api";
+import { SentimentPost, deleteSentimentPost } from "@/lib/api";
 import { format } from "date-fns";
+import { Trash2 } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useDisasterContext } from "@/context/disaster-context";
 
 interface DataTableProps {
   data: SentimentPost[];
@@ -32,10 +46,38 @@ export function DataTable({
   title = "Sentiment Analysis Data",
   description = "Raw data from sentiment analysis"
 }: DataTableProps) {
+  const { toast } = useToast();
+  const { refreshData } = useDisasterContext();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSentiment, setSelectedSentiment] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<number | null>(null);
   const rowsPerPage = 10;
+  
+  // Handle delete post
+  const handleDeletePost = async (id: number) => {
+    try {
+      setIsDeleting(true);
+      const result = await deleteSentimentPost(id);
+      toast({
+        title: "Success",
+        description: result.message,
+        variant: "default",
+      });
+      // Refresh the data
+      refreshData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete post. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setPostToDelete(null);
+    }
+  };
 
   // Filter data based on search term and sentiment filter
   const filteredData = data.filter(item => {
@@ -107,18 +149,19 @@ export function DataTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40%]">Text</TableHead>
+                <TableHead className="w-[35%]">Text</TableHead>
                 <TableHead>Timestamp</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Sentiment</TableHead>
                 <TableHead>Confidence</TableHead>
                 <TableHead>Language</TableHead>
+                <TableHead className="w-10">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-slate-500">
                     {searchTerm || selectedSentiment 
                       ? "No results match your search criteria" 
                       : "No data available"}
@@ -146,6 +189,38 @@ export function DataTable({
                     </TableCell>
                     <TableCell className="text-sm text-slate-500">
                       {item.language}
+                    </TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8 text-slate-500 hover:text-red-600"
+                            onClick={() => setPostToDelete(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete this sentiment post from the database.
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setPostToDelete(null)}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              disabled={isDeleting}
+                              onClick={() => postToDelete && handleDeletePost(postToDelete)}
+                            >
+                              {isDeleting ? "Deleting..." : "Delete Post"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))

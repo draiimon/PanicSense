@@ -124,6 +124,15 @@ export async function analyzeText(text: string): Promise<{
   return response.json();
 }
 
+// Delete Specific Sentiment Post
+export async function deleteSentimentPost(id: number): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const response = await apiRequest('DELETE', `/api/sentiment-posts/${id}`);
+  return response.json();
+}
+
 // Delete All Data
 export async function deleteAllData(): Promise<{
   success: boolean;
