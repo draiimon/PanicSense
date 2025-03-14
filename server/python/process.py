@@ -382,7 +382,6 @@ class DisasterSentimentBackend:
             "Fire": ["fire", "blaze", "burning", "sunog", "apoy"],
             "Landslide": ["landslide", "mudslide", "avalanche", "guho", "pagguho"],
             "Volcano": ["volcano", "eruption", "lava", "ash", "bulkan", "lahar"],
-            "Tsunami": ["tsunami", "tidal wave", "seismic sea wave", "alon"],
             "Drought": ["drought", "dry spell", "water shortage", "tagtuyot"]
         }
         
@@ -391,7 +390,7 @@ class DisasterSentimentBackend:
                 return disaster_type
                 
         # Standardize the return value for unknown disaster types
-        return "Unspecified"
+        return "Not Specified"
     
     def extract_location(self, text):
         """Extract location from text using common Philippine location names"""
@@ -546,7 +545,7 @@ class DisasterSentimentBackend:
             bigru_result = bigru_model.predict(text, language)
             bigru_result['modelType'] = 'BiGRU'
             bigru_result['language'] = language
-            bigru_result['disasterType'] = self.extract_disaster_type(text) or "Unspecified"
+            bigru_result['disasterType'] = self.extract_disaster_type(text) or "Not Specified"
             bigru_result['location'] = self.extract_location(text)
             ensemble_results.append(bigru_result)
         except Exception as e:
@@ -557,7 +556,7 @@ class DisasterSentimentBackend:
             lstm_result = lstm_model.predict(text, language)
             lstm_result['modelType'] = 'LSTM'
             lstm_result['language'] = language
-            lstm_result['disasterType'] = self.extract_disaster_type(text) or "Unspecified"
+            lstm_result['disasterType'] = self.extract_disaster_type(text) or "Not Specified"
             lstm_result['location'] = self.extract_location(text)
             ensemble_results.append(lstm_result)
         except Exception as e:
@@ -568,7 +567,7 @@ class DisasterSentimentBackend:
             mbert_result = mbert_model.predict(text, language)
             mbert_result['modelType'] = 'mBERT'
             mbert_result['language'] = language
-            mbert_result['disasterType'] = self.extract_disaster_type(text) or "Unspecified"
+            mbert_result['disasterType'] = self.extract_disaster_type(text) or "Not Specified"
             mbert_result['location'] = self.extract_location(text)
             ensemble_results.append(mbert_result)
         except Exception as e:
@@ -689,11 +688,11 @@ Location: [identify Philippine location if mentioned, even faintly implied - NEV
                     explanation = explanation_match.group(1) if explanation_match else None
 
                     # Extract disaster type and location if available from GROQ with better handling
-                    disaster_type = disaster_type_match.group(1) if disaster_type_match else "Unspecified"
+                    disaster_type = disaster_type_match.group(1) if disaster_type_match else "Not Specified"
                     
                     # Normalize disaster type values
                     if not disaster_type or disaster_type.lower() in ["none", "n/a", "unknown", "unmentioned", "null"]:
-                        disaster_type = "Unspecified"
+                        disaster_type = "Not Specified"
 
                     location = location_match.group(1) if location_match else None
                     if location and location.lower() == "none" or location and location.lower() == "n/a":
@@ -831,7 +830,7 @@ Location: [identify Philippine location if mentioned, even faintly implied - NEV
             custom_explanation += f" Key indicators: {', '.join(matched_keywords[max_sentiment][:3])}."
             
         # Detect disaster type from text with better handling of unspecified types
-        disaster_type = "Unspecified"  # Default to "Unspecified" instead of None
+        disaster_type = "Not Specified"  # Default to "Not Specified" instead of None
         
         # Search for specific disaster types
         for dtype, words in disaster_keywords.items():
@@ -839,7 +838,7 @@ Location: [identify Philippine location if mentioned, even faintly implied - NEV
                 if word.lower() in text_lower:
                     disaster_type = dtype
                     break
-            if disaster_type != "Unspecified":
+            if disaster_type != "Not Specified":
                 break
                 
         # Detect location from text
