@@ -10,7 +10,6 @@ import {
   Activity, 
   HelpCircle,
   Menu, 
-  ChevronDown, 
   User, 
   LogOut 
 } from "lucide-react";
@@ -51,34 +50,30 @@ export function MainLayout({ children }: MainLayoutProps) {
         className="sticky top-0 bg-white/80 backdrop-blur-sm border-b border-slate-200 py-4 px-6 shadow-sm z-50"
       >
         <div className="max-w-[2000px] mx-auto">
-          <div className="flex items-center justify-between">
-            {/* Logo and Menu Button */}
-            <div className="flex items-center gap-6">
-              {/* Logo Section */}
-              <div className="flex items-center gap-3">
-                <div className="relative w-10 h-10">
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl"
-                    animate={{
-                      scale: [1, 1.1, 1],
-                      rotate: [0, 5, -5, 0],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      repeatType: "reverse",
-                    }}
-                  />
-                  <BrainCircuit className="absolute inset-0 w-full h-full text-white p-2" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    PanicSense PH
-                  </h1>
-                  <p className="text-sm text-slate-500">
-                    Real-time Analysis
-                  </p>
-                </div>
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <div className="flex items-center space-x-4">
+              <div className="relative w-10 h-10">
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl"
+                  animate={{
+                    scale: [1, 1.1, 1],
+                    rotate: [0, 5, -5, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                  }}
+                />
+                <BrainCircuit className="absolute inset-0 w-full h-full text-white p-2" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  PanicSense PH
+                </h1>
+                <p className="text-sm text-slate-500">
+                  Real-time Analysis
+                </p>
               </div>
 
               {/* Menu Button - Icon Only */}
@@ -141,7 +136,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                               : 'hover:bg-blue-50/50 text-slate-600 hover:text-blue-600 hover:translate-x-1'
                           }`}>
                             {item.icon}
-                            {/* Removed label */}
+                            <span>{item.label}</span>
                           </a>
                         </Link>
                       ))}
