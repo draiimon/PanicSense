@@ -480,7 +480,7 @@ class DisasterSentimentBackend:
         # Strict disaster type detection by word boundaries
         disaster_types = {
             "Earthquake": [
-                "earthquake", "quake", "tremor", "seismic", "lindol", "linog", 
+                "earthquake", "quake", "tremor", "seismic", "lindol", "linog",
                 "shaking", "magnitude", "epicenter", "aftershock"
             ],
             "Flood": [
@@ -492,7 +492,7 @@ class DisasterSentimentBackend:
                 "tropical depression", "signal", "wind", "heavy rain"
             ],
             "Fire": [
-                "fire", "blaze", "burning", "sunog", "apoy", "flames", "smoke", 
+                "fire", "blaze", "burning", "sunog", "apoy", "flames", "smoke",
                 "combustion", "wildfire", "bushfire", "forest fire", "burned"
             ],
             "Landslide": [
@@ -513,7 +513,7 @@ class DisasterSentimentBackend:
         for disaster_type, keywords in disaster_types.items():
             if any(keyword in text_words for keyword in keywords if " " not in keyword):
                 return disaster_type
-            
+
             # For multi-word keywords, check if they exist in the original text
             if any(keyword in text_lower for keyword in keywords if " " in keyword):
                 return disaster_type
@@ -554,23 +554,23 @@ class DisasterSentimentBackend:
         ph_cities = [
             "Manila", "Quezon City", "Davao", "Cebu", "Makati", "Taguig",
             "Pasig", "Caloocan", "Mandaluyong", "Baguio", "Iloilo", "Bacolod",
-            "Tacloban", "Zamboanga", "Cagayan de Oro", "Batangas", "Cavite", 
+            "Tacloban", "Zamboanga", "Cagayan de Oro", "Batangas", "Cavite",
             "Laguna", "Pampanga", "Bulacan", "Antipolo", "Marikina", "Valenzuela",
             "Parañaque", "Las Piñas", "San Juan", "Pasay", "Muntinlupa", "Malabon",
             "Navotas", "Pateros", "Lucena", "Olongapo", "Legazpi", "Naga"
         ]
-        
+
         # First check for regions
         for region, keywords in ph_regions.items():
             # Check for exact region name or its variations
             if region.lower() in text_words or any(keyword in text_lower for keyword in keywords):
                 return region
-        
+
         # Then check for major cities
         for city in ph_cities:
             if city.lower() in text_words or city.lower() in text_lower:
                 return city
-                
+
         # Generic "Philippines" reference
         if "philippines" in text_words or "pilipinas" in text_words:
             return "Philippines"
@@ -783,70 +783,48 @@ class DisasterSentimentBackend:
                 prompt = f"""You are a disaster sentiment analysis expert specializing in both English and Tagalog text analysis.
 Analyze this disaster-related {'Tagalog/Filipino' if language == 'tl' else 'English'} text with high precision.
 
-VERY IMPORTANT: DO NOT DEFAULT TO NEUTRAL! Carefully analyze emotional content!
-Choose exactly one option from these strictly defined categories:
+REQUIRED: RETURN ALL OF THESE FIELDS:
+1. Sentiment (Choose ONE): PANIC, FEAR/ANXIETY, DISBELIEF, RESILIENCE, or NEUTRAL
+2. Disaster Type: Look for specific disaster mentions (earthquake/lindol, flood/baha, typhoon/bagyo, fire/sunog, etc.)
+3. Location: Extract any Philippine location (cities, provinces, regions)
+4. Brief Explanation: 2-3 sentences max explaining the sentiment choice
 
+Analysis Guidelines:
 PANIC (Extreme Distress/Emergency):
-- Immediate life-threatening situations
-- Calls for urgent rescue/help
-- Extremely agitated state (e.g., ALL CAPS, multiple exclamation marks)
-- Expletives due to extreme stress (e.g., putangina, tangina, puta due to fear)
-- Direct expressions of immediate danger
-Examples: "HELP! TRAPPED IN BUILDING!", "TULONG! NALULUNOD KAMI!"
+- Immediate danger mentions
+- Urgent calls for help
+- Extreme agitation markers (CAPS, !!!)
+Example: "HELP! TRAPPED IN BUILDING!"
 
 FEAR/ANXIETY (Worried but Composed):
-- Expression of worry or concern
-- Anticipatory anxiety about potential threats
-- Nervous about situation but not in immediate danger 
-- Concern for loved ones' safety
-Examples: "I'm worried about the incoming typhoon", "Kinakabahan ako sa lindol"
+- Expressions of worry/concern
+- Less urgent safety concerns
+Example: "Worried about aftershocks"
 
-DISBELIEF (Skepticism/Questioning):
-- Questioning validity of information
-- Expressing doubt about claims
-- Calling out fake news/misinformation
-- Frustration with false information
-Examples: "Fake news yan!", "I don't believe these reports"
+DISBELIEF (Skepticism):
+- Information questioning
+- Fake news callouts
+Example: "These reports can't be true"
 
-RESILIENCE (Strength/Hope):
-- Expressions of hope
+RESILIENCE (Hope/Strength):
 - Community support
-- Recovery efforts
-- Positive outlook despite challenges
-Examples: "We will rebuild", "Babangon tayo"
+- Recovery mentions
+Example: "We will rebuild"
 
-NEUTRAL (Factual/Informative):
-- News reports
-- Weather updates
-- Factual observations
-- Official announcements
-Examples: "Roads closed due to flooding", "Magnitude 4.2 earthquake recorded"
+NEUTRAL (Factual):
+- Official updates
+- Plain observations
+Example: "Magnitude 5 recorded"
 
-Analyze this text with these strict criteria: "{text}"
+Analyze this text: "{text}"
 
-Prioritize accuracy in categorization. Consider:
-- Intensity of language
-- Use of punctuation/capitalization
+FOCUS ON:
+- Explicit disaster mentions
+- Clear location references
+- Emotional intensity markers
 - Cultural context (Filipino expressions)
-- Presence of expletives as intensity markers
-- Immediate vs potential threats
 
-Text: {text}
-
-ONLY if the text clearly mentions a Philippine location, extract it. Otherwise, return NONE.
-If the text explicitly mentions a specific location like 'Manila', 'Cebu', 'Davao', or other Philippine city/province/region, include it.
-If it clearly mentions broader regions like 'Luzon', 'Visayas', 'Mindanao', or 'Philippines', include that.
-Otherwise, if no location is mentioned or if it's ambiguous, strictly return NONE.
-
-ONLY if the text clearly mentions a disaster type, extract it. Otherwise, return NONE.
-If there is any ambiguity, strictly return NONE.
-
-Provide detailed sentiment analysis in this exact format:
-Sentiment: [chosen sentiment]
-Confidence: [percentage]
-Explanation: [brief explanation only for disaster-related content]
-DisasterType: [identify disaster type if clearly mentioned, otherwise NONE - be very strict here]
-Location: [identify Philippine location ONLY if explicitly mentioned, otherwise NONE - be very strict here]
+Return a concise, clear explanation focusing on WHY this sentiment was chosen.
 """
 
                 payload = {
@@ -1280,7 +1258,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
 
         # Neutral bias prevention
         neutral_penalty = 0.15  # Reduce "Neutral" votes by 15%
-        
+
         # Process each model's prediction with appropriate weight
         for result in model_results:
             # Determine model type and apply appropriate weight
@@ -1299,7 +1277,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
             # Apply neutral penalty to discourage neutral classification
             sentiment = result['sentiment']
             confidence = result['confidence']
-            
+
             if sentiment == 'Neutral':
                 # Apply neutral penalty
                 adjusted_confidence = confidence * (1 - neutral_penalty)
@@ -1307,7 +1285,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 # Boost non-neutral sentiments
                 adjusted_confidence = confidence * 1.1  # 10% boost
                 adjusted_confidence = min(0.98, adjusted_confidence)  # Cap at 98%
-                
+
             sentiment_votes[sentiment] += adjusted_confidence * weight
 
             # Collect disaster types and locations for later consensus
@@ -1339,7 +1317,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
             if model_type == 'api':
                 weight = weights['api']
             elif model_type == 'bigru':
-                weight = weights['bigru'] 
+                weight = weights['bigru']
             elif model_type == 'lstm':
                 weight = weights['lstm']
             elif model_type == 'mbert':
@@ -1347,7 +1325,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
             else:
                 weight = weights['rule']
             weighted_confidences.append(result['confidence'] * weight)
-            
+
         if weighted_confidences:
             base_confidence = sum(weighted_confidences) / len(weighted_confidences)
         else:
@@ -1366,19 +1344,19 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                     final_sentiment = next_sentiment
                     # Lower confidence for this switch
                     base_confidence = base_confidence * 0.9
-        
+
         final_confidence = min(0.98, base_confidence + confidence_boost)
 
         # Extract disaster type with strict handling
         final_disaster_type = None  # Default to None for cleaner data
-        
+
         if disaster_types:
             valid_types = [dt for dt in disaster_types if dt]
             if valid_types:
                 type_counts = {}
                 for dtype in valid_types:
                     type_counts[dtype] = type_counts.get(dtype, 0) + 1
-                
+
                 if type_counts:
                     final_disaster_type = max(type_counts.items(), key=lambda x: x[1])[0]
 
@@ -1390,7 +1368,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 location_counts = {}
                 for loc in valid_locations:
                     location_counts[loc] = location_counts.get(loc, 0) + 1
-                
+
                 if location_counts:
                     final_location = max(location_counts.items(), key=lambda x: x[1])[0]
 

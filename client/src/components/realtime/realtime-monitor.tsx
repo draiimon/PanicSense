@@ -281,15 +281,31 @@ export function RealtimeMonitor() {
                       item.disasterType.toLowerCase().includes("unspecified")) && 
                      (item.text.length < 9 || 
                       item.text.match(/^[!?.,;:*\s]+$/))) && (
-                    <div className="bg-slate-50 p-3 rounded-md border border-slate-200 mt-2">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="h-5 w-5 text-slate-600 mt-0.5" />
-                        <div>
-                          <h4 className="text-sm font-medium mb-1">Analysis Explanation</h4>
-                          <p className="text-sm text-slate-700">{item.explanation}</p>
-                        </div>
-                      </div>
-                    </div>
+                     <div className="bg-slate-50 p-3 rounded-md border border-slate-200 mt-2">
+                       <div className="flex items-start gap-2">
+                         <AlertCircle className="h-5 w-5 text-slate-600 mt-0.5" />
+                         <div>
+                           <h4 className="text-sm font-medium mb-1">Analysis Details</h4>
+                           <div className="space-y-2">
+                             {item.disasterType && item.disasterType !== "Not Specified" && (
+                               <p className="text-sm text-slate-700">
+                                 <span className="font-semibold">Disaster Type:</span> {item.disasterType}
+                               </p>
+                             )}
+                             {item.location && (
+                               <p className="text-sm text-slate-700">
+                                 <span className="font-semibold">Location:</span> {item.location}
+                               </p>
+                             )}
+                             {item.explanation && (
+                               <p className="text-sm text-slate-700">
+                                 <span className="font-semibold">Analysis:</span> {item.explanation}
+                               </p>
+                             )}
+                           </div>
+                         </div>
+                       </div>
+                     </div>
                   )}
                 </div>
               ))}

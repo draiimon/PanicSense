@@ -57,8 +57,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Using port 3000
-  const port = 3000;
+  // Using port 5000 as required by the workflow
+  const port = process.env.PORT || 5000;
   server.listen({
     port,
     host: "0.0.0.0",
