@@ -25,7 +25,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
             exit={{ opacity: 0, y: 50 }}
             className="fixed bottom-[9px] right-[15px] z-[200]"
           >
-            <div className="bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-blue-100 p-4 max-w-md">
+            <div className="bg-white/95 backdrop-blur-lg rounded-xl border border-blue-100 p-4 max-w-md">
               <div className="flex items-center mb-3">
                 {uploadProgress.status === "uploading" && (
                   <Loader2 className="animate-spin h-5 w-5 mr-2 text-blue-600" />
