@@ -36,7 +36,7 @@ class NeuralNetworkSimulator:
             'Resilience': 0.87,
             'Neutral': 0.90
         }
-
+        
     def predict(self, text, language):
         """Base prediction method - to be overridden"""
         return {
@@ -44,7 +44,7 @@ class NeuralNetworkSimulator:
             'confidence': 0.7,
             'explanation': 'Base model fallback.'
         }
-
+        
     def preprocess(self, text, language):
         """Base preprocessing method"""
         # Lowercase text
@@ -57,10 +57,10 @@ class BiGRUSimulator(NeuralNetworkSimulator):
     """Simulates BiGRU model behavior"""
     def __init__(self):
         super().__init__("BiGRU")
-
+        
     def predict(self, text, language):
         processed_text = self.preprocess(text, language)
-
+        
         # BiGRU excels at sequence relationships
         sentiment_scores = {
             'Panic': 0.0,
@@ -69,11 +69,11 @@ class BiGRUSimulator(NeuralNetworkSimulator):
             'Resilience': 0.0,
             'Neutral': 0.0
         }
-
+        
         # Simulated pattern detection logic
         # BiGRU is strong at contextual dependencies
         words = processed_text.split()
-
+        
         # Pattern: Exclamation marks increase panic/fear scores
         exclamation_count = processed_text.count('!')
         if exclamation_count > 2:
@@ -81,32 +81,32 @@ class BiGRUSimulator(NeuralNetworkSimulator):
             sentiment_scores['Fear/Anxiety'] += 0.2
         elif exclamation_count > 0:
             sentiment_scores['Fear/Anxiety'] += 0.15
-
+            
         # Pattern: Question marks increase disbelief scores
         question_count = processed_text.count('?')
         if question_count > 1:
             sentiment_scores['Disbelief'] += 0.25
-
+            
         # Pattern: Capitalized words increase intensity
         capital_word_count = sum(1 for word in text.split() if word.isupper() and len(word) > 1)
         if capital_word_count > 2:
             sentiment_scores['Panic'] += 0.25
-
+            
         # Pattern: Positive words indicate resilience
         resilience_words = ['help', 'hope', 'together', 'support', 'strong', 'survive', 'rebuild']
         resilience_matches = sum(1 for word in resilience_words if word in words)
         if resilience_matches > 0:
             sentiment_scores['Resilience'] += 0.2 * resilience_matches
-
+            
         # Pattern: Neutral information
         neutral_patterns = ['reported', 'according', 'officials', 'announced', 'update']
         neutral_matches = sum(1 for pattern in neutral_patterns if pattern in processed_text)
         if neutral_matches > 0:
             sentiment_scores['Neutral'] += 0.25 * neutral_matches
-
+        
         # Find the highest scoring sentiment
         max_sentiment = max(sentiment_scores.items(), key=lambda x: x[1])
-
+        
         # If no clear signal, default to neutral with higher confidence
         if max_sentiment[1] < 0.2:
             base_confidence = self.weights['Neutral'] * 0.8
@@ -115,12 +115,12 @@ class BiGRUSimulator(NeuralNetworkSimulator):
                 'confidence': base_confidence,
                 'explanation': f"BiGRU model detected neutral content with {base_confidence:.2f} confidence."
             }
-
+        
         # Calculate confidence based on scores and model weights
         base_confidence = self.weights[max_sentiment[0]] * (0.7 + max_sentiment[1])
         # Ensure confidence is within reasonable bounds
         confidence = min(0.95, max(0.75, base_confidence))
-
+        
         return {
             'sentiment': max_sentiment[0],
             'confidence': confidence,
@@ -131,10 +131,10 @@ class LSTMSimulator(NeuralNetworkSimulator):
     """Simulates LSTM model behavior"""
     def __init__(self):
         super().__init__("LSTM")
-
+        
     def predict(self, text, language):
         processed_text = self.preprocess(text, language)
-
+        
         # LSTM is especially good at long-term dependencies
         sentiment_scores = {
             'Panic': 0.0,
@@ -143,9 +143,9 @@ class LSTMSimulator(NeuralNetworkSimulator):
             'Resilience': 0.0,
             'Neutral': 0.0
         }
-
+        
         # Simulated LSTM-specific pattern detection
-
+        
         # Pattern: Disaster keywords - LSTM catches semantic connections
         disaster_keywords = {
             'earthquake': {'Panic': 0.4, 'Fear/Anxiety': 0.3},
@@ -161,48 +161,48 @@ class LSTMSimulator(NeuralNetworkSimulator):
             'baha': {'Panic': 0.3, 'Fear/Anxiety': 0.3},    # Tagalog
             'bagyo': {'Panic': 0.3, 'Fear/Anxiety': 0.4},   # Tagalog
         }
-
+        
         for keyword, scores in disaster_keywords.items():
             if keyword in processed_text:
                 for sentiment, score in scores.items():
                     sentiment_scores[sentiment] += score
-
+                
         # Pattern: Emergency expressions
         emergency_patterns = ['need help', 'emergency', 'trapped', 'danger', 'evacuate', 'tulong', 'saklolo']
         for pattern in emergency_patterns:
             if pattern in processed_text:
                 sentiment_scores['Panic'] += 0.3
-
+                
         # Pattern: News reporting indicators
         news_patterns = ['reported', 'according to', 'officials said', 'announced', 'bulletin']
         for pattern in news_patterns:
             if pattern in processed_text:
                 sentiment_scores['Neutral'] += 0.4
-
+                
         # Adjust for consecutive words - LSTM's strength
         words = processed_text.split()
         for i in range(len(words) - 1):
             # Look for sequential words that together indicate strong emotion
             word_pair = words[i] + ' ' + words[i+1]
-
+            
             # Fear indicators
             fear_pairs = ['i fear', 'so scared', 'very worried', 'too dangerous', 'takot ako', 'natatakot ako']
             if any(pair in word_pair for pair in fear_pairs):
                 sentiment_scores['Fear/Anxiety'] += 0.25
-
+                
             # Disbelief indicators
             disbelief_pairs = ['not true', 'fake news', 'cannot believe', 'hindi totoo', 'kasinungalingan lang']
             if any(pair in word_pair for pair in disbelief_pairs):
                 sentiment_scores['Disbelief'] += 0.3
-
+                
             # Resilience indicators
             resilience_pairs = ['will survive', 'stay strong', 'help each', 'support community', 'malalagpasan natin']
             if any(pair in word_pair for pair in resilience_pairs):
                 sentiment_scores['Resilience'] += 0.3
-
+        
         # Find the highest scoring sentiment
         max_sentiment = max(sentiment_scores.items(), key=lambda x: x[1])
-
+        
         # If no clear signal, default to neutral with proper confidence
         if max_sentiment[1] < 0.2:
             base_confidence = self.weights['Neutral'] * 0.82
@@ -211,12 +211,12 @@ class LSTMSimulator(NeuralNetworkSimulator):
                 'confidence': base_confidence,
                 'explanation': f"LSTM model detected neutral content with {base_confidence:.2f} confidence."
             }
-
+        
         # Calculate confidence based on scores and model weights
         base_confidence = self.weights[max_sentiment[0]] * (0.7 + max_sentiment[1])
         # Ensure confidence is within reasonable bounds
         confidence = min(0.95, max(0.7, base_confidence))
-
+        
         return {
             'sentiment': max_sentiment[0],
             'confidence': confidence,
@@ -233,10 +233,10 @@ class MBERTSimulator(NeuralNetworkSimulator):
             'tl': 0.88,   # Tagalog
             'other': 0.82 # Other languages
         }
-
+        
     def predict(self, text, language):
         processed_text = self.preprocess(text, language)
-
+        
         # mBERT excels at multilingual content
         sentiment_scores = {
             'Panic': 0.0,
@@ -245,52 +245,52 @@ class MBERTSimulator(NeuralNetworkSimulator):
             'Resilience': 0.0,
             'Neutral': 0.0
         }
-
+        
         # Apply language-specific analysis
         lang_weight = self.language_weights.get(language, self.language_weights['other'])
-
+        
         # Detect language mix (code-switching boost)
         has_english = any(word in processed_text for word in ['help', 'emergency', 'disaster', 'earthquake', 'typhoon'])
         has_tagalog = any(word in processed_text for word in ['tulong', 'lindol', 'bagyo', 'baha', 'sunog'])
-
+        
         # mBERT excels at code-switched content
         code_switching_boost = 0.05 if (has_english and has_tagalog) else 0.0
-
+        
         # Contextual analysis - mBERT's strength
-
+        
         # Panic indicators
         panic_terms = {
             'en': ['help', 'emergency', 'trapped', 'dying', 'evacuate', 'death'],
             'tl': ['tulong', 'saklolo', 'naiipit', 'mamamatay', 'lumikas', 'patay']
         }
-
+        
         for term in panic_terms.get(language, panic_terms['en']):
             if term in processed_text:
                 sentiment_scores['Panic'] += 0.3 * lang_weight
-
+        
         # Fear indicators
         fear_terms = {
             'en': ['worried', 'scared', 'afraid', 'fear', 'terrified'],
             'tl': ['natatakot', 'takot', 'kabado', 'nangangamba', 'kinakabahan']
         }
-
+        
         for term in fear_terms.get(language, fear_terms['en']):
             if term in processed_text:
                 sentiment_scores['Fear/Anxiety'] += 0.25 * lang_weight
-
+        
         # Neutral indicators
         neutral_terms = {
             'en': ['reported', 'announced', 'update', 'bulletin', 'advisory'],
             'tl': ['anunsyo', 'balita', 'ulat', 'pahayag', 'abiso']
         }
-
+        
         for term in neutral_terms.get(language, neutral_terms['en']):
             if term in processed_text:
                 sentiment_scores['Neutral'] += 0.3 * lang_weight
-
+                
         # Find the highest scoring sentiment
         max_sentiment = max(sentiment_scores.items(), key=lambda x: x[1])
-
+        
         # If no clear signal, use improved neutral with higher confidence
         if max_sentiment[1] < 0.2:
             base_confidence = self.weights['Neutral'] * (0.85 + code_switching_boost)
@@ -299,12 +299,12 @@ class MBERTSimulator(NeuralNetworkSimulator):
                 'confidence': base_confidence,
                 'explanation': f"mBERT model detected neutral content with {base_confidence:.2f} confidence in {language}."
             }
-
+        
         # Calculate confidence with language and code-switching adjustments
         base_confidence = self.weights[max_sentiment[0]] * (0.75 + max_sentiment[1] + code_switching_boost)
         # Ensure confidence is within reasonable bounds
         confidence = min(0.96, max(0.75, base_confidence))
-
+        
         return {
             'sentiment': max_sentiment[0],
             'confidence': confidence,
@@ -370,11 +370,11 @@ class DisasterSentimentBackend:
 
     def detect_slang(self, text):
         return text
-
+        
     def extract_disaster_type(self, text):
         """Extract disaster type from text using keyword matching"""
         text_lower = text.lower()
-
+        
         disaster_types = {
             "Earthquake": ["earthquake", "quake", "tremor", "seismic", "lindol", "linog"],
             "Flood": ["flood", "flooding", "inundation", "baha", "tubig"],
@@ -384,18 +384,18 @@ class DisasterSentimentBackend:
             "Volcano": ["volcano", "eruption", "lava", "ash", "bulkan", "lahar"],
             "Drought": ["drought", "dry spell", "water shortage", "tagtuyot"]
         }
-
+        
         for disaster_type, keywords in disaster_types.items():
             if any(keyword in text_lower for keyword in keywords):
                 return disaster_type
-
+                
         # Standardize the return value for unknown disaster types
         return "Not Specified"
-
+    
     def extract_location(self, text):
         """Extract location from text using common Philippine location names"""
         text_lower = text.lower()
-
+        
         ph_locations = [
             "Manila", "Quezon City", "Davao", "Cebu", "Makati", "Taguig", "Pasig", 
             "Caloocan", "Mandaluyong", "Baguio", "Iloilo", "Bacolod", "Tacloban", "Zamboanga",
@@ -403,11 +403,11 @@ class DisasterSentimentBackend:
             "Mindanao", "Luzon", "Visayas", "NCR", "CAR", "CALABARZON", "MIMAROPA",
             "Philippines", "Pilipinas"
         ]
-
+        
         for location in ph_locations:
             if location.lower() in text_lower:
                 return location
-
+                
         return None
 
     def fetch_api(self, headers, payload, retry_count=0):
@@ -525,21 +525,21 @@ class DisasterSentimentBackend:
         language_name = "Filipino/Tagalog" if language == "tl" else "English"
 
         logging.info(f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
-
+        
         # Initialize advanced models
         bigru_model = BiGRUSimulator()
         lstm_model = LSTMSimulator()
         mbert_model = MBERTSimulator()
-
+        
         # Create placeholder for ensemble results
         ensemble_results = []
-
+        
         # Step 1: Try API-based analysis first
         api_result = self.get_api_sentiment_analysis(text, language)
         if api_result:
             api_result['modelType'] = 'API'
             ensemble_results.append(api_result)
-
+        
         # Step 2: Apply BiGRU model
         try:
             bigru_result = bigru_model.predict(text, language)
@@ -550,7 +550,7 @@ class DisasterSentimentBackend:
             ensemble_results.append(bigru_result)
         except Exception as e:
             logging.error(f"BiGRU model error: {e}")
-
+        
         # Step 3: Apply LSTM model
         try:
             lstm_result = lstm_model.predict(text, language)
@@ -561,7 +561,7 @@ class DisasterSentimentBackend:
             ensemble_results.append(lstm_result)
         except Exception as e:
             logging.error(f"LSTM model error: {e}")
-
+        
         # Step 4: Apply mBERT model (especially valuable for Tagalog content)
         try:
             mbert_result = mbert_model.predict(text, language)
@@ -572,15 +572,15 @@ class DisasterSentimentBackend:
             ensemble_results.append(mbert_result)
         except Exception as e:
             logging.error(f"mBERT model error: {e}")
-
+        
         # Step 5: Get rule-based analysis as fallback
         rule_result = self.rule_based_sentiment_analysis(text)
         rule_result['modelType'] = 'Rule-based'
         ensemble_results.append(rule_result)
-
-        # Step 6: Create final ensemble prediction
+        
+        # Create final ensemble prediction
         return self.create_ensemble_prediction(ensemble_results, text)
-
+            
     def get_api_sentiment_analysis(self, text, language):
         """
         Get sentiment analysis from Groq API
@@ -695,13 +695,13 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
 
                     # Extract disaster type and location if available from GROQ with better handling
                     disaster_type = disaster_type_match.group(1) if disaster_type_match else "Not Specified"
-
+                    
                     # Normalize disaster type values with strict NONE handling
                     if not disaster_type or disaster_type.lower() in ["none", "n/a", "unknown", "unmentioned", "null"]:
                         disaster_type = "Not Specified"
 
                     location = location_match.group(1) if location_match else None
-
+                    
                     # Be stricter about NONE values - if the API returns NONE, make sure it's None in our system
                     if not location or (location and location.lower() in ["none", "n/a", "unknown", "not specified", "unmentioned", "null"]):
                         location = None
@@ -768,7 +768,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 'kalagayan', 'sitwasyon', 'pangyayari'
             ]
         }
-
+        
         # Disaster type mappings (English and Tagalog)
         disaster_keywords = {
             'Earthquake': ['earthquake', 'quake', 'tremor', 'seismic', 'lindol', 'pagyanig', 'yanig'],
@@ -778,7 +778,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
             'Fire': ['fire', 'burning', 'flame', 'sunog', 'nasusunog', 'apoy', 'nagliliyab'],
             'Volcanic Eruption': ['volcano', 'eruption', 'ash', 'lava', 'bulkan', 'pagputok', 'abo', 'pagputok ng bulkan']
         }
-
+        
         # Philippine regions and locations
         location_keywords = {
             'Luzon': ['Luzon', 'Manila', 'Quezon City', 'Makati', 'Taguig', 'Pasig', 'Batangas', 'Pampanga', 
@@ -822,7 +822,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
 
         # Calculate confidence based on match strength with improved baseline for Neutral
         text_word_count = len(text_lower.split())
-
+        
         # Improved confidence calculation
         # Check for emotional cues in text that indicate this is not a neutral message
         has_emotional_markers = (
@@ -833,7 +833,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
             "help" in text_lower or "tulong" in text_lower or # Help requests
             re.search(r'(\w)\1{2,}', text_lower)             # Repeated letters (e.g., "heeeelp")
         )
-
+        
         # Penalize Neutral sentiment for texts with emotional markers
         if max_sentiment == 'Neutral' and has_emotional_markers:
             # Try to find second highest sentiment
@@ -843,7 +843,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 if score > second_max_score and sentiment != max_sentiment:
                     second_max_score = score
                     second_sentiment = sentiment
-
+            
             # If we have a decent second choice, use it instead
             if second_max_score > 0:
                 max_sentiment = second_sentiment
@@ -852,7 +852,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 # If no good second choice, default to Fear/Anxiety for emotional texts
                 # that would otherwise be misclassified as Neutral
                 max_sentiment = 'Fear/Anxiety'
-
+        
         if max_sentiment == 'Neutral':
             # Higher baseline for Neutral sentiment but not too high
             confidence = min(0.85, 0.65 + (max_score / max(10, text_word_count)) * 0.3)
@@ -864,40 +864,40 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
         custom_explanation = explanations[max_sentiment]
         if matched_keywords[max_sentiment]:
             custom_explanation += f" Key indicators: {', '.join(matched_keywords[max_sentiment][:3])}."
-
+            
         # More strict and robust detection of non-meaningful inputs
         # Check for very short inputs, punctuation-only, or messages with no clear disaster reference
         text_without_punct = ''.join(c for c in text.strip() if c.isalnum() or c.isspace())
         meaningful_words = [w for w in text_without_punct.split() if len(w) > 1]
         word_count = len(meaningful_words)
-
+        
         # Define what makes a meaningful input for disaster analysis
         is_meaningful_input = (
             len(text.strip()) > 8 and                # Longer than 8 chars
             word_count >= 2 and                      # At least 2 meaningful words
             not all(c in '?!.,;:' for c in text.strip())  # Not just punctuation
         )
-
+        
         # Default: non-disaster text shouldn't have disaster type or location
         # Always use NONE consistently instead of "Not Specified"
         disaster_type = "NONE"  
         location = None
         specific_location = None
-
+        
         # Only try to detect disasters and locations in meaningful inputs
         if is_meaningful_input:
             # Detect if this text is actually about disasters (quick check)
             disaster_keywords_flat = []
             for words in disaster_keywords.values():
                 disaster_keywords_flat.extend(words)
-
+                
             # Look for disaster-related words in the text
             found_disaster_reference = False
             for word in disaster_keywords_flat:
                 if word.lower() in text_lower:
                     found_disaster_reference = True
                     break
-
+            
             # Emergency keywords that should trigger disaster detection
             emergency_keywords = ["help", "tulong", "emergency", "evacuation", "evacuate", "rescue", 
                                  "save", "trapped", "stranded", "victims", "casualty", "casualties"]
@@ -905,7 +905,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 if word.lower() in text_lower:
                     found_disaster_reference = True
                     break
-
+                    
             # Only proceed with actual disaster-related text
             if found_disaster_reference:
                 # Search for specific disaster types
@@ -916,7 +916,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                             break
                     if disaster_type != "NONE":
                         break
-
+                        
                 # Detect location from text only for disaster-related content
                 for region, places in location_keywords.items():
                     for place in places:
@@ -926,10 +926,10 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                             break
                     if location:
                         break
-
+            
         # If specific location was found, use it instead of the region
         final_location = specific_location if specific_location else location
-
+        
         # For non-meaningful inputs, don't provide explanations
         if not is_meaningful_input:
             custom_explanation = None
@@ -942,7 +942,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
             "disasterType": disaster_type,
             "location": final_location
         }
-
+        
     def create_ensemble_prediction(self, model_results, text):
         """
         Combines results from different detection methods using a weighted ensemble approach
@@ -953,28 +953,28 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
             'api': 0.7,  # Groq API result
             'rule': 0.3,  # Rule-based result
         }
-
+        
         # Count of models of each type
         model_counts = {'api': 0, 'rule': 0}
-
+        
         # Initialize weighted votes for each sentiment
         sentiment_votes = {sentiment: 0 for sentiment in self.sentiment_labels}
-
+        
         # Track disaster types and locations
         disaster_types = []
         locations = []
         explanations = []
-
+        
         # Process each model's prediction with appropriate weight
         for i, result in enumerate(model_results):
             model_type = 'api' if i == 0 and len(model_results) > 1 else 'rule'
             model_counts[model_type] += 1
-
+            
             # Record sentiment vote with confidence weighting
             sentiment = result['sentiment']
             confidence = result['confidence']
             sentiment_votes[sentiment] += confidence * weights[model_type]
-
+            
             # Collect disaster types and locations for later consensus
             if result.get('disasterType'):
                 disaster_types.append(result['disasterType'])
@@ -982,7 +982,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 locations.append(result['location'])
             if result.get('explanation'):
                 explanations.append(result['explanation'])
-
+        
         # Find the winning sentiment
         max_votes = 0
         final_sentiment = None
@@ -990,7 +990,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
             if votes > max_votes:
                 max_votes = votes
                 final_sentiment = sentiment
-
+        
         # If no clear winner, use the highest confidence prediction
         if not final_sentiment:
             max_confidence = 0
@@ -998,28 +998,28 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 if result['confidence'] > max_confidence:
                     max_confidence = result['confidence']
                     final_sentiment = result['sentiment']
-
+        
         # Calculate combined confidence (higher than any individual method)
-        weighted_confidences = [result['confidence'] * weights[ 'api' if i == 0 and len(model_results) > 1 else 'rule'] for i, result in enumerate(model_results)]
-        if weighted_confidences:
-            base_confidence = sum(weighted_confidences) / len(weighted_confidences)
-        else:
-            base_confidence = 0.7  # Default confidence if no weighted scores
-
+        base_confidence = 0
+        for result in model_results:
+            if result['sentiment'] == final_sentiment:
+                # For matching sentiments, use maximum confidence as base
+                base_confidence = max(base_confidence, result['confidence'])
+        
         # Boost confidence based on agreement between models
         confidence_boost = 0.05 * (len(model_results) - 1)  # 5% boost per extra model
-
+        
         # Enhanced confidence for neutral content - always ensure it's at least 40%
         if final_sentiment == 'Neutral':
             # Ensure neutral sentiment has at least 0.45 confidence (45%)
             base_confidence = max(base_confidence, 0.45)
-
+        
         final_confidence = min(0.98, base_confidence + confidence_boost)
-
+        
         # Extract disaster type with proper handling for None values
         # Always use "NONE" as the standardized unknown value
         final_disaster_type = "NONE"  # Default value
-
+        
         # Only override the default if we have a specific type
         if disaster_types:
             specific_types = [dt for dt in disaster_types if dt and dt != "NONE" and dt != "Not Specified" and dt != "Unspecified" and dt != "None"]
@@ -1028,9 +1028,9 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 type_counts = {}
                 for dtype in specific_types:
                     type_counts[dtype] = type_counts.get(dtype, 0) + 1
-
+                
                 final_disaster_type = max(type_counts.items(), key=lambda x: x[1])[0]
-
+        
         # Find consensus for location (use the most common one)
         final_location = None
         if locations:
@@ -1039,22 +1039,22 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 location_counts = {}
                 for loc in valid_locations:
                     location_counts[loc] = location_counts.get(loc, 0) + 1
-
+                
                 if location_counts:
                     final_location = max(location_counts.items(), key=lambda x: x[1])[0]
-
+        
         # More strict check for non-meaningful inputs (same as in analyze_sentiment)
         text_without_punct = ''.join(c for c in text.strip() if c.isalnum() or c.isspace())
         meaningful_words = [w for w in text_without_punct.split() if len(w) > 1]
         word_count = len(meaningful_words)
-
+        
         # Define what makes a meaningful input for disaster analysis (same as above)
         is_meaningful_input = (
             len(text.strip()) > 8 and                 # Longer than 8 chars
             word_count >= 2 and                       # At least 2 meaningful words
             not all(c in '?!.,;:' for c in text.strip())  # Not just punctuation
         )
-
+        
         # Generate enhanced explanation only for meaningful inputs
         if is_meaningful_input:
             if explanations:
@@ -1063,11 +1063,11 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 final_explanation = f"Ensemble model detected {final_sentiment} sentiment."
         else:
             final_explanation = None  # No explanation for non-meaningful inputs
-
+            
             # For non-meaningful inputs, reset disaster type and location
             final_disaster_type = "NONE"
             final_location = None
-
+            
         # Final enhanced prediction
         return {
             "sentiment": final_sentiment,
