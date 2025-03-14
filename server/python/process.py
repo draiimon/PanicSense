@@ -197,22 +197,53 @@ class DisasterSentimentBackend:
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
                 # Advanced ML prompt with enhanced context awareness and sentiment analysis
-                prompt = f"""Analyze the sentiment in this disaster-related {'Tagalog/Filipino' if language == 'tl' else 'English'} text using advanced machine learning techniques.
-Choose exactly one option from: Panic, Fear/Anxiety, Disbelief, Resilience, or Neutral.
-Consider cultural context, local expressions, and disaster-specific indicators.
+                prompt = f"""Analyze the sentiment in this disaster-related {'Tagalog/Filipino' if language == 'tl' else 'English'} text with high precision.
+Choose exactly one option from these strictly defined categories:
 
-For Tagalog text, consider the nuances and intensity markers specific to Filipino culture during disasters.
-Analyze both explicit statements and implicit emotional indicators.
+PANIC (Extreme Distress/Emergency):
+- Immediate life-threatening situations
+- Calls for urgent rescue/help
+- Extremely agitated state (e.g., ALL CAPS, multiple exclamation marks)
+- Expletives due to extreme stress (e.g., putangina, tangina, puta due to fear)
+- Direct expressions of immediate danger
+Examples: "HELP! TRAPPED IN BUILDING!", "TULONG! NALULUNOD KAMI!"
 
-Important distinction for sentiment classification:
-- PANIC: Indicates urgent need for help, extremely agitated state, or inability to cope with the situation. Examples: desperate calls for rescue, immediate life-threatening situations
-- FEAR: General feeling of being scared or worried, but still maintaining composure. Examples: concern about incoming storms, worry about potential flooding
+FEAR/ANXIETY (Worried but Composed):
+- Expression of worry or concern
+- Anticipatory anxiety about potential threats
+- Nervous about situation but not in immediate danger 
+- Concern for loved ones' safety
+Examples: "I'm worried about the incoming typhoon", "Kinakabahan ako sa lindol"
 
-Always classify as PANIC when there are clear signs of:
-- Desperate calls for immediate help
-- Life-threatening situations requiring urgent assistance
-- Extremely distressed mental states
-- Inability to handle the current situation
+DISBELIEF (Skepticism/Questioning):
+- Questioning validity of information
+- Expressing doubt about claims
+- Calling out fake news/misinformation
+- Frustration with false information
+Examples: "Fake news yan!", "I don't believe these reports"
+
+RESILIENCE (Strength/Hope):
+- Expressions of hope
+- Community support
+- Recovery efforts
+- Positive outlook despite challenges
+Examples: "We will rebuild", "Babangon tayo"
+
+NEUTRAL (Factual/Informative):
+- News reports
+- Weather updates
+- Factual observations
+- Official announcements
+Examples: "Roads closed due to flooding", "Magnitude 4.2 earthquake recorded"
+
+Analyze this text with these strict criteria: "{text}"
+
+Prioritize accuracy in categorization. Consider:
+- Intensity of language
+- Use of punctuation/capitalization
+- Cultural context (Filipino expressions)
+- Presence of expletives as intensity markers
+- Immediate vs potential threats
 
 Text: {text}
 
@@ -291,17 +322,18 @@ Location: [identify Philippine location if mentioned, even faintly implied - NEV
 
     def rule_based_sentiment_analysis(self, text):
         """
-        Enhanced rule-based sentiment analysis with bilingual keyword support
-        and disaster type detection
+        Enhanced rule-based sentiment analysis with precise bilingual keyword matching
         """
-        # Bilingual keywords (English + Tagalog)
+        # Bilingual keywords with weighted scores
         keywords = {
             'Panic': [
-                # English
-                'panic', 'chaos', 'terror', 'terrified', 'trapped', 'help', 'emergency',
-                # Tagalog
-                'takot', 'tulong', 'saklolo', 'naiipit', 'natatakot', 'emergency',
-                'delikado', 'mapanganib', 'kalamidad', 'pagkatakot'
+                # High intensity English panic indicators
+                'HELP!', 'EMERGENCY', 'TRAPPED', 'DYING', 'DANGEROUS', 'EVACUATE NOW',
+                # High intensity Tagalog panic indicators  
+                'TULONG!', 'SAKLOLO', 'NAIIPIT', 'NALULUNOD', 'MAMATAY', 'PATAY',
+                'PUTANGINA', 'TANGINA', 'PUTA', # When used in panic context
+                # Emergency situations
+                'SUNOG', 'BAHA', 'LINDOL', # When in ALL CAPS
             ],
             'Fear/Anxiety': [
                 # English
