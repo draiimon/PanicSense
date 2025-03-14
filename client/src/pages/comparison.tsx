@@ -9,9 +9,22 @@ export default function Comparison() {
 
   // Process sentiment data by disaster type
   const processDisasterData = () => {
-    const disasterTypes = [...new Set(sentimentPosts.map(post => post.disasterType))];
+    // Get unique disaster types, but filter out "Not Specified", "Not mentioned", "Unspecified" etc.
+    const validDisasterTypes = [...new Set(sentimentPosts.map(post => post.disasterType))]
+      .filter(type => {
+        if (!type) return false;
+        
+        // Filter out generic unknown values for more professional presentation
+        const lowerType = type.toLowerCase();
+        return !(
+          lowerType === "not specified" || 
+          lowerType === "not mentioned" || 
+          lowerType === "unspecified" || 
+          lowerType === "none"
+        );
+      });
 
-    return disasterTypes.map(type => {
+    return validDisasterTypes.map(type => {
       const postsForType = sentimentPosts.filter(post => post.disasterType === type);
       const totalPosts = postsForType.length;
 

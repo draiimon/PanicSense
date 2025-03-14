@@ -205,7 +205,7 @@ export function RealtimeMonitor() {
                 <div key={index} className="p-4 bg-slate-50 rounded-lg">
                   <div className="flex justify-between items-start">
                     <p className="text-sm text-slate-900">{item.text}</p>
-                    <div className="flex items-center gap-2"> {/* Added div for badges */}
+                    <div className="flex items-center gap-2">
                       <Badge
                         className={getSentimentBadgeClasses(item.sentiment)}
                       >
@@ -216,11 +216,44 @@ export function RealtimeMonitor() {
                       </Badge>
                     </div>
                   </div>
+                  
                   <div className="mt-2 flex justify-between text-xs text-slate-500">
                     <span>Confidence: {(item.confidence * 100).toFixed(1)}%</span>
                     <span>{item.timestamp.toLocaleTimeString()}</span>
                   </div>
-                  {item.explanation && (
+                  
+                  {/* Show disaster type info only if it's a valid disaster type */}
+                  {item.disasterType && item.disasterType !== "Not Specified" && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        {item.disasterType}
+                      </Badge>
+                      {item.location && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          {item.location}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Warning for non-disaster related short texts */}
+                  {((!item.disasterType || item.disasterType === "Not Specified") && item.text.length < 5) && (
+                    <div className="bg-amber-50 p-3 rounded-md border border-amber-200 mt-2">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                        <div>
+                          <h4 className="text-sm font-medium mb-1">Non-Disaster Input</h4>
+                          <p className="text-sm text-amber-700">
+                            This appears to be a short non-disaster related input. For best results, 
+                            please enter more detailed text about disaster situations.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Regular explanation */}
+                  {item.explanation && !((!item.disasterType || item.disasterType === "Not Specified") && item.text.length < 5) && (
                     <div className="bg-slate-50 p-3 rounded-md border border-slate-200 mt-2">
                       <div className="flex items-start gap-2">
                         <AlertCircle className="h-5 w-5 text-slate-600 mt-0.5" />
