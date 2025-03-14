@@ -1,16 +1,23 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Pie } from "react-chartjs-2";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
 
-ChartJS.register(ArcElement, Tooltip, Legend);
-
-const chartColors = [
-  '#FF6384',
-  '#36A2EB',
-  '#FFCE56',
-  '#4BC0C0',
-  '#9966FF'
-];
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 interface SentimentChartProps {
   data: {
@@ -19,38 +26,43 @@ interface SentimentChartProps {
   };
 }
 
+const chartColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD'];
+
 export function SentimentChart({ data }: SentimentChartProps) {
-  if (!data?.labels?.length || !data?.values?.length) {
-    return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Sentiment Distribution</CardTitle>
-        </CardHeader>
-        <CardContent className="h-[300px] flex items-center justify-center">
-          <p className="text-slate-500">No sentiment data available</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const labels = data?.labels || [];
+  const values = data?.values || [];
 
   const chartData = {
-    labels: data.labels,
+    labels,
     datasets: [{
-      data: data.values,
-      backgroundColor: chartColors.slice(0, data.labels.length),
+      data: values,
+      backgroundColor: chartColors.slice(0, labels.length),
       borderWidth: 0
     }]
   };
 
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  };
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Sentiment Distribution</CardTitle>
+    <Card className="bg-white rounded-lg shadow">
+      <CardHeader className="border-b border-gray-200">
+        <CardTitle className="text-lg font-medium text-slate-800">Sentiment Distribution</CardTitle>
+        <CardDescription className="text-sm text-slate-500">Distribution of sentiments across posts</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="h-[300px] flex items-center justify-center">
-          <Pie data={chartData} options={{ maintainAspectRatio: false }} />
-        </div>
+      <CardContent className="p-6">
+        <Bar data={chartData} options={options} height={300} />
       </CardContent>
     </Card>
   );
