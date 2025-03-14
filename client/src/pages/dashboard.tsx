@@ -1,9 +1,7 @@
-
 import { useDisasterContext } from "@/context/disaster-context";
 import { FileUploader } from "@/components/file-uploader";
 import { StatusCard } from "@/components/dashboard/status-card";
 import { SentimentChart } from "@/components/dashboard/sentiment-chart";
-import { AffectedAreas } from "@/components/dashboard/affected-areas";
 import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
 import { motion } from "framer-motion";
 
@@ -14,83 +12,70 @@ const fadeInUp = {
 
 export default function Dashboard() {
   const { 
-    sentimentPosts,
-    activeDiastersCount,
-    analyzedPostsCount,
-    dominantSentiment,
-    modelConfidence,
-    isLoadingSentimentPosts
+    sentimentPosts = [],
+    activeDiastersCount = 0,
+    analyzedPostsCount = 0,
+    dominantSentiment = 'N/A',
+    modelConfidence = 0,
+    isLoadingSentimentPosts = false
   } = useDisasterContext();
 
-  const sentimentCounts = {
-    'Panic': 0,
-    'Fear/Anxiety': 0,
-    'Disbelief': 0,
-    'Resilience': 0,
-    'Neutral': 0
+  const sentimentData = {
+    labels: ['Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'],
+    values: [0, 0, 0, 0, 0]
   };
 
+  // Count sentiments
   sentimentPosts.forEach(post => {
-    if (sentimentCounts.hasOwnProperty(post.sentiment)) {
-      sentimentCounts[post.sentiment]++;
+    const index = sentimentData.labels.indexOf(post.sentiment);
+    if (index !== -1) {
+      sentimentData.values[index]++;
     }
   });
 
-  const totalPosts = sentimentPosts.length || 1;
-  const sentimentPercentages = Object.entries(sentimentCounts).map(([label, count]) => ({
-    label,
-    percentage: Math.round((count / totalPosts) * 100)
-  }));
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <motion.div variants={fadeInUp} className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Disaster Response Dashboard</h1>
-          <p className="text-sm text-slate-500">Real-time sentiment monitoring and analysis</p>
+    <div className="p-6 max-w-[1600px] mx-auto">
+      <motion.div 
+        initial="hidden"
+        animate="visible"
+        variants={fadeInUp}
+        className="mb-6"
+      >
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">Disaster Response Dashboard</h1>
+            <p className="text-sm text-slate-500">Real-time sentiment monitoring and analysis</p>
+          </div>
+          <FileUploader className="mt-0" />
         </div>
-        <FileUploader className="mt-0" />
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <StatusCard
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatusCard 
           title="Active Disasters"
           value={activeDiastersCount}
-          trend="+2"
-          trendDirection="up"
+          description="Currently monitored disasters"
         />
-        <StatusCard
+        <StatusCard 
           title="Analyzed Posts"
           value={analyzedPostsCount}
-          trend="+120"
-          trendDirection="up"
+          description="Total posts processed"
         />
-        <StatusCard
+        <StatusCard 
           title="Dominant Sentiment"
           value={dominantSentiment}
-          trend="stable"
-          trendDirection="neutral"
+          description="Most common sentiment"
         />
-        <StatusCard
+        <StatusCard 
           title="Model Confidence"
-          value={`${modelConfidence}%`}
-          trend="+5%"
-          trendDirection="up"
+          value={`${(modelConfidence * 100).toFixed(1)}%`}
+          description="Average prediction confidence"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <SentimentChart data={sentimentPercentages} />
-        <AffectedAreas />
-      </div>
-
-      <div className="grid grid-cols-1 gap-6">
-        <RecentPostsTable
-          data={sentimentPosts.slice(0, 5)}
-          title="Recent Posts"
-          description="Latest analyzed social media posts"
-          showViewAllLink={true}
-        />
+        <SentimentChart data={sentimentData} />
+        <RecentPostsTable posts={sentimentPosts} limit={5} />
       </div>
     </div>
   );

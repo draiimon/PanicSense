@@ -14,14 +14,14 @@ interface RecentPostsTableProps {
 }
 
 export function RecentPostsTable({ 
-  posts, 
+  posts = [], 
   title = 'Recent Analyzed Posts',
   description = 'Latest social media sentiment',
   limit = 5,
   showViewAllLink = true
 }: RecentPostsTableProps) {
   // Take only the most recent posts, limited by the limit prop
-  const displayedPosts = posts.slice(0, limit);
+  const displayedPosts = posts?.slice(0, limit) || [];
 
   // Get variant type for sentiment badge
   const getSentimentVariant = (sentiment: string) => {
