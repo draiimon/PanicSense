@@ -28,6 +28,7 @@ interface DisasterContextType {
     percentage: number;
     processedRecords: number;
     totalRecords: number;
+    error?: string;
   };
 
   // Error states
@@ -60,6 +61,7 @@ const initialUploadProgress = {
   percentage: 0,
   processedRecords: 0,
   totalRecords: 0,
+  error: undefined,
 };
 
 const DisasterContext = createContext<DisasterContextType | undefined>(undefined);
@@ -122,7 +124,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
 
   // Update upload progress
   const updateUploadProgress = (progress: Partial<DisasterContextType['uploadProgress']>) => {
-    setUploadProgress(prev => ({ ...prev, ...progress }));
+    setUploadProgress((prev) => {
+      return { ...prev, ...progress } as typeof initialUploadProgress;
+    });
   };
 
   // Reset upload progress
