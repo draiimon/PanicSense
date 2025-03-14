@@ -37,16 +37,16 @@ export function KeyEvents({
     }
   };
 
-  const getSentimentVariant = (sentiment: string | null) => {
-    if (!sentiment) return 'neutral';
+  const getSentimentVariant = (sentiment: string | null): "default" | "secondary" | "destructive" | "outline" => {
+    if (!sentiment) return 'secondary';
     
     switch (sentiment) {
-      case 'Panic': return 'panic';
-      case 'Fear/Anxiety': return 'fear';
-      case 'Disbelief': return 'disbelief';
-      case 'Resilience': return 'resilience';
+      case 'Panic': return 'destructive';
+      case 'Fear/Anxiety': return 'destructive';
+      case 'Disbelief': return 'secondary';
+      case 'Resilience': return 'default';
       case 'Neutral': 
-      default: return 'neutral';
+      default: return 'outline';
     }
   };
 
@@ -85,7 +85,7 @@ export function KeyEvents({
                   <p className="text-sm text-slate-600 mt-2">{event.description}</p>
                   <div className="mt-3">
                     <Badge 
-                      variant={getSentimentVariant(event.sentimentImpact) as any}
+                      variant={getSentimentVariant(event.sentimentImpact)}
                     >
                       {getSentimentBadgeText(event.sentimentImpact)}
                     </Badge>
