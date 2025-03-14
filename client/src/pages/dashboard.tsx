@@ -42,20 +42,14 @@ export default function Dashboard() {
         variants={fadeInUp}
       >
         <Card className="bg-white/50 backdrop-blur-sm border-none shadow-md">
-          <CardHeader className="pb-7">
-            <div className="flex flex-col space-y-6">
-              <div>
-                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  Disaster Response Dashboard
-                </CardTitle>
-                <p className="text-sm text-slate-500 mt-1">Real-time sentiment monitoring and analysis</p>
-              </div>
-              <div className="bg-slate-50/50 p-6 rounded-lg border border-slate-200/50 backdrop-blur-sm">
-                <h3 className="text-lg font-semibold text-slate-800 mb-3">Upload Dataset</h3>
-                <p className="text-sm text-slate-600 mb-4">Upload your CSV file containing disaster-related social media posts for analysis</p>
-                <FileUploader className="w-full" />
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
+            <div>
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Disaster Response Dashboard
+              </CardTitle>
+              <p className="text-sm text-slate-500 mt-1">Real-time sentiment monitoring and analysis</p>
             </div>
+            <FileUploader className="mt-0" />
           </CardHeader>
         </Card>
       </motion.div>

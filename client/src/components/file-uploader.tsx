@@ -12,10 +12,6 @@ interface FileUploaderProps {
 }
 
 export function FileUploader({ onSuccess, className }: FileUploaderProps) {
-  const containerClass = cn(
-    "flex flex-col space-y-4 w-full max-w-2xl mx-auto",
-    className
-  );
   const { toast } = useToast();
   const { 
     isUploading, 
