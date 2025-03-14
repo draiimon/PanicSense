@@ -61,7 +61,7 @@ app.use((req, res, next) => {
     });
 
     log("Setting up application middleware...", "startup");
-    if (app.get("env") === "development") {
+    if (app.get("env") === "development" && !process.env.DISABLE_VITE_MIDDLEWARE) {
       log("Initializing Vite middleware...", "startup");
       await setupVite(app, server);
       log(`Vite middleware setup complete in ${Date.now() - startTime}ms`, "startup");

@@ -30,7 +30,62 @@ const uploadProgressMap = new Map<string, {
   error?: string;
 }>();
 
-// Enhanced emotion detection with more sophisticated patterns
+// Enhanced disaster detection patterns (This section remains largely unchanged)
+const disasterPatterns = {
+  Earthquake: {
+    primaryIndicators: [
+      'earthquake', 'lindol', 'quake', 'magnitude', 'aftershock', 'tremor',
+      'seismic', 'fault line', 'epicenter', 'temblor', 'lumindol', 'yumanig',
+      'ground shaking', 'earth movement', 'shake', 'rumble'
+    ],
+    tagalogIndicators: ['lindol', 'lumindol', 'yumanig', 'paglindol', 'pagyanig'],
+    impactWords: ['damage', 'collapse', 'rubble', 'crack', 'fallen', 'trapped', 'gumuho', 'nasira'],
+    intensityWords: ['strong', 'powerful', 'massive', 'malakas', 'intensity', 'violent', 'severe'],
+    weight: 2.5
+  },
+  Flood: {
+    primaryIndicators: [
+      'flood', 'baha', 'tubig', 'water level', 'rising', 'overflow',
+      'submerged', 'inundated', 'deluge', 'flash flood', 'flooding'
+    ],
+    tagalogIndicators: ['baha', 'bumabaha', 'pagbaha', 'binabaha', 'daluyong', 'lumagpas'],
+    impactWords: ['stranded', 'evacuation', 'rescue', 'trapped', 'submerged', 'nasira', 'naipit'],
+    intensityWords: ['deep', 'rising', 'severe', 'malalim', 'lubog', 'mataas', 'lumalalim'],
+    weight: 2.3
+  },
+  Typhoon: {
+    primaryIndicators: [
+      'typhoon', 'bagyo', 'storm', 'cyclone', 'hurricane', 'winds', 'signal',
+      'tropical depression', 'tropical storm', 'super typhoon'
+    ],
+    tagalogIndicators: ['bagyo', 'unos', 'bagyong', 'hanging', 'ulan', 'habagat'],
+    impactWords: ['damage', 'blown', 'destroyed', 'evacuation', 'landfall', 'storm surge'],
+    intensityWords: ['strong', 'intense', 'super', 'powerful', 'malakas', 'malaks na hangin'],
+    weight: 2.4
+  },
+  Landslide: {
+    primaryIndicators: [
+      'landslide', 'mudslide', 'rockslide', 'avalanche', 'soil erosion',
+      'ground collapse', 'earth movement', 'debris flow'
+    ],
+    tagalogIndicators: ['pagguho', 'guho', 'pagguho ng lupa', 'nagtunaw', 'nagbagsak'],
+    impactWords: ['buried', 'trapped', 'blocked', 'covered', 'natabunan', 'naipit'],
+    intensityWords: ['massive', 'major', 'significant', 'malaking', 'malawak'],
+    weight: 2.2
+  },
+  Volcanic: {
+    primaryIndicators: [
+      'volcano', 'volcanic', 'eruption', 'ash fall', 'lava', 'magma',
+      'pyroclastic flow', 'volcanic activity', 'phreatic'
+    ],
+    tagalogIndicators: ['bulkan', 'bulkang', 'pagputok', 'abo', 'lahar'],
+    impactWords: ['evacuation', 'danger zone', 'alert level', 'active', 'ashfall'],
+    intensityWords: ['explosive', 'major', 'intense', 'violent', 'malakas'],
+    weight: 2.4
+  }
+};
+
+// Enhanced emotion detection with more sophisticated patterns (This section remains largely unchanged)
 const emotionPatterns = {
   Panic: {
     keywords: [
@@ -88,7 +143,7 @@ const emotionPatterns = {
   }
 };
 
-// Contextual disaster indicators for better detection
+// Contextual disaster indicators for better detection (This section remains largely unchanged)
 const disasterContexts = {
   Earthquake: {
     primaryIndicators: ['earthquake', 'lindol', 'quake', 'magnitude', 'aftershock', 'tremor'],
@@ -110,12 +165,206 @@ const disasterContexts = {
   }
 };
 
-// Function to analyze emotion with context
-function analyzeEmotionWithContext(text: string, disasterType: string | null | undefined): {
+// Function to analyze text content with advanced pattern matching
+function analyzeTextContent(text: string) {
+  const textLower = text.toLowerCase();
+  const words = textLower.split(/\s+/);
+
+  // Advanced contextual patterns for disaster detection
+  const contextualPatterns = {
+    emergency: {
+      keywords: ['emergency', 'urgent', 'immediately', 'asap', 'quick', 'agad', 'importante'],
+      weight: 1.5
+    },
+    damage: {
+      keywords: ['damage', 'destroyed', 'broken', 'collapsed', 'sira', 'wasak', 'guho'],
+      weight: 1.3
+    },
+    danger: {
+      keywords: ['dangerous', 'threat', 'warning', 'careful', 'delikado', 'ingat', 'bantay'],
+      weight: 1.4
+    },
+    help: {
+      keywords: ['help', 'rescue', 'save', 'assist', 'tulong', 'saklolo', '救助'],
+      weight: 1.6
+    },
+    impact: {
+      keywords: ['affected', 'victims', 'displaced', 'evacuated', 'nasalanta', 'biktima'],
+      weight: 1.2
+    }
+  };
+
+  // Calculate contextual scores
+  let contextScore = 0;
+  let contextReasons = [];
+
+  Object.entries(contextualPatterns).forEach(([context, pattern]) => {
+    pattern.keywords.forEach(keyword => {
+      if (textLower.includes(keyword)) {
+        contextScore += pattern.weight;
+        contextReasons.push(`${context}: ${keyword}`);
+      }
+    });
+  });
+
+  // Enhanced disaster patterns with multi-word recognition
+  const enhancedDisasterPatterns = {
+    Earthquake: {
+      primaryPatterns: [
+        'earthquake hit', 'magnitude', 'seismic activity', 'ground shaking',
+        'lindol na malakas', 'lumindol', 'aftershocks reported', 'tremors felt'
+      ],
+      secondaryPatterns: [
+        'fault line', 'epicenter', 'seismograph', 'tectonic', 'geological',
+        'may lindol', 'yumanig', 'pagyanig'
+      ],
+      locationPatterns: [
+        'ground', 'building', 'structure', 'foundation', 'road', 'walls'
+      ],
+      weight: 2.5
+    },
+    Flood: {
+      primaryPatterns: [
+        'flood warning', 'water level rising', 'heavy rainfall', 'overflow',
+        'baha sa', 'bumabaha', 'tubig tumataas', 'flash flood'
+      ],
+      secondaryPatterns: [
+        'drainage', 'river swelling', 'dam', 'water system', 'flood control',
+        'pagbaha', 'lumalaki ang ilog', 'mataas na tubig'
+      ],
+      locationPatterns: [
+        'street', 'road', 'area', 'community', 'river', 'creek', 'kalsada'
+      ],
+      weight: 2.3
+    },
+    Typhoon: {
+      primaryPatterns: [
+        'typhoon warning', 'storm signal', 'heavy winds', 'cyclone approaching',
+        'bagyo papasok', 'malakas na hangin', 'storm surge', 'super typhoon'
+      ],
+      secondaryPatterns: [
+        'rainfall', 'wind speed', 'eye of the storm', 'weather system',
+        'ulan', 'hangin', 'daluyong', 'signal number'
+      ],
+      locationPatterns: [
+        'coast', 'region', 'province', 'city', 'area', 'lalawigan', 'baybayin'
+      ],
+      weight: 2.4
+    },
+    // Add more disaster types...
+  };
+
+  // Advanced disaster detection with context awareness
+  let maxDisasterScore = 0;
+  let detectedDisaster = null;
+  let disasterConfidence = 0;
+  let detectionExplanation = [];
+
+  Object.entries(enhancedDisasterPatterns).forEach(([disasterType, patterns]) => {
+    let score = 0;
+    let evidence = [];
+
+    // Check for primary patterns (highest weight)
+    patterns.primaryPatterns.forEach(pattern => {
+      if (textLower.includes(pattern.toLowerCase())) {
+        score += 3.0 * patterns.weight;
+        evidence.push(`Strong indicator: "${pattern}"`);
+      }
+    });
+
+    // Check for secondary patterns (medium weight)
+    patterns.secondaryPatterns.forEach(pattern => {
+      if (textLower.includes(pattern.toLowerCase())) {
+        score += 2.0 * patterns.weight;
+        evidence.push(`Supporting evidence: "${pattern}"`);
+      }
+    });
+
+    // Check for location context (adds credibility)
+    patterns.locationPatterns.forEach(pattern => {
+      if (textLower.includes(pattern.toLowerCase())) {
+        score += 1.0 * patterns.weight;
+        evidence.push(`Location context: "${pattern}"`);
+      }
+    });
+
+    // Apply contextual boosting
+    if (contextScore > 0) {
+      score *= (1 + (contextScore * 0.2));
+      evidence.push(`Context boost: ${contextReasons.join(', ')}`);
+    }
+
+    if (score > maxDisasterScore) {
+      maxDisasterScore = score;
+      detectedDisaster = disasterType;
+      disasterConfidence = Math.min(score / 10, 1);
+      detectionExplanation = evidence;
+    }
+  });
+
+  return {
+    contextualScore: contextScore,
+    contextReasons,
+    disaster: detectedDisaster,
+    confidence: disasterConfidence,
+    explanation: detectionExplanation,
+    isEmergency: contextScore > 2.0
+  };
+}
+
+
+// Update the main emotion analysis function to use the new analysis
+function analyzeEmotionWithContext(text: string, providedDisasterType: string | null | undefined): {
   emotion: string;
   confidence: number;
   explanation: string;
+  detectedDisaster?: {
+    type: string;
+    confidence: number;
+  };
 } {
+  // Perform advanced text analysis
+  const textAnalysis = analyzeTextContent(text);
+
+  // Use either provided disaster type or detected one
+  const disasterInfo = providedDisasterType ?
+    { type: providedDisasterType, confidence: 1.0 } :
+    { type: textAnalysis.disaster, confidence: textAnalysis.confidence };
+
+  // Calculate emotion scores with context awareness
+  const emotionScores = calculateEmotionScores(text, textAnalysis);
+
+  // Apply disaster context boosting
+  if (disasterInfo.type || textAnalysis.isEmergency) {
+    emotionScores.Fear = (emotionScores.Fear || 0) * 1.5;
+    emotionScores.Panic = (emotionScores.Panic || 0) * 1.8;
+  }
+
+  // Find dominant emotion
+  const dominantEmotion = Object.entries(emotionScores)
+    .reduce((prev, curr) => curr[1] > prev[1] ? curr : prev);
+
+  // Generate detailed explanation
+  const explanation = generateEmotionExplanation(
+    dominantEmotion[0],
+    emotionScores,
+    textAnalysis,
+    disasterInfo
+  );
+
+  return {
+    emotion: dominantEmotion[0],
+    confidence: dominantEmotion[1],
+    explanation,
+    detectedDisaster: disasterInfo.type ? {
+      type: disasterInfo.type,
+      confidence: disasterInfo.confidence
+    } : undefined
+  };
+}
+
+// Helper function to calculate emotion scores
+function calculateEmotionScores(text: string, analysis: any): Record<string, number> {
   const textLower = text.toLowerCase();
   let scores: Record<string, number> = {};
   let explanations: Record<string, string[]> = {};
@@ -156,57 +405,160 @@ function analyzeEmotionWithContext(text: string, disasterType: string | null | u
     explanations[emotion] = reasons;
   }
 
-  // Apply disaster context boost
-  const normalizedDisasterType = disasterType ?? null;
-  if (normalizedDisasterType) {
-    const disasterContext = disasterContexts[normalizedDisasterType as keyof typeof disasterContexts];
+  // Apply disaster context boost from analyzeTextContent
+  if (analysis.disaster) {
+    const disasterContext = disasterContexts[analysis.disaster as keyof typeof disasterContexts] || {}; 
     if (disasterContext) {
-      // Boost emotional scores based on disaster context
-      disasterContext.primaryIndicators.forEach(indicator => {
-        if (textLower.includes(indicator)) {
-          scores['Fear/Anxiety'] *= 1.2;
-          scores['Panic'] *= 1.3;
-        }
-      });
+        disasterContext.primaryIndicators.forEach(indicator => {
+          if (textLower.includes(indicator)) {
+            scores['Fear/Anxiety'] *= 1.2;
+            scores['Panic'] *= 1.3;
+          }
+        });
 
-      disasterContext.intensityWords.forEach(word => {
-        if (textLower.includes(word)) {
-          scores['Fear/Anxiety'] *= 1.1;
-          scores['Panic'] *= 1.2;
-        }
-      });
-    }
+        disasterContext.intensityWords.forEach(word => {
+          if (textLower.includes(word)) {
+            scores['Fear/Anxiety'] *= 1.1;
+            scores['Panic'] *= 1.2;
+          }
+        });
+      }
   }
-
-  // Find dominant emotion
-  let maxScore = 0;
-  let dominantEmotion = 'Neutral';
-  for (const [emotion, score] of Object.entries(scores)) {
-    if (score > maxScore) {
-      maxScore = score;
-      dominantEmotion = emotion;
-    }
-  }
-
-  // Calculate confidence (normalized score)
-  const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
-  const confidence = totalScore > 0 ? (maxScore / totalScore) : 0.5;
-
-  // Generate detailed explanation
-  const explanation = `Primary emotion detected: ${dominantEmotion} (Confidence: ${(confidence * 100).toFixed(1)}%)
-Reasons: ${explanations[dominantEmotion].join(', ')}
-${normalizedDisasterType ? `Disaster Context: ${normalizedDisasterType} - Enhanced emotional analysis applied` : ''}
-Contributing factors: ${Object.entries(scores)
-    .filter(([emotion, score]) => score > 0 && emotion !== dominantEmotion)
-    .map(([emotion, score]) => `${emotion} (${(score / totalScore * 100).toFixed(1)}%)`)
-    .join(', ')}`;
-
-  return {
-    emotion: dominantEmotion,
-    confidence,
-    explanation
-  };
+    
+  return scores;
 }
+
+// Helper function to generate detailed explanation
+function generateEmotionExplanation(
+  emotion: string,
+  scores: Record<string, number>,
+  analysis: any,
+  disasterInfo: { type: string | null, confidence: number }
+): string {
+  const lines = [
+    `Primary Emotion: ${emotion}`,
+    `Context Analysis: ${analysis.contextReasons.join(', ')}`,
+  ];
+
+  if (disasterInfo.type) {
+    lines.push(`Disaster Context: ${disasterInfo.type} (${(disasterInfo.confidence * 100).toFixed(1)}% confidence)`);
+    lines.push(`Supporting Evidence: ${analysis.explanation.join(', ')}`);
+  }
+
+  if (analysis.isEmergency) {
+    lines.push('Emergency Situation Detected - Emotional intensity adjusted accordingly');
+  }
+
+  return lines.join('\n');
+}
+
+// Helper function to generate disaster events from sentiment posts
+const generateDisasterEvents = async (posts: any[]): Promise<void> => {
+    if (posts.length === 0) return;
+
+    // Group posts by day to identify patterns
+    const postsByDay: {[key: string]: {
+        posts: any[],
+        count: number,
+        sentiments: {[key: string]: number}
+    }} = {};
+
+    // Group posts by day (YYYY-MM-DD)
+    for (const post of posts) {
+        const day = new Date(post.timestamp).toISOString().split('T')[0];
+
+        if (!postsByDay[day]) {
+            postsByDay[day] = {
+                posts: [],
+                count: 0,
+                sentiments: {}
+            };
+        }
+
+        postsByDay[day].posts.push(post);
+        postsByDay[day].count++;
+
+        // Count sentiment occurrences
+        const sentiment = post.sentiment;
+        postsByDay[day].sentiments[sentiment] = (postsByDay[day].sentiments[sentiment] || 0) + 1;
+    }
+
+    // Process each day with sufficient posts (at least 3)
+    for (const [day, data] of Object.entries(postsByDay)) {
+        if (data.count < 3) continue;
+
+        // Find dominant sentiment
+        let maxCount = 0;
+        let dominantSentiment: string | null = null;
+
+        for (const [sentiment, count] of Object.entries(data.sentiments)) {
+            if (count > maxCount) {
+                maxCount = count;
+                dominantSentiment = sentiment;
+            }
+        }
+
+        // Extract disaster type and location from text content
+        const texts = data.posts.map(p => p.text.toLowerCase());
+        let disasterType = null;
+        let location = null;
+
+        // Enhanced disaster type detection with more variations
+        const disasterKeywords = {
+            "Earthquake": ['lindol', 'earthquake', 'quake', 'tremor', 'lumindol', 'yugto', 'lindol na malakas', 'paglindol'],
+            "Flood": ['baha', 'flood', 'pagbaha', 'pagbabaha', 'bumaha', 'tubig', 'binaha', 'napabaha', 'flash flood'],
+            "Typhoon": ['bagyo', 'typhoon', 'storm', 'cyclone', 'hurricane', 'bagyong', 'unos', 'habagat', 'super typhoon'],
+            "Fire": ['sunog', 'fire', 'nasunog', 'burning', 'apoy', 'silab', 'nagkasunog', 'wildfire', 'forest fire'],
+            "Volcanic Eruption": ['bulkan', 'volcano', 'eruption', 'ash fall', 'lava', 'ashfall', 'bulkang', 'pumutok', 'sumabog'],
+            "Landslide": ['landslide', 'pagguho', 'guho', 'mudslide', 'rockslide', 'avalanche', 'pagguho ng lupa', 'collapsed'],
+            "Tsunami": ['tsunami', 'tidal wave', 'daluyong', 'alon', 'malalaking alon']
+        };
+
+        // Check each disaster type in texts
+        for (const [type, keywords] of Object.entries(disasterKeywords)) {
+            if (texts.some(text => keywords.some(keyword => text.includes(keyword)))) {
+                disasterType = type;
+                break;
+            }
+        }
+
+        // Enhanced location detection with more Philippine locations
+        const locations = [
+            'Manila', 'Quezon City', 'Cebu', 'Davao', 'Mindanao', 'Luzon',
+            'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
+            'Batangas', 'Zambales', 'Pampanga', 'Bicol', 'Leyte', 'Samar',
+            'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna',
+            'Rizal', 'Marikina', 'Makati', 'Pasig', 'Taguig', 'Pasay', 'Mandaluyong',
+            'Parañaque', 'Caloocan', 'Valenzuela', 'Muntinlupa', 'Malabon', 'Navotas',
+            'San Juan', 'Las Piñas', 'Pateros', 'Nueva Ecija', 'Benguet', 'Albay',
+            'Catanduanes', 'Sorsogon', 'Camarines Sur', 'Camarines Norte', 'Marinduque'
+        ];
+
+        // Try to find locations in text more aggressively
+        for (const text of texts) {
+            const textLower = text.toLowerCase();
+            for (const loc of locations) {
+                if (textLower.includes(loc.toLowerCase())) {
+                    location = loc;
+                    break;
+                }
+            }
+            if (location) break;
+        }
+
+        if (disasterType && (location || dominantSentiment)) {
+            // Create the disaster event
+            await storage.createDisasterEvent({
+                name: `${disasterType} Incident on ${new Date(day).toLocaleDateString()}`,
+                description: `Based on ${data.count} social media reports. Sample content: ${data.posts[0].text}`,
+                timestamp: new Date(day),
+                location,
+                type: disasterType,
+                sentimentImpact: dominantSentiment || undefined
+            });
+        }
+    }
+};
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -320,112 +672,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function to generate disaster events from sentiment posts
-  const generateDisasterEvents = async (posts: any[]): Promise<void> => {
-    if (posts.length === 0) return;
-
-    // Group posts by day to identify patterns
-    const postsByDay: {[key: string]: {
-      posts: any[],
-      count: number,
-      sentiments: {[key: string]: number}
-    }} = {};
-
-    // Group posts by day (YYYY-MM-DD)
-    for (const post of posts) {
-      const day = new Date(post.timestamp).toISOString().split('T')[0];
-
-      if (!postsByDay[day]) {
-        postsByDay[day] = {
-          posts: [],
-          count: 0,
-          sentiments: {}
-        };
-      }
-
-      postsByDay[day].posts.push(post);
-      postsByDay[day].count++;
-
-      // Count sentiment occurrences
-      const sentiment = post.sentiment;
-      postsByDay[day].sentiments[sentiment] = (postsByDay[day].sentiments[sentiment] || 0) + 1;
-    }
-
-    // Process each day with sufficient posts (at least 3)
-    for (const [day, data] of Object.entries(postsByDay)) {
-      if (data.count < 3) continue;
-
-      // Find dominant sentiment
-      let maxCount = 0;
-      let dominantSentiment: string | null = null;
-
-      for (const [sentiment, count] of Object.entries(data.sentiments)) {
-        if (count > maxCount) {
-          maxCount = count;
-          dominantSentiment = sentiment;
-        }
-      }
-
-      // Extract disaster type and location from text content
-      const texts = data.posts.map(p => p.text.toLowerCase());
-      let disasterType = null;
-      let location = null;
-
-      // Enhanced disaster type detection with more variations
-      const disasterKeywords = {
-        "Earthquake": ['lindol', 'earthquake', 'quake', 'tremor', 'lumindol', 'yugto', 'lindol na malakas', 'paglindol'],
-        "Flood": ['baha', 'flood', 'pagbaha', 'pagbabaha', 'bumaha', 'tubig', 'binaha', 'napabaha', 'flash flood'],
-        "Typhoon": ['bagyo', 'typhoon', 'storm', 'cyclone', 'hurricane', 'bagyong', 'unos', 'habagat', 'super typhoon'],
-        "Fire": ['sunog', 'fire', 'nasunog', 'burning', 'apoy', 'silab', 'nagkasunog', 'wildfire', 'forest fire'],
-        "Volcanic Eruption": ['bulkan', 'volcano', 'eruption', 'ash fall', 'lava', 'ashfall', 'bulkang', 'pumutok', 'sumabog'],
-        "Landslide": ['landslide', 'pagguho', 'guho', 'mudslide', 'rockslide', 'avalanche', 'pagguho ng lupa', 'collapsed'],
-        "Tsunami": ['tsunami', 'tidal wave', 'daluyong', 'alon', 'malalaking alon']
-      };
-
-      // Check each disaster type in texts
-      for (const [type, keywords] of Object.entries(disasterKeywords)) {
-        if (texts.some(text => keywords.some(keyword => text.includes(keyword)))) {
-          disasterType = type;
-          break;
-        }
-      }
-
-      // Enhanced location detection with more Philippine locations
-      const locations = [
-        'Manila', 'Quezon City', 'Cebu', 'Davao', 'Mindanao', 'Luzon',
-        'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
-        'Batangas', 'Zambales', 'Pampanga', 'Bicol', 'Leyte', 'Samar',
-        'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna',
-        'Rizal', 'Marikina', 'Makati', 'Pasig', 'Taguig', 'Pasay', 'Mandaluyong',
-        'Parañaque', 'Caloocan', 'Valenzuela', 'Muntinlupa', 'Malabon', 'Navotas',
-        'San Juan', 'Las Piñas', 'Pateros', 'Nueva Ecija', 'Benguet', 'Albay',
-        'Catanduanes', 'Sorsogon', 'Camarines Sur', 'Camarines Norte', 'Marinduque'
-      ];
-
-      // Try to find locations in text more aggressively
-      for (const text of texts) {
-        const textLower = text.toLowerCase();
-        for (const loc of locations) {
-          if (textLower.includes(loc.toLowerCase())) {
-            location = loc;
-            break;
-          }
-        }
-        if (location) break;
-      }
-
-      if (disasterType && (location || dominantSentiment)) {
-        // Create the disaster event
-        await storage.createDisasterEvent({
-          name: `${disasterType} Incident on ${new Date(day).toLocaleDateString()}`,
-          description: `Based on ${data.count} social media reports. Sample content: ${data.posts[0].text}`,
-          timestamp: new Date(day),
-          location,
-          type: disasterType,
-          sentimentImpact: dominantSentiment || undefined
-        });
-      }
-    }
-  };
 
   // Get all sentiment posts
   app.get('/api/sentiment-posts', async (req: Request, res: Response) => {
@@ -543,10 +789,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
 
-      // Enhanced processing of sentiment posts with emotion analysis
+      // Enhanced processing of sentiment posts with disaster detection
       const sentimentPosts = await Promise.all(
         data.results.map(async (result: any) => {
-          const emotionAnalysis = analyzeEmotionWithContext(result.text, result.disasterType);
+          // Then analyze emotion with disaster context
+          const emotionAnalysis = analyzeEmotionWithContext(
+            result.text,
+            result.disasterType
+          );
 
           return storage.createSentimentPost(
             insertSentimentPostSchema.parse({
@@ -556,9 +806,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               language: result.language,
               sentiment: emotionAnalysis.emotion,
               confidence: emotionAnalysis.confidence,
-              explanation: emotionAnalysis.explanation,
+              explanation: `${emotionAnalysis.explanation}`,
               location: result.location || null,
-              disasterType: result.disasterType || null,
+              disasterType: emotionAnalysis.detectedDisaster?.type || null,
               fileId: analyzedFile.id
             })
           );
