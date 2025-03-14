@@ -39,7 +39,7 @@ export default function AboutPage() {
               </svg>
             </div>
             <h3 className="text-xl font-bold text-slate-800">
-              <strong>Castillo, Mark Andrei R.</strong>
+              Castillo, Mark Andrei R.
             </h3>
             <p className="text-slate-600">Core System Architecture &amp; Machine Learning</p>
           </div>
