@@ -29,6 +29,8 @@ export class PythonService {
   private pythonBinary: string;
   private tempDir: string;
   private scriptPath: string;
+  private maxRetries: number = 3;
+  private retryDelay: number = 1000;
 
   constructor() {
     this.pythonBinary = 'python3';
@@ -50,7 +52,6 @@ export class PythonService {
     storedFilename: string,
     recordCount: number
   }> {
-    // Save the file to a temporary location
     const uniqueId = nanoid();
     const storedFilename = `${uniqueId}-${originalFilename}`;
     const tempFilePath = path.join(this.tempDir, storedFilename);
@@ -58,8 +59,21 @@ export class PythonService {
     fs.writeFileSync(tempFilePath, fileBuffer);
 
     try {
-      // Run the Python script with the file
-      const result = await this.runPythonScript(tempFilePath, '', onProgress);
+      // Run the Python script with retries
+      let attempt = 0;
+      let result;
+      while (attempt < this.maxRetries) {
+        try {
+          result = await this.runPythonScript(tempFilePath, '', onProgress);
+          break;
+        } catch (error) {
+          attempt++;
+          if (attempt === this.maxRetries) throw error;
+          await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+        }
+      }
+
+      if (!result) throw new Error('Failed to process CSV file after retries');
 
       const data = JSON.parse(result) as ProcessCSVResult;
 
@@ -85,7 +99,21 @@ export class PythonService {
     disasterType?: string;
     location?: string;
   }> {
-    const result = await this.runPythonScript('', text);
+    // Run the Python script with retries
+    let attempt = 0;
+    let result;
+    while (attempt < this.maxRetries) {
+      try {
+        result = await this.runPythonScript('', text);
+        break;
+      } catch (error) {
+        attempt++;
+        if (attempt === this.maxRetries) throw error;
+        await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+      }
+    }
+
+    if (!result) throw new Error('Failed to analyze sentiment after retries');
     return JSON.parse(result);
   }
 
@@ -130,6 +158,7 @@ export class PythonService {
 
       pythonProcess.stderr.on('data', (data) => {
         errorOutput += data.toString();
+        log(`Python process error: ${data.toString()}`, 'python-service');
       });
 
       pythonProcess.on('close', (code) => {
@@ -139,7 +168,18 @@ export class PythonService {
           return;
         }
 
-        resolve(output);
+        try {
+          // Verify output is valid JSON
+          JSON.parse(output);
+          resolve(output);
+        } catch (e) {
+          reject(new Error(`Invalid JSON output from Python script: ${output}`));
+        }
+      });
+
+      // Handle process errors
+      pythonProcess.on('error', (error) => {
+        reject(new Error(`Failed to start Python process: ${error.message}`));
       });
     });
   }
