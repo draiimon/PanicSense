@@ -391,8 +391,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sentiment: result.sentiment,
             confidence: result.confidence,
             explanation: result.explanation,
-            location: null,
-            disasterType: null,
+            location: result.location || null,
+            disasterType: result.disasterType || null,
             fileId: null
           })
         );
@@ -413,8 +413,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sentiment: result.sentiment,
             confidence: result.confidence,
             explanation: result.explanation,
-            location: null,
-            disasterType: null,
+            location: result.location || null,
+            disasterType: result.disasterType || null,
             fileId: null
           })
         );

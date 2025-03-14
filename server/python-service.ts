@@ -13,6 +13,9 @@ interface ProcessCSVResult {
     language: string;
     sentiment: string;
     confidence: number;
+    explanation?: string;
+    disasterType?: string;
+    location?: string;
   }[];
   metrics?: {
     accuracy: number;
@@ -79,6 +82,8 @@ export class PythonService {
     confidence: number;
     explanation: string;
     language: string;
+    disasterType?: string;
+    location?: string;
   }> {
     const result = await this.runPythonScript('', text);
     return JSON.parse(result);
