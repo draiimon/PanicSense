@@ -72,7 +72,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           });
 
           toast({
-            title: '🎉 Analysis Complete',
+            title: ' Analysis Complete',
             description: `Successfully analyzed ${result.posts.length} posts with sentiment data`,
             duration: 5000,
           });

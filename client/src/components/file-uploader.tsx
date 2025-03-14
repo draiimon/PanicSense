@@ -1,7 +1,7 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { useDisasterContext } from '@/context/disaster-context';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { FileUploaderButton } from './file-uploader-button';
+import { AnimatePresence, motion } from "framer-motion";
+import { useDisasterContext } from "@/context/disaster-context";
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { FileUploaderButton } from "./file-uploader-button";
 
 interface FileUploaderProps {
   onSuccess?: (data: any) => void;
@@ -19,28 +19,32 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
       {/* Global Progress Indicator - Always rendered from the same place */}
       <AnimatePresence>
         {isUploading && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-[55px] right-[15px] z-[100]"
+            className="fixed bottom-[9px] right-[15px] z-[200]"
           >
             <div className="bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-blue-100 p-4 max-w-md">
               <div className="flex items-center mb-3">
-                {uploadProgress.status === 'uploading' && (
+                {uploadProgress.status === "uploading" && (
                   <Loader2 className="animate-spin h-5 w-5 mr-2 text-blue-600" />
                 )}
-                {uploadProgress.status === 'success' && (
+                {uploadProgress.status === "success" && (
                   <CheckCircle className="h-5 w-5 mr-2 text-emerald-600" />
                 )}
-                {uploadProgress.status === 'error' && (
+                {uploadProgress.status === "error" && (
                   <AlertCircle className="h-5 w-5 mr-2 text-red-600" />
                 )}
-                <span className={`font-medium text-sm ${
-                  uploadProgress.status === 'error' ? 'text-red-800' :
-                  uploadProgress.status === 'success' ? 'text-emerald-800' :
-                  'text-blue-800'
-                }`}>
+                <span
+                  className={`font-medium text-sm ${
+                    uploadProgress.status === "error"
+                      ? "text-red-800"
+                      : uploadProgress.status === "success"
+                        ? "text-emerald-800"
+                        : "text-blue-800"
+                  }`}
+                >
                   {uploadProgress.message}
                 </span>
               </div>
@@ -50,9 +54,12 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
                   <motion.div
                     className={`
                       shadow-sm flex flex-col text-center whitespace-nowrap text-white justify-center
-                      ${uploadProgress.status === 'error' ? 'bg-red-500' :
-                        uploadProgress.status === 'success' ? 'bg-emerald-500' :
-                        'bg-blue-500'
+                      ${
+                        uploadProgress.status === "error"
+                          ? "bg-red-500"
+                          : uploadProgress.status === "success"
+                            ? "bg-emerald-500"
+                            : "bg-blue-500"
                       }
                     `}
                     initial={{ width: 0 }}
@@ -63,13 +70,14 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
               </div>
 
               {uploadProgress.totalRecords > 0 && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="mt-2 text-xs text-slate-600 flex justify-between items-center"
                 >
                   <span>
-                    Processing: {uploadProgress.processedRecords} of {uploadProgress.totalRecords}
+                    Processing: {uploadProgress.processedRecords} of{" "}
+                    {uploadProgress.totalRecords}
                   </span>
                   <span className="font-semibold">
                     {uploadProgress.percentage}%
