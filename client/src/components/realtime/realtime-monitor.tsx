@@ -3,26 +3,34 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { analyzeText } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { getSentimentBadgeClasses } from '@/lib/colors';
 import { AlertCircle } from 'lucide-react';
+import { useDisasterContext } from '@/context/disaster-context';
 
 interface AnalyzedText {
   text: string;
   sentiment: string;
   confidence: number;
   timestamp: Date;
-  language: 'en' | 'tl'; // Added language field
-  explanation?: string; // Added explanation field
+  language: string; 
+  explanation?: string;
+  disasterType?: string | null;
+  location?: string | null;
 }
 
 export function RealtimeMonitor() {
   const [text, setText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedTexts, setAnalyzedTexts] = useState<AnalyzedText[]>([]);
+  const [autoAnalyze, setAutoAnalyze] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+  const { refreshData } = useDisasterContext();
 
   // Auto-scroll to bottom of results
   const resultsEndRef = useRef<HTMLDivElement>(null);
@@ -33,13 +41,39 @@ export function RealtimeMonitor() {
     }
   }, [analyzedTexts]);
 
+  // Effect for auto-analyze
+  useEffect(() => {
+    if (autoAnalyze && text.trim() && !isAnalyzing) {
+      // Clear any existing timeout
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+      
+      // Set a new timeout
+      const timeout = setTimeout(() => {
+        handleAnalyze();
+      }, 1000); // Wait 1 second after the user stops typing
+      
+      setTypingTimeout(timeout);
+    }
+    
+    // Cleanup function
+    return () => {
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+    };
+  }, [text, autoAnalyze]);
+
   const handleAnalyze = async () => {
     if (!text.trim()) {
-      toast({
-        title: 'Empty text',
-        description: 'Please enter some text to analyze',
-        variant: 'destructive',
-      });
+      if (!autoAnalyze) {
+        toast({
+          title: 'Empty text',
+          description: 'Please enter some text to analyze',
+          variant: 'destructive',
+        });
+      }
       return;
     }
 
@@ -54,17 +88,24 @@ export function RealtimeMonitor() {
           sentiment: result.post.sentiment,
           confidence: result.post.confidence,
           timestamp: new Date(),
-          language: result.post.language, // Added language assignment
-          explanation: result.post.explanation // Added explanation assignment
+          language: result.post.language,
+          explanation: result.post.explanation,
+          disasterType: result.post.disasterType,
+          location: result.post.location
         }
       ]);
 
       setText('');
 
-      toast({
-        title: 'Analysis complete',
-        description: `Sentiment detected: ${result.post.sentiment}`,
-      });
+      if (!autoAnalyze) {
+        toast({
+          title: 'Analysis complete',
+          description: `Sentiment detected: ${result.post.sentiment}`,
+        });
+      }
+      
+      // Refresh the data in the disaster context
+      refreshData();
     } catch (error) {
       toast({
         title: 'Analysis failed',
@@ -81,10 +122,22 @@ export function RealtimeMonitor() {
       {/* Input Card */}
       <Card className="bg-white rounded-lg shadow">
         <CardHeader className="p-5 border-b border-gray-200">
-          <CardTitle className="text-lg font-medium text-slate-800">Real-Time Sentiment Analysis</CardTitle>
-          <CardDescription className="text-sm text-slate-500">
-            Enter text related to disaster situations
-          </CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="text-lg font-medium text-slate-800">Real-Time Sentiment Analysis</CardTitle>
+              <CardDescription className="text-sm text-slate-500">
+                Enter text related to disaster situations
+              </CardDescription>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="auto-analyze"
+                checked={autoAnalyze}
+                onCheckedChange={setAutoAnalyze}
+              />
+              <Label htmlFor="auto-analyze">Auto Analyze</Label>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-5">
           <Textarea

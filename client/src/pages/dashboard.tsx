@@ -84,12 +84,37 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
           <p className="mt-1 text-sm text-slate-500">Real-time disaster sentiment analysis overview</p>
         </div>
-        <FileUploader 
-          className="mt-4 sm:mt-0"
-          onSuccess={() => {
-            // The disaster context will handle refetching data
-          }}
-        />
+        <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={isDeleting}>
+                {isDeleting ? "Deleting..." : "Delete All Data"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action will permanently delete all sentiment posts, disaster events, and analyzed files from the database.
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteAllData}>
+                  Yes, Delete All Data
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          
+          <FileUploader 
+            className=""
+            onSuccess={() => {
+              // The disaster context will handle refetching data
+            }}
+          />
+        </div>
       </div>
 
       {/* Status Cards */}
