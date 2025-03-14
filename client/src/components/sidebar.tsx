@@ -1,96 +1,158 @@
-import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { cn } from '@/lib/utils'
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from "wouter";
+import { cn } from "@/lib/utils";
+import { 
+  BarChart3, 
+  FileText, 
+  Clock, 
+  LineChart, 
+  Database,
+  Activity,
+  Info,
+  Timer
+} from "lucide-react";
 
-export function Sidebar() {
-  const [isMobileOpen, setIsMobileOpen] = useState(false)
-  const location = useLocation()
+interface SidebarProps {
+  className?: string;
+}
 
-  // Close mobile sidebar when route changes
+interface NavItem {
+  href: string;
+  label: string;
+  icon: JSX.Element;
+}
+
+export function Sidebar({ className }: SidebarProps) {
+  const [location] = useLocation();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Added state for expansion
+
+  const toggleExpanded = () => setIsExpanded(!isExpanded); // Added toggle function
+
+  // Close sidebar on route change on mobile
   useEffect(() => {
-    setIsMobileOpen(false)
-  }, [location])
+    if (isMobileOpen) {
+      setIsMobileOpen(false);
+    }
+  }, [location]);
+
+  const navItems: NavItem[] = [
+    {
+      href: "/",
+      label: "Dashboard",
+      icon: <BarChart3 className="h-5 w-5" />,
+    },
+    {
+      href: "/emotion-analysis",
+      label: "Emotion Analysis",
+      icon: <Activity className="h-5 w-5" />,
+    },
+    {
+      href: "/timeline",
+      label: "Timeline",
+      icon: <Clock className="h-5 w-5" />, 
+    },
+    {
+      href: "/comparison",
+      label: "Comparison",
+      icon: <LineChart className="h-5 w-5" />,
+    },
+    {
+      href: "/raw-data",
+      label: "Raw Data",
+      icon: <Database className="h-5 w-5" />,
+    },
+    {
+      href: "/evaluation",
+      label: "Evaluation Metrics",
+      icon: <FileText className="h-5 w-5" />,
+    },
+    {
+      href: "/real-time",
+      label: "Real-Time Mode",
+      icon: <Timer className="h-5 w-5" />,
+    },
+    {
+      href: "/about",
+      label: "About",
+      icon: <Info className="h-5 w-5" />,
+    },
+  ];
 
   return (
     <>
-      {/* Mobile Menu Button */}
+      {/* Mobile sidebar button */}
       <button 
         onClick={() => setIsMobileOpen(true)}
-        className="lg:hidden fixed z-50 top-4 left-4 p-2.5 rounded-lg bg-white/95 backdrop-blur-sm shadow-lg border border-slate-200/60 text-slate-700 hover:bg-slate-50 transition-all"
-        aria-label="Open Menu"
+        className="lg:hidden fixed z-50 top-4 left-4 p-2 rounded-md bg-white/90 backdrop-blur-sm shadow-sm border text-slate-700 hover:bg-slate-100"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
-      {/* Sidebar Container */}
-      <aside className={cn(
-        "fixed top-0 left-0 z-40 h-screen transition-transform lg:translate-x-0 bg-white/95 backdrop-blur-sm border-r border-slate-200/60",
-        "w-64 lg:w-72",
-        isMobileOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        {/* Logo Section */}
-        <div className="flex items-center gap-2 px-6 h-16 border-b border-slate-200/60">
-          <img src="/logo.png" alt="PanicSense PH" className="w-8 h-8" />
-          <span className="font-semibold text-lg">PanicSense PH</span>
-        </div>
-
-        {/* Navigation Links */}
-        <nav className="flex flex-col gap-1 p-4">
-          {[
-            { path: '/', label: 'Dashboard', icon: 'graph' },
-            { path: '/emotion', label: 'Emotion Analysis', icon: 'heart' },
-            { path: '/timeline', label: 'Timeline', icon: 'clock' },
-            { path: '/comparison', label: 'Comparison', icon: 'compare' },
-            { path: '/raw-data', label: 'Raw Data', icon: 'database' },
-            { path: '/metrics', label: 'Evaluation Metrics', icon: 'chart' },
-            { path: '/realtime', label: 'Real-Time Mode', icon: 'live' },
-            { path: '/about', label: 'About', icon: 'info' },
-          ].map(({ path, label, icon }) => (
-            <Link
-              key={path}
-              to={path}
-              className={cn(
-                "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                "hover:bg-slate-100",
-                location.pathname === path 
-                  ? "bg-slate-100 text-blue-600" 
-                  : "text-slate-600 hover:text-slate-900"
-              )}
-            >
-              <span className="flex-shrink-0 w-5 h-5">
-                {getIcon(icon)}
-              </span>
-              {label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-
       {/* Overlay for mobile */}
       {isMobileOpen && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
-    </>
-  )
-}
 
-// Helper function to render icons -  needs proper implementation based on icon library used
-function getIcon(name: string) {
-  // Replace with your actual icons. This is a placeholder.  You'll need to integrate your icon library here.
-  switch (name) {
-    case 'graph': return <BarChart3 className="h-5 w-5" />;
-    case 'heart': return <Activity className="h-5 w-5" />;
-    case 'clock': return <Clock className="h-5 w-5" />;
-    case 'compare': return <LineChart className="h-5 w-5" />;
-    case 'database': return <Database className="h-5 w-5" />;
-    case 'chart': return <FileText className="h-5 w-5" />;
-    case 'live': return <Timer className="h-5 w-5" />;
-    case 'info': return <Info className="h-5 w-5" />;
-    default: return <svg className="w-5 h-5" viewBox="0 0 24 24" />;
-  }
+      {/* Sidebar */}
+      <div
+        className={cn(
+          "fixed inset-y-0 left-0 bg-slate-800 text-white z-50 transform transition-all duration-300 shadow-xl",
+          isExpanded ? "w-64" : "w-16", // Added width toggle
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          className
+        )}
+      >
+        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <h1 className="text-lg font-bold">PanicSense PH</h1>
+          </div>
+          <button 
+            onClick={() => setIsMobileOpen(false)}
+            className="lg:hidden"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <button 
+          onClick={toggleExpanded} 
+          className="absolute -right-3 top-4 hidden lg:flex items-center justify-center h-6 w-6 rounded-full bg-slate-700 text-white cursor-pointer hover:bg-slate-600"
+        >
+          {isExpanded ? "←" : "→"}
+        </button>
+
+
+        <nav className="pt-5 px-4 space-y-2">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center space-x-2 py-2 px-3 rounded-md transition-colors duration-200",
+                location === item.href
+                  ? "bg-slate-700 text-white"
+                  : "text-slate-300 hover:bg-slate-700 hover:text-white"
+              )}
+            >
+              {item.icon}
+              <span className={isExpanded ? "" : "hidden"} >{item.label}</span> {/* Hide labels when collapsed */}
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </>
+  );
 }
