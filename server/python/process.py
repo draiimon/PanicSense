@@ -204,6 +204,16 @@ Consider cultural context, local expressions, and disaster-specific indicators.
 For Tagalog text, consider the nuances and intensity markers specific to Filipino culture during disasters.
 Analyze both explicit statements and implicit emotional indicators.
 
+Important distinction for sentiment classification:
+- PANIC: Indicates urgent need for help, extremely agitated state, or inability to cope with the situation. Examples: desperate calls for rescue, immediate life-threatening situations
+- FEAR: General feeling of being scared or worried, but still maintaining composure. Examples: concern about incoming storms, worry about potential flooding
+
+Always classify as PANIC when there are clear signs of:
+- Desperate calls for immediate help
+- Life-threatening situations requiring urgent assistance
+- Extremely distressed mental states
+- Inability to handle the current situation
+
 Text: {text}
 
 Provide detailed sentiment analysis in this format:
@@ -246,12 +256,12 @@ Location: [identify Philippine location if mentioned]
                         confidence = max(0.7, min(0.98, confidence))  # Clamp between 0.7 and 0.98
 
                     explanation = explanation_match.group(1) if explanation_match else None
-                    
+
                     # Extract disaster type and location if available from GROQ
                     disaster_type = disaster_type_match.group(1) if disaster_type_match else None
                     if disaster_type and disaster_type.lower() == "none" or disaster_type and disaster_type.lower() == "n/a":
                         disaster_type = None
-                        
+
                     location = location_match.group(1) if location_match else None
                     if location and location.lower() == "none" or location and location.lower() == "n/a":
                         location = None

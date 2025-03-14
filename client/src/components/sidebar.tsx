@@ -81,7 +81,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Mobile sidebar button */}
       <button 
         onClick={() => setIsMobileOpen(true)}
-        className="lg:hidden fixed z-50 top-4 left-4 p-2 rounded-md text-slate-600 hover:bg-slate-100"
+        className="lg:hidden fixed z-50 top-4 left-4 p-2 rounded-md bg-white/90 backdrop-blur-sm shadow-sm border text-slate-700 hover:bg-slate-100"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
