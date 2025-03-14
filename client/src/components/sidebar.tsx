@@ -56,6 +56,21 @@ export function Sidebar({ className }: SidebarProps) {
     }
   }, [location]);
 
+  // Handle click outside to close sidebar on mobile
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const sidebar = document.getElementById('mobile-sidebar');
+      if (isMobileOpen && sidebar && !sidebar.contains(event.target as Node)) {
+        setIsMobileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMobileOpen]);
+
   const navItems: NavItem[] = [
     {
       href: "/dashboard",
@@ -126,21 +141,22 @@ export function Sidebar({ className }: SidebarProps) {
         )}
       </AnimatePresence>
 
-      {/* Sidebar - Always visible on desktop */}
+      {/* Sidebar */}
       <motion.aside
+        id="mobile-sidebar"
         variants={sidebarVariants}
         initial={false}
         animate={{ x: 0 }}
         className={cn(
-          "fixed inset-y-0 left-0 bg-gradient-to-b from-slate-800 to-slate-900 text-white w-[280px] z-50 shadow-xl",
+          "fixed inset-y-0 left-0 bg-gradient-to-b from-slate-900 to-slate-800 text-white w-[280px] z-50 shadow-xl",
           "lg:relative lg:translate-x-0",
-          "transform transition-transform duration-300",
+          "transform transition-transform duration-300 ease-in-out",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           className
         )}
       >
-        {/* Logo Section */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700/50">
+        {/* Logo Section - Only show on mobile */}
+        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700/50 lg:hidden">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
               <motion.svg 
@@ -163,7 +179,7 @@ export function Sidebar({ className }: SidebarProps) {
           {/* Close Button - Mobile Only */}
           <motion.button 
             onClick={() => setIsMobileOpen(false)}
-            className="lg:hidden text-slate-400 hover:text-white transition-colors"
+            className="text-slate-400 hover:text-white transition-colors"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
@@ -172,7 +188,7 @@ export function Sidebar({ className }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="pt-5 px-4 space-y-1">
+        <nav className="h-[calc(100vh-4rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent pt-5 px-4 space-y-1">
           <AnimatePresence>
             {navItems.map((item, index) => (
               <motion.div
@@ -184,11 +200,12 @@ export function Sidebar({ className }: SidebarProps) {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center space-x-2 py-2 px-3 rounded-md transition-all duration-200 relative",
+                    "flex items-center space-x-2 py-2 px-3 rounded-md transition-all duration-200 relative group",
                     location === item.href
                       ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
                       : "text-slate-400 hover:text-white hover:bg-slate-700/50"
                   )}
+                  onClick={() => setIsMobileOpen(false)}
                 >
                   {item.icon}
                   <span>{item.label}</span>

@@ -4,6 +4,12 @@ import { StatusCard } from "@/components/dashboard/status-card";
 import { SentimentChart } from "@/components/dashboard/sentiment-chart";
 import { AffectedAreas } from "@/components/dashboard/affected-areas";
 import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
+import { motion } from "framer-motion";
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
 
 export default function Dashboard() {
   const { 
@@ -46,23 +52,32 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: { opacity: 1 }
+      }}
+      className="h-[calc(100vh-2rem)] overflow-y-auto px-6 py-6 bg-slate-50"
+    >
       {/* Dashboard Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <motion.div 
+        variants={fadeInUp}
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6"
+      >
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-          <p className="mt-1 text-sm text-slate-500">Real-time disaster sentiment analysis overview</p>
+          <h1 className="text-2xl font-bold text-slate-800">Disaster Analysis Dashboard</h1>
+          <p className="mt-1 text-sm text-slate-500">Real-time sentiment analysis overview</p>
         </div>
-        <FileUploader 
-          className="mt-4 sm:mt-0"
-          onSuccess={() => {
-            // The disaster context will handle refetching data
-          }}
-        />
-      </div>
+        <FileUploader className="mt-4 sm:mt-0" />
+      </motion.div>
 
       {/* Status Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <motion.div 
+        variants={fadeInUp}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6"
+      >
         <StatusCard
           title="Active Disasters"
           value={activeDiastersCount}
@@ -110,10 +125,13 @@ export default function Dashboard() {
           iconBgColor="bg-green-100"
           change={{ value: "+5% improvement", positive: true }}
         />
-      </div>
+      </motion.div>
 
       {/* Sentiment Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <motion.div 
+        variants={fadeInUp}
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6"
+      >
         {/* Sentiment Distribution Chart */}
         <div className="lg:col-span-2">
           <SentimentChart
@@ -128,14 +146,16 @@ export default function Dashboard() {
 
         {/* Top Affected Areas */}
         <AffectedAreas areas={affectedAreas} />
-      </div>
+      </motion.div>
 
       {/* Recent Posts Table */}
-      <RecentPostsTable 
-        posts={sentimentPosts}
-        title="Recent Analyzed Posts"
-        description="Latest social media sentiment"
-      />
-    </div>
+      <motion.div variants={fadeInUp}>
+        <RecentPostsTable 
+          posts={sentimentPosts}
+          title="Recent Analyzed Posts"
+          description="Latest social media sentiment"
+        />
+      </motion.div>
+    </motion.div>
   );
 }
