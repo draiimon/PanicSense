@@ -381,54 +381,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (text) {
         const result = await pythonService.analyzeSentiment(text);
         
-        // Save the sentiment post
-        const sentimentPost = await storage.createSentimentPost(
-          insertSentimentPostSchema.parse({
+        // Check if this is a disaster-related post before saving
+        // We consider text disaster-related if:
+        // 1. It has a specific disaster type that's not "NONE"
+        // 2. OR it has a specific location AND a sentiment that's not Neutral
+        // 3. OR it has Fear/Anxiety or Panic sentiment which strongly suggests disaster context
+        const isDisasterRelated = (
+          (result.disasterType && result.disasterType !== "NONE" && result.disasterType !== "Not Specified") ||
+          (result.location && result.sentiment !== "Neutral") ||
+          ["Panic", "Fear/Anxiety"].includes(result.sentiment)
+        );
+        
+        let sentimentPost;
+        
+        // Only save to database if it's disaster-related
+        if (isDisasterRelated) {
+          sentimentPost = await storage.createSentimentPost(
+            insertSentimentPostSchema.parse({
+              text,
+              timestamp: new Date(),
+              source,
+              language: result.language,
+              sentiment: result.sentiment,
+              confidence: result.confidence,
+              explanation: result.explanation,
+              location: result.location || null,
+              disasterType: result.disasterType || null,
+              fileId: null
+            })
+          );
+          
+          return res.json({ 
+            post: sentimentPost, 
+            saved: true,
+            message: "Disaster-related content detected and saved to database."
+          });
+        } else {
+          // For non-disaster content, return the analysis but don't save it
+          sentimentPost = {
+            id: -1, // Use negative ID to indicate this wasn't saved
             text,
-            timestamp: new Date(),
-            source,
+            timestamp: new Date().toISOString(),
+            source: 'Manual Input (Not Saved - Non-Disaster)',
             language: result.language,
             sentiment: result.sentiment,
             confidence: result.confidence,
+            location: result.location,
+            disasterType: result.disasterType,
             explanation: result.explanation,
-            location: result.location || null,
-            disasterType: result.disasterType || null,
             fileId: null
-          })
-        );
-        
-        return res.json({ post: sentimentPost });
+          };
+          
+          return res.json({ 
+            post: sentimentPost, 
+            saved: false,
+            message: "Non-disaster content detected. Analysis shown but not saved to database."
+          });
+        }
       }
       
       // Process multiple texts
-      const sentimentPromises = texts.map(async (textItem: string) => {
+      const processResults = await Promise.all(texts.map(async (textItem: string) => {
         const result = await pythonService.analyzeSentiment(textItem);
         
-        return storage.createSentimentPost(
-          insertSentimentPostSchema.parse({
-            text: textItem,
-            timestamp: new Date(),
-            source,
-            language: result.language,
-            sentiment: result.sentiment,
-            confidence: result.confidence,
-            explanation: result.explanation,
-            location: result.location || null,
-            disasterType: result.disasterType || null,
-            fileId: null
-          })
+        // Check if this is a disaster-related post
+        const isDisasterRelated = (
+          (result.disasterType && result.disasterType !== "NONE" && result.disasterType !== "Not Specified") ||
+          (result.location && result.sentiment !== "Neutral") ||
+          ["Panic", "Fear/Anxiety"].includes(result.sentiment)
         );
-      });
+        
+        if (isDisasterRelated) {
+          // Only save disaster-related content
+          const post = await storage.createSentimentPost(
+            insertSentimentPostSchema.parse({
+              text: textItem,
+              timestamp: new Date(),
+              source,
+              language: result.language,
+              sentiment: result.sentiment,
+              confidence: result.confidence,
+              explanation: result.explanation,
+              location: result.location || null,
+              disasterType: result.disasterType || null,
+              fileId: null
+            })
+          );
+          return { post, saved: true };
+        } else {
+          // Return analysis but don't save
+          return { 
+            post: {
+              id: -1,
+              text: textItem,
+              timestamp: new Date().toISOString(),
+              source: 'Manual Input (Not Saved - Non-Disaster)',
+              language: result.language,
+              sentiment: result.sentiment,
+              confidence: result.confidence,
+              location: result.location,
+              disasterType: result.disasterType,
+              explanation: result.explanation,
+              fileId: null
+            }, 
+            saved: false 
+          };
+        }
+      }));
       
-      const sentimentPosts = await Promise.all(sentimentPromises);
+      // Extract just the saved posts for disaster event generation
+      const savedPosts = processResults
+        .filter(item => item.saved)
+        .map(item => item.post);
       
-      // Generate disaster events from the new posts if we have at least 3
-      if (sentimentPosts.length >= 3) {
-        await generateDisasterEvents(sentimentPosts);
+      // Generate disaster events from the saved posts if we have at least 3
+      if (savedPosts.length >= 3) {
+        await generateDisasterEvents(savedPosts);
       }
       
       res.json({
-        posts: sentimentPosts
+        results: processResults,
+        savedCount: savedPosts.length,
+        skippedCount: processResults.length - savedPosts.length,
+        message: `Processed ${processResults.length} texts. Saved ${savedPosts.length} disaster-related posts. Skipped ${processResults.length - savedPosts.length} non-disaster posts.`
       });
     } catch (error) {
       res.status(500).json({ 

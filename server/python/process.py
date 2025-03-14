@@ -945,8 +945,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
         
     def create_ensemble_prediction(self, model_results, text):
         """
-        Combines results from different models using a weighted ensemble approach
-        Simulates BiGRU, LSTM, and other advanced models by using weighted voting
+        Combines results from different detection methods using a weighted ensemble approach
         """
         # Weight assignments for different models
         # API results are given higher weight (0.7) than rule-based (0.3)
@@ -1000,8 +999,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                     max_confidence = result['confidence']
                     final_sentiment = result['sentiment']
         
-        # Calculate combined confidence (higher than any individual model)
-        # Using a BiGRU/LSTM-inspired confidence boosting algorithm
+        # Calculate combined confidence (higher than any individual method)
         base_confidence = 0
         for result in model_results:
             if result['sentiment'] == final_sentiment:
@@ -1024,7 +1022,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
         
         # Only override the default if we have a specific type
         if disaster_types:
-            specific_types = [dt for dt in disaster_types if dt and dt != "Not Specified" and dt != "Unspecified" and dt != "None"]
+            specific_types = [dt for dt in disaster_types if dt and dt != "NONE" and dt != "Not Specified" and dt != "Unspecified" and dt != "None"]
             if specific_types:
                 # Get the most frequent specific disaster type
                 type_counts = {}
@@ -1067,7 +1065,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
             final_explanation = None  # No explanation for non-meaningful inputs
             
             # For non-meaningful inputs, reset disaster type and location
-            final_disaster_type = "Not Specified"
+            final_disaster_type = "NONE"
             final_location = None
             
         # Final enhanced prediction with BiGRU/LSTM-inspired confidence
@@ -1108,7 +1106,7 @@ Location: [identify Philippine location ONLY if explicitly mentioned, otherwise 
                 'sentiment': analysis_result['sentiment'],
                 'confidence': analysis_result['confidence'],
                 'explanation': analysis_result['explanation'],
-                'disasterType': analysis_result.get('disasterType', "Not Specified"),
+                'disasterType': analysis_result.get('disasterType', "NONE"),
                 'location': analysis_result.get('location', None),
                 'modelType': analysis_result.get('modelType', "Hybrid Analysis")
             })
@@ -1183,7 +1181,7 @@ elif args.text:
         'confidence': analysis_result['confidence'],
         'explanation': analysis_result['explanation'],
         'language': analysis_result['language'],
-        'disasterType': analysis_result.get('disasterType', "Not Specified"),
+        'disasterType': analysis_result.get('disasterType', "NONE"),
         'location': analysis_result.get('location', None),
         'modelType': analysis_result.get('modelType', "Hybrid Analysis")
     }
