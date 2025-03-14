@@ -287,6 +287,7 @@ Location: [identify Philippine location if mentioned]
     def rule_based_sentiment_analysis(self, text):
         """
         Enhanced rule-based sentiment analysis with bilingual keyword support
+        and disaster type detection
         """
         # Bilingual keywords (English + Tagalog)
         keywords = {
@@ -326,6 +327,30 @@ Location: [identify Philippine location if mentioned]
                 'kalagayan', 'sitwasyon', 'pangyayari'
             ]
         }
+        
+        # Disaster type mappings (English and Tagalog)
+        disaster_keywords = {
+            'Earthquake': ['earthquake', 'quake', 'tremor', 'seismic', 'lindol', 'pagyanig', 'yanig'],
+            'Typhoon': ['typhoon', 'storm', 'cyclone', 'bagyo', 'unos', 'bagyong', 'hanging', 'malakas na hangin'],
+            'Flood': ['flood', 'flooding', 'submerged', 'baha', 'bumabaha', 'tubig-baha', 'bumaha', 'pagbaha'],
+            'Landslide': ['landslide', 'mudslide', 'erosion', 'guho', 'pagguho', 'pagguho ng lupa', 'rumaragasa'],
+            'Fire': ['fire', 'burning', 'flame', 'sunog', 'nasusunog', 'apoy', 'nagliliyab'],
+            'Tsunami': ['tsunami', 'tidal wave', 'tsunamis', 'malaking alon'],
+            'Volcanic Eruption': ['volcano', 'eruption', 'ash', 'lava', 'bulkan', 'pagputok', 'abo', 'pagputok ng bulkan']
+        }
+        
+        # Philippine regions and locations
+        location_keywords = {
+            'Luzon': ['Luzon', 'Manila', 'Quezon City', 'Makati', 'Taguig', 'Pasig', 'Batangas', 'Pampanga', 
+                     'Bulacan', 'Cavite', 'Laguna', 'Rizal', 'Bataan', 'Zambales', 'Pangasinan', 'Ilocos', 
+                     'Cagayan', 'Isabela', 'Aurora', 'Batanes', 'Bicol', 'Albay', 'Sorsogon', 'Camarines', 
+                     'Catanduanes', 'Baguio', 'La Union', 'Benguet', 'CAR', 'Cordillera', 'NCR', 'Metro Manila'],
+            'Visayas': ['Visayas', 'Cebu', 'Iloilo', 'Bacolod', 'Tacloban', 'Leyte', 'Samar', 'Bohol', 
+                       'Negros', 'Panay', 'Boracay', 'Aklan', 'Antique', 'Capiz', 'Siquijor', 'Biliran'],
+            'Mindanao': ['Mindanao', 'Davao', 'Cagayan de Oro', 'Zamboanga', 'General Santos', 'Cotabato', 
+                        'Surigao', 'Butuan', 'Marawi', 'Iligan', 'Maguindanao', 'Sulu', 'Basilan', 
+                        'Tawi-Tawi', 'BARMM', 'Lanao', 'Bukidnon', 'Agusan', 'Misamis']
+        }
 
         explanations = {
             'Panic': "The text shows immediate distress and urgent need for help, indicating panic.",
@@ -363,12 +388,39 @@ Location: [identify Philippine location if mentioned]
         custom_explanation = explanations[max_sentiment]
         if matched_keywords[max_sentiment]:
             custom_explanation += f" Key indicators: {', '.join(matched_keywords[max_sentiment][:3])}."
+            
+        # Detect disaster type from text
+        disaster_type = None
+        for dtype, words in disaster_keywords.items():
+            for word in words:
+                if word.lower() in text_lower:
+                    disaster_type = dtype
+                    break
+            if disaster_type:
+                break
+                
+        # Detect location from text
+        location = None
+        specific_location = None
+        for region, places in location_keywords.items():
+            for place in places:
+                if place.lower() in text_lower:
+                    location = region
+                    specific_location = place
+                    break
+            if location:
+                break
+                
+        # If specific location was found, use it instead of the region
+        final_location = specific_location if specific_location else location
 
         return {
             "sentiment": max_sentiment,
             "confidence": confidence,
             "explanation": custom_explanation,
-            "language": self.detect_language(text)
+            "language": self.detect_language(text),
+            "disasterType": disaster_type,
+            "location": final_location
         }
 
     def process_csv(self, file_path):
@@ -396,7 +448,9 @@ Location: [identify Philippine location if mentioned]
                 'language': analysis_result['language'],
                 'sentiment': analysis_result['sentiment'],
                 'confidence': analysis_result['confidence'],
-                'explanation': analysis_result['explanation']
+                'explanation': analysis_result['explanation'],
+                'disasterType': analysis_result.get('disasterType', None),
+                'location': analysis_result.get('location', None)
             })
 
         # Final progress update
@@ -467,7 +521,9 @@ elif args.text:
         'sentiment': analysis_result['sentiment'],
         'confidence': analysis_result['confidence'],
         'explanation': analysis_result['explanation'],
-        'language': analysis_result['language']
+        'language': analysis_result['language'],
+        'disasterType': analysis_result.get('disasterType', None),
+        'location': analysis_result.get('location', None)
     }
 
     print(json.dumps(output))
