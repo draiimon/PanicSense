@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import Chart from 'chart.js/auto';
 import { sentimentColors } from '@/lib/colors';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface SentimentChartProps {
@@ -26,33 +26,38 @@ export function OptimizedSentimentChart({
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
 
-  // Memoize colors to prevent recalculation on every render
+  // Prevent updates during loading
+  const processedData = useMemo(() => {
+    if (isLoading) {
+      return {
+        labels: [],
+        values: []
+      };
+    }
+    return data;
+  }, [data, isLoading]);
+
+  // Memoize colors to prevent recalculation
   const colors = useMemo(() => {
-    return data.labels.map(label => {
-      // Direct mapping to sentiment colors
+    return processedData.labels.map(label => {
       switch (label) {
-        case 'Panic':
-          return '#ef4444';
-        case 'Fear/Anxiety':
-          return '#f97316';
-        case 'Disbelief':
-          return '#8b5cf6';
-        case 'Resilience':
-          return '#10b981';
+        case 'Panic': return '#ef4444';
+        case 'Fear/Anxiety': return '#f97316';
+        case 'Disbelief': return '#8b5cf6';
+        case 'Resilience': return '#10b981';
         case 'Neutral':
-        default:
-          return '#6b7280';
+        default: return '#6b7280';
       }
     });
-  }, [data.labels]);
+  }, [processedData.labels]);
 
-  // Memoize chart options to prevent recreation on every render
+  // Memoize chart options
   const chartOptions = useMemo(() => {
     return {
       responsive: true,
       maintainAspectRatio: false,
       animation: {
-        duration: 800,
+        duration: isLoading ? 0 : 800, // Disable animations during loading
         easing: 'easeOutQuart' as const
       },
       plugins: {
@@ -60,24 +65,18 @@ export function OptimizedSentimentChart({
           display: true,
           position: 'bottom' as const,
           labels: {
-            font: {
-              size: 12,
-            },
+            font: { size: 12 },
             padding: 15,
             usePointStyle: true,
           },
         },
         tooltip: {
-          enabled: true,
+          enabled: !isLoading, // Disable tooltips during loading
           mode: 'index' as const,
           intersect: false,
           backgroundColor: 'rgba(17, 24, 39, 0.8)',
-          titleFont: {
-            size: 13,
-          },
-          bodyFont: {
-            size: 12,
-          },
+          titleFont: { size: 13 },
+          bodyFont: { size: 12 },
           padding: 10,
           cornerRadius: 4,
           displayColors: true,
@@ -86,78 +85,70 @@ export function OptimizedSentimentChart({
       scales: type !== 'doughnut' ? {
         x: {
           display: true,
-          grid: {
-            display: false,
-          },
-          ticks: {
-            font: {
-              size: 11,
-            },
-          },
+          grid: { display: false },
+          ticks: { font: { size: 11 } },
         },
         y: {
           display: true,
           beginAtZero: true,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)',
-          },
+          grid: { color: 'rgba(0, 0, 0, 0.05)' },
           ticks: {
-            font: {
-              size: 11,
-            },
+            font: { size: 11 },
             precision: 0,
           },
         },
       } : undefined,
     };
-  }, [type]);
+  }, [type, isLoading]);
 
-  // Update chart instead of recreating when possible
+  // Update or create chart
   useEffect(() => {
-    if (isLoading || !chartRef.current) return;
+    if (!chartRef.current) return;
 
     const ctx = chartRef.current.getContext('2d');
     if (!ctx) return;
 
-    // If chart exists, update data instead of destroying
-    if (chartInstance.current) {
-      chartInstance.current.data.labels = data.labels;
-      chartInstance.current.data.datasets[0].data = data.values;
-      chartInstance.current.data.datasets[0].backgroundColor = colors;
-
-      if (type === 'line') {
-        chartInstance.current.data.datasets[0].borderColor = colors;
-      } else {
-        chartInstance.current.data.datasets[0].borderColor = Array(data.labels.length).fill('rgba(255, 255, 255, 0.8)');
+    // During loading, either destroy existing chart or do nothing
+    if (isLoading) {
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+        chartInstance.current = null;
       }
+      return;
+    }
 
+    // Create chart configuration
+    const chartConfig = {
+      type,
+      data: {
+        labels: processedData.labels,
+        datasets: [{
+          label: 'Sentiment Distribution',
+          data: processedData.values,
+          backgroundColor: colors,
+          borderColor: type === 'line' ? colors : Array(processedData.labels.length).fill('rgba(255, 255, 255, 0.8)'),
+          borderWidth: 2,
+          tension: 0.3,
+          fill: type === 'line',
+          pointBackgroundColor: type === 'line' ? '#fff' : undefined,
+          pointBorderColor: type === 'line' ? colors : undefined,
+          pointRadius: type === 'line' ? 4 : undefined,
+          pointHoverRadius: type === 'line' ? 6 : undefined,
+        }],
+      },
+      options: chartOptions,
+    };
+
+    // If chart exists and not loading, update it
+    if (chartInstance.current) {
+      chartInstance.current.data = chartConfig.data;
+      chartInstance.current.options = chartConfig.options;
       chartInstance.current.update('none');
       return;
     }
 
-    // Create new chart if it doesn't exist
-    chartInstance.current = new Chart(ctx, {
-      type,
-      data: {
-        labels: data.labels,
-        datasets: [
-          {
-            label: 'Sentiment Distribution',
-            data: data.values,
-            backgroundColor: colors,
-            borderColor: type === 'line' ? colors : Array(data.labels.length).fill('rgba(255, 255, 255, 0.8)'),
-            borderWidth: 2,
-            tension: 0.3,
-            fill: type === 'line',
-            pointBackgroundColor: type === 'line' ? '#fff' : undefined,
-            pointBorderColor: type === 'line' ? colors : undefined,
-            pointRadius: type === 'line' ? 4 : undefined,
-            pointHoverRadius: type === 'line' ? 6 : undefined,
-          },
-        ],
-      },
-      options: chartOptions,
-    });
+    // Create new chart if none exists
+    chartInstance.current = new Chart(ctx, chartConfig);
 
     // Cleanup function
     return () => {
@@ -166,16 +157,17 @@ export function OptimizedSentimentChart({
         chartInstance.current = null;
       }
     };
-  }, [data, colors, type, chartOptions, isLoading]);
+  }, [processedData, colors, type, chartOptions, isLoading]);
 
+  // Loading state UI
   if (isLoading) {
     return (
       <div style={{ height }} className="flex items-center justify-center">
         <div className="space-y-4 w-full">
-          <Skeleton className="h-[200px] w-full bg-gray-200" />
+          <Skeleton className="h-[200px] w-full bg-gray-200 animate-pulse" />
           <div className="flex justify-center space-x-4">
             {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-4 w-20 bg-gray-200" />
+              <Skeleton key={i} className="h-4 w-20 bg-gray-200 animate-pulse" />
             ))}
           </div>
         </div>
@@ -183,15 +175,19 @@ export function OptimizedSentimentChart({
     );
   }
 
+  // Render chart with animations
   return (
-    <motion.div 
-      style={{ height }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="chart-container"
-    >
-      <canvas ref={chartRef}></canvas>
-    </motion.div>
+    <AnimatePresence mode="wait">
+      <motion.div 
+        style={{ height }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5 }}
+        className="chart-container"
+      >
+        <canvas ref={chartRef}></canvas>
+      </motion.div>
+    </AnimatePresence>
   );
 }
