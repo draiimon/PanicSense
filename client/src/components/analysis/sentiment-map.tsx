@@ -27,13 +27,15 @@ interface SentimentMapProps {
   onRegionSelect?: (region: Region) => void;
   mapType?: 'disaster' | 'emotion';
   view?: 'standard' | 'satellite';
+  showMarkers?: boolean;
 }
 
 export function SentimentMap({ 
   regions, 
   onRegionSelect,
   mapType = 'disaster',
-  view = 'standard' 
+  view = 'standard',
+  showMarkers = true
 }: SentimentMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);

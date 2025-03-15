@@ -31,6 +31,7 @@ export default function GeographicAnalysis() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard');
   const [selectedRegionFilter, setSelectedRegionFilter] = useState<string | null>(null);
+  const [showMarkers, setShowMarkers] = useState<boolean>(true);
 
   // Philippine region coordinates
   const regionCoordinates = {
@@ -271,21 +272,20 @@ export default function GeographicAnalysis() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
+                onClick={() => setShowMarkers(!showMarkers)}
                 className="flex items-center gap-2"
               >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Refresh Data</span>
+                <MapPin className="h-4 w-4" />
+                <span className="hidden sm:inline">{showMarkers ? 'Hide Map Markers' : 'Show Map Markers'}</span>
               </Button>
             </div>
           </CardHeader>
         </Card>
 
-        {/* Main Content Area - Improved Grid layout for both mobile and desktop */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[600px] h-[calc(100vh-10rem)]">
-          {/* Map Container - Takes 2/3 of the screen on desktop, full width on mobile, with proper height */}
-          <div className="lg:col-span-2 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-full min-h-0">
+        {/* Main Content Area - Mobile-friendly Grid layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full min-h-[600px]">
+          {/* Map Container - Takes 2/3 of the screen on desktop, full width and fixed height on mobile */}
+          <div className="lg:col-span-2 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-[500px] lg:h-full">
             {/* Map Controls */}
             <div className="border-b border-slate-200 p-4">
               <div className="flex flex-wrap gap-4 items-center justify-between">
@@ -364,14 +364,15 @@ export default function GeographicAnalysis() {
                     regions={regions}
                     mapType={activeMapType}
                     view={mapView}
+                    showMarkers={showMarkers}
                   />
                 </motion.div>
               </AnimatePresence>
             </div>
           </div>
 
-          {/* Legend Panel - 1/3 width on desktop, full width on mobile, with flexible height */}
-          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg flex flex-col h-full min-h-0">
+          {/* Legend Panel - 1/3 width on desktop, full width and fixed height on mobile */}
+          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg flex flex-col h-[400px] lg:h-full">
             <div className="p-2 border-b border-slate-200">
               <h3 className="font-semibold text-slate-800 text-sm">Analysis Legend</h3>
             </div>
