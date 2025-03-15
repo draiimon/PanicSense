@@ -38,24 +38,36 @@ class DisasterSentimentBackend:
         self.sentiment_labels = [
             'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'
         ]
-        # Initialize API key rotation
-        self.current_api_index = 0
-        self.api_key_failures = {}  # Track failed keys
-        self.max_key_failures = 3   # Max failures before marking a key as bad
         self.api_keys = []
         import os
-        import random
 
-        # Provided API keys - these will be used with rotation to avoid rate limiting
-        self.api_keys = [
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
+        # Look for API keys in environment variables (API_KEY_1, API_KEY_2, etc.)
+        i = 1
+        while True:
+            key_name = f"API_KEY_{i}"
+            api_key = os.getenv(key_name)
+            if api_key:
+                self.api_keys.append(api_key)
+                i += 1
+            else:
+                # No more keys found
+                break
+
+        # Fallback to a single API key if no numbered keys are found
+        if not self.api_keys and os.getenv("API_KEY"):
+            self.api_keys.append(os.getenv("API_KEY"))
+
+        # If no keys are found in environment variables, use the provided keys
+        if not self.api_keys:
+            self.api_keys = [
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
                 "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",
                 "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",
                 "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",
@@ -384,67 +396,86 @@ class DisasterSentimentBackend:
         return None
 
     def fetch_api(self, headers, payload, retry_count=0):
-        """Fetch data from API with minimal retries to avoid excessive API calls"""
         try:
-            # Use shorter timeout
             response = requests.post(self.api_url,
-                                    headers=headers,
-                                    json=payload,
-                                    timeout=3)
+                                     headers=headers,
+                                     json=payload)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            # Log the error but avoid multiple retries
-            if hasattr(e, 'response') and e.response:
-                logging.error(f"API Error: {e.response.status_code} {e.response.reason}")
-                
-                # Only rotate keys once if unauthorized or rate limited
-                if e.response.status_code in [401, 429] and retry_count == 0 and len(self.api_keys) > 1:
-                    self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
-                    headers["Authorization"] = f"Bearer {self.api_keys[self.current_api_index]}"
-                    return self.fetch_api(headers, payload, 1)
+            if hasattr(e, 'response'
+                       ) and e.response and e.response.status_code == 429:
+                logging.warning(
+                    f"LOADING SENTIMENTS..... (Data {self.current_api_index + 1}/{len(self.api_keys)}). Data Fetching..."
+                )
+                self.current_api_index = (self.current_api_index + 1) % len(
+                    self.api_keys)
+                logging.info(
+                    f"Waiting {self.limit_delay} seconds before trying next key"
+                )
+                time.sleep(self.limit_delay)
+                if retry_count < self.max_retries:
+                    return self.fetch_api(headers, payload, retry_count + 1)
+                else:
+                    logging.error("Max retries exceeded for rate limit.")
+                    return None
             else:
                 logging.error(f"API Error: {e}")
-                
-            # Immediately return None to use rule-based fallback
-            return None
+                time.sleep(self.retry_delay)
+                if retry_count < self.max_retries:
+                    return self.fetch_api(headers, payload, retry_count + 1)
+                else:
+                    logging.error("Max retries exceeded for API error.")
+                    return None
         except Exception as e:
             logging.error(f"API Request Error: {e}")
-            # Immediately return None to use rule-based fallback
-            return None
+            time.sleep(self.retry_delay)
+            if retry_count < self.max_retries:
+                return self.fetch_api(headers, payload, retry_count + 1)
+            else:
+                logging.error("Max retries exceeded for request error.")
+                return None
 
     def fetch_groq(self, headers, payload, retry_count=0):
-        """Fetch data from Groq API with minimal retries to avoid excessive API calls"""
         try:
-            # Only retry once at most
-            max_retry = 0
-            
             response = requests.post(self.api_url,
-                                    headers=headers,
-                                    json=payload,
-                                    timeout=3)  # Shorter timeout
+                                     headers=headers,
+                                     json=payload)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            # Log the error but don't retry multiple times
-            if hasattr(e, 'response') and e.response:
-                logging.error(f"API Error: {e.response.status_code} {e.response.reason}")
-                
-                # Only rotate keys once if unauthorized
-                if e.response.status_code == 401 and retry_count == 0:
-                    self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
-                    if len(self.api_keys) > 1:  # Only retry if we have multiple keys
-                        headers["Authorization"] = f"Bearer {self.api_keys[self.current_api_index]}"
-                        return self.fetch_groq(headers, payload, 1)
+            if hasattr(e, 'response'
+                       ) and e.response and e.response.status_code == 429:
+                logging.warning(
+                    f"LOADING SENTIMENTS..... (Data {self.current_api_index + 1}/{len(self.api_keys)}). Data Fetching..."
+                )
+                self.current_api_index = (self.current_api_index + 1) % len(
+                    self.api_keys)
+                logging.info(
+                    f"Waiting {self.limit_delay} seconds before trying next key"
+                )
+                time.sleep(self.limit_delay)
+                if retry_count < self.max_retries:
+                    return self.fetch_groq(headers, payload, retry_count + 1)
+                else:
+                    logging.error("Max retries exceeded for rate limit.")
+                    return None
             else:
                 logging.error(f"API Error: {e}")
-                
-            # Immediately return None to use rule-based fallback
-            return None
+                time.sleep(self.retry_delay)
+                if retry_count < self.max_retries:
+                    return self.fetch_groq(headers, payload, retry_count + 1)
+                else:
+                    logging.error("Max retries exceeded for API error.")
+                    return None
         except Exception as e:
             logging.error(f"API Request Error: {e}")
-            # Immediately return None to use rule-based fallback
-            return None
+            time.sleep(self.retry_delay)
+            if retry_count < self.max_retries:
+                return self.fetch_groq(headers, payload, retry_count + 1)
+            else:
+                logging.error("Max retries exceeded for request error.")
+                return None
 
     def detect_language(self, text):
         """
@@ -479,156 +510,49 @@ class DisasterSentimentBackend:
         except:
             return 'en'  # Fallback to English on detection failure
 
-    def analyze_sentiment(self, text, csv_location=None, csv_emotion=None, csv_disaster_type=None):
+    def analyze_sentiment(self, text):
         """
-        Enhanced sentiment analysis using Groq API with CSV data prioritization:
-        1. Check if we have CSV data first and use those as priorities
-        2. Detect language for better prompting
-        3. Send to Groq API for analysis of remaining fields
-        4. Ensure CSV data always takes precedence over API results
+        Enhanced sentiment analysis using Groq API only:
+        1. Detect language first for better prompting
+        2. Send to Groq API for full analysis
+        3. Process the response to extract sentiment, location, and disaster type
         """
-        # Log CSV data for debugging
-        logging.info(f"CSV data provided - Location: {csv_location}, Emotion: {csv_emotion}, Disaster Type: {csv_disaster_type}")
-        
         # Detect language first for better prompting
         language = self.detect_language(text)
         language_name = "Filipino/Tagalog" if language == "tl" else "English"
 
-        logging.info(f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
+        logging.info(
+            f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
 
-        # If we have ALL CSV data, we can skip the API call entirely
-        if csv_location and csv_emotion and csv_disaster_type:
-            logging.info(f"Using complete CSV data for analysis - Location: {csv_location}, Emotion: {csv_emotion}, Disaster: {csv_disaster_type}")
-            
-            # Map CSV emotion to our sentiment categories
-            sentiment_map = {
-                'fear': 'Fear/Anxiety',
-                'anxiety': 'Fear/Anxiety',
-                'fear/anxiety': 'Fear/Anxiety',
-                'panic': 'Panic',
-                'scared': 'Fear/Anxiety',
-                'disbelief': 'Disbelief',
-                'doubt': 'Disbelief',
-                'skepticism': 'Disbelief',
-                'resilience': 'Resilience',
-                'hope': 'Resilience',
-                'strength': 'Resilience',
-                'neutral': 'Neutral'
-            }
-            sentiment = sentiment_map.get(csv_emotion.lower(), csv_emotion)
-            
-            # Create complete result from CSV
-            csv_result = {
-                'sentiment': sentiment,
-                'confidence': 0.95,  # Highest confidence for complete CSV data
-                'explanation': f'Using complete CSV data: {csv_emotion}',
-                'disasterType': csv_disaster_type,
-                'location': csv_location,
-                'language': language,
-                'modelType': 'CSV-Direct'
-            }
-            return csv_result
-            
-        # Try API analysis for any missing fields
+        # Get analysis directly from Groq API
         api_result = self.get_api_sentiment_analysis(text, language)
 
-        # Create result dictionary, prioritizing CSV data when available
-        final_result = {}
-        
         if not api_result:
-            # In case of API failure, use disaster type and location extraction as fallback
-            final_result['disasterType'] = csv_disaster_type or self.extract_disaster_type(text) or "Not Specified"
-            final_result['location'] = csv_location or self.extract_location(text)
-            
-            # Use CSV emotion if available, otherwise use rule-based analysis
-            if csv_emotion:
-                # Map CSV emotion to our sentiment categories
-                sentiment_map = {
-                    'fear': 'Fear/Anxiety',
-                    'anxiety': 'Fear/Anxiety',
-                    'fear/anxiety': 'Fear/Anxiety',
-                    'panic': 'Panic',
-                    'scared': 'Fear/Anxiety',
-                    'disbelief': 'Disbelief',
-                    'doubt': 'Disbelief',
-                    'skepticism': 'Disbelief',
-                    'resilience': 'Resilience',
-                    'hope': 'Resilience',
-                    'strength': 'Resilience',
-                    'neutral': 'Neutral'
-                }
-                final_result['sentiment'] = sentiment_map.get(csv_emotion.lower(), csv_emotion)
-                final_result['explanation'] = f'Using emotion from CSV: {csv_emotion}'
-                final_result['confidence'] = 0.9  # Higher confidence for direct CSV data
-            else:
-                # Use rule-based sentiment analysis
-                sentiment_result = self.rule_based_sentiment_analysis(text)
-                final_result['sentiment'] = sentiment_result.get('sentiment', 'Neutral')
-                final_result['explanation'] = sentiment_result.get('explanation', 'Rule-based fallback analysis.')
-                final_result['confidence'] = 0.7
-                
-            final_result['language'] = language
-            final_result['modelType'] = 'API-Fallback'
-            
-            # Log the final result with CSV data
-            logging.info(f"API fallback with CSV - Location: {final_result['location']}, Disaster: {final_result['disasterType']}")
-            
-            return final_result
-
-        # If API succeeded, start with API result but ensure CSV data takes precedence
-        final_result = api_result.copy()
-        
-        # ALWAYS override with CSV data when available, even if API returned values
-        if csv_location:
-            final_result['location'] = csv_location
-            logging.info(f"Using CSV location: {csv_location}")
-        
-        if csv_emotion:
-            # Map CSV emotion to our sentiment categories
-            sentiment_map = {
-                'fear': 'Fear/Anxiety',
-                'anxiety': 'Fear/Anxiety',
-                'fear/anxiety': 'Fear/Anxiety',
-                'panic': 'Panic',
-                'scared': 'Fear/Anxiety',
-                'disbelief': 'Disbelief',
-                'doubt': 'Disbelief',
-                'skepticism': 'Disbelief',
-                'resilience': 'Resilience',
-                'hope': 'Resilience',
-                'strength': 'Resilience',
-                'neutral': 'Neutral'
+            # In case of API failure, use simple disaster type and location extraction as fallback
+            fallback_result = {
+                'sentiment': 'Neutral',
+                'confidence': 0.7,
+                'explanation': 'Fallback analysis due to API unavailability.',
+                'disasterType': self.extract_disaster_type(text)
+                or "Not Specified",
+                'location': self.extract_location(text),
+                'language': language,
+                'modelType': 'API-Fallback'
             }
-            final_result['sentiment'] = sentiment_map.get(csv_emotion.lower(), csv_emotion)
-            final_result['explanation'] = api_result.get('explanation', '') + f' (CSV emotion: {csv_emotion})'
-            final_result['confidence'] = 0.9  # Higher confidence for direct CSV data
-            logging.info(f"Using CSV emotion: {csv_emotion}")
-        
-        if csv_disaster_type:
-            final_result['disasterType'] = csv_disaster_type
-            logging.info(f"Using CSV disaster type: {csv_disaster_type}")
+            return fallback_result
 
         # Add model type for tracking
-        final_result['modelType'] = 'Hybrid-CSV-API'
-        
-        # Log the final result with CSV data
-        logging.info(f"Final result with CSV priority - Location: {final_result.get('location')}, Disaster: {final_result.get('disasterType', 'Not Specified')}")
+        api_result['modelType'] = 'Groq-API'
 
-        return final_result
+        return api_result
 
     def get_api_sentiment_analysis(self, text, language):
         """
-        Get sentiment analysis from Groq API with improved key rotation
+        Get sentiment analysis from Groq API
         """
         try:
             if len(self.api_keys) > 0:
-                # Use API key rotation to handle rate limits
                 api_key = self.api_keys[self.current_api_index]
-                logging.info(f"Using GROQ API key index {self.current_api_index} of {len(self.api_keys)} available keys")
-                
-                # Rotate to next key for next request (round-robin)
-                self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
-                
                 headers = {
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
@@ -789,129 +713,6 @@ class DisasterSentimentBackend:
 
         # Fallback to rule-based analysis
         return self.rule_based_sentiment_analysis(text)
-
-    def process_csv(self, file_path):
-        """Process a CSV file with enhanced error handling and flexible parsing"""
-        try:
-            # Try different CSV parsing approaches
-            df = None
-            last_error = None
-            
-            parse_attempts = [
-                lambda: pd.read_csv(file_path),
-                lambda: pd.read_csv(file_path, encoding='latin1'),
-                lambda: pd.read_csv(file_path, encoding='utf-8'),
-                lambda: pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip'),
-                lambda: pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip', sep=None, engine='python')
-            ]
-            
-            for attempt in parse_attempts:
-                try:
-                    df = attempt()
-                    break
-                except Exception as e:
-                    last_error = str(e)
-                    continue
-                    
-            if df is None:
-                raise Exception(f"Could not parse CSV file after multiple attempts. Last error: {last_error}")
-                
-            # Initialize processing
-            processed_results = []
-            total_records = len(df)
-            
-            # Log available columns
-            logging.info(f"Available CSV columns: {list(df.columns)}")
-            
-            # Use the first text-like column we find, or just the first column
-            text_column = None
-            for col in df.columns:
-                # Check if column contains string data
-                if df[col].dtype == 'object':
-                    sample = df[col].dropna().head(1)
-                    if len(sample) > 0 and isinstance(sample.iloc[0], str):
-                        text_column = col
-                        logging.info(f"Using column for text analysis: {col}")
-                        break
-            
-            # If no string column found, use first column
-            if text_column is None and len(df.columns) > 0:
-                text_column = df.columns[0]
-                logging.info(f"Using first column for analysis: {text_column}")
-            
-            logging.info(f"Mapped '{text_column}' to 'text' column")
-            
-            # Process each row
-            for index, row in df.iterrows():
-                try:
-                    # Extract text, location, emotion, and disaster type from CSV
-                    text = row[text_column]
-                    location = row['place'] if 'place' in df.columns else None
-                    emotion = row['sentiment'] if 'sentiment' in df.columns else None
-                    disaster_type = row['event_type'] if 'event_type' in df.columns else None
-                    timestamp = row['date'] if 'date' in df.columns else None
-                    source = row['platform'] if 'platform' in df.columns else None
-                    
-                    # Analyze sentiment
-                    result = self.analyze_sentiment(text, location, emotion, disaster_type)
-                    
-                    # Add timestamp and source if available
-                    if timestamp:
-                        result['timestamp'] = timestamp
-                    if source:
-                        result['source'] = source
-                    
-                    processed_results.append(result)
-                    
-                    # Report progress every 10 records
-                    if (index + 1) % 10 == 0 or index == total_records - 1:
-                        progress = (index + 1) / total_records * 100
-                        print(f"PROGRESS:{json.dumps({'processed': progress, 'stage': 'Analyzing sentiments'})}")
-                        sys.stdout.flush()
-                        
-                except Exception as e:
-                    logging.error(f"Error processing row {index}: {str(e)}")
-                    continue
-            
-            # Return results
-            output = {
-                "results": processed_results,
-                "metrics": {
-                    "accuracy": 0.95,
-                    "precision": 0.94,
-                    "recall": 0.93,
-                    "f1Score": 0.94
-                }
-            }
-            
-            # Ensure all data is JSON serializable
-            output = {
-                "results": [{
-                    "text": str(r.get("text", "")),
-                    "timestamp": str(r.get("timestamp", "")),
-                    "source": str(r.get("source", "")),
-                    "language": str(r.get("language", "")),
-                    "sentiment": str(r.get("sentiment", "")),
-                    "confidence": float(r.get("confidence", 0.0)),
-                    "explanation": str(r.get("explanation", "")),
-                    "disasterType": str(r.get("disasterType", "")),
-                    "location": str(r.get("location", ""))
-                } for r in processed_results],
-                "metrics": {
-                    "accuracy": float(output["metrics"]["accuracy"]),
-                    "precision": float(output["metrics"]["precision"]),
-                    "recall": float(output["metrics"]["recall"]),
-                    "f1Score": float(output["metrics"]["f1Score"])
-                }
-            }
-            
-            print(json.dumps(output, ensure_ascii=False))
-            sys.stdout.flush()
-            
-        except Exception as e:
-            logging.error(f"Failed to process CSV file: {e}")
-            print(json.dumps({"error": str(e), "results": [], "metrics": {"accuracy": 0.0, "precision": 0.0, "recall": 0.0, "f1Score": 0.0}}))
-            sys.exit(1)t(1)
 
     def rule_based_sentiment_analysis(self, text):
         """
@@ -1470,38 +1271,18 @@ class DisasterSentimentBackend:
         }
 
     def process_csv(self, file_path):
-        """Process a CSV file with enhanced error handling and flexible parsing"""
         try:
-            # Try different CSV parsing approaches
-            df = None
-            last_error = None
-            
-            parse_attempts = [
-                lambda: pd.read_csv(file_path),
-                lambda: pd.read_csv(file_path, encoding='latin1'),
-                lambda: pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip'),
-                lambda: pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip', sep=None, engine='python')
-            ]
-            
-            for attempt in parse_attempts:
-                try:
-                    df = attempt()
-                    break
-                except Exception as e:
-                    last_error = str(e)
-                    continue
-                    
-            if df is None:
-                raise Exception(f"Could not parse CSV file after multiple attempts. Last error: {last_error}")
-                
-            # Initialize processing
-            processed_results = []
-            total_records = len(df)
-            
-        except Exception as e:
-            logging.error(f"Failed to read CSV file: {e}")
-            print(json.dumps({"error": str(e)}))
-            sys.exit(1)
+            df = pd.read_csv(file_path)
+        except:
+            try:
+                df = pd.read_csv(file_path, encoding='latin1')
+            except:
+                df = pd.read_csv(file_path,
+                                 encoding='latin1',
+                                 on_bad_lines='skip')
+
+        processed_results = []
+        total_records = len(df)
 
         # If no text column, check for possible alternatives or use first column
         if 'text' not in df.columns:
@@ -1517,51 +1298,10 @@ class DisasterSentimentBackend:
             if 'text' not in df.columns and len(df.columns) > 0:
                 df['text'] = df[df.columns[0]]
 
-        # Check for location column with different possible names (case insensitive)
-        location_column = None
-        possible_location_columns = ['location', 'place', 'area', 'region', 'city', 'province', 'loc', 'address', 'site']
-        lowercase_columns = [col.lower() for col in df.columns]
-        for col_idx, col_lower in enumerate(lowercase_columns):
-            for pos_col in possible_location_columns:
-                if pos_col in col_lower:
-                    location_column = df.columns[col_idx]
-                    logging.info(f"Found location column: {location_column}")
-                    break
-            if location_column:
-                break
-
-        # Check for emotion/sentiment column with different possible names (case insensitive)
-        emotion_column = None
-        possible_emotion_columns = ['emotion', 'sentiment', 'feeling', 'mood', 'emotion_type', 'emot']
-        for col_idx, col_lower in enumerate(lowercase_columns):
-            for pos_col in possible_emotion_columns:
-                if pos_col in col_lower:
-                    emotion_column = df.columns[col_idx]
-                    logging.info(f"Found emotion column: {emotion_column}")
-                    break
-            if emotion_column:
-                break
-                
-        # Check for disaster type column with different possible names (case insensitive)
-        disaster_column = None
-        possible_disaster_columns = ['disaster', 'disaster_type', 'disaster type', 'event_type', 'event type', 'calamity', 'emergency', 'hazard', 'incident']
-        for col_idx, col_lower in enumerate(lowercase_columns):
-            for pos_col in possible_disaster_columns:
-                if pos_col in col_lower:
-                    disaster_column = df.columns[col_idx]
-                    logging.info(f"Found disaster type column: {disaster_column}")
-                    break
-            if disaster_column:
-                break
-                
-        # Print summary of what we found
-        logging.info(f"CSV Columns detected - Location: {location_column}, Emotion: {emotion_column}, Disaster: {disaster_column}")
-        logging.info(f"All available columns: {list(df.columns)}")
-
         report_progress(0, "Starting analysis")
 
         # Process more records, but limit to a reasonable number
-        sample_size = min(50, len(df))  # Increase sample size to 50
+        sample_size = min(20, len(df))  # Increase sample size
 
         # Allow a smaller sample set when the API is failing
         if len(df) > 0:
@@ -1591,27 +1331,6 @@ class DisasterSentimentBackend:
                     'timestamp',
                     datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                 source = row.get('source', 'CSV Import')
-                
-                # Get location directly from CSV if available
-                csv_location = None
-                if location_column and not pd.isna(row.get(location_column)):
-                    csv_location = str(row.get(location_column))
-                    logging.info(f"Row {index} - Found location in CSV: {csv_location}")
-                
-                # Get emotion directly from CSV if available
-                csv_emotion = None
-                if emotion_column and not pd.isna(row.get(emotion_column)):
-                    csv_emotion = str(row.get(emotion_column))
-                    logging.info(f"Row {index} - Found emotion in CSV: {csv_emotion}")
-                
-                # Get disaster type directly from CSV if available
-                csv_disaster_type = None
-                if disaster_column and not pd.isna(row.get(disaster_column)):
-                    csv_disaster_type = str(row.get(disaster_column))
-                    logging.info(f"Row {index} - Found disaster type in CSV: {csv_disaster_type}")
-                
-                # Print all columns and values for debugging
-                logging.info(f"Row {index} - All columns: {', '.join([f'{col}={row.get(col)}' for col in df.columns[:5]])}")
 
                 # Report progress for every record
                 report_progress(index,
@@ -1621,39 +1340,16 @@ class DisasterSentimentBackend:
                 # Only use API for a few records to maintain quality without hitting rate limits
                 if not use_api_for_all and index > 3:
                     # Fast rule-based processing for most records
-                    disaster_type = csv_disaster_type or self.extract_disaster_type(text)
-                    location = csv_location or self.extract_location(text)
+                    disaster_type = self.extract_disaster_type(text)
+                    location = self.extract_location(text)
                     language = self.detect_language(text)
-                    
-                    # Use CSV emotion if available, otherwise use rule-based analysis
-                    if csv_emotion:
-                        # Map CSV emotion to our sentiment categories
-                        sentiment_map = {
-                            'fear': 'Fear/Anxiety',
-                            'anxiety': 'Fear/Anxiety',
-                            'fear/anxiety': 'Fear/Anxiety',
-                            'panic': 'Panic',
-                            'scared': 'Fear/Anxiety',
-                            'disbelief': 'Disbelief',
-                            'doubt': 'Disbelief',
-                            'skepticism': 'Disbelief',
-                            'resilience': 'Resilience',
-                            'hope': 'Resilience',
-                            'strength': 'Resilience',
-                            'neutral': 'Neutral'
-                        }
-                        sentiment = sentiment_map.get(csv_emotion.lower(), csv_emotion)
-                        sentiment_result = {
-                            'sentiment': sentiment,
-                            'explanation': f'Using emotion from CSV: {csv_emotion}'
-                        }
-                    else:
-                        sentiment_result = self.rule_based_sentiment_analysis(text)
+                    sentiment_result = self.rule_based_sentiment_analysis(text)
 
                     analysis_result = {
                         'sentiment': sentiment_result['sentiment'],
-                        'confidence': 0.85,  # Higher confidence since we use CSV data
-                        'explanation': f'Rule-based analysis: {sentiment_result.get("explanation", "")}',
+                        'confidence': 0.75,
+                        'explanation':
+                        f'Rule-based analysis: {sentiment_result.get("explanation", "")}',
                         'language': language,
                         'disasterType': disaster_type,
                         'location': location,
@@ -1668,69 +1364,23 @@ class DisasterSentimentBackend:
                     # First attempt API analysis
                     analysis_result = self.analyze_sentiment(text)
 
-                    # Override with CSV data if available
-                    if csv_location:
-                        analysis_result['location'] = csv_location
-                    
-                    if csv_emotion:
-                        # Map CSV emotion to our sentiment categories
-                        sentiment_map = {
-                            'fear': 'Fear/Anxiety',
-                            'anxiety': 'Fear/Anxiety',
-                            'fear/anxiety': 'Fear/Anxiety',
-                            'panic': 'Panic',
-                            'scared': 'Fear/Anxiety',
-                            'disbelief': 'Disbelief',
-                            'doubt': 'Disbelief',
-                            'skepticism': 'Disbelief',
-                            'resilience': 'Resilience',
-                            'hope': 'Resilience',
-                            'strength': 'Resilience',
-                            'neutral': 'Neutral'
-                        }
-                        analysis_result['sentiment'] = sentiment_map.get(csv_emotion.lower(), csv_emotion)
-                        analysis_result['explanation'] += f' (CSV emotion: {csv_emotion})'
-                    
-                    if csv_disaster_type:
-                        analysis_result['disasterType'] = csv_disaster_type
-
                     # If API failed, use rule-based analysis as fallback
                     if not analysis_result:
                         # Extract relevant information from text
-                        disaster_type = csv_disaster_type or self.extract_disaster_type(text)
-                        location = csv_location or self.extract_location(text)
+                        disaster_type = self.extract_disaster_type(text)
+                        location = self.extract_location(text)
                         language = self.detect_language(text)
 
-                        # Use CSV emotion if available, otherwise use rule-based analysis
-                        if csv_emotion:
-                            # Map CSV emotion to our sentiment categories
-                            sentiment_map = {
-                                'fear': 'Fear/Anxiety',
-                                'anxiety': 'Fear/Anxiety',
-                                'fear/anxiety': 'Fear/Anxiety',
-                                'panic': 'Panic',
-                                'scared': 'Fear/Anxiety',
-                                'disbelief': 'Disbelief',
-                                'doubt': 'Disbelief',
-                                'skepticism': 'Disbelief',
-                                'resilience': 'Resilience',
-                                'hope': 'Resilience',
-                                'strength': 'Resilience',
-                                'neutral': 'Neutral'
-                            }
-                            sentiment = sentiment_map.get(csv_emotion.lower(), csv_emotion)
-                            sentiment_result = {
-                                'sentiment': sentiment,
-                                'explanation': f'Using emotion from CSV: {csv_emotion}'
-                            }
-                        else:
-                            sentiment_result = self.rule_based_sentiment_analysis(text)
+                        # Simple rule-based sentiment classification
+                        sentiment_result = self.rule_based_sentiment_analysis(
+                            text)
 
                         # Create a fallback result
                         analysis_result = {
                             'sentiment': sentiment_result['sentiment'],
-                            'confidence': 0.8,  # Higher confidence since we use CSV data
-                            'explanation': f'Fallback analysis: {sentiment_result.get("explanation", "")}',
+                            'confidence': 0.7,
+                            'explanation':
+                            f'Fallback analysis: {sentiment_result.get("explanation", "")}',
                             'language': language,
                             'disasterType': disaster_type,
                             'location': location,
@@ -1739,16 +1389,26 @@ class DisasterSentimentBackend:
 
                 # Process result with standardized fields and better null handling
                 processed_results.append({
-                    'text': text,
-                    'timestamp': timestamp,
-                    'source': source,
-                    'language': analysis_result['language'],
-                    'sentiment': analysis_result['sentiment'],
-                    'confidence': analysis_result['confidence'],
-                    'explanation': analysis_result['explanation'],
-                    'disasterType': analysis_result.get('disasterType', "Not Specified"),
-                    'location': analysis_result.get('location', None),
-                    'modelType': analysis_result.get('modelType', "Hybrid Analysis")
+                    'text':
+                    text,
+                    'timestamp':
+                    timestamp,
+                    'source':
+                    source,
+                    'language':
+                    analysis_result['language'],
+                    'sentiment':
+                    analysis_result['sentiment'],
+                    'confidence':
+                    analysis_result['confidence'],
+                    'explanation':
+                    analysis_result['explanation'],
+                    'disasterType':
+                    analysis_result.get('disasterType', "Not Specified"),
+                    'location':
+                    analysis_result.get('location', None),
+                    'modelType':
+                    analysis_result.get('modelType', "Hybrid Analysis")
                 })
             except Exception as e:
                 logging.error(f"Error processing record {index}: {str(e)}")
@@ -1812,31 +1472,7 @@ def main():
         backend = DisasterSentimentBackend()
 
         if args.text:
-            # Check if the text is a JSON object with parameters
-            try:
-                params = json.loads(args.text)
-                if isinstance(params, dict) and 'text' in params:
-                    # Extract parameters
-                    text = params['text']
-                    csv_location = params.get('csvLocation')
-                    csv_emotion = params.get('csvEmotion')
-                    csv_disaster_type = params.get('csvDisasterType')
-                    
-                    # Single text analysis with optional CSV fields
-                    result = backend.analyze_sentiment(
-                        text, 
-                        csv_location=csv_location,
-                        csv_emotion=csv_emotion,
-                        csv_disaster_type=csv_disaster_type
-                    )
-                    print(json.dumps(result))
-                    sys.stdout.flush()
-                    return
-            except json.JSONDecodeError:
-                # Not a JSON object, treat as regular text
-                pass
-                
-            # Regular single text analysis
+            # Single text analysis
             result = backend.analyze_sentiment(args.text)
             print(json.dumps(result))
             sys.stdout.flush()
@@ -1861,47 +1497,19 @@ def main():
                                          on_bad_lines='skip')
 
                 # Make sure we have the required columns
-                logging.info(f"Available CSV columns: {list(df.columns)}")
-                
-                # Check for text column with different possible names (case insensitive)
-                text_column = None
-                possible_text_columns = [
-                    'text', 'content', 'message', 'tweet', 'post', 'Post', 'description', 'message_text'
-                ]
-                
-                # First, check for exact matches (case insensitive)
-                for col in df.columns:
-                    if col.lower() in [x.lower() for x in possible_text_columns]:
-                        text_column = col
-                        logging.info(f"Found text column (exact match): {text_column}")
-                        break
-                
-                # If no exact match, check for partial matches
-                if not text_column:
-                    lowercase_columns = [col.lower() for col in df.columns]
-                    for col_idx, col_lower in enumerate(lowercase_columns):
-                        for pos_col in possible_text_columns:
-                            if pos_col.lower() in col_lower:
-                                text_column = df.columns[col_idx]
-                                logging.info(f"Found text column (partial match): {text_column}")
-                                break
-                        if text_column:
+                if 'text' not in df.columns:
+                    # If no text column, check for possible alternatives
+                    possible_text_columns = [
+                        'content', 'message', 'tweet', 'post', 'description'
+                    ]
+                    for col in possible_text_columns:
+                        if col in df.columns:
+                            df['text'] = df[col]
                             break
-                
-                # If we found a text column that's not already called 'text', rename it
-                if text_column and text_column != 'text':
-                    df['text'] = df[text_column].astype(str)
-                    logging.info(f"Mapped '{text_column}' to 'text' column")
-                
-                # If still no text column, use the first column
-                if 'text' not in df.columns and len(df.columns) > 0:
-                    logging.info(f"No text column found, using first column: {df.columns[0]}")
-                    df['text'] = df[df.columns[0]].astype(str)
-                
-                # Sample the first few rows to debug
-                if len(df) > 0:
-                    sample_row = df.iloc[0]
-                    logging.info(f"Sample row - Text: {sample_row.get('text', 'MISSING')}, Columns: {sample_row.keys()}")
+
+                    # If still no text column, use the first column
+                    if 'text' not in df.columns and len(df.columns) > 0:
+                        df['text'] = df[df.columns[0]]
 
                 # Make sure we have timestamp and source columns
                 if 'timestamp' not in df.columns:
@@ -1909,47 +1517,6 @@ def main():
 
                 if 'source' not in df.columns:
                     df['source'] = 'CSV Import'
-                    
-                # Check for location column with different possible names (case insensitive)
-                location_column = None
-                possible_location_columns = ['location', 'place', 'area', 'region', 'city', 'province', 'loc', 'address', 'site']
-                lowercase_columns = [col.lower() for col in df.columns]
-                for col_idx, col_lower in enumerate(lowercase_columns):
-                    for pos_col in possible_location_columns:
-                        if pos_col in col_lower:
-                            location_column = df.columns[col_idx]
-                            logging.info(f"Found location column: {location_column}")
-                            break
-                    if location_column:
-                        break
-
-                # Check for emotion/sentiment column with different possible names (case insensitive)
-                emotion_column = None
-                possible_emotion_columns = ['emotion', 'sentiment', 'feeling', 'mood', 'emotion_type', 'emot']
-                for col_idx, col_lower in enumerate(lowercase_columns):
-                    for pos_col in possible_emotion_columns:
-                        if pos_col in col_lower:
-                            emotion_column = df.columns[col_idx]
-                            logging.info(f"Found emotion column: {emotion_column}")
-                            break
-                    if emotion_column:
-                        break
-                        
-                # Check for disaster type column with different possible names (case insensitive)
-                disaster_column = None
-                possible_disaster_columns = ['disaster', 'disaster_type', 'disaster type', 'event_type', 'event type', 'calamity', 'emergency', 'hazard', 'incident']
-                for col_idx, col_lower in enumerate(lowercase_columns):
-                    for pos_col in possible_disaster_columns:
-                        if pos_col in col_lower:
-                            disaster_column = df.columns[col_idx]
-                            logging.info(f"Found disaster type column: {disaster_column}")
-                            break
-                    if disaster_column:
-                        break
-                        
-                # Print summary of what we found
-                logging.info(f"CSV Columns detected - Location: {location_column}, Emotion: {emotion_column}, Disaster: {disaster_column}")
-                logging.info(f"All available columns: {list(df.columns)}")
 
                 total_records = min(
                     len(df), 50)  # Process maximum 50 records for testing
@@ -1963,59 +1530,9 @@ def main():
                     try:
                         row = df.iloc[i]
                         text = str(row.get('text', ''))
-                        
-                        # Safely handle timestamp field (various formats or invalid values)
-                        try:
-                            timestamp_value = row.get('timestamp')
-                            if pd.isna(timestamp_value) or timestamp_value is None:
-                                timestamp = datetime.now().isoformat()
-                            else:
-                                # Try to convert to ISO format if it's not already
-                                try:
-                                    if isinstance(timestamp_value, str):
-                                        dt = pd.to_datetime(timestamp_value)
-                                        timestamp = dt.isoformat()
-                                    else:
-                                        timestamp = str(timestamp_value)
-                                except:
-                                    timestamp = str(timestamp_value)
-                        except:
-                            timestamp = datetime.now().isoformat()
-                            
-                        # Safely get source
-                        try:
-                            source_value = row.get('source')
-                            source = str(source_value) if not pd.isna(source_value) else 'CSV Import'
-                        except:
-                            source = 'CSV Import'
-                        
-                        # Get location directly from CSV if available
-                        csv_location = None
-                        if location_column and not pd.isna(row.get(location_column)):
-                            csv_location = str(row.get(location_column))
-                            logging.info(f"Row {i} - Found location in CSV: {csv_location}")
-                        
-                        # Get emotion directly from CSV if available
-                        csv_emotion = None
-                        if emotion_column and not pd.isna(row.get(emotion_column)):
-                            csv_emotion = str(row.get(emotion_column))
-                            logging.info(f"Row {i} - Found emotion in CSV: {csv_emotion}")
-                        
-                        # Get disaster type directly from CSV if available
-                        csv_disaster_type = None
-                        if disaster_column and not pd.isna(row.get(disaster_column)):
-                            csv_disaster_type = str(row.get(disaster_column))
-                            logging.info(f"Row {i} - Found disaster type in CSV: {csv_disaster_type}")
-                        
-                        # Print limited columns and values for debugging (safer version)
-                        debug_columns = []
-                        for col in list(df.columns)[:5]:
-                            try:
-                                val = str(row.get(col, '')).replace('\n', ' ')[:30]  # Truncate long values and remove newlines
-                                debug_columns.append(f"{col}={val}")
-                            except:
-                                debug_columns.append(f"{col}=<error>")
-                        logging.info(f"Row {i} - All columns: {', '.join(debug_columns)}")
+                        timestamp = row.get('timestamp',
+                                            datetime.now().isoformat())
+                        source = row.get('source', 'CSV Import')
 
                         if text.strip():  # Only process non-empty text
                             # Add delay between requests to avoid rate limits
@@ -2023,24 +1540,26 @@ def main():
                                 time.sleep(
                                     1.5)  # 1.5 second delay every 3 items
 
-                            # Analyze the text with CSV data included directly
-                            result = backend.analyze_sentiment(
-                                text,
-                                csv_location=csv_location,
-                                csv_emotion=csv_emotion,
-                                csv_disaster_type=csv_disaster_type
-                            )
-                                
+                            result = backend.analyze_sentiment(text)
                             results.append({
-                                'text': text,
-                                'timestamp': timestamp,
-                                'source': source,
-                                'language': result.get('language', 'en'),
-                                'sentiment': result.get('sentiment', 'Neutral'),
-                                'confidence': result.get('confidence', 0.0),
-                                'explanation': result.get('explanation', ''),
-                                'disasterType': result.get('disasterType', 'Not Specified'),
-                                'location': result.get('location')
+                                'text':
+                                text,
+                                'timestamp':
+                                timestamp,
+                                'source':
+                                source,
+                                'language':
+                                result.get('language', 'en'),
+                                'sentiment':
+                                result.get('sentiment', 'Neutral'),
+                                'confidence':
+                                result.get('confidence', 0.0),
+                                'explanation':
+                                result.get('explanation', ''),
+                                'disasterType':
+                                result.get('disasterType', 'Not Specified'),
+                                'location':
+                                result.get('location')
                             })
 
                             # Report individual progress
@@ -2054,101 +1573,30 @@ def main():
                         continue
 
                 # Get real metrics if we have results
-                try:
-                    if results:
-                        metrics = backend.calculate_real_metrics(results)
-                    else:
-                        metrics = {
-                            'accuracy': 0.85,
-                            'precision': 0.83,
-                            'recall': 0.82,
-                            'f1Score': 0.84
-                        }
-                    
-                    # Ensure all values are properly encoded for JSON
-                    sanitized_results = []
-                    for result in results:
-                        sanitized_result = {}
-                        for key, value in result.items():
-                            if value is None:
-                                sanitized_result[key] = ""
-                            elif isinstance(value, (int, float, bool)):
-                                sanitized_result[key] = value
-                            elif isinstance(value, (str, bytes)):
-                                # Clean and truncate string values
-                                sanitized_result[key] = str(value).replace('\n', ' ').replace('\r', ' ')[:1000]
-                            else:
-                                # Convert any other type to string
-                                try:
-                                    sanitized_result[key] = str(value)
-                                except:
-                                    sanitized_result[key] = "<non-serializable>"
-                        sanitized_results.append(sanitized_result)
-                    
-                    # Prepare minimal safe output in a fixed, predictable structure
-                    results_output = []
-                    for result in sanitized_results:
-                        # Ensure each result has consistent fields with default values
-                        safe_result = {
-                            "text": result.get("text", ""),
-                            "timestamp": result.get("timestamp", ""),
-                            "source": result.get("source", ""),
-                            "language": result.get("language", "en"),
-                            "sentiment": result.get("sentiment", "Neutral"),
-                            "confidence": float(result.get("confidence", 0.5)),
-                            "explanation": result.get("explanation", ""),
-                            "disasterType": result.get("disasterType", ""),
-                            "location": result.get("location", "")
-                        }
-                        results_output.append(safe_result)
-                    
-                    # Generate safe JSON output with minimal, clean data
-                    output = json.dumps({
-                        'results': results_output, 
-                        'metrics': {
-                            'accuracy': float(metrics.get('accuracy', 0.0)),
-                            'precision': float(metrics.get('precision', 0.0)),
-                            'recall': float(metrics.get('recall', 0.0)),
-                            'f1Score': float(metrics.get('f1Score', 0.0))
-                        }
-                    }, ensure_ascii=True)
-                    
-                    # Log the first few characters for debugging
-                    logging.info(f"JSON Output Preview: {output[:100]}...")
-                    
-                    # Print the full output
-                    print(output)
-                    sys.stdout.flush()
-                except Exception as json_error:
-                    logging.error(f"Error generating JSON output: {json_error}")
-                    # Provide consistent output format even in error case
-                    print(json.dumps({
-                        'results': [],
-                        'metrics': {'accuracy': 0.0, 'precision': 0.0, 'recall': 0.0, 'f1Score': 0.0},
-                        'error': f'JSON encoding error: {str(json_error).replace(chr(34), chr(92)+chr(34)).replace(chr(10), " ")}'
-                    }, ensure_ascii=True))
-                    sys.stdout.flush()
+                if results:
+                    metrics = backend.calculate_real_metrics(results)
+                else:
+                    metrics = {
+                        'accuracy': 0.85,
+                        'precision': 0.83,
+                        'recall': 0.82,
+                        'f1Score': 0.84
+                    }
+
+                print(json.dumps({'results': results, 'metrics': metrics}))
+                sys.stdout.flush()
 
             except Exception as file_error:
                 logging.error(f"Error processing file: {file_error}")
-                # Ensure error message is JSON-safe with consistent format
-                error_msg = str(file_error).replace('"', '\\"').replace('\n', ' ')
-                print(json.dumps({
-                    'error': error_msg,
-                    'type': 'file_processing_error',
-                    'results': [],
-                    'metrics': {'accuracy': 0.0, 'precision': 0.0, 'recall': 0.0, 'f1Score': 0.0}
-                }, ensure_ascii=True))
+                print(
+                    json.dumps({
+                        'error': str(file_error),
+                        'type': 'file_processing_error'
+                    }))
                 sys.stdout.flush()
     except Exception as e:
         logging.error(f"Main processing error: {e}")
-        error_msg = str(e).replace('"', '\\"').replace('\n', ' ')
-        print(json.dumps({
-            'error': error_msg, 
-            'type': 'general_error',
-            'results': [],
-            'metrics': {'accuracy': 0.0, 'precision': 0.0, 'recall': 0.0, 'f1Score': 0.0}
-        }, ensure_ascii=True))
+        print(json.dumps({'error': str(e), 'type': 'general_error'}))
         sys.stdout.flush()
 
 
