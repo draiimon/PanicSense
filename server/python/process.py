@@ -1474,36 +1474,43 @@ class DisasterSentimentBackend:
         # Process each batch
         for batch_idx, batch in enumerate(batches):
             for record in batch:
-                index = record['index']
-                text = record['text']
-                timestamp = record['timestamp']
-                source = record['source']
-                
-                processed_count += 1
-                
-                # Report progress for each record
-                report_progress(processed_count,
-                                f"Processing record {processed_count}/{sample_size}")
-                
-                # Always try to use AI for all records
-                analysis_result = self.analyze_sentiment(text)  # This will try API first, then fall back to rule-based if needed
-                
-                # Process result with standardized fields and better null handling
-                processed_results.append({
-                    'text': text,
-                    'timestamp': timestamp,
-                    'source': source,
-                    'language': analysis_result.get('language', 'en'),
-                    'sentiment': analysis_result.get('sentiment', 'Neutral'),
-                    'confidence': analysis_result.get('confidence', 0.7),
-                    'explanation': analysis_result.get('explanation', 'Analysis not available'),
-                    'disasterType': analysis_result.get('disasterType', "Not Specified"),
-                    'location': analysis_result.get('location', None),
-                    'modelType': analysis_result.get('modelType', 'API with Fallback')
-                })
-            except Exception as e:
-                logging.error(f"Error processing record {index}: {str(e)}")
-                # Continue with next record on error
+                try:
+                    index = record['index']
+                    text = record['text']
+                    timestamp = record['timestamp']
+                    source = record['source']
+                    
+                    processed_count += 1
+                    
+                    # Report progress for each record
+                    report_progress(processed_count,
+                                    f"Processing record {processed_count}/{sample_size}")
+                    
+                    # Always try to use AI for all records
+                    analysis_result = self.analyze_sentiment(text)  # This will try API first, then fall back to rule-based if needed
+                    
+                    # Extract location and disaster type from record first if they exist in CSV
+                    csv_location = record.get('location', None)
+                    csv_disaster_type = record.get('disasterType', None)
+                    predefined_sentiment = record.get('predefined_sentiment', None)
+                    
+                    # Process result with standardized fields and better null handling
+                    # IMPORTANT: Use location from CSV if available, otherwise use API detected location
+                    processed_results.append({
+                        'text': text,
+                        'timestamp': timestamp,
+                        'source': source,
+                        'language': analysis_result.get('language', 'en'),
+                        'sentiment': predefined_sentiment if predefined_sentiment else analysis_result.get('sentiment', 'Neutral'),
+                        'confidence': analysis_result.get('confidence', 0.7),
+                        'explanation': analysis_result.get('explanation', 'Analysis not available'),
+                        'disasterType': csv_disaster_type if csv_disaster_type else analysis_result.get('disasterType', "Not Specified"),
+                        'location': csv_location if csv_location else analysis_result.get('location', None),
+                        'modelType': analysis_result.get('modelType', 'API with Fallback')
+                    })
+                except Exception as e:
+                    logging.error(f"Error processing record {index if 'index' in locals() else 'unknown'}: {str(e)}")
+                    # Continue with next record on error
 
         # Final progress update
         report_progress(total_records, "Completing analysis")
