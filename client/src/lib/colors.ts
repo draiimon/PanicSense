@@ -46,8 +46,7 @@ export const disasterTypeColors = {
   'Flood': '#3b82f6',      // Blue
   'Typhoon': '#6b7280',    // Gray
   'Fire': '#f97316',       // Orange
-  'Volcano': '#ef4444',    // Red
-  'Volcanic Eruption': '#ef4444', // Red (same as Volcano)
+  'Volcanic Eruptions': '#ef4444',    // Red
   'Earthquake': '#92400e', // Brown
   'Landslide': '#78350f',  // Dark Brown
   'Default': '#6b7280'     // Neutral color for other disaster types
@@ -116,7 +115,7 @@ export function getDisasterTypeColor(disasterType: string | null): string {
   if (normalizedType.includes('flood')) return disasterTypeColors.Flood;
   if (normalizedType.includes('typhoon') || normalizedType.includes('storm') || normalizedType.includes('bagyo')) return disasterTypeColors.Typhoon;
   if (normalizedType.includes('fire') || normalizedType.includes('sunog')) return disasterTypeColors.Fire;
-  if (normalizedType.includes('volcano') || normalizedType.includes('volcanic') || normalizedType.includes('eruption') || normalizedType.includes('bulkan')) return disasterTypeColors.Volcano;
+  if (normalizedType.includes('volcano') || normalizedType.includes('volcanic') || normalizedType.includes('eruption') || normalizedType.includes('bulkan')) return disasterTypeColors['Volcanic Eruptions'];
   if (normalizedType.includes('earthquake') || normalizedType.includes('quake') || normalizedType.includes('lindol')) return disasterTypeColors.Earthquake;
   if (normalizedType.includes('landslide') || normalizedType.includes('mudslide')) return disasterTypeColors.Landslide;
   

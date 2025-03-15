@@ -50,7 +50,7 @@ export function SentimentLegend({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4 space-y-4 flex-grow overflow-hidden">
+      <CardContent className="p-4 space-y-4 flex-grow overflow-y-auto">
         {/* Sentiment Legend */}
         <div className="bg-slate-50 p-3 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
@@ -89,9 +89,9 @@ export function SentimentLegend({
           </div>
         </div>
 
-        {/* Affected Areas with full height scrolling */}
+        {/* Affected Areas section without separate scrolling */}
         {mostAffectedAreas && mostAffectedAreas.length > 0 && (
-          <div className="bg-slate-50 p-3 rounded-lg flex flex-col flex-grow overflow-hidden">
+          <div className="bg-slate-50 p-3 rounded-lg">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-red-500" />
@@ -101,7 +101,7 @@ export function SentimentLegend({
                 Top {mostAffectedAreas.length}
               </Badge>
             </div>
-            <div className="space-y-2 overflow-y-auto h-[calc(100vh-400px)] min-h-[300px] pr-1 scrollbar-thin">
+            <div className="space-y-2">
               {mostAffectedAreas.map((area, index) => (
                 <div 
                   key={index}

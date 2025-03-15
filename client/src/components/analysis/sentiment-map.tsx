@@ -203,21 +203,25 @@ export function SentimentMap({
 
         // Enhanced hover interactions
         circle.on('mouseover', () => {
+          // Apply hover styles without using radius property which is not supported in setStyle
           circle.setStyle({ 
             weight: 3, 
-            fillOpacity: 0.85,
-            radius: radius * 1100 // Slightly larger on hover
+            fillOpacity: 0.85
           });
+          // Update radius separately
+          circle.setRadius(radius * 1100); // Slightly larger on hover
           setHoveredRegion(region);
           circle.openPopup();
         });
 
         circle.on('mouseout', () => {
+          // Apply normal styles without using radius property
           circle.setStyle({ 
             weight: 2, 
-            fillOpacity: 0.7,
-            radius: radius * 1000
+            fillOpacity: 0.7
           });
+          // Reset radius separately
+          circle.setRadius(radius * 1000);
           setHoveredRegion(null);
           circle.closePopup();
         });
