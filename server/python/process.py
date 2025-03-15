@@ -39,6 +39,7 @@ class DisasterSentimentBackend:
             'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'
         ]
         self.api_keys = []
+        self.groq_api_keys = []
         import os
 
         # Look for API keys in environment variables (API_KEY_1, API_KEY_2, etc.)
@@ -48,6 +49,7 @@ class DisasterSentimentBackend:
             api_key = os.getenv(key_name)
             if api_key:
                 self.api_keys.append(api_key)
+                self.groq_api_keys.append(api_key)
                 i += 1
             else:
                 # No more keys found
@@ -56,6 +58,7 @@ class DisasterSentimentBackend:
         # Fallback to a single API key if no numbered keys are found
         if not self.api_keys and os.getenv("API_KEY"):
             self.api_keys.append(os.getenv("API_KEY"))
+            self.groq_api_keys.append(os.getenv("API_KEY"))
 
         # If no keys are found in environment variables, use the provided keys
         if not self.api_keys:
@@ -85,10 +88,12 @@ class DisasterSentimentBackend:
                 "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",
                 "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"
             ]
+            self.groq_api_keys = self.api_keys.copy()
 
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
         self.retry_delay = 0.5  # Decrease retry delay for faster processing
         self.limit_delay = 0.5  # Decrease limit delay for faster processing
+        self.groq_limit_delay = 0.5  # Specific delay for Groq API
         self.current_api_index = 0
         self.max_retries = 3  # Maximum retry attempts for API requests
 
@@ -447,14 +452,14 @@ class DisasterSentimentBackend:
             if hasattr(e, 'response'
                        ) and e.response and e.response.status_code == 429:
                 logging.warning(
-                    f"LOADING SENTIMENTS..... (Data {self.current_api_index + 1}/{len(self.api_keys)}). Data Fetching..."
+                    f"LOADING SENTIMENTS..... (Data {self.current_api_index + 1}/{len(self.groq_api_keys)}). Data Fetching..."
                 )
                 self.current_api_index = (self.current_api_index + 1) % len(
-                    self.api_keys)
+                    self.groq_api_keys)
                 logging.info(
-                    f"Waiting {self.limit_delay} seconds before trying next key"
+                    f"Waiting {self.groq_limit_delay} seconds before trying next key"
                 )
-                time.sleep(self.limit_delay)
+                time.sleep(self.groq_limit_delay)
                 if retry_count < self.max_retries:
                     return self.fetch_groq(headers, payload, retry_count + 1)
                 else:
