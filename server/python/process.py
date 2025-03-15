@@ -493,26 +493,64 @@ class DisasterSentimentBackend:
 
     def analyze_sentiment(self, text, csv_location=None, csv_emotion=None, csv_disaster_type=None):
         """
-        Enhanced sentiment analysis using Groq API only:
-        1. Detect language first for better prompting
-        2. Send to Groq API for full analysis
-        3. Process the response to extract sentiment, location, and disaster type
-        4. Override with CSV data if available
+        Enhanced sentiment analysis using Groq API with CSV data prioritization:
+        1. Check if we have CSV data first and use those as priorities
+        2. Detect language for better prompting
+        3. Send to Groq API for analysis of remaining fields
+        4. Ensure CSV data always takes precedence over API results
         """
+        # Log CSV data for debugging
+        logging.info(f"CSV data provided - Location: {csv_location}, Emotion: {csv_emotion}, Disaster Type: {csv_disaster_type}")
+        
         # Detect language first for better prompting
         language = self.detect_language(text)
         language_name = "Filipino/Tagalog" if language == "tl" else "English"
 
-        logging.info(
-            f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
+        logging.info(f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
 
-        # Get analysis directly from Groq API
+        # If we have ALL CSV data, we can skip the API call entirely
+        if csv_location and csv_emotion and csv_disaster_type:
+            logging.info(f"Using complete CSV data for analysis - Location: {csv_location}, Emotion: {csv_emotion}, Disaster: {csv_disaster_type}")
+            
+            # Map CSV emotion to our sentiment categories
+            sentiment_map = {
+                'fear': 'Fear/Anxiety',
+                'anxiety': 'Fear/Anxiety',
+                'fear/anxiety': 'Fear/Anxiety',
+                'panic': 'Panic',
+                'scared': 'Fear/Anxiety',
+                'disbelief': 'Disbelief',
+                'doubt': 'Disbelief',
+                'skepticism': 'Disbelief',
+                'resilience': 'Resilience',
+                'hope': 'Resilience',
+                'strength': 'Resilience',
+                'neutral': 'Neutral'
+            }
+            sentiment = sentiment_map.get(csv_emotion.lower(), csv_emotion)
+            
+            # Create complete result from CSV
+            csv_result = {
+                'sentiment': sentiment,
+                'confidence': 0.95,  # Highest confidence for complete CSV data
+                'explanation': f'Using complete CSV data: {csv_emotion}',
+                'disasterType': csv_disaster_type,
+                'location': csv_location,
+                'language': language,
+                'modelType': 'CSV-Direct'
+            }
+            return csv_result
+            
+        # Try API analysis for any missing fields
         api_result = self.get_api_sentiment_analysis(text, language)
 
+        # Create result dictionary, prioritizing CSV data when available
+        final_result = {}
+        
         if not api_result:
-            # In case of API failure, use simple disaster type and location extraction as fallback
-            disaster_type = csv_disaster_type or self.extract_disaster_type(text) or "Not Specified"
-            location = csv_location or self.extract_location(text)
+            # In case of API failure, use disaster type and location extraction as fallback
+            final_result['disasterType'] = csv_disaster_type or self.extract_disaster_type(text) or "Not Specified"
+            final_result['location'] = csv_location or self.extract_location(text)
             
             # Use CSV emotion if available, otherwise use rule-based analysis
             if csv_emotion:
@@ -531,30 +569,31 @@ class DisasterSentimentBackend:
                     'strength': 'Resilience',
                     'neutral': 'Neutral'
                 }
-                sentiment = sentiment_map.get(csv_emotion.lower(), csv_emotion)
-                explanation = f'Using emotion from CSV: {csv_emotion}'
-                confidence = 0.9  # Higher confidence for direct CSV data
+                final_result['sentiment'] = sentiment_map.get(csv_emotion.lower(), csv_emotion)
+                final_result['explanation'] = f'Using emotion from CSV: {csv_emotion}'
+                final_result['confidence'] = 0.9  # Higher confidence for direct CSV data
             else:
                 # Use rule-based sentiment analysis
                 sentiment_result = self.rule_based_sentiment_analysis(text)
-                sentiment = sentiment_result.get('sentiment', 'Neutral')
-                explanation = sentiment_result.get('explanation', 'Rule-based fallback analysis.')
-                confidence = 0.7
+                final_result['sentiment'] = sentiment_result.get('sentiment', 'Neutral')
+                final_result['explanation'] = sentiment_result.get('explanation', 'Rule-based fallback analysis.')
+                final_result['confidence'] = 0.7
                 
-            fallback_result = {
-                'sentiment': sentiment,
-                'confidence': confidence,
-                'explanation': explanation,
-                'disasterType': disaster_type,
-                'location': location,
-                'language': language,
-                'modelType': 'API-Fallback'
-            }
-            return fallback_result
+            final_result['language'] = language
+            final_result['modelType'] = 'API-Fallback'
+            
+            # Log the final result with CSV data
+            logging.info(f"API fallback with CSV - Location: {final_result['location']}, Disaster: {final_result['disasterType']}")
+            
+            return final_result
 
-        # Override with CSV data if available
+        # If API succeeded, start with API result but ensure CSV data takes precedence
+        final_result = api_result.copy()
+        
+        # ALWAYS override with CSV data when available, even if API returned values
         if csv_location:
-            api_result['location'] = csv_location
+            final_result['location'] = csv_location
+            logging.info(f"Using CSV location: {csv_location}")
         
         if csv_emotion:
             # Map CSV emotion to our sentiment categories
@@ -572,17 +611,22 @@ class DisasterSentimentBackend:
                 'strength': 'Resilience',
                 'neutral': 'Neutral'
             }
-            api_result['sentiment'] = sentiment_map.get(csv_emotion.lower(), csv_emotion)
-            api_result['explanation'] += f' (CSV emotion: {csv_emotion})'
-            api_result['confidence'] = 0.9  # Higher confidence for direct CSV data
+            final_result['sentiment'] = sentiment_map.get(csv_emotion.lower(), csv_emotion)
+            final_result['explanation'] = api_result.get('explanation', '') + f' (CSV emotion: {csv_emotion})'
+            final_result['confidence'] = 0.9  # Higher confidence for direct CSV data
+            logging.info(f"Using CSV emotion: {csv_emotion}")
         
         if csv_disaster_type:
-            api_result['disasterType'] = csv_disaster_type
+            final_result['disasterType'] = csv_disaster_type
+            logging.info(f"Using CSV disaster type: {csv_disaster_type}")
 
         # Add model type for tracking
-        api_result['modelType'] = 'Groq-API'
+        final_result['modelType'] = 'Hybrid-CSV-API'
+        
+        # Log the final result with CSV data
+        logging.info(f"Final result with CSV priority - Location: {final_result.get('location')}, Disaster: {final_result.get('disasterType', 'Not Specified')}")
 
-        return api_result
+        return final_result
 
     def get_api_sentiment_analysis(self, text, language):
         """
@@ -1336,29 +1380,46 @@ class DisasterSentimentBackend:
             if 'text' not in df.columns and len(df.columns) > 0:
                 df['text'] = df[df.columns[0]]
 
-        # Check for location column with different possible names
+        # Check for location column with different possible names (case insensitive)
         location_column = None
-        possible_location_columns = ['location', 'place', 'area', 'region', 'city', 'province']
-        for col in possible_location_columns:
-            if col in df.columns:
-                location_column = col
+        possible_location_columns = ['location', 'place', 'area', 'region', 'city', 'province', 'loc', 'address', 'site']
+        lowercase_columns = [col.lower() for col in df.columns]
+        for col_idx, col_lower in enumerate(lowercase_columns):
+            for pos_col in possible_location_columns:
+                if pos_col in col_lower:
+                    location_column = df.columns[col_idx]
+                    logging.info(f"Found location column: {location_column}")
+                    break
+            if location_column:
                 break
 
-        # Check for emotion/sentiment column with different possible names
+        # Check for emotion/sentiment column with different possible names (case insensitive)
         emotion_column = None
-        possible_emotion_columns = ['emotion', 'sentiment', 'feeling', 'mood']
-        for col in possible_emotion_columns:
-            if col in df.columns:
-                emotion_column = col
+        possible_emotion_columns = ['emotion', 'sentiment', 'feeling', 'mood', 'emotion_type', 'emot']
+        for col_idx, col_lower in enumerate(lowercase_columns):
+            for pos_col in possible_emotion_columns:
+                if pos_col in col_lower:
+                    emotion_column = df.columns[col_idx]
+                    logging.info(f"Found emotion column: {emotion_column}")
+                    break
+            if emotion_column:
                 break
                 
-        # Check for disaster type column with different possible names
+        # Check for disaster type column with different possible names (case insensitive)
         disaster_column = None
-        possible_disaster_columns = ['disaster', 'disaster_type', 'disaster type', 'event_type', 'event type', 'calamity', 'emergency']
-        for col in possible_disaster_columns:
-            if col in df.columns:
-                disaster_column = col
+        possible_disaster_columns = ['disaster', 'disaster_type', 'disaster type', 'event_type', 'event type', 'calamity', 'emergency', 'hazard', 'incident']
+        for col_idx, col_lower in enumerate(lowercase_columns):
+            for pos_col in possible_disaster_columns:
+                if pos_col in col_lower:
+                    disaster_column = df.columns[col_idx]
+                    logging.info(f"Found disaster type column: {disaster_column}")
+                    break
+            if disaster_column:
                 break
+                
+        # Print summary of what we found
+        logging.info(f"CSV Columns detected - Location: {location_column}, Emotion: {emotion_column}, Disaster: {disaster_column}")
+        logging.info(f"All available columns: {list(df.columns)}")
 
         report_progress(0, "Starting analysis")
 
@@ -1398,16 +1459,22 @@ class DisasterSentimentBackend:
                 csv_location = None
                 if location_column and not pd.isna(row.get(location_column)):
                     csv_location = str(row.get(location_column))
+                    logging.info(f"Row {index} - Found location in CSV: {csv_location}")
                 
                 # Get emotion directly from CSV if available
                 csv_emotion = None
                 if emotion_column and not pd.isna(row.get(emotion_column)):
                     csv_emotion = str(row.get(emotion_column))
+                    logging.info(f"Row {index} - Found emotion in CSV: {csv_emotion}")
                 
                 # Get disaster type directly from CSV if available
                 csv_disaster_type = None
                 if disaster_column and not pd.isna(row.get(disaster_column)):
                     csv_disaster_type = str(row.get(disaster_column))
+                    logging.info(f"Row {index} - Found disaster type in CSV: {csv_disaster_type}")
+                
+                # Print all columns and values for debugging
+                logging.info(f"Row {index} - All columns: {', '.join([f'{col}={row.get(col)}' for col in df.columns[:5]])}")
 
                 # Report progress for every record
                 report_progress(index,
@@ -1678,29 +1745,46 @@ def main():
                 if 'source' not in df.columns:
                     df['source'] = 'CSV Import'
                     
-                # Check for location column with different possible names
+                # Check for location column with different possible names (case insensitive)
                 location_column = None
-                possible_location_columns = ['location', 'place', 'area', 'region', 'city', 'province']
-                for col in possible_location_columns:
-                    if col in df.columns:
-                        location_column = col
+                possible_location_columns = ['location', 'place', 'area', 'region', 'city', 'province', 'loc', 'address', 'site']
+                lowercase_columns = [col.lower() for col in df.columns]
+                for col_idx, col_lower in enumerate(lowercase_columns):
+                    for pos_col in possible_location_columns:
+                        if pos_col in col_lower:
+                            location_column = df.columns[col_idx]
+                            logging.info(f"Found location column: {location_column}")
+                            break
+                    if location_column:
                         break
 
-                # Check for emotion/sentiment column with different possible names
+                # Check for emotion/sentiment column with different possible names (case insensitive)
                 emotion_column = None
-                possible_emotion_columns = ['emotion', 'sentiment', 'feeling', 'mood']
-                for col in possible_emotion_columns:
-                    if col in df.columns:
-                        emotion_column = col
+                possible_emotion_columns = ['emotion', 'sentiment', 'feeling', 'mood', 'emotion_type', 'emot']
+                for col_idx, col_lower in enumerate(lowercase_columns):
+                    for pos_col in possible_emotion_columns:
+                        if pos_col in col_lower:
+                            emotion_column = df.columns[col_idx]
+                            logging.info(f"Found emotion column: {emotion_column}")
+                            break
+                    if emotion_column:
                         break
                         
-                # Check for disaster type column with different possible names
+                # Check for disaster type column with different possible names (case insensitive)
                 disaster_column = None
-                possible_disaster_columns = ['disaster', 'disaster_type', 'disaster type', 'event_type', 'event type', 'calamity', 'emergency']
-                for col in possible_disaster_columns:
-                    if col in df.columns:
-                        disaster_column = col
+                possible_disaster_columns = ['disaster', 'disaster_type', 'disaster type', 'event_type', 'event type', 'calamity', 'emergency', 'hazard', 'incident']
+                for col_idx, col_lower in enumerate(lowercase_columns):
+                    for pos_col in possible_disaster_columns:
+                        if pos_col in col_lower:
+                            disaster_column = df.columns[col_idx]
+                            logging.info(f"Found disaster type column: {disaster_column}")
+                            break
+                    if disaster_column:
                         break
+                        
+                # Print summary of what we found
+                logging.info(f"CSV Columns detected - Location: {location_column}, Emotion: {emotion_column}, Disaster: {disaster_column}")
+                logging.info(f"All available columns: {list(df.columns)}")
 
                 total_records = min(
                     len(df), 50)  # Process maximum 50 records for testing
@@ -1722,16 +1806,22 @@ def main():
                         csv_location = None
                         if location_column and not pd.isna(row.get(location_column)):
                             csv_location = str(row.get(location_column))
+                            logging.info(f"Row {i} - Found location in CSV: {csv_location}")
                         
                         # Get emotion directly from CSV if available
                         csv_emotion = None
                         if emotion_column and not pd.isna(row.get(emotion_column)):
                             csv_emotion = str(row.get(emotion_column))
+                            logging.info(f"Row {i} - Found emotion in CSV: {csv_emotion}")
                         
                         # Get disaster type directly from CSV if available
                         csv_disaster_type = None
                         if disaster_column and not pd.isna(row.get(disaster_column)):
                             csv_disaster_type = str(row.get(disaster_column))
+                            logging.info(f"Row {i} - Found disaster type in CSV: {csv_disaster_type}")
+                        
+                        # Print all columns and values for debugging
+                        logging.info(f"Row {i} - All columns: {', '.join([f'{col}={row.get(col)}' for col in df.columns[:5]])}")
 
                         if text.strip():  # Only process non-empty text
                             # Add delay between requests to avoid rate limits
