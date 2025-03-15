@@ -252,8 +252,8 @@ export default function GeographicAnalysis() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">
-      {/* Content Container */}
-      <div className="flex-1 p-4 h-[calc(100vh-4rem)]">
+      {/* Content Container - Adjusted padding */}
+      <div className="flex-1 p-4 pb-16 h-[calc(100vh-4rem)] overflow-y-auto"> {/* Added pb-16 for footer spacing */}
         {/* Header Card */}
         <Card className="bg-white shadow-sm border-none mb-4">
           <CardHeader className="p-4">
@@ -273,19 +273,19 @@ export default function GeographicAnalysis() {
                 size="sm"
                 variant="outline"
                 onClick={() => setShowMarkers(!showMarkers)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 z-10" // Added z-10 to ensure button stays above map
               >
                 {showMarkers ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                <span className="hidden sm:inline">{showMarkers ? 'Hide Map Markers' : 'Show Map Markers'}</span>
+                <span className="hidden sm:inline">{showMarkers ? 'Hide Markers' : 'Show Markers'}</span>
               </Button>
             </div>
           </CardHeader>
         </Card>
 
-        {/* Main Content Area - Mobile-friendly Grid layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
-          {/* Map Container - Takes 2/3 of the screen on desktop, full width and fixed height on mobile */}
-          <div className="lg:col-span-2 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-[500px] lg:h-[calc(100vh-8rem)]">
+        {/* Main Content Area - Adjusted for mobile */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Map Container - Adjusted height for mobile */}
+          <div className="lg:col-span-2 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col min-h-[400px] lg:h-[calc(100vh-12rem)]">
             {/* Map Controls */}
             <div className="border-b border-slate-200 p-4">
               <div className="flex flex-wrap gap-4 items-center justify-between">
@@ -349,8 +349,8 @@ export default function GeographicAnalysis() {
               )}
             </div>
 
-            {/* Map View Container - Takes remaining height of parent container with proper sizing */}
-            <div className="relative flex-1 min-h-0 h-full">
+            {/* Map View Container */}
+            <div className="relative flex-1 min-h-0">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeMapType}
@@ -371,8 +371,8 @@ export default function GeographicAnalysis() {
             </div>
           </div>
 
-          {/* Legend Panel - 1/3 width on desktop, full width and fixed height on mobile */}
-          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg flex flex-col h-[400px] lg:h-[calc(100vh-8rem)]">
+          {/* Legend Panel - Adjusted height for mobile */}
+          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg flex flex-col min-h-[400px] lg:h-[calc(100vh-12rem)]">
             <div className="p-2 border-b border-slate-200">
               <h3 className="font-semibold text-slate-800 text-sm">Analysis Legend</h3>
             </div>
