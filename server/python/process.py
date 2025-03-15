@@ -91,9 +91,9 @@ class DisasterSentimentBackend:
             self.groq_api_keys = self.api_keys.copy()
 
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
-        self.retry_delay = 0.2  # Decrease retry delay for faster processing
-        self.limit_delay = 0.2  # Decrease limit delay for faster processing
-        self.groq_limit_delay = 0.2  # Specific delay for Groq API
+        self.retry_delay = 1.0  # Increase delay between retries
+        self.limit_delay = 1.0  # Increase delay for rate limits
+        self.groq_limit_delay = 1.0  # Increase Groq API delay
         self.current_api_index = 0
         self.max_retries = 5  # Maximum retry attempts for API requests
         self.last_successful_key = None
@@ -1553,7 +1553,7 @@ class DisasterSentimentBackend:
         sample_size = min(1000, len(df))  
         
         # If we have a lot of records, process in batches for better efficiency
-        batch_size = 5  # Process 5 records at a time for efficient processing
+        batch_size = 2  # Process fewer records at a time to avoid rate limits
         processed_count = 0
         
         # Divide the sample into batches
