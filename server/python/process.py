@@ -8,6 +8,7 @@ import logging
 import time
 import os
 import re
+import numpy as np
 from datetime import datetime
 from langdetect import detect
 from typing import Dict, List, Optional
