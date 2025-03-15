@@ -74,17 +74,7 @@ export function SentimentMap({
 
       // Keep map within bounds and prevent white edges
       mapInstanceRef.current.on('moveend', () => {
-        const bounds = mapInstanceRef.current.getBounds();
         const newZoom = mapInstanceRef.current.getZoom();
-
-        // Adjust zoom if we're seeing white edges
-        if (bounds.getSouth() < PH_BOUNDS.southWest[0] || 
-            bounds.getNorth() > PH_BOUNDS.northEast[0] ||
-            bounds.getWest() < PH_BOUNDS.southWest[1] ||
-            bounds.getEast() > PH_BOUNDS.northEast[1]) {
-          mapInstanceRef.current.setView(PH_CENTER, newZoom);
-        }
-
         setMapZoom(newZoom);
       });
 
