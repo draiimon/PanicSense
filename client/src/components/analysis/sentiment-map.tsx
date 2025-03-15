@@ -67,8 +67,8 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
-          fillOpacity: 0.5,
-          radius: radius * 1000 // Convert to meters
+          fillOpacity: 0.6,
+          radius: radius * 300 // Reduced radius multiplier for more specific circles
         }).addTo(mapInstanceRef.current);
 
         // Add a popup with different content based on colorBy
