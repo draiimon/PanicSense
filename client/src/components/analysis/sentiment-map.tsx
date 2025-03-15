@@ -249,7 +249,7 @@ export function SentimentMap({
   }, [regions, onRegionSelect, mapType, mapZoom]);
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-[500px] lg:h-full w-full">
       {/* Zoom controls */}
       <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
         <Button
