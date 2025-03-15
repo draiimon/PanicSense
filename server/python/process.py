@@ -110,19 +110,79 @@ class DisasterSentimentBackend:
         return "Not Specified"
 
     def extract_location(self, text):
-        """Extract location from text using common Philippine location names"""
+        """Extract location from text using comprehensive Philippine location names"""
         text_lower = text.lower()
 
         ph_locations = [
-            "Manila", "Quezon City", "Davao", "Cebu", "Makati", "Taguig",
-            "Pasig", "Caloocan", "Mandaluyong", "Baguio", "Iloilo", "Bacolod",
-            "Tacloban", "Zamboanga", "Cagayan", "Bicol", "Batangas", "Cavite",
-            "Laguna", "Pampanga", "Bulacan", "Mindanao", "Luzon", "Visayas",
-            "NCR", "CAR", "CALABARZON", "MIMAROPA", "Philippines", "Pilipinas"
+            # ALL REGIONS
+            "NCR", "CAR", "Ilocos Region", "Cagayan Valley", "Central Luzon",
+            "CALABARZON", "MIMAROPA", "Bicol Region", "Western Visayas",
+            "Central Visayas", "Eastern Visayas", "Zamboanga Peninsula",
+            "Northern Mindanao", "Davao Region", "SOCCSKSARGEN", "Caraga", "BARMM",
+
+            # ALL PROVINCES
+            "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay",
+            "Antique", "Apayao", "Aurora", "Basilan", "Bataan", "Batanes",
+            "Batangas", "Benguet", "Biliran", "Bohol", "Bukidnon", "Bulacan",
+            "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz",
+            "Catanduanes", "Cavite", "Cebu", "Compostela Valley", "Cotabato",
+            "Davao de Oro", "Davao del Norte", "Davao del Sur", "Davao Occidental",
+            "Davao Oriental", "Dinagat Islands", "Eastern Samar", "Guimaras",
+            "Ifugao", "Ilocos Norte", "Ilocos Sur", "Iloilo", "Isabela", "Kalinga",
+            "La Union", "Laguna", "Lanao del Norte", "Lanao del Sur", "Leyte",
+            "Maguindanao", "Marinduque", "Masbate", "Misamis Occidental",
+            "Misamis Oriental", "Mountain Province", "Negros Occidental",
+            "Negros Oriental", "Northern Samar", "Nueva Ecija", "Nueva Vizcaya",
+            "Occidental Mindoro", "Oriental Mindoro", "Palawan", "Pampanga",
+            "Pangasinan", "Quezon", "Quirino", "Rizal", "Romblon", "Samar",
+            "Sarangani", "Siquijor", "Sorsogon", "South Cotabato", "Southern Leyte",
+            "Sultan Kudarat", "Sulu", "Surigao del Norte", "Surigao del Sur",
+            "Tarlac", "Tawi-Tawi", "Zambales", "Zamboanga del Norte",
+            "Zamboanga del Sur", "Zamboanga Sibugay",
+
+            # ALL CITIES
+            "Alaminos", "Angeles", "Antipolo", "Bacolod", "Bacoor", "Bago",
+            "Baguio", "Bais", "Balanga", "Batac", "Batangas City", "Bayawan",
+            "Baybay", "Bayugan", "Biñan", "Bislig", "Bogo", "Borongan", "Butuan",
+            "Cabadbaran", "Cabanatuan", "Cabuyao", "Cadiz", "Cagayan de Oro",
+            "Calamba", "Calapan", "Calbayog", "Caloocan", "Candon", "Canlaon",
+            "Carcar", "Catbalogan", "Cauayan", "Cavite City", "Cebu City",
+            "Cotabato City", "Dagupan", "Danao", "Dapitan", "Davao City",
+            "Digos", "Dipolog", "Dumaguete", "El Salvador", "Escalante",
+            "Gapan", "General Santos", "General Trias", "Gingoog", "Guihulngan",
+            "Himamaylan", "Ilagan", "Iligan", "Iloilo City", "Imus", "Iriga",
+            "Isabela City", "Kabankalan", "Kidapawan", "Koronadal", "La Carlota",
+            "Lamitan", "Laoag", "Lapu-Lapu", "Las Piñas", "Legazpi", "Ligao",
+            "Lipa", "Lucena", "Maasin", "Mabalacat", "Makati", "Malabon",
+            "Malaybalay", "Malolos", "Mandaluyong", "Mandaue", "Manila",
+            "Marawi", "Marikina", "Masbate City", "Mati", "Meycauayan",
+            "Muñoz", "Muntinlupa", "Naga", "Navotas", "Olongapo", "Ormoc",
+            "Oroquieta", "Ozamiz", "Pagadian", "Palayan", "Panabo", "Parañaque",
+            "Pasay", "Pasig", "Passi", "Puerto Princesa", "Quezon City",
+            "Roxas", "Sagay", "Samal", "San Carlos", "San Fernando",
+            "San Jose", "San Jose del Monte", "San Juan", "San Pablo",
+            "San Pedro", "Santa Rosa", "Santiago", "Silay", "Sipalay",
+            "Sorsogon City", "Surigao", "Tabaco", "Tabuk", "Tacloban",
+            "Tacurong", "Tagaytay", "Tagbilaran", "Taguig", "Tagum",
+            "Talisay", "Tanauan", "Tandag", "Tangub", "Tanjay", "Tarlac City",
+            "Tayabas", "Toledo", "Trece Martires", "Tuguegarao", "Urdaneta",
+            "Valencia", "Valenzuela", "Victorias", "Vigan", "Zamboanga City",
+            
+            # COMMON AREAS
+            "Mindanao", "Luzon", "Visayas", "Philippines", "Pilipinas"
         ]
 
+        # First try to find exact matches of locations surrounded by spaces, to avoid partial matches
         for location in ph_locations:
-            if location.lower() in text_lower:
+            loc_lower = location.lower()
+            # Look for the location as a whole word in the text
+            if re.search(r'\b' + re.escape(loc_lower) + r'\b', text_lower):
+                return location
+        
+        # If no exact match, try a more relaxed approach for partial matches
+        for location in ph_locations:
+            loc_lower = location.lower()
+            if loc_lower in text_lower:
                 return location
 
         return None
