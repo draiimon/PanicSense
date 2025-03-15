@@ -101,7 +101,7 @@ export function getSentimentBadgeClasses(sentiment: string | null): string {
  * - Flood: Blue
  * - Typhoon: Gray
  * - Fire: Orange
- * - Volcano/Volcanic Eruption: Red
+ * - Volcanic Eruptions: Red
  * - Earthquake: Brown
  * - Landslide: Dark Brown
  * - Others: Neutral gray

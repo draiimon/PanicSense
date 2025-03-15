@@ -30,7 +30,7 @@ export function SentimentLegend({
     { name: 'Flood', color: '#3b82f6' },
     { name: 'Typhoon', color: '#6b7280' },
     { name: 'Fire', color: '#f97316' },
-    { name: 'Volcano', color: '#ef4444' },
+    { name: 'Volcanic Eruptions', color: '#ef4444' },
     { name: 'Earthquake', color: '#92400e' },
     { name: 'Landslide', color: '#78350f' }
   ];
@@ -89,9 +89,9 @@ export function SentimentLegend({
           </div>
         </div>
 
-        {/* Affected Areas - With dedicated scrolling */}
+        {/* Affected Areas with full height scrolling */}
         {mostAffectedAreas && mostAffectedAreas.length > 0 && (
-          <div className="bg-slate-50 p-3 rounded-lg flex flex-col overflow-hidden">
+          <div className="bg-slate-50 p-3 rounded-lg flex flex-col flex-grow overflow-hidden">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-red-500" />
@@ -101,7 +101,7 @@ export function SentimentLegend({
                 Top {mostAffectedAreas.length}
               </Badge>
             </div>
-            <div className="space-y-2 overflow-y-auto max-h-[250px] pr-1 scrollbar-thin flex-grow">
+            <div className="space-y-2 overflow-y-auto h-[calc(100vh-400px)] min-h-[300px] pr-1 scrollbar-thin">
               {mostAffectedAreas.map((area, index) => (
                 <div 
                   key={index}

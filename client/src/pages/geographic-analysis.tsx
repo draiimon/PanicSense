@@ -307,7 +307,7 @@ export default function GeographicAnalysis() {
                     size="sm"
                   >
                     <MapPin className="h-4 w-4" />
-                    <span className="inline">Emotion</span>
+                    <span className="inline">Sentiment</span>
                   </Button>
                 </div>
 
@@ -370,12 +370,12 @@ export default function GeographicAnalysis() {
             </div>
           </div>
 
-          {/* Legend Panel - 1/3 width on desktop, full width on mobile, with fixed height */}
-          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-full min-h-0">
+          {/* Legend Panel - 1/3 width on desktop, full width on mobile, with flexible height */}
+          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg flex flex-col h-full min-h-0">
             <div className="p-2 border-b border-slate-200">
               <h3 className="font-semibold text-slate-800 text-sm">Analysis Legend</h3>
             </div>
-            <div className="flex-1 overflow-hidden min-h-0 h-full">
+            <div className="flex-1 min-h-0 h-full">
               <SentimentLegend
                 mostAffectedAreas={mostAffectedAreas}
                 showRegionSelection={false}
