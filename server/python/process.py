@@ -1347,28 +1347,38 @@ class DisasterSentimentBackend:
         }
 
     def process_csv(self, file_path):
+        """Process a CSV file with enhanced error handling and flexible parsing"""
         try:
             # Try different CSV parsing approaches
-            try:
-                df = pd.read_csv(file_path)
-            except:
+            df = None
+            last_error = None
+            
+            parse_attempts = [
+                lambda: pd.read_csv(file_path),
+                lambda: pd.read_csv(file_path, encoding='latin1'),
+                lambda: pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip'),
+                lambda: pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip', sep=None, engine='python')
+            ]
+            
+            for attempt in parse_attempts:
                 try:
-                    # Try with different encoding
-                    df = pd.read_csv(file_path, encoding='latin1')
-                except:
-                    try:
-                        # Try with flexible parsing
-                        df = pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip')
-                    except:
-                        try:
-                            # Try with more flexible parsing
-                            df = pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip', sep=None, engine='python')
-                        except Exception as e:
-                            logging.error(f"All CSV parsing attempts failed: {str(e)}")
-                            raise Exception("Could not parse CSV file - please check the file format")
-
-        processed_results = []
-        total_records = len(df)
+                    df = attempt()
+                    break
+                except Exception as e:
+                    last_error = str(e)
+                    continue
+                    
+            if df is None:
+                raise Exception(f"Could not parse CSV file after multiple attempts. Last error: {last_error}")
+                
+            # Initialize processing
+            processed_results = []
+            total_records = len(df)
+            
+        except Exception as e:
+            logging.error(f"Failed to read CSV file: {e}")
+            print(json.dumps({"error": str(e)}))
+            sys.exit(1)
 
         # If no text column, check for possible alternatives or use first column
         if 'text' not in df.columns:
