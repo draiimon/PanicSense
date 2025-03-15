@@ -3,34 +3,14 @@ import sys
 import json
 import argparse
 import pandas as pd
-import random
-import numpy as np
 import requests
 import logging
 import time
 import os
+import re
 from datetime import datetime
 from langdetect import detect
 from typing import Dict, List, Optional
-
-# Mock classes for sentiment analysis models
-class BiGRUSimulator:
-    def predict(self, text: str, language: str) -> Dict:
-        return {"sentiment": "Neutral", "confidence": 0.8}
-
-class LSTMSimulator:
-    def predict(self, text: str, language: str) -> Dict:
-        return {"sentiment": "Neutral", "confidence": 0.85}
-
-class MBERTSimulator:
-    def predict(self, text: str, language: str) -> Dict:
-        return {"sentiment": "Neutral", "confidence": 0.82}
-
-def report_progress(processed: int, stage: str):
-    """Report progress to parent process"""
-    sys.stderr.write(f"PROGRESS:{processed}:{stage}\n")
-    sys.stderr.flush()
-
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -42,395 +22,6 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--file', help='Path to the CSV file to analyze')
 parser.add_argument('--text', help='Text to analyze for sentiment')
 args = parser.parse_args()
-
-
-# Simulated advanced NLP functionality
-# These classes provide BiGRU, LSTM, and mBERT like behavior
-# without requiring the actual libraries to be installed
-
-class NeuralNetworkSimulator:
-    """Base class for neural network simulation"""
-
-    def __init__(self, name):
-        self.name = name
-        # Model weights for different sentiment classes
-        self.weights = {
-            'Panic': 0.92,
-            'Fear/Anxiety': 0.88,
-            'Disbelief': 0.85,
-            'Resilience': 0.87,
-            'Neutral': 0.90
-        }
-
-    def predict(self, text, language):
-        """Base prediction method - to be overridden"""
-        return {
-            'sentiment': 'Neutral',
-            'confidence': 0.7,
-            'explanation': 'Base model fallback.'
-        }
-
-    def preprocess(self, text, language):
-        """Base preprocessing method"""
-        # Lowercase text
-        text = text.lower()
-        # Remove extra whitespace
-        text = ' '.join(text.split())
-        return text
-
-
-class BiGRUSimulator(NeuralNetworkSimulator):
-    """Simulates BiGRU model behavior"""
-
-    def __init__(self):
-        super().__init__("BiGRU")
-
-    def predict(self, text, language):
-        processed_text = self.preprocess(text, language)
-
-        # BiGRU excels at sequence relationships
-        sentiment_scores = {
-            'Panic': 0.0,
-            'Fear/Anxiety': 0.0,
-            'Disbelief': 0.0,
-            'Resilience': 0.0,
-            'Neutral': 0.0
-        }
-
-        # Simulated pattern detection logic
-        # BiGRU is strong at contextual dependencies
-        words = processed_text.split()
-
-        # Pattern: Exclamation marks increase panic/fear scores
-        exclamation_count = processed_text.count('!')
-        if exclamation_count > 2:
-            sentiment_scores['Panic'] += 0.3
-            sentiment_scores['Fear/Anxiety'] += 0.2
-        elif exclamation_count > 0:
-            sentiment_scores['Fear/Anxiety'] += 0.15
-
-        # Pattern: Question marks increase disbelief scores
-        question_count = processed_text.count('?')
-        if question_count > 1:
-            sentiment_scores['Disbelief'] += 0.25
-
-        # Pattern: Capitalized words increase intensity
-        capital_word_count = sum(1 for word in text.split()
-                                 if word.isupper() and len(word) > 1)
-        if capital_word_count > 2:
-            sentiment_scores['Panic'] += 0.25
-
-        # Pattern: Positive words indicate resilience
-        resilience_words = [
-            'help', 'hope', 'together', 'support', 'strong', 'survive',
-            'rebuild'
-        ]
-        resilience_matches = sum(1 for word in resilience_words
-                                 if word in words)
-        if resilience_matches > 0:
-            sentiment_scores['Resilience'] += 0.2 * resilience_matches
-
-        # Pattern: Neutral information
-        neutral_patterns = [
-            'reported', 'according', 'officials', 'announced', 'update'
-        ]
-        neutral_matches = sum(1 for pattern in neutral_patterns
-                              if pattern in processed_text)
-        if neutral_matches > 0:
-            sentiment_scores['Neutral'] += 0.25 * neutral_matches
-
-        # Find the highest scoring sentiment
-        max_sentiment = max(sentiment_scores.items(), key=lambda x: x[1])
-
-        # If no clear signal, default to neutral with higher confidence
-        if max_sentiment[1] < 0.2:
-            base_confidence = self.weights['Neutral'] * 0.8
-            return {
-                'sentiment':
-                'Neutral',
-                'confidence':
-                base_confidence,
-                'explanation':
-                f"BiGRU model detected neutral content with {base_confidence:.2f} confidence."
-            }
-
-        # Calculate confidence based on scores and model weights
-        base_confidence = self.weights[max_sentiment[0]] * (0.7 +
-                                                            max_sentiment[1])
-        # Ensure confidence is within reasonable bounds
-        confidence = min(0.95, max(0.75, base_confidence))
-
-        return {
-            'sentiment':
-            max_sentiment[0],
-            'confidence':
-            confidence,
-            'explanation':
-            f"BiGRU model detected {max_sentiment[0]} sentiment with {confidence:.2f} confidence."
-        }
-
-
-class LSTMSimulator(NeuralNetworkSimulator):
-    """Simulates LSTM model behavior"""
-
-    def __init__(self):
-        super().__init__("LSTM")
-
-    def predict(self, text, language):
-        processed_text = self.preprocess(text, language)
-
-        # LSTM is especially good at long-term dependencies
-        sentiment_scores = {
-            'Panic': 0.0,
-            'Fear/Anxiety': 0.0,
-            'Disbelief': 0.0,
-            'Resilience': 0.0,
-            'Neutral': 0.0
-        }
-
-        # Simulated LSTM-specific pattern detection
-
-        # Pattern: Disaster keywords - LSTM catches semantic connections
-        disaster_keywords = {
-            'earthquake': {
-                'Panic': 0.4,
-                'Fear/Anxiety': 0.3
-            },
-            'fire': {
-                'Panic': 0.4,
-                'Fear/Anxiety': 0.3
-            },
-            'flood': {
-                'Panic': 0.3,
-                'Fear/Anxiety': 0.3
-            },
-            'typhoon': {
-                'Panic': 0.3,
-                'Fear/Anxiety': 0.4
-            },
-            'hurricane': {
-                'Panic': 0.3,
-                'Fear/Anxiety': 0.4
-            },
-            'landslide': {
-                'Panic': 0.35,
-                'Fear/Anxiety': 0.3
-            },
-            'tsunami': {
-                'Panic': 0.45,
-                'Fear/Anxiety': 0.35
-            },
-            'eruption': {
-                'Panic': 0.4,
-                'Fear/Anxiety': 0.3
-            },
-            'lindol': {
-                'Panic': 0.4,
-                'Fear/Anxiety': 0.3
-            },  # Tagalog
-            'sunog': {
-                'Panic': 0.4,
-                'Fear/Anxiety': 0.3
-            },  # Tagalog
-            'baha': {
-                'Panic': 0.3,
-                'Fear/Anxiety': 0.3
-            },  # Tagalog
-            'bagyo': {
-                'Panic': 0.3,
-                'Fear/Anxiety': 0.4
-            },  # Tagalog
-        }
-
-        for keyword, scores in disaster_keywords.items():
-            if keyword in processed_text:
-                for sentiment, score in scores.items():
-                    sentiment_scores[sentiment] += score
-
-        # Pattern: Emergency expressions
-        emergency_patterns = [
-            'need help', 'emergency', 'trapped', 'danger', 'evacuate',
-            'tulong', 'saklolo'
-        ]
-        for pattern in emergency_patterns:
-            if pattern in processed_text:
-                sentiment_scores['Panic'] += 0.3
-
-        # Pattern: News reporting indicators
-        news_patterns = [
-            'reported', 'according to', 'officials said', 'announced',
-            'bulletin'
-        ]
-        for pattern in news_patterns:
-            if pattern in processed_text:
-                sentiment_scores['Neutral'] += 0.4
-
-        # Adjust for consecutive words - LSTM's strength
-        words = processed_text.split()
-        for i in range(len(words) - 1):
-            # Look for sequential words that together indicate strong emotion
-            word_pair = words[i] + ' ' + words[i + 1]
-
-            # Fear indicators
-            fear_pairs = [
-                'i fear', 'so scared', 'very worried', 'too dangerous',
-                'takot ako', 'natatakot ako'
-            ]
-            if any(pair in word_pair for pair in fear_pairs):
-                sentiment_scores['Fear/Anxiety'] += 0.25
-
-            # Disbelief indicators
-            disbelief_pairs = [
-                'not true', 'fake news', 'cannot believe', 'hindi totoo',
-                'kasinungalingan lang'
-            ]
-            if any(pair in word_pair for pair in disbelief_pairs):
-                sentiment_scores['Disbelief'] += 0.3
-
-            # Resilience indicators
-            resilience_pairs = [
-                'will survive', 'stay strong', 'help each',
-                'support community', 'malalagpasan natin'
-            ]
-            if any(pair in word_pair for pair in resilience_pairs):
-                sentiment_scores['Resilience'] += 0.3
-
-        # Find the highest scoring sentiment
-        max_sentiment = max(sentiment_scores.items(), key=lambda x: x[1])
-
-        # If no clear signal, default to neutral with proper confidence
-        if max_sentiment[1] < 0.2:
-            base_confidence = self.weights['Neutral'] * 0.82
-            return {
-                'sentiment':
-                'Neutral',
-                'confidence':
-                base_confidence,
-                'explanation':
-                f"LSTM model detected neutral content with {base_confidence:.2f} confidence."
-            }
-
-        # Calculate confidence based on scores and model weights
-        base_confidence = self.weights[max_sentiment[0]] * (0.7 +
-                                                            max_sentiment[1])
-        # Ensure confidence is within reasonable bounds
-        confidence = min(0.95, max(0.7, base_confidence))
-
-        return {
-            'sentiment':
-            max_sentiment[0],
-            'confidence':
-            confidence,
-            'explanation':
-            f"LSTM model detected {max_sentiment[0]} sentiment with {confidence:.2f} confidence."
-        }
-
-
-class MBERTSimulator(NeuralNetworkSimulator):
-    """Simulates multilingual BERT model behavior"""
-
-    def __init__(self):
-        super().__init__("mBERT")
-        # mBERT is particularly strong at multilingual content
-        self.language_weights = {
-            'en': 0.9,  # English
-            'tl': 0.88,  # Tagalog
-            'other': 0.82  # Other languages
-        }
-
-    def predict(self, text, language):
-        processed_text = self.preprocess(text, language)
-
-        # mBERT excels at multilingual content
-        sentiment_scores = {
-            'Panic': 0.0,
-            'Fear/Anxiety': 0.0,
-            'Disbelief': 0.0,
-            'Resilience': 0.0,
-            'Neutral': 0.0
-        }
-
-        # Apply language-specific analysis
-        lang_weight = self.language_weights.get(language,
-                                                self.language_weights['other'])
-
-        # Detect language mix (code-switching boost)
-        has_english = any(
-            word in processed_text for word in
-            ['help', 'emergency', 'disaster', 'earthquake', 'typhoon'])
-        has_tagalog = any(
-            word in processed_text
-            for word in ['tulong', 'lindol', 'bagyo', 'baha', 'sunog'])
-
-        # mBERT excels at code-switched content
-        code_switching_boost = 0.05 if (has_english and has_tagalog) else 0.0
-
-        # Contextual analysis - mBERT's strength
-
-        # Panic indicators
-        panic_terms = {
-            'en':
-            ['help', 'emergency', 'trapped', 'dying', 'evacuate', 'death'],
-            'tl':
-            ['tulong', 'saklolo', 'naiipit', 'mamamatay', 'lumikas', 'patay']
-        }
-
-        for term in panic_terms.get(language, panic_terms['en']):
-            if term in processed_text:
-                sentiment_scores['Panic'] += 0.3 * lang_weight
-
-        # Fear indicators
-        fear_terms = {
-            'en': ['worried', 'scared', 'afraid', 'fear', 'terrified'],
-            'tl':
-            ['natatakot', 'takot', 'kabado', 'nangangamba', 'kinakabahan']
-        }
-
-        for term in fear_terms.get(language, fear_terms['en']):
-            if term in processed_text:
-                sentiment_scores['Fear/Anxiety'] += 0.25 * lang_weight
-
-        # Neutral indicators
-        neutral_terms = {
-            'en': ['reported', 'announced', 'update', 'bulletin', 'advisory'],
-            'tl': ['anunsyo', 'balita', 'ulat', 'pahayag', 'abiso']
-        }
-
-        for term in neutral_terms.get(language, neutral_terms['en']):
-            if term in processed_text:
-                sentiment_scores['Neutral'] += 0.3 * lang_weight
-
-        # Find the highest scoring sentiment
-        max_sentiment = max(sentiment_scores.items(), key=lambda x: x[1])
-
-        # If no clear signal, use improved neutral with higher confidence
-        if max_sentiment[1] < 0.2:
-            base_confidence = self.weights['Neutral'] * (0.85 +
-                                                         code_switching_boost)
-            return {
-                'sentiment':
-                'Neutral',
-                'confidence':
-                base_confidence,
-                'explanation':
-                f"mBERT model detected neutral content with {base_confidence:.2f} confidence in {language}."
-            }
-
-        # Calculate confidence with language and code-switching adjustments
-        base_confidence = self.weights[max_sentiment[0]] * (
-            0.75 + max_sentiment[1] + code_switching_boost)
-        # Ensure confidence is within reasonable bounds
-        confidence = min(0.96, max(0.75, base_confidence))
-
-        return {
-            'sentiment':
-            max_sentiment[0],
-            'confidence':
-            confidence,
-            'explanation':
-            f"mBERT model detected {max_sentiment[0]} sentiment with {confidence:.2f} confidence in {language}."
-        }
-
 
 def report_progress(processed: int, stage: str):
     """Print progress in a format that can be parsed by the Node.js service"""
@@ -652,13 +243,10 @@ class DisasterSentimentBackend:
 
     def analyze_sentiment(self, text):
         """
-        Enhanced sentiment analysis using multi-model ensemble:
-        1. Groq API for primary analysis
-        2. BiGRU for sequence pattern detection
-        3. LSTM for long-range dependencies
-        4. mBERT for multilingual understanding
-        5. Rule-based analysis as fallback
-        6. Advanced ensemble for higher accuracy
+        Enhanced sentiment analysis using Groq API only:
+        1. Detect language first for better prompting
+        2. Send to Groq API for full analysis
+        3. Process the response to extract sentiment, location, and disaster type
         """
         # Detect language first for better prompting
         language = self.detect_language(text)
@@ -667,63 +255,26 @@ class DisasterSentimentBackend:
         logging.info(
             f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
 
-        # Initialize advanced models
-        bigru_model = BiGRUSimulator()
-        lstm_model = LSTMSimulator()
-        mbert_model = MBERTSimulator()
-
-        # Create placeholder for ensemble results
-        ensemble_results = []
-
-        # Step 1: Try API-based analysis first
+        # Get analysis directly from Groq API
         api_result = self.get_api_sentiment_analysis(text, language)
-        if api_result:
-            api_result['modelType'] = 'API'
-            ensemble_results.append(api_result)
-
-        # Step 2: Apply BiGRU model
-        try:
-            bigru_result = bigru_model.predict(text, language)
-            bigru_result['modelType'] = 'BiGRU'
-            bigru_result['language'] = language
-            bigru_result['disasterType'] = self.extract_disaster_type(
-                text) or "Not Specified"
-            bigru_result['location'] = self.extract_location(text)
-            ensemble_results.append(bigru_result)
-        except Exception as e:
-            logging.error(f"BiGRU model error: {e}")
-
-        # Step 3: Apply LSTM model
-        try:
-            lstm_result = lstm_model.predict(text, language)
-            lstm_result['modelType'] = 'LSTM'
-            lstm_result['language'] = language
-            lstm_result['disasterType'] = self.extract_disaster_type(
-                text) or "Not Specified"
-            lstm_result['location'] = self.extract_location(text)
-            ensemble_results.append(lstm_result)
-        except Exception as e:
-            logging.error(f"LSTM model error: {e}")
-
-        # Step 4: Apply mBERT model (especially valuable for Tagalog content)
-        try:
-            mbert_result = mbert_model.predict(text, language)
-            mbert_result['modelType'] = 'mBERT'
-            mbert_result['language'] = language
-            mbert_result['disasterType'] = self.extract_disaster_type(
-                text) or "Not Specified"
-            mbert_result['location'] = self.extract_location(text)
-            ensemble_results.append(mbert_result)
-        except Exception as e:
-            logging.error(f"mBERT model error: {e}")
-
-        # Step 5: Get rule-based analysis as fallback
-        rule_result = self.rule_based_sentiment_analysis(text)
-        rule_result['modelType'] = 'Rule-based'
-        ensemble_results.append(rule_result)
-
-        # Step 6: Create final ensemble prediction
-        return self.create_ensemble_prediction(ensemble_results, text)
+        
+        if not api_result:
+            # In case of API failure, use simple disaster type and location extraction as fallback
+            fallback_result = {
+                'sentiment': 'Neutral',
+                'confidence': 0.7,
+                'explanation': 'Fallback analysis due to API unavailability.',
+                'disasterType': self.extract_disaster_type(text) or "Not Specified",
+                'location': self.extract_location(text),
+                'language': language,
+                'modelType': 'API-Fallback'
+            }
+            return fallback_result
+            
+        # Add model type for tracking
+        api_result['modelType'] = 'Groq-API'
+        
+        return api_result
 
     def get_api_sentiment_analysis(self, text, language):
         """
