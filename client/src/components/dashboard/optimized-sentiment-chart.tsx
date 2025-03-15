@@ -4,6 +4,7 @@ import Chart from 'chart.js/auto';
 import { sentimentColors } from '@/lib/colors';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 interface SentimentChartProps {
   data: {
@@ -57,7 +58,7 @@ export function OptimizedSentimentChart({
       responsive: true,
       maintainAspectRatio: false,
       animation: {
-        duration: isLoading ? 0 : 800, // Disable animations during loading
+        duration: isLoading ? 0 : 800,
         easing: 'easeOutQuart' as const
       },
       plugins: {
@@ -71,7 +72,7 @@ export function OptimizedSentimentChart({
           },
         },
         tooltip: {
-          enabled: !isLoading, // Disable tooltips during loading
+          enabled: !isLoading,
           mode: 'index' as const,
           intersect: false,
           backgroundColor: 'rgba(17, 24, 39, 0.8)',
@@ -159,35 +160,30 @@ export function OptimizedSentimentChart({
     };
   }, [processedData, colors, type, chartOptions, isLoading]);
 
-  // Loading state UI
-  if (isLoading) {
-    return (
-      <div style={{ height }} className="flex items-center justify-center">
-        <div className="space-y-4 w-full">
-          <Skeleton className="h-[200px] w-full bg-gray-200 animate-pulse" />
-          <div className="flex justify-center space-x-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-4 w-20 bg-gray-200 animate-pulse" />
-            ))}
+  return (
+    <div style={{ height }} className="relative">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+            <p className="text-sm font-medium text-slate-600">Processing data...</p>
           </div>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  // Render chart with animations
-  return (
-    <AnimatePresence mode="wait">
-      <motion.div 
-        style={{ height }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.5 }}
-        className="chart-container"
-      >
-        <canvas ref={chartRef}></canvas>
-      </motion.div>
-    </AnimatePresence>
+      {/* Chart Container */}
+      <AnimatePresence mode="wait">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="h-full"
+        >
+          <canvas ref={chartRef}></canvas>
+        </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }
