@@ -884,13 +884,34 @@ class DisasterSentimentBackend:
                 }
             }
             
-            print(json.dumps(output))
+            # Ensure all data is JSON serializable
+            output = {
+                "results": [{
+                    "text": str(r.get("text", "")),
+                    "timestamp": str(r.get("timestamp", "")),
+                    "source": str(r.get("source", "")),
+                    "language": str(r.get("language", "")),
+                    "sentiment": str(r.get("sentiment", "")),
+                    "confidence": float(r.get("confidence", 0.0)),
+                    "explanation": str(r.get("explanation", "")),
+                    "disasterType": str(r.get("disasterType", "")),
+                    "location": str(r.get("location", ""))
+                } for r in processed_results],
+                "metrics": {
+                    "accuracy": float(output["metrics"]["accuracy"]),
+                    "precision": float(output["metrics"]["precision"]),
+                    "recall": float(output["metrics"]["recall"]),
+                    "f1Score": float(output["metrics"]["f1Score"])
+                }
+            }
+            
+            print(json.dumps(output, ensure_ascii=False))
             sys.stdout.flush()
             
         except Exception as e:
             logging.error(f"Failed to process CSV file: {e}")
-            print(json.dumps({"error": str(e)}))
-            sys.exit(1)
+            print(json.dumps({"error": str(e), "results": [], "metrics": {"accuracy": 0.0, "precision": 0.0, "recall": 0.0, "f1Score": 0.0}}))
+            sys.exit(1)t(1)
 
     def rule_based_sentiment_analysis(self, text):
         """
