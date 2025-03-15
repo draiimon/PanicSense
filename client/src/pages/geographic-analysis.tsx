@@ -4,6 +4,7 @@ import { SentimentMap } from "@/components/analysis/sentiment-map";
 import { SentimentLegend } from "@/components/analysis/sentiment-legend";
 import { motion, AnimatePresence } from "framer-motion";
 import { Globe, MapPin, Map, AlertTriangle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Define types for the component
 interface Region {
@@ -20,10 +21,6 @@ type RegionCoordinates = Record<string, [number, number]>;
 export default function GeographicAnalysis() {
   const [activeMapType, setActiveMapType] = useState<'disaster' | 'emotion'>('disaster');
   const { sentimentPosts } = useDisasterContext();
-  const [selectedRegion, setSelectedRegion] = useState<{
-    name: string;
-    sentiments: { name: string; percentage: number }[];
-  } | undefined>(undefined);
 
   // Complete Philippine region coordinates
   const regionCoordinates = useMemo(() => {
@@ -38,9 +35,9 @@ export default function GeographicAnalysis() {
       "Rizal": [14.6042, 121.3035],
       "Laguna": [14.2691, 121.4113],
       "Bulacan": [14.7969, 120.8787],
-      "Cavite": [14.2829, 120.8686], // Center of Cavite province
+      "Cavite": [14.2829, 120.8686],
       "Pampanga": [15.0794, 120.6200],
-      "Bacoor": [14.4628, 120.8967], // Fixed Bacoor coordinates
+      "Bacoor": [14.4628, 120.8967],
       "Imus": [14.4297, 120.9367],
       "Dasmariñas": [14.3294, 120.9367],
       "General Trias": [14.3833, 120.8833],
@@ -100,7 +97,7 @@ export default function GeographicAnalysis() {
       "Eastern Samar": [11.6508, 125.4082],
       "Northern Samar": [12.4700, 124.6451],
       "Siquijor": [9.1985, 123.5950],
-      "Tacloban": [11.2543, 125.0000], // City but commonly mentioned
+      "Tacloban": [11.2543, 125.0000],
 
       // Mindanao
       "Mindanao": [7.5, 125.0],
@@ -109,7 +106,7 @@ export default function GeographicAnalysis() {
       "Davao del Norte": [7.5619, 125.6549],
       "Davao Oriental": [7.3172, 126.5420],
       "Davao Occidental": [6.1055, 125.6083],
-      "Davao de Oro": [7.3172, 126.1748], 
+      "Davao de Oro": [7.3172, 126.1748],
       "Zamboanga del Norte": [8.1527, 123.2577],
       "Zamboanga del Sur": [7.8383, 123.2968],
       "Zamboanga Sibugay": [7.5222, 122.8198],
@@ -131,14 +128,13 @@ export default function GeographicAnalysis() {
       "Basilan": [6.4221, 121.9690],
       "Sulu": [6.0474, 121.0024],
       "Tawi-Tawi": [5.1339, 119.9357],
-      "Cagayan de Oro": [8.4542, 124.6319], // City but commonly mentioned
-      "General Santos": [6.1164, 125.1716]  // City but commonly mentioned
+      "Cagayan de Oro": [8.4542, 124.6319],
+      "General Santos": [6.1164, 125.1716]
     };
   }, []);
 
   // Process data for regions and map location mentions
   const locationData = useMemo(() => {
-    // Use a regular object instead of Map
     const data: Record<string, {
       count: number;
       sentiments: Record<string, number>;
@@ -154,6 +150,16 @@ export default function GeographicAnalysis() {
       let location = post.location;
       const lowerLocation = location.toLowerCase().trim();
 
+      // Skip "not specified" and generic Philippines mentions
+      if (
+        lowerLocation === 'not specified' ||
+        lowerLocation === 'philippines' ||
+        lowerLocation === 'pilipinas' ||
+        lowerLocation === 'pinas'
+      ) {
+        return;
+      }
+
       // Handle Manila specifically
       if (lowerLocation.includes('manila') && !lowerLocation.includes('metro')) {
         location = 'Manila';
@@ -164,18 +170,10 @@ export default function GeographicAnalysis() {
       if (lowerLocation.includes('visayas')) location = 'Visayas';
       if (lowerLocation.includes('mindanao')) location = 'Mindanao';
 
-      // Handle entire Philippines as special case
-      if (
-        lowerLocation.includes('philippines') || 
-        lowerLocation.includes('pilipinas') ||
-        lowerLocation.includes('pinas')
-      ) {
-        location = 'Philippines'; 
-      }
+      // If coordinates not found, skip this location
+      const rawCoordinates = regionCoordinates[location as keyof typeof regionCoordinates];
+      if (!rawCoordinates) return;
 
-      // If coordinates not found, use center of Philippines
-      const rawCoordinates = regionCoordinates[location as keyof typeof regionCoordinates] || regionCoordinates["Philippines"];
-      
       // Ensure it's a tuple of exactly 2 numbers
       const coordinates: [number, number] = [rawCoordinates[0], rawCoordinates[1]];
 
@@ -238,14 +236,9 @@ export default function GeographicAnalysis() {
       const maxPosts = allCounts.length > 0 ? Math.max(...allCounts) : 1;
       const intensity = (data.count / maxPosts) * 100;
 
-      // Ensure coordinates is always a tuple of exactly 2 numbers
-      const coordinates: [number, number] = Array.isArray(data.coordinates) && data.coordinates.length >= 2 
-        ? [data.coordinates[0], data.coordinates[1]] 
-        : [12.8797, 121.7740]; // Default to center of Philippines
-
       return {
         name,
-        coordinates,
+        coordinates: data.coordinates,
         sentiment: dominantSentiment,
         disasterType: dominantDisasterType || undefined,
         intensity
@@ -257,7 +250,7 @@ export default function GeographicAnalysis() {
   const mostAffectedAreas = useMemo(() => {
     return regions
       .sort((a, b) => b.intensity - a.intensity)
-      .slice(0, 5) // Increased from 3 to 5 for more detailed analysis
+      .slice(0, 5)
       .map(region => ({
         name: region.name,
         sentiment: region.sentiment,
@@ -265,46 +258,25 @@ export default function GeographicAnalysis() {
       }));
   }, [regions]);
 
-  const handleRegionSelect = (region: {name: string}) => {
-    const regionData = locationData[region.name];
-    if (!regionData) return;
-
-    // Calculate total sentiments for percentage calculation
-    const totalSentiments = Object.values(regionData.sentiments).reduce(
-      (sum, count) => sum + count, 
-      0
-    );
-
-    setSelectedRegion({
-      name: region.name,
-      sentiments: Object.entries(regionData.sentiments).map(([name, count]) => ({
-        name,
-        percentage: (count / totalSentiments) * 100
-      }))
-    });
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">
-            <span className="flex items-center gap-2">
-              <Globe className="h-6 w-6 text-blue-600" />
-              Geographic Analysis
-            </span>
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
+      <Card className="bg-white shadow-md border-none">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold flex items-center gap-2">
+            <Globe className="h-6 w-6 text-blue-600" />
+            Geographic Analysis
+          </CardTitle>
+          <p className="text-sm text-slate-500">
             Visualizing disaster impact and emotional response distribution across Philippine regions
           </p>
-        </div>
-      </div>
+        </CardHeader>
+      </Card>
 
       {/* Map Selection Tabs */}
-      <div className="flex space-x-2 border-b border-gray-200 mb-4">
+      <div className="flex space-x-2 border-b border-gray-200 bg-white rounded-t-lg px-4">
         <button 
-          className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-all flex items-center gap-1.5 ${
+          className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all flex items-center gap-2 ${
             activeMapType === 'disaster' 
               ? 'bg-white text-blue-600 border border-gray-200 border-b-white shadow-sm' 
               : 'text-gray-500 hover:text-gray-700'
@@ -315,7 +287,7 @@ export default function GeographicAnalysis() {
           Disaster Impact
         </button>
         <button 
-          className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-all flex items-center gap-1.5 ${
+          className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all flex items-center gap-2 ${
             activeMapType === 'emotion' 
               ? 'bg-white text-blue-600 border border-gray-200 border-b-white shadow-sm' 
               : 'text-gray-500 hover:text-gray-700'
@@ -327,32 +299,36 @@ export default function GeographicAnalysis() {
         </button>
       </div>
 
-      {/* Map and Legend */}
+      {/* Map and Legend Container */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map Container - Larger Area */}
+        {/* Map Container */}
         <div className="lg:col-span-2">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeMapType}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <SentimentMap 
-                regions={regions}
-                onRegionSelect={handleRegionSelect}
-                colorBy={activeMapType === 'disaster' ? 'disasterType' : 'sentiment'}
-              />
-            </motion.div>
-          </AnimatePresence>
+          <Card className="border-none shadow-md">
+            <CardContent className="p-6">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeMapType}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="aspect-[16/9]"
+                >
+                  <SentimentMap 
+                    regions={regions}
+                    colorBy={activeMapType === 'disaster' ? 'disasterType' : 'sentiment'}
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Legend Container */}
         <div>
           <SentimentLegend 
-            selectedRegion={selectedRegion}
             mostAffectedAreas={mostAffectedAreas}
+            showRegionSelection={false}
           />
         </div>
       </div>
