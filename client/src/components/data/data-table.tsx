@@ -149,9 +149,11 @@ export function DataTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[35%]">Text</TableHead>
+                <TableHead className="w-[30%]">Text</TableHead>
                 <TableHead>Timestamp</TableHead>
                 <TableHead>Source</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Disaster</TableHead>
                 <TableHead>Sentiment</TableHead>
                 <TableHead>Confidence</TableHead>
                 <TableHead>Language</TableHead>
@@ -178,6 +180,12 @@ export function DataTable({
                     </TableCell>
                     <TableCell className="text-sm text-slate-500">
                       {item.source || "Unknown"}
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-500">
+                      {item.location || "Unknown"}
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-500">
+                      {item.disasterType || "Not Specified"}
                     </TableCell>
                     <TableCell>
                       <Badge variant={getSentimentVariant(item.sentiment) as any}>
