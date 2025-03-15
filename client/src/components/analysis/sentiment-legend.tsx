@@ -30,7 +30,7 @@ export function SentimentLegend({
     { name: 'Flood', color: '#3b82f6' },     // Blue
     { name: 'Typhoon', color: '#6b7280' },   // Gray
     { name: 'Fire', color: '#f97316' },      // Orange
-    { name: 'Volcano', color: '#ef4444' },   // Red
+    { name: 'Volcanic Eruption', color: '#ef4444' },   // Red
     { name: 'Earthquake', color: '#92400e' }, // Brown
     { name: 'Landslide', color: '#78350f' }  // Dark Brown
   ];

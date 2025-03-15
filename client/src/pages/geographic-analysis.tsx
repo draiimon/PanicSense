@@ -259,10 +259,10 @@ export default function GeographicAnalysis() {
   }, [regions]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <Card className="bg-white shadow-md border-none">
-        <CardHeader className="space-y-1">
+        <CardHeader className="pb-4">
           <CardTitle className="text-2xl font-bold flex items-center gap-2">
             <Globe className="h-6 w-6 text-blue-600" />
             Geographic Analysis
@@ -273,63 +273,65 @@ export default function GeographicAnalysis() {
         </CardHeader>
       </Card>
 
-      {/* Map Selection Tabs */}
-      <div className="flex space-x-2 border-b border-gray-200 bg-white rounded-t-lg px-4">
-        <button 
-          className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all flex items-center gap-2 ${
-            activeMapType === 'disaster' 
-              ? 'bg-white text-blue-600 border border-gray-200 border-b-white shadow-sm' 
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          onClick={() => setActiveMapType('disaster')}
-        >
-          <AlertTriangle className="h-4 w-4" />
-          Disaster Impact
-        </button>
-        <button 
-          className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all flex items-center gap-2 ${
-            activeMapType === 'emotion' 
-              ? 'bg-white text-blue-600 border border-gray-200 border-b-white shadow-sm' 
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          onClick={() => setActiveMapType('emotion')}
-        >
-          <MapPin className="h-4 w-4" />
-          Sentiment Distribution
-        </button>
-      </div>
-
-      {/* Map and Legend Container */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map Container */}
-        <div className="lg:col-span-2">
-          <Card className="border-none shadow-md">
-            <CardContent className="p-6">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeMapType}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="aspect-[16/9]"
-                >
-                  <SentimentMap 
-                    regions={regions}
-                    colorBy={activeMapType === 'disaster' ? 'disasterType' : 'sentiment'}
-                  />
-                </motion.div>
-              </AnimatePresence>
-            </CardContent>
-          </Card>
+      <div className="bg-white rounded-lg shadow-md">
+        {/* Map Selection Tabs */}
+        <div className="flex space-x-2 border-b border-gray-200 px-4">
+          <button 
+            className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all flex items-center gap-2 ${
+              activeMapType === 'disaster' 
+                ? 'bg-white text-blue-600 border border-gray-200 border-b-white shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveMapType('disaster')}
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Disaster Impact
+          </button>
+          <button 
+            className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all flex items-center gap-2 ${
+              activeMapType === 'emotion' 
+                ? 'bg-white text-blue-600 border border-gray-200 border-b-white shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveMapType('emotion')}
+          >
+            <MapPin className="h-4 w-4" />
+            Sentiment Distribution
+          </button>
         </div>
 
-        {/* Legend Container */}
-        <div>
-          <SentimentLegend 
-            mostAffectedAreas={mostAffectedAreas}
-            showRegionSelection={false}
-          />
+        {/* Map and Legend Container */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+          {/* Map Container */}
+          <div className="lg:col-span-2">
+            <Card className="border-none shadow-sm">
+              <CardContent className="p-4">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeMapType}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="aspect-[16/9]"
+                  >
+                    <SentimentMap 
+                      regions={regions}
+                      colorBy={activeMapType === 'disaster' ? 'disasterType' : 'sentiment'}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Legend Container */}
+          <div>
+            <SentimentLegend 
+              mostAffectedAreas={mostAffectedAreas}
+              showRegionSelection={false}
+            />
+          </div>
         </div>
       </div>
     </div>
