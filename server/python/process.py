@@ -1365,7 +1365,7 @@ class DisasterSentimentBackend:
                             df = pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip', sep=None, engine='python')
                         except Exception as e:
                             logging.error(f"All CSV parsing attempts failed: {str(e)}")
-                            raise Exception("Could not parse CSV file - please check the file format")s='skip')
+                            raise Exception("Could not parse CSV file - please check the file format")
 
         processed_results = []
         total_records = len(df)
