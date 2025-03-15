@@ -1378,61 +1378,120 @@ class DisasterSentimentBackend:
         processed_results = []
         total_records = len(df)
 
+        # Print all column names for debugging
+        logging.info(f"CSV columns found: {', '.join(df.columns)}")
+
         # If no text column, check for possible alternatives or use first column
         if 'text' not in df.columns:
             possible_text_columns = [
-                'content', 'message', 'tweet', 'post', 'description'
+                'content', 'message', 'tweet', 'post', 'description', 'Text'
             ]
             for col in possible_text_columns:
                 if col in df.columns:
                     df['text'] = df[col]
+                    logging.info(f"Using '{col}' as text column")
                     break
 
             # If still no text column, use the first column
             if 'text' not in df.columns and len(df.columns) > 0:
                 df['text'] = df[df.columns[0]]
+                logging.info(f"Using first column '{df.columns[0]}' as text column")
                 
-        # Look for location column - if exists, we'll use this data directly
+        # Look for location column (case-insensitive)
         location_column = None
         possible_location_columns = [
-            'location', 'place', 'city', 'province', 'region', 'area', 'lugar'
+            'location', 'place', 'city', 'province', 'region', 'area', 'lugar', 'Location'
         ]
         for col in possible_location_columns:
+            # Try exact match first
             if col in df.columns:
                 location_column = col
                 logging.info(f"Found location column: {col}")
                 break
+            # Try case-insensitive match
+            for actual_col in df.columns:
+                if actual_col.lower() == col.lower():
+                    location_column = actual_col
+                    logging.info(f"Found location column (case-insensitive): {actual_col}")
+                    break
+        
+        # Look for source column (case-insensitive)
+        source_column = None
+        possible_source_columns = [
+            'source', 'platform', 'origin', 'media', 'Source'
+        ]
+        for col in possible_source_columns:
+            # Try exact match first
+            if col in df.columns:
+                source_column = col
+                logging.info(f"Found source column: {col}")
+                break
+            # Try case-insensitive match
+            for actual_col in df.columns:
+                if actual_col.lower() == col.lower():
+                    source_column = actual_col
+                    logging.info(f"Found source column (case-insensitive): {actual_col}")
+                    break
                 
-        # Look for disaster type column - if exists, we'll use this data directly
+        # Look for disaster type column (case-insensitive)
         disaster_column = None
         possible_disaster_columns = [
-            'disaster', 'disaster_type', 'event', 'incident', 'emergency', 'type'
+            'disaster', 'disaster_type', 'event', 'incident', 'emergency', 'type', 'Disaster'
         ]
         for col in possible_disaster_columns:
+            # Try exact match first
             if col in df.columns:
                 disaster_column = col
                 logging.info(f"Found disaster type column: {col}")
                 break
+            # Try case-insensitive match
+            for actual_col in df.columns:
+                if actual_col.lower() == col.lower():
+                    disaster_column = actual_col
+                    logging.info(f"Found disaster type column (case-insensitive): {actual_col}")
+                    break
                 
-        # Look for sentiment column if already available
+        # Look for sentiment column if already available (case-insensitive)
         sentiment_column = None
         possible_sentiment_columns = [
-            'sentiment', 'emotion', 'feeling', 'mood', 'attitude'
+            'sentiment', 'emotion', 'feeling', 'mood', 'attitude', 'Sentiment'
         ]
         for col in possible_sentiment_columns:
+            # Try exact match first
             if col in df.columns:
                 sentiment_column = col
                 logging.info(f"Found sentiment column: {col}")
                 break
+            # Try case-insensitive match
+            for actual_col in df.columns:
+                if actual_col.lower() == col.lower():
+                    sentiment_column = actual_col
+                    logging.info(f"Found sentiment column (case-insensitive): {actual_col}")
+                    break
+
+        # Look for timestamp column (case-insensitive)
+        timestamp_column = None
+        possible_timestamp_columns = [
+            'timestamp', 'date', 'time', 'datetime', 'created_at', 'Timestamp'
+        ]
+        for col in possible_timestamp_columns:
+            # Try exact match first
+            if col in df.columns:
+                timestamp_column = col
+                logging.info(f"Found timestamp column: {col}")
+                break
+            # Try case-insensitive match
+            for actual_col in df.columns:
+                if actual_col.lower() == col.lower():
+                    timestamp_column = actual_col
+                    logging.info(f"Found timestamp column (case-insensitive): {actual_col}")
+                    break
 
         report_progress(0, "Starting analysis")
 
-        # Process more records, but limit to a reasonable number
-        sample_size = min(20, len(df))  # Increase sample size
-
-        # Allow a smaller sample set when the API is failing
+        # Sample size handling
         if len(df) > 0:
-            df_sample = df.head(sample_size)
+            df_sample = df
         else:
             # If empty file, just return empty results
             return {
@@ -1445,9 +1504,8 @@ class DisasterSentimentBackend:
                 }
             }
 
-        # Process all records through the AI by default
-        # Increased sample size - process more records
-        sample_size = min(1000, len(df))  # Increased from 20 to 1000
+        # Process all records up to a reasonable limit
+        sample_size = min(1000, len(df))  
         
         # If we have a lot of records, process in batches for better efficiency
         batch_size = 5  # Process 5 records at a time for efficient processing
@@ -1457,43 +1515,61 @@ class DisasterSentimentBackend:
         batches = []
         current_batch = []
         
+        # Prepare data in batches (with better field detection)
         for index, row in df.head(sample_size).iterrows():
             try:
-                text = str(row.get('text', ''))
+                # Get text with fallback to first column
+                text = ""
+                if 'text' in row:
+                    text = str(row['text'])
+                elif len(df.columns) > 0:
+                    text = str(row[df.columns[0]])
+                
                 if not text.strip():  # Skip empty text
                     continue
-                    
-                timestamp = row.get(
-                    'timestamp',
-                    datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                source = row.get('source', 'CSV Import')
                 
-                # Get location from dedicated column if available
+                # Get timestamp with improved detection
+                timestamp = None
+                if timestamp_column:
+                    timestamp = str(row[timestamp_column])
+                    if timestamp and timestamp.lower() != 'nan' and timestamp.strip():
+                        timestamp = timestamp.strip()
+                    else:
+                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                
+                # Get source with improved detection
+                source = "CSV Import"  # Default fallback
+                if source_column:
+                    source_value = str(row[source_column])
+                    if source_value and source_value.lower() != 'nan' and source_value.strip():
+                        source = source_value.strip()
+                
+                # Get location with improved detection
                 location = None
-                if location_column and location_column in row:
-                    location = str(row[location_column])
-                    if location and location.lower() != 'nan' and location.strip():
-                        location = location.strip()
-                    else:
-                        location = None
-                        
-                # Get disaster type from dedicated column if available  
+                if location_column:
+                    location_value = str(row[location_column])
+                    if location_value and location_value.lower() not in ['nan', 'unknown', 'none', ''] and location_value.strip():
+                        location = location_value.strip()
+                
+                # Get disaster type with improved detection
                 disaster_type = None
-                if disaster_column and disaster_column in row:
-                    disaster_type = str(row[disaster_column])
-                    if disaster_type and disaster_type.lower() != 'nan' and disaster_type.strip():
-                        disaster_type = disaster_type.strip()
-                    else:
-                        disaster_type = None
-                        
-                # Get sentiment from dedicated column if available
+                if disaster_column:
+                    disaster_value = str(row[disaster_column])
+                    if disaster_value and disaster_value.lower() not in ['nan', 'unknown', 'none', ''] and disaster_value.strip():
+                        disaster_type = disaster_value.strip()
+                
+                # Get sentiment with improved detection
                 sentiment = None
-                if sentiment_column and sentiment_column in row:
-                    sentiment = str(row[sentiment_column])
-                    if sentiment and sentiment.lower() != 'nan' and sentiment.strip():
-                        sentiment = sentiment.strip()
-                    else:
-                        sentiment = None
+                if sentiment_column:
+                    sentiment_value = str(row[sentiment_column])
+                    if sentiment_value and sentiment_value.lower() not in ['nan', 'unknown', 'none', ''] and sentiment_value.strip():
+                        sentiment = sentiment_value.strip()
+                
+                # Log the extracted metadata for debugging (first few records only)
+                if index < 3:
+                    logging.info(f"Record {index} metadata: text='{text[:20]}...', source='{source}', location='{location}'")
                 
                 # Add record to current batch with all metadata
                 current_batch.append({
@@ -1517,7 +1593,7 @@ class DisasterSentimentBackend:
         if current_batch:
             batches.append(current_batch)
             
-        logging.info(f"Processing {len(batches)} batches with {batch_size} records each")
+        logging.info(f"Processing {len(batches)} batches with up to {batch_size} records each")
         
         # Process each batch
         for batch_idx, batch in enumerate(batches):
@@ -1556,9 +1632,21 @@ class DisasterSentimentBackend:
                         'location': csv_location if csv_location else analysis_result.get('location', None),
                         'modelType': analysis_result.get('modelType', 'API with Fallback')
                     })
+                    
+                    # Log success for each record to track processing
+                    if processed_count % 10 == 0:
+                        location_status = "with location" if (csv_location or analysis_result.get('location')) else "without location"
+                        logging.info(f"Successfully processed record {processed_count}/{sample_size} {location_status}")
+                        
                 except Exception as e:
                     logging.error(f"Error processing record {index if 'index' in locals() else 'unknown'}: {str(e)}")
                     # Continue with next record on error
+
+        # Count records with valid location and disaster type for debugging
+        records_with_location = sum(1 for r in processed_results if r.get('location'))
+        records_with_disaster = sum(1 for r in processed_results if r.get('disasterType') and r.get('disasterType') != "Not Specified")
+        logging.info(f"Records with location: {records_with_location}/{len(processed_results)}")
+        logging.info(f"Records with disaster type: {records_with_disaster}/{len(processed_results)}")
 
         # Final progress update
         report_progress(total_records, "Completing analysis")
