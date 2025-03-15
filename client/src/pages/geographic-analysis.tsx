@@ -283,9 +283,9 @@ export default function GeographicAnalysis() {
         </Card>
 
         {/* Main Content Area - Stack on mobile, side-by-side on desktop */}
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-12rem)]">
           {/* Map Container */}
-          <div className="flex-1 bg-white shadow-sm rounded-lg overflow-hidden">
+          <div className="flex-1 bg-white shadow-sm rounded-lg overflow-hidden h-full">
             {/* Map Controls */}
             <div className="border-b border-slate-200 p-4">
               <div className="flex flex-wrap gap-4 items-center justify-between">
