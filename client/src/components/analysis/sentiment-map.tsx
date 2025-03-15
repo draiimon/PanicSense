@@ -1,6 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { getSentimentColor, getDisasterTypeColor } from '@/lib/colors';
+import { Button } from '@/components/ui/button';
+import { Globe, Map, Layers, AlertTriangle, Info } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip } from '@/components/ui/tooltip';
 import 'leaflet/dist/leaflet.css';
 
 interface Region {
@@ -21,6 +25,10 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard');
+  const [mapZoom, setMapZoom] = useState(6);
+  const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
+  const [selectedRegions, setSelectedRegions] = useState<Region[]>([]);
 
   useEffect(() => {
     // Skip if leaflet is not available (SSR) or map is already initialized
@@ -28,12 +36,22 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
 
     // Dynamically import Leaflet - needed for client-side only use
     import('leaflet').then((L) => {
-      // Center map on Philippines
-      mapInstanceRef.current = L.map(mapRef.current).setView([12.8797, 121.7740], 6);
+      if (mapRef.current) { // Check ref is still valid
+        // Center map on Philippines
+        mapInstanceRef.current = L.map(mapRef.current as HTMLElement, {
+          zoomControl: false, // We'll add custom zoom controls
+          attributionControl: false // We'll add attribution in the UI
+        }).setView([12.8797, 121.7740], mapZoom);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(mapInstanceRef.current);
+        const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(mapInstanceRef.current);
+
+        // Add zoom change handler
+        mapInstanceRef.current.on('zoomend', () => {
+          setMapZoom(mapInstanceRef.current.getZoom());
+        });
+      }
     });
 
     // Cleanup function
@@ -44,6 +62,31 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
       }
     };
   }, []);
+
+  // Update map tiles when view changes
+  useEffect(() => {
+    if (!mapInstanceRef.current || typeof window === 'undefined') return;
+
+    import('leaflet').then((L) => {
+      // Remove existing tile layers
+      mapInstanceRef.current.eachLayer((layer: any) => {
+        if (layer instanceof L.TileLayer) {
+          mapInstanceRef.current.removeLayer(layer);
+        }
+      });
+
+      // Add new tile layer based on selected view
+      if (mapView === 'standard') {
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(mapInstanceRef.current);
+      } else {
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        }).addTo(mapInstanceRef.current);
+      }
+    });
+  }, [mapView]);
 
   // Update markers when regions change
   useEffect(() => {
@@ -67,28 +110,68 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
-          fillOpacity: 0.6,
-          radius: radius * 100 // Further reduced radius for more precise visualization
+          fillOpacity: 0.7,
+          radius: radius * 100, // Radius for visualization
+          weight: 2, // Border width
         }).addTo(mapInstanceRef.current);
 
-        // Add a popup with different content based on colorBy
-        let popupContent = `<strong>${region.name}</strong><br>`;
-        popupContent += `Sentiment: ${region.sentiment}<br>`;
+        // Create custom popup with enhanced styling
+        let popupContent = `
+          <div style="font-family: system-ui, sans-serif; padding: 8px;">
+            <h3 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 600;">${region.name}</h3>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${getSentimentColor(region.sentiment)}"></span>
+                <span style="font-size: 14px; color: #4b5563;">Dominant Sentiment: ${region.sentiment}</span>
+              </div>
+        `;
 
         if (region.disasterType) {
-          popupContent += `Disaster Type: ${region.disasterType}<br>`;
+          popupContent += `
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${getDisasterTypeColor(region.disasterType)}"></span>
+                <span style="font-size: 14px; color: #4b5563;">Disaster Type: ${region.disasterType}</span>
+              </div>
+          `;
         }
 
-        popupContent += `Intensity: ${region.intensity.toFixed(1)}%`;
+        popupContent += `
+              <div style="margin-top: 4px;">
+                <span style="font-size: 14px; color: #4b5563;">Impact Intensity: 
+                  <span style="font-weight: 600;">${region.intensity.toFixed(1)}%</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
 
-        circle.bindPopup(popupContent);
+        circle.bindPopup(popupContent, {
+          maxWidth: 300,
+          className: 'custom-popup'
+        });
+
+        // Enhanced interaction
+        circle.on('mouseover', () => {
+          circle.setStyle({ weight: 3, fillOpacity: 0.85 });
+          setHoveredRegion(region);
+        });
+
+        circle.on('mouseout', () => {
+          circle.setStyle({ weight: 2, fillOpacity: 0.7 });
+          setHoveredRegion(null);
+        });
 
         // Handle click event
-        if (onRegionSelect) {
-          circle.on('click', () => {
+        circle.on('click', () => {
+          if (onRegionSelect) {
             onRegionSelect(region);
-          });
-        }
+            
+            // Add to selected regions (avoiding duplicates)
+            if (!selectedRegions.some(r => r.name === region.name)) {
+              setSelectedRegions(prev => [...prev.slice(-2), region]); // Keep last 3
+            }
+          }
+        });
 
         markersRef.current.push(circle);
       });
@@ -97,32 +180,185 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
       if (regions.length === 0) {
         const message = L.popup()
           .setLatLng([12.8797, 121.7740])
-          .setContent('No sentiment data available for regions')
+          .setContent(`
+            <div style="font-family: system-ui, sans-serif; padding: 8px; text-align: center;">
+              <div style="color: #f97316; margin-bottom: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <span style="font-size: 14px; color: #4b5563;">No geographic data available for this region</span>
+            </div>
+          `)
           .openOn(mapInstanceRef.current);
 
         markersRef.current.push(message);
       }
+
+      // Ensure custom style is applied
+      const style = document.createElement('style');
+      style.textContent = `
+        .custom-popup .leaflet-popup-content-wrapper {
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .custom-popup .leaflet-popup-tip {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+      `;
+      document.head.appendChild(style);
+
+      return () => {
+        document.head.removeChild(style);
+      };
     });
   }, [regions, onRegionSelect, colorBy]);
 
   return (
-    <Card className="bg-white rounded-lg shadow">
+    <Card className="bg-white rounded-lg shadow-md border border-slate-200">
       <CardHeader className="p-5 border-b border-gray-200">
-        <CardTitle className="text-lg font-medium text-slate-800">
-          {colorBy === 'disasterType' ? 'Disaster Impact Map' : 'Sentiment Map'}
-        </CardTitle>
-        <CardDescription className="text-sm text-slate-500">
-          {colorBy === 'disasterType' 
-            ? 'Disaster type impact visualization' 
-            : 'Regions colored by dominant emotion'}
-        </CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="text-lg font-medium text-slate-800 flex items-center gap-2">
+              <Globe className="h-5 w-5 text-blue-600" />
+              {colorBy === 'disasterType' ? 'Disaster Impact Map' : 'Sentiment Distribution Map'}
+            </CardTitle>
+            <CardDescription className="text-sm text-slate-500 mt-1">
+              Interactive visualization of disaster impacts across Philippine regions
+            </CardDescription>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <div className="bg-slate-100 rounded-lg p-1 flex">
+              <Button
+                size="sm"
+                variant={mapView === 'standard' ? 'default' : 'outline'}
+                className="rounded-r-none px-3 h-8"
+                onClick={() => setMapView('standard')}
+              >
+                <Map className="h-4 w-4 mr-1" />
+                <span className="text-xs">Standard</span>
+              </Button>
+              <Button
+                size="sm"
+                variant={mapView === 'satellite' ? 'default' : 'outline'}
+                className="rounded-l-none px-3 h-8"
+                onClick={() => setMapView('satellite')}
+              >
+                <Layers className="h-4 w-4 mr-1" />
+                <span className="text-xs">Satellite</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Key metrics or hovered region */}
+        {hoveredRegion && (
+          <div className="mt-2 bg-slate-50 p-2 rounded-md border border-slate-200 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-sm">{hoveredRegion.name}</span>
+              <div className="flex items-center gap-1">
+                {hoveredRegion.disasterType && (
+                  <Badge 
+                    style={{ 
+                      backgroundColor: getDisasterTypeColor(hoveredRegion.disasterType),
+                      color: 'white'
+                    }}
+                    className="text-xs font-medium"
+                  >
+                    {hoveredRegion.disasterType}
+                  </Badge>
+                )}
+                <Badge 
+                  style={{ 
+                    backgroundColor: getSentimentColor(hoveredRegion.sentiment),
+                    color: 'white'
+                  }}
+                  className="text-xs font-medium"
+                >
+                  {hoveredRegion.sentiment}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        )}
       </CardHeader>
-      <CardContent className="p-5">
+
+      <CardContent className="p-0 overflow-hidden relative">
+        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+          <Button 
+            size="icon" 
+            variant="outline" 
+            className="h-8 w-8 bg-white shadow-md hover:bg-slate-50"
+            onClick={() => mapInstanceRef.current?.zoomIn()}
+          >
+            <span className="text-lg font-medium">+</span>
+          </Button>
+          <Button 
+            size="icon" 
+            variant="outline" 
+            className="h-8 w-8 bg-white shadow-md hover:bg-slate-50"
+            onClick={() => mapInstanceRef.current?.zoomOut()}
+          >
+            <span className="text-lg font-medium">−</span>
+          </Button>
+        </div>
+
+        {/* Map Container */}
         <div 
           ref={mapRef} 
-          className="h-[500px] w-full bg-slate-50 rounded-lg"
+          className="h-[500px] w-full bg-slate-50"
         />
+
+        {/* Footer stats bar */}
+        <div className="p-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-600">
+          <div className="flex items-center">
+            <Info className="h-3.5 w-3.5 mr-1 text-slate-400" />
+            <span>Zoom level: {mapZoom}</span>
+          </div>
+          
+          <div>
+            {regions.length > 0 ? (
+              <span>Visualizing {regions.length} affected geographic regions</span>
+            ) : (
+              <span className="flex items-center">
+                <AlertTriangle className="h-3.5 w-3.5 mr-1 text-amber-500" />
+                No regional data available
+              </span>
+            )}
+          </div>
+          
+          <div>
+            &copy; <a href="https://www.openstreetmap.org/copyright" className="hover:text-blue-600 underline underline-offset-2" target="_blank" rel="noopener">OpenStreetMap</a> contributors
+          </div>
+        </div>
       </CardContent>
+      
+      {/* Recently viewed regions */}
+      {selectedRegions.length > 0 && (
+        <div className="p-3 border-t border-slate-200 flex items-center gap-2">
+          <span className="text-xs text-slate-500">Recently viewed:</span>
+          <div className="flex gap-1 overflow-x-auto">
+            {selectedRegions.map((region, i) => (
+              <Badge 
+                key={i}
+                variant="outline"
+                className="cursor-pointer text-xs flex items-center"
+                onClick={() => {
+                  if (onRegionSelect) {
+                    onRegionSelect(region);
+                    mapInstanceRef.current?.setView(region.coordinates, 8);
+                  }
+                }}
+              >
+                {region.name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
