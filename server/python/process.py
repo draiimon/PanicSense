@@ -556,8 +556,8 @@ class DisasterSentimentBackend:
         Get sentiment analysis from Groq API
         """
         try:
-            if len(self.api_keys) > 0:
-                api_key = self.api_keys[self.current_api_index]
+            if len(self.groq_api_keys) > 0:
+                api_key = self.groq_api_keys[self.current_api_index]
                 headers = {
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
@@ -701,7 +701,7 @@ class DisasterSentimentBackend:
                         location = None
 
                     self.current_api_index = (self.current_api_index +
-                                              1) % len(self.api_keys)
+                                              1) % len(self.groq_api_keys)
 
                     if sentiment:
                         return {
