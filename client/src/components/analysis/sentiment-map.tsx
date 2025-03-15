@@ -241,13 +241,17 @@ export function SentimentMap({
         markersRef.current.push(circle);
       });
 
-      // Show message if no regions
-      if (regions.length === 0) {
+      // Show message if no regions or if markers are hidden
+      if (regions.length === 0 || !showMarkers) {
+        const messageText = !showMarkers 
+          ? "Map markers are currently hidden" 
+          : "No geographic data available";
+          
         const message = L.popup()
           .setLatLng(PH_CENTER)
           .setContent(`
             <div class="p-4 text-center">
-              <span class="text-sm text-slate-600">No geographic data available</span>
+              <span class="text-sm text-slate-600">${messageText}</span>
             </div>
           `)
           .openOn(mapInstanceRef.current);

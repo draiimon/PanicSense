@@ -3,7 +3,7 @@ import { useDisasterContext } from "@/context/disaster-context";
 import { SentimentMap } from "@/components/analysis/sentiment-map";
 import { SentimentLegend } from "@/components/analysis/sentiment-legend";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, MapPin, Map, AlertTriangle, RefreshCw, Satellite } from "lucide-react";
+import { Globe, MapPin, Map, AlertTriangle, Satellite, Eye, EyeOff, BarChart3 } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -275,7 +275,7 @@ export default function GeographicAnalysis() {
                 onClick={() => setShowMarkers(!showMarkers)}
                 className="flex items-center gap-2"
               >
-                <MapPin className="h-4 w-4" />
+                {showMarkers ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 <span className="hidden sm:inline">{showMarkers ? 'Hide Map Markers' : 'Show Map Markers'}</span>
               </Button>
             </div>
@@ -306,7 +306,7 @@ export default function GeographicAnalysis() {
                     className="flex items-center gap-2"
                     size="sm"
                   >
-                    <MapPin className="h-4 w-4" />
+                    <BarChart3 className="h-4 w-4" />
                     <span className="inline">Sentiment</span>
                   </Button>
                 </div>
