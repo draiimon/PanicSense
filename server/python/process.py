@@ -346,9 +346,11 @@ class DisasterSentimentBackend:
     If the text explicitly mentions a specific location like 'Manila', 'Cebu', 'Davao', or other Philippine city/province/region, include it.
     If it clearly mentions broader regions like 'Luzon', 'Visayas', 'Mindanao', or 'Philippines', include that.
     Otherwise, if no location is mentioned or if it's ambiguous, strictly return NONE.
+    VERY IMPORTANT: Return ONLY the location name in 1-3 words maximum. Do not include explanatory text.
 
     ONLY if the text clearly mentions a disaster type, extract it. Otherwise, return NONE.
     If there is any ambiguity, strictly return NONE.
+    VERY IMPORTANT: Return ONLY the disaster type in 1-3 words maximum. Do not include explanatory text.
 
     Provide detailed sentiment analysis in this exact format:
     Sentiment: [chosen sentiment]
