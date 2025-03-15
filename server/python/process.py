@@ -396,86 +396,67 @@ class DisasterSentimentBackend:
         return None
 
     def fetch_api(self, headers, payload, retry_count=0):
+        """Fetch data from API with minimal retries to avoid excessive API calls"""
         try:
+            # Use shorter timeout
             response = requests.post(self.api_url,
-                                     headers=headers,
-                                     json=payload)
+                                    headers=headers,
+                                    json=payload,
+                                    timeout=3)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            if hasattr(e, 'response'
-                       ) and e.response and e.response.status_code == 429:
-                logging.warning(
-                    f"LOADING SENTIMENTS..... (Data {self.current_api_index + 1}/{len(self.api_keys)}). Data Fetching..."
-                )
-                self.current_api_index = (self.current_api_index + 1) % len(
-                    self.api_keys)
-                logging.info(
-                    f"Waiting {self.limit_delay} seconds before trying next key"
-                )
-                time.sleep(self.limit_delay)
-                if retry_count < self.max_retries:
-                    return self.fetch_api(headers, payload, retry_count + 1)
-                else:
-                    logging.error("Max retries exceeded for rate limit.")
-                    return None
+            # Log the error but avoid multiple retries
+            if hasattr(e, 'response') and e.response:
+                logging.error(f"API Error: {e.response.status_code} {e.response.reason}")
+                
+                # Only rotate keys once if unauthorized or rate limited
+                if e.response.status_code in [401, 429] and retry_count == 0 and len(self.api_keys) > 1:
+                    self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
+                    headers["Authorization"] = f"Bearer {self.api_keys[self.current_api_index]}"
+                    return self.fetch_api(headers, payload, 1)
             else:
                 logging.error(f"API Error: {e}")
-                time.sleep(self.retry_delay)
-                if retry_count < self.max_retries:
-                    return self.fetch_api(headers, payload, retry_count + 1)
-                else:
-                    logging.error("Max retries exceeded for API error.")
-                    return None
+                
+            # Immediately return None to use rule-based fallback
+            return None
         except Exception as e:
             logging.error(f"API Request Error: {e}")
-            time.sleep(self.retry_delay)
-            if retry_count < self.max_retries:
-                return self.fetch_api(headers, payload, retry_count + 1)
-            else:
-                logging.error("Max retries exceeded for request error.")
-                return None
+            # Immediately return None to use rule-based fallback
+            return None
 
     def fetch_groq(self, headers, payload, retry_count=0):
+        """Fetch data from Groq API with minimal retries to avoid excessive API calls"""
         try:
+            # Only retry once at most
+            max_retry = 0
+            
             response = requests.post(self.api_url,
-                                     headers=headers,
-                                     json=payload)
+                                    headers=headers,
+                                    json=payload,
+                                    timeout=3)  # Shorter timeout
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            if hasattr(e, 'response'
-                       ) and e.response and e.response.status_code == 429:
-                logging.warning(
-                    f"LOADING SENTIMENTS..... (Data {self.current_api_index + 1}/{len(self.api_keys)}). Data Fetching..."
-                )
-                self.current_api_index = (self.current_api_index + 1) % len(
-                    self.api_keys)
-                logging.info(
-                    f"Waiting {self.limit_delay} seconds before trying next key"
-                )
-                time.sleep(self.limit_delay)
-                if retry_count < self.max_retries:
-                    return self.fetch_groq(headers, payload, retry_count + 1)
-                else:
-                    logging.error("Max retries exceeded for rate limit.")
-                    return None
+            # Log the error but don't retry multiple times
+            if hasattr(e, 'response') and e.response:
+                logging.error(f"API Error: {e.response.status_code} {e.response.reason}")
+                
+                # Only rotate keys once if unauthorized
+                if e.response.status_code == 401 and retry_count == 0:
+                    self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
+                    if len(self.api_keys) > 1:  # Only retry if we have multiple keys
+                        headers["Authorization"] = f"Bearer {self.api_keys[self.current_api_index]}"
+                        return self.fetch_groq(headers, payload, 1)
             else:
                 logging.error(f"API Error: {e}")
-                time.sleep(self.retry_delay)
-                if retry_count < self.max_retries:
-                    return self.fetch_groq(headers, payload, retry_count + 1)
-                else:
-                    logging.error("Max retries exceeded for API error.")
-                    return None
+                
+            # Immediately return None to use rule-based fallback
+            return None
         except Exception as e:
             logging.error(f"API Request Error: {e}")
-            time.sleep(self.retry_delay)
-            if retry_count < self.max_retries:
-                return self.fetch_groq(headers, payload, retry_count + 1)
-            else:
-                logging.error("Max retries exceeded for request error.")
-                return None
+            # Immediately return None to use rule-based fallback
+            return None
 
     def detect_language(self, text):
         """
