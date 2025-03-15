@@ -125,11 +125,17 @@ class DisasterSentimentBackend:
     
     def analyze_sentiment(self, text):
         """Analyze sentiment in text"""
-        # Detect language
+        # Detect language, but only use English or Filipino
         try:
-            lang = detect(text)
+            detected_lang = detect(text)
+            # If detected as Tagalog (tl) or any Filipino variant, use "Filipino"
+            if detected_lang == "tl" or detected_lang == "fil":
+                lang = "Filipino"
+            else:
+                # For everything else, use "English"
+                lang = "English"
         except:
-            lang = "en"  # default to English if detection fails
+            lang = "English"  # default to English if detection fails
             
         # Use API for sentiment analysis
         result = self.get_api_sentiment_analysis(text, lang)
@@ -373,8 +379,8 @@ Respond only with a JSON object containing:
                                 match_found = True
                                 
                         elif col_type == "language":
-                            # Look for language codes
-                            language_indicators = ["en", "english", "tl", "tagalog", "fil", "filipino"]
+                            # Look for language names - only English and Filipino
+                            language_indicators = ["english", "filipino", "tagalog", "en", "tl", "fil"]
                             if any(any(ind == str(val).lower() for ind in language_indicators) for val in sample_values):
                                 identified_columns["language"] = col
                                 match_found = True
@@ -420,6 +426,17 @@ Respond only with a JSON object containing:
                     # Report progress
                     report_progress(i+1, f"Processing record {i+1}/{sample_size}")
                     
+                    # Check if language is specified in the CSV
+                    csv_language = str(row.get(language_col, "")) if language_col else None
+                    if csv_language and csv_language.lower() in ["nan", "none", ""]:
+                        csv_language = None
+                    elif csv_language:
+                        # Simplify language to just English or Filipino
+                        if csv_language.lower() in ["tagalog", "tl", "fil", "filipino"]:
+                            csv_language = "Filipino"
+                        else:
+                            csv_language = "English"
+                    
                     # Analyze sentiment
                     analysis_result = self.analyze_sentiment(text)
                     
@@ -428,7 +445,7 @@ Respond only with a JSON object containing:
                         "text": text,
                         "timestamp": timestamp,
                         "source": source,
-                        "language": analysis_result.get("language", "en"),
+                        "language": csv_language if csv_language else analysis_result.get("language", "English"),
                         "sentiment": analysis_result.get("sentiment", "Neutral"),
                         "confidence": analysis_result.get("confidence", 0.7),
                         "explanation": analysis_result.get("explanation", ""),
