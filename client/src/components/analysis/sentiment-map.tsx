@@ -247,21 +247,30 @@ export function SentimentMap({
         markersRef.current.push(circle);
       });
 
-      // Show message if no regions or if markers are hidden
-      if (regions.length === 0 || !showMarkers) {
-        const messageText = !showMarkers 
-          ? "Map markers are currently hidden" 
-          : "No geographic data available";
-          
+      // Update marker visibility
+      markersRef.current.forEach(marker => {
+        if (marker instanceof L.Circle) {
+          if (showMarkers) {
+            marker.setStyle({ opacity: 1, fillOpacity: 0.7 });
+          } else {
+            marker.setStyle({ opacity: 0, fillOpacity: 0 });
+          }
+        }
+      });
+
+      // Show message when markers are hidden
+      const existingMessage = markersRef.current.find(m => m instanceof L.Popup);
+      if (existingMessage) existingMessage.remove();
+
+      if (!showMarkers) {
         const message = L.popup()
           .setLatLng(PH_CENTER)
           .setContent(`
             <div class="p-4 text-center">
-              <span class="text-sm text-slate-600">${messageText}</span>
+              <span class="text-sm text-slate-600">Map markers are currently hidden</span>
             </div>
           `)
           .openOn(mapInstanceRef.current);
-
         markersRef.current.push(message);
       }
     });
