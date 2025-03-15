@@ -1731,26 +1731,35 @@ def main():
                 possible_text_columns = [
                     'text', 'content', 'message', 'tweet', 'post', 'Post', 'description', 'message_text'
                 ]
-                lowercase_columns = [col.lower() for col in df.columns]
                 
-                for col_idx, col_lower in enumerate(lowercase_columns):
-                    for pos_col in possible_text_columns:
-                        if pos_col.lower() in col_lower:
-                            text_column = df.columns[col_idx]
-                            logging.info(f"Found text column: {text_column}")
-                            break
-                    if text_column:
+                # First, check for exact matches (case insensitive)
+                for col in df.columns:
+                    if col.lower() in [x.lower() for x in possible_text_columns]:
+                        text_column = col
+                        logging.info(f"Found text column (exact match): {text_column}")
                         break
+                
+                # If no exact match, check for partial matches
+                if not text_column:
+                    lowercase_columns = [col.lower() for col in df.columns]
+                    for col_idx, col_lower in enumerate(lowercase_columns):
+                        for pos_col in possible_text_columns:
+                            if pos_col.lower() in col_lower:
+                                text_column = df.columns[col_idx]
+                                logging.info(f"Found text column (partial match): {text_column}")
+                                break
+                        if text_column:
+                            break
                 
                 # If we found a text column that's not already called 'text', rename it
                 if text_column and text_column != 'text':
-                    df['text'] = df[text_column]
+                    df['text'] = df[text_column].astype(str)
                     logging.info(f"Mapped '{text_column}' to 'text' column")
                 
                 # If still no text column, use the first column
                 if 'text' not in df.columns and len(df.columns) > 0:
                     logging.info(f"No text column found, using first column: {df.columns[0]}")
-                    df['text'] = df[df.columns[0]]
+                    df['text'] = df[df.columns[0]].astype(str)
                 
                 # Sample the first few rows to debug
                 if len(df) > 0:
@@ -1817,9 +1826,31 @@ def main():
                     try:
                         row = df.iloc[i]
                         text = str(row.get('text', ''))
-                        timestamp = row.get('timestamp',
-                                            datetime.now().isoformat())
-                        source = row.get('source', 'CSV Import')
+                        
+                        # Safely handle timestamp field (various formats or invalid values)
+                        try:
+                            timestamp_value = row.get('timestamp')
+                            if pd.isna(timestamp_value) or timestamp_value is None:
+                                timestamp = datetime.now().isoformat()
+                            else:
+                                # Try to convert to ISO format if it's not already
+                                try:
+                                    if isinstance(timestamp_value, str):
+                                        dt = pd.to_datetime(timestamp_value)
+                                        timestamp = dt.isoformat()
+                                    else:
+                                        timestamp = str(timestamp_value)
+                                except:
+                                    timestamp = str(timestamp_value)
+                        except:
+                            timestamp = datetime.now().isoformat()
+                            
+                        # Safely get source
+                        try:
+                            source_value = row.get('source')
+                            source = str(source_value) if not pd.isna(source_value) else 'CSV Import'
+                        except:
+                            source = 'CSV Import'
                         
                         # Get location directly from CSV if available
                         csv_location = None
@@ -1839,8 +1870,15 @@ def main():
                             csv_disaster_type = str(row.get(disaster_column))
                             logging.info(f"Row {i} - Found disaster type in CSV: {csv_disaster_type}")
                         
-                        # Print all columns and values for debugging
-                        logging.info(f"Row {i} - All columns: {', '.join([f'{col}={row.get(col)}' for col in df.columns[:5]])}")
+                        # Print limited columns and values for debugging (safer version)
+                        debug_columns = []
+                        for col in list(df.columns)[:5]:
+                            try:
+                                val = str(row.get(col, '')).replace('\n', ' ')[:30]  # Truncate long values and remove newlines
+                                debug_columns.append(f"{col}={val}")
+                            except:
+                                debug_columns.append(f"{col}=<error>")
+                        logging.info(f"Row {i} - All columns: {', '.join(debug_columns)}")
 
                         if text.strip():  # Only process non-empty text
                             # Add delay between requests to avoid rate limits
@@ -1879,30 +1917,57 @@ def main():
                         continue
 
                 # Get real metrics if we have results
-                if results:
-                    metrics = backend.calculate_real_metrics(results)
-                else:
-                    metrics = {
-                        'accuracy': 0.85,
-                        'precision': 0.83,
-                        'recall': 0.82,
-                        'f1Score': 0.84
-                    }
-
-                print(json.dumps({'results': results, 'metrics': metrics}))
-                sys.stdout.flush()
+                try:
+                    if results:
+                        metrics = backend.calculate_real_metrics(results)
+                    else:
+                        metrics = {
+                            'accuracy': 0.85,
+                            'precision': 0.83,
+                            'recall': 0.82,
+                            'f1Score': 0.84
+                        }
+                    
+                    # Ensure all text values are properly encoded as strings
+                    for result in results:
+                        for key, value in result.items():
+                            if value is None:
+                                result[key] = ""
+                    
+                    # Generate safe JSON output
+                    output = json.dumps({'results': results, 'metrics': metrics}, ensure_ascii=True)
+                    print(output)
+                    sys.stdout.flush()
+                except Exception as json_error:
+                    logging.error(f"Error generating JSON output: {json_error}")
+                    # Fallback to minimal safe output
+                    print(json.dumps({
+                        'results': [],
+                        'metrics': {'accuracy': 0, 'precision': 0, 'recall': 0, 'f1Score': 0},
+                        'error': f"JSON encoding error: {str(json_error)}"
+                    }))
+                    sys.stdout.flush()
 
             except Exception as file_error:
                 logging.error(f"Error processing file: {file_error}")
-                print(
-                    json.dumps({
-                        'error': str(file_error),
-                        'type': 'file_processing_error'
-                    }))
+                # Ensure error message is JSON-safe
+                error_msg = str(file_error).replace('"', "'").replace('\n', ' ')
+                print(json.dumps({
+                    'error': error_msg,
+                    'type': 'file_processing_error',
+                    'results': [],
+                    'metrics': {'accuracy': 0, 'precision': 0, 'recall': 0, 'f1Score': 0}
+                }))
                 sys.stdout.flush()
     except Exception as e:
         logging.error(f"Main processing error: {e}")
-        print(json.dumps({'error': str(e), 'type': 'general_error'}))
+        error_msg = str(e).replace('"', "'").replace('\n', ' ')
+        print(json.dumps({
+            'error': error_msg, 
+            'type': 'general_error',
+            'results': [],
+            'metrics': {'accuracy': 0, 'precision': 0, 'recall': 0, 'f1Score': 0}
+        }))
         sys.stdout.flush()
 
 
