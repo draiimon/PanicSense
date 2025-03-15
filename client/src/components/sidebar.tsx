@@ -104,30 +104,32 @@ export function Sidebar() {
         <nav className="flex-1 px-4 pb-4">
           <div className="space-y-1">
             {navItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <a
-                  className={cn(
-                    "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200",
-                    location === item.href
-                      ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
-                      : "text-slate-400 hover:text-white hover:bg-white/10",
-                  )}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                  {location === item.href && (
-                    <motion.div
-                      layoutId="activeNav"
-                      className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full"
-                      transition={{
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 30,
-                      }}
-                    />
-                  )}
-                </a>
-              </Link>
+              <div key={item.href} className="relative">
+                <Link href={item.href}>
+                  <div
+                    className={cn(
+                      "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer",
+                      location === item.href
+                        ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
+                        : "text-slate-400 hover:text-white hover:bg-white/10",
+                    )}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                    {location === item.href && (
+                      <motion.div
+                        layoutId="activeNav"
+                        className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full"
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 30,
+                        }}
+                      />
+                    )}
+                  </div>
+                </Link>
+              </div>
             ))}
           </div>
         </nav>
@@ -174,23 +176,24 @@ export function Sidebar() {
             <nav className="px-4">
               <div className="space-y-1">
                 {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <a
-                      className={cn(
-                        "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200",
-                        location === item.href
-                          ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
-                          : "text-slate-400 hover:text-white hover:bg-white/10",
-                      )}
+                  <div key={item.href} className="relative">
+                    <Link
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      {item.icon}
-                      <span>{item.label}</span>
-                    </a>
-                  </Link>
+                      <div
+                        className={cn(
+                          "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer",
+                          location === item.href
+                            ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
+                            : "text-slate-400 hover:text-white hover:bg-white/10",
+                        )}
+                      >
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </div>
+                    </Link>
+                  </div>
                 ))}
               </div>
             </nav>
