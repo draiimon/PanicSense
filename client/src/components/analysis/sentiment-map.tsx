@@ -74,13 +74,13 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
         // Add a popup with different content based on colorBy
         let popupContent = `<strong>${region.name}</strong><br>`;
         popupContent += `Sentiment: ${region.sentiment}<br>`;
-        
+
         if (region.disasterType) {
           popupContent += `Disaster Type: ${region.disasterType}<br>`;
         }
-        
+
         popupContent += `Intensity: ${region.intensity.toFixed(1)}%`;
-        
+
         circle.bindPopup(popupContent);
 
         // Handle click event
