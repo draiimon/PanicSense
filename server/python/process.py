@@ -564,6 +564,7 @@ class DisasterSentimentBackend:
         1. Detect language first for better prompting
         2. Send to Groq API for full analysis
         3. Process the response to extract sentiment, location, and disaster type
+        4. Apply additional rules to improve accuracy
         """
         # Detect language first for better prompting
         language = self.detect_language(text)
@@ -571,8 +572,40 @@ class DisasterSentimentBackend:
 
         logging.info(
             f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
+            
+        # ENHANCED: First apply direct pattern matching for very clear cases
+        # These patterns strongly indicate PANIC regardless of other context
+        text_lower = text.lower()
+        # Check for panic indicators in the text before using API
+        panic_indicators = [
+            # Strong distress words
+            "tulong", "help", "emergency", "mayday", "sos", 
+            # Tagalog panic words
+            "naku", "diyos ko", "patay tayo", "mamamatay", "nalulunod", "naiipit", 
+            # Death/injury words
+            "mamatay", "namatay", "pinatay", "nasaktan",
+            # Trapped/danger words
+            "trapped", "nalaglag", "nahulog", "natrap", "naiipit"
+        ]
+        # Panic punctuation/emoji patterns
+        panic_patterns = [
+            "!!!", "😭", "😱", "😨", "😰", "🔥", "💀", "🆘"
+        ]
+        
+        # Direct detection for certain common patterns
+        if any(term in text_lower for term in panic_indicators) and any(pattern in text for pattern in panic_patterns):
+            # This is a very strong indicator of panic - override the API
+            return {
+                'sentiment': 'Panic',
+                'confidence': 0.95,
+                'explanation': 'Text contains strong panic indicators (urgent terms + emotional emphasis).',
+                'disasterType': self.extract_disaster_type(text) or "Not Specified",
+                'location': self.extract_location(text),
+                'language': language,
+                'modelType': 'Direct-Pattern-Match'
+            }
 
-        # Get analysis directly from Groq API
+        # Get analysis from Groq API
         api_result = self.get_api_sentiment_analysis(text, language)
 
         if not api_result:
@@ -591,6 +624,21 @@ class DisasterSentimentBackend:
 
         # Add model type for tracking
         api_result['modelType'] = 'Groq-API'
+        
+        # ENHANCED: Apply post-processing rules to improve accuracy
+        # For texts with strong emotion but API returned weaker sentiment
+        text_has_strong_emotion = False
+        if "!" in text and ("!" * 2) in text:  # Multiple exclamation points
+            text_has_strong_emotion = True
+        if any(emoji in text for emoji in ["😭", "😱", "😨", "😰"]):  # Crying or fear emojis
+            text_has_strong_emotion = True
+            
+        # If text has strong emotional markers but API didn't detect Panic, escalate the sentiment
+        if text_has_strong_emotion and api_result.get('sentiment') in ['Fear/Anxiety', 'Disbelief']:
+            api_result['sentiment'] = 'Panic'
+            api_result['confidence'] = 0.9
+            api_result['explanation'] = f"Escalated from {api_result.get('sentiment')} due to strong emotional markers in text."
+            api_result['modelType'] = 'Groq-API+Rules'
 
         return api_result
 
