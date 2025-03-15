@@ -5,17 +5,16 @@ import pandas as pd
 import logging
 from datetime import datetime
 
-# Basic logging
+# Basic logging setup
 logging.basicConfig(level=logging.INFO)
 
 def process_csv_file(file_path):
     """
-    Super simple CSV processor - just read the first column if nothing else works
+    Super simple CSV processor - just reads first column if nothing else works
     """
     try:
-        # Try reading the file with different methods
+        # Try reading the file
         df = None
-
         try:
             # Try basic read first
             df = pd.read_csv(file_path)
@@ -54,9 +53,9 @@ def process_csv_file(file_path):
                     'disasterType': 'Not Specified'
                 })
 
-                # Log progress
+                # Log progress correctly
                 if idx % 10 == 0:
-                    print(f"PROGRESS:{json.dumps({'processed': idx})}")
+                    print(json.dumps({"processed": idx}))
                     sys.stdout.flush()
 
             except Exception as e:
@@ -77,6 +76,12 @@ def process_csv_file(file_path):
     except Exception as e:
         logging.error(f"Failed to process CSV: {str(e)}")
         raise Exception(f"CSV processing failed: {str(e)}")
+
+def report_progress(processed: int, stage: str):
+    """Print progress in a format that can be parsed by the Node.js service"""
+    progress = {"processed": processed, "stage": stage}
+    print(f"PROGRESS:{json.dumps(progress)}")
+    sys.stdout.flush()
 
 class DisasterSentimentBackend:
 
@@ -816,7 +821,7 @@ class DisasterSentimentBackend:
             if len(self.api_keys) > 0:
                 # Use API key rotation to handle rate limits
                 api_key = self.api_keys[self.current_api_index]
-                logging.info(f"Using GROQ API key index {self.current_api_index} of {len(self.api_keys)} available keys")
+                logging.info(f"Using GROQ API key index {self.current_apiindex} of {len(self.api_keys)} available keys")
                 
                 # Rotate to next key for next request (round-robin)
                 self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
@@ -1590,24 +1595,19 @@ class DisasterSentimentBackend:
             'confusionMatrix': cm.tolist()
         }
 
-def report_progress(processed: int, stage: str):
-    """Print progress in a format that can be parsed by the Node.js service"""
-    progress = {"processed": processed, "stage": stage}
-    print(f""PROGRESS:{json.dumps(progress)}")
-    sys.stdout.flush()
-
-# Main entry point for processing
 def main():
-    """Main entry point"""
-    if len(sys.argv) < 2:
-        print(json.dumps({'error': 'No file specified'}))
-        sys.exit(1)
+    """Simple main function that just processes the CSV file"""
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--file', required=True, help='CSV file to process')
+    args = parser.parse_args()
 
     try:
-        results = process_csv_file(sys.argv[1])
-        print(json.dumps(results))
+        result = process_csv_file(args.file)
+        print(json.dumps(result))
+        sys.stdout.flush()
     except Exception as e:
-        print(json.dumps({'error': str(e)}))
+        print(json.dumps({"error": str(e)}))
         sys.exit(1)
 
 if __name__ == "__main__":
