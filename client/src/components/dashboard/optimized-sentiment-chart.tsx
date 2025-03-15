@@ -26,32 +26,43 @@ export function OptimizedSentimentChart({
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
 
-  // Memoize colors to prevent recalculation
+  // Memoize colors to prevent recalculation on every render
   const colors = useMemo(() => {
     return data.labels.map(label => {
+      // Direct mapping to sentiment colors
       switch (label) {
-        case 'Panic': return '#ef4444';
-        case 'Fear/Anxiety': return '#f97316';
-        case 'Disbelief': return '#8b5cf6';
-        case 'Resilience': return '#10b981';
+        case 'Panic':
+          return '#ef4444';
+        case 'Fear/Anxiety':
+          return '#f97316';
+        case 'Disbelief':
+          return '#8b5cf6';
+        case 'Resilience':
+          return '#10b981';
         case 'Neutral':
-        default: return '#6b7280';
+        default:
+          return '#6b7280';
       }
     });
   }, [data.labels]);
 
-  // Memoize chart options
+  // Memoize chart options to prevent recreation on every render
   const chartOptions = useMemo(() => {
     return {
       responsive: true,
       maintainAspectRatio: false,
-      animation: false, // Disable animations to prevent flickering
+      animation: {
+        duration: 800,
+        easing: 'easeOutQuart' as const
+      },
       plugins: {
         legend: {
           display: true,
           position: 'bottom' as const,
           labels: {
-            font: { size: 12 },
+            font: {
+              size: 12,
+            },
             padding: 15,
             usePointStyle: true,
           },
@@ -61,8 +72,12 @@ export function OptimizedSentimentChart({
           mode: 'index' as const,
           intersect: false,
           backgroundColor: 'rgba(17, 24, 39, 0.8)',
-          titleFont: { size: 13 },
-          bodyFont: { size: 12 },
+          titleFont: {
+            size: 13,
+          },
+          bodyFont: {
+            size: 12,
+          },
           padding: 10,
           cornerRadius: 4,
           displayColors: true,
@@ -71,15 +86,25 @@ export function OptimizedSentimentChart({
       scales: type !== 'doughnut' ? {
         x: {
           display: true,
-          grid: { display: false },
-          ticks: { font: { size: 11 } },
+          grid: {
+            display: false,
+          },
+          ticks: {
+            font: {
+              size: 11,
+            },
+          },
         },
         y: {
           display: true,
           beginAtZero: true,
-          grid: { color: 'rgba(0, 0, 0, 0.05)' },
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)',
+          },
           ticks: {
-            font: { size: 11 },
+            font: {
+              size: 11,
+            },
             precision: 0,
           },
         },
@@ -87,51 +112,55 @@ export function OptimizedSentimentChart({
     };
   }, [type]);
 
-  // Update or create chart
+  // Update chart instead of recreating when possible
   useEffect(() => {
     if (isLoading || !chartRef.current) return;
 
     const ctx = chartRef.current.getContext('2d');
     if (!ctx) return;
 
-    const updateChart = () => {
-      if (chartInstance.current) {
-        // Update existing chart
-        chartInstance.current.data.labels = data.labels;
-        chartInstance.current.data.datasets[0].data = data.values;
-        chartInstance.current.data.datasets[0].backgroundColor = colors;
-        chartInstance.current.options = chartOptions;
-        chartInstance.current.update('none'); // Update without animation
+    // If chart exists, update data instead of destroying
+    if (chartInstance.current) {
+      chartInstance.current.data.labels = data.labels;
+      chartInstance.current.data.datasets[0].data = data.values;
+      chartInstance.current.data.datasets[0].backgroundColor = colors;
+
+      if (type === 'line') {
+        chartInstance.current.data.datasets[0].borderColor = colors;
       } else {
-        // Create new chart
-        chartInstance.current = new Chart(ctx, {
-          type,
-          data: {
-            labels: data.labels,
-            datasets: [{
-              label: 'Sentiment Distribution',
-              data: data.values,
-              backgroundColor: colors,
-              borderColor: type === 'line' ? colors : Array(data.labels.length).fill('rgba(255, 255, 255, 0.8)'),
-              borderWidth: 2,
-              tension: 0.3,
-              fill: type === 'line',
-              pointBackgroundColor: type === 'line' ? '#fff' : undefined,
-              pointBorderColor: type === 'line' ? colors : undefined,
-              pointRadius: type === 'line' ? 4 : undefined,
-              pointHoverRadius: type === 'line' ? 6 : undefined,
-            }],
-          },
-          options: chartOptions,
-        });
+        chartInstance.current.data.datasets[0].borderColor = Array(data.labels.length).fill('rgba(255, 255, 255, 0.8)');
       }
-    };
 
-    // Delay chart update to prevent flickering
-    const timeoutId = setTimeout(updateChart, 100);
+      chartInstance.current.update('none');
+      return;
+    }
 
+    // Create new chart if it doesn't exist
+    chartInstance.current = new Chart(ctx, {
+      type,
+      data: {
+        labels: data.labels,
+        datasets: [
+          {
+            label: 'Sentiment Distribution',
+            data: data.values,
+            backgroundColor: colors,
+            borderColor: type === 'line' ? colors : Array(data.labels.length).fill('rgba(255, 255, 255, 0.8)'),
+            borderWidth: 2,
+            tension: 0.3,
+            fill: type === 'line',
+            pointBackgroundColor: type === 'line' ? '#fff' : undefined,
+            pointBorderColor: type === 'line' ? colors : undefined,
+            pointRadius: type === 'line' ? 4 : undefined,
+            pointHoverRadius: type === 'line' ? 6 : undefined,
+          },
+        ],
+      },
+      options: chartOptions,
+    });
+
+    // Cleanup function
     return () => {
-      clearTimeout(timeoutId);
       if (chartInstance.current) {
         chartInstance.current.destroy();
         chartInstance.current = null;
@@ -143,10 +172,10 @@ export function OptimizedSentimentChart({
     return (
       <div style={{ height }} className="flex items-center justify-center">
         <div className="space-y-4 w-full">
-          <Skeleton className="h-[200px] w-full bg-gray-200/50" />
+          <Skeleton className="h-[200px] w-full bg-gray-200" />
           <div className="flex justify-center space-x-4">
             {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-4 w-20 bg-gray-200/50" />
+              <Skeleton key={i} className="h-4 w-20 bg-gray-200" />
             ))}
           </div>
         </div>
