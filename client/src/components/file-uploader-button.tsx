@@ -54,10 +54,17 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
         try {
           const result = await uploadCSV(file, (progress) => {
+            // Normalize the progress data with default values
+            const processedRecords = progress.processed || 0;
+            const totalRecords = lines || 100;
+            const percentage = Math.min(Math.round((processedRecords / totalRecords) * 100), 100);
+            
+            // Update the progress in the UI with proper default values
             updateUploadProgress({
-              processedRecords: progress.processed,
-              percentage: Math.min(Math.round((progress.processed / lines) * 100), 100),
-              message: `Analyzing sentiment data... ${progress.processed}/${lines}`
+              processedRecords: processedRecords,
+              totalRecords: totalRecords,
+              percentage: percentage,
+              message: progress.stage || `Analyzing sentiment data... ${processedRecords}/${totalRecords}`
             });
 
             if (progress.error) {

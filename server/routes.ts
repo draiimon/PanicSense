@@ -41,16 +41,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       'Connection': 'keep-alive'
     });
 
+    // Send initial progress data
+    res.write(`data: ${JSON.stringify({
+      processed: 0,
+      stage: "Connecting...",
+    })}\n\n`);
+
     const sendProgress = () => {
       const progress = uploadProgressMap.get(sessionId);
       if (progress) {
         const now = Date.now();
-        if (now - progress.timestamp >= 50) { // Increased frequency for smoother updates
+        if (now - progress.timestamp >= 30) { // Faster updates for smoother progress
           res.write(`data: ${JSON.stringify({
             processed: progress.processed,
-            total: progress.total,
-            stage: progress.stage,
-            percentage: Math.round((progress.processed / progress.total) * 100),
+            total: progress.total || 100, // Provide a default total if not available
+            stage: progress.stage || "Processing...",
             error: progress.error
           })}\n\n`);
           progress.timestamp = now;
@@ -58,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     };
 
-    const progressInterval = setInterval(sendProgress, 50);
+    const progressInterval = setInterval(sendProgress, 30);
 
     req.on('close', () => {
       clearInterval(progressInterval);
@@ -307,8 +312,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Update file upload endpoint with better progress tracking
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
-    let sessionId: string | undefined;
-    let updateProgress: (processed: number, stage: string, error?: string) => void;
+    let sessionId = '';
+    // Define the updateProgress function with a default implementation
+    let updateProgress = (processed: number, stage: string, error?: string) => {
+      if (sessionId) {
+        const progress = uploadProgressMap.get(sessionId);
+        if (progress) {
+          progress.processed = processed;
+          progress.stage = stage;
+          progress.timestamp = Date.now();
+          progress.error = error;
+        }
+      }
+    };
 
     try {
       if (!req.file) {
@@ -333,17 +349,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: Date.now()
       });
 
-      updateProgress = (processed: number, stage: string, error?: string) => {
-        if (sessionId) {
-          const progress = uploadProgressMap.get(sessionId);
-          if (progress) {
-            progress.processed = processed;
-            progress.stage = stage;
-            progress.timestamp = Date.now();
-            progress.error = error;
-          }
-        }
-      };
+      // We already have the updateProgress function defined at the beginning
+      // We don't need to redefine it here
 
       const { data, storedFilename, recordCount } = await pythonService.processCSV(
         fileBuffer,
@@ -396,20 +403,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error processing CSV:", error);
-      if (sessionId && updateProgress) {
-        updateProgress(0, 'Error', error instanceof Error ? error.message : String(error));
-      }
+      
+      // Now use updateProgress
+      updateProgress(0, 'Error', error instanceof Error ? error.message : String(error));
+      
       res.status(500).json({ 
         error: "Failed to process CSV file",
         details: error instanceof Error ? error.message : String(error)
       });
     } finally {
       // Cleanup progress tracking after 5 seconds
-      if (sessionId) {
-        setTimeout(() => {
-          uploadProgressMap.delete(sessionId);
-        }, 5000);
-      }
+      // sessionId is always a string now because we initialized it as ''
+      setTimeout(() => {
+        uploadProgressMap.delete(sessionId);
+      }, 5000);
     }
   });
 
