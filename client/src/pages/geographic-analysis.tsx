@@ -251,10 +251,11 @@ export default function GeographicAnalysis() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-slate-50">
-      <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 overflow-hidden">
+    <div className="flex flex-col h-screen bg-slate-50">
+      {/* Content Container - Adjust for navbar height */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 h-[calc(100vh-4rem)] overflow-hidden">
         {/* Left Panel - Map and Controls */}
-        <div className="flex-1 flex flex-col gap-4 min-w-0 overflow-hidden">
+        <div className="flex-1 flex flex-col gap-4 min-w-0">
           {/* Header Card */}
           <Card className="bg-white shadow-sm border-none">
             <CardHeader className="p-4">
@@ -285,104 +286,107 @@ export default function GeographicAnalysis() {
           </Card>
 
           {/* Map Container */}
-          <Card className="flex-1 bg-white shadow-sm border-none overflow-hidden min-h-[500px]">
-            <div className="h-full flex flex-col">
-              {/* Map Controls */}
-              <div className="border-b border-slate-200 p-4">
-                <div className="flex flex-wrap gap-4 items-center justify-between">
-                  {/* View Type Controls */}
-                  <div className="flex gap-2">
-                    <Button
-                      variant={activeMapType === 'disaster' ? 'default' : 'outline'}
-                      onClick={() => setActiveMapType('disaster')}
-                      className="flex items-center gap-2"
-                      size="sm"
-                    >
-                      <AlertTriangle className="h-4 w-4" />
-                      <span>Disaster</span>
-                    </Button>
-                    <Button
-                      variant={activeMapType === 'emotion' ? 'default' : 'outline'}
-                      onClick={() => setActiveMapType('emotion')}
-                      className="flex items-center gap-2"
-                      size="sm"
-                    >
-                      <MapPin className="h-4 w-4" />
-                      <span>Emotion</span>
-                    </Button>
-                  </div>
-
-                  {/* Map Style Controls */}
-                  <div className="flex rounded-lg overflow-hidden border border-slate-200">
-                    <Button
-                      size="sm"
-                      variant={mapView === 'standard' ? 'default' : 'outline'}
-                      onClick={() => setMapView('standard')}
-                      className="rounded-none border-0"
-                    >
-                      <Map className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={mapView === 'satellite' ? 'default' : 'outline'}
-                      onClick={() => setMapView('satellite')}
-                      className="rounded-none border-0"
-                    >
-                      <Satellite className="h-4 w-4" />
-                    </Button>
-                  </div>
+          <div className="flex-1 flex flex-col bg-white shadow-sm rounded-lg overflow-hidden">
+            {/* Map Controls */}
+            <div className="border-b border-slate-200 p-4">
+              <div className="flex flex-wrap gap-4 items-center justify-between">
+                {/* View Type Controls */}
+                <div className="flex gap-2">
+                  <Button
+                    variant={activeMapType === 'disaster' ? 'default' : 'outline'}
+                    onClick={() => setActiveMapType('disaster')}
+                    className="flex items-center gap-2"
+                    size="sm"
+                  >
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>Disaster</span>
+                  </Button>
+                  <Button
+                    variant={activeMapType === 'emotion' ? 'default' : 'outline'}
+                    onClick={() => setActiveMapType('emotion')}
+                    className="flex items-center gap-2"
+                    size="sm"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    <span>Emotion</span>
+                  </Button>
                 </div>
 
-                {/* Active Filters Display */}
-                {selectedRegionFilter && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-sm text-slate-500">Filtered by:</span>
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      {selectedRegionFilter}
-                      <button
-                        onClick={() => setSelectedRegionFilter(null)}
-                        className="ml-1 hover:text-red-500"
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  </div>
-                )}
+                {/* Map Style Controls */}
+                <div className="flex rounded-lg overflow-hidden border border-slate-200">
+                  <Button
+                    size="sm"
+                    variant={mapView === 'standard' ? 'default' : 'outline'}
+                    onClick={() => setMapView('standard')}
+                    className="rounded-none border-0"
+                  >
+                    <Map className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={mapView === 'satellite' ? 'default' : 'outline'}
+                    onClick={() => setMapView('satellite')}
+                    className="rounded-none border-0"
+                  >
+                    <Satellite className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
-              {/* Map View */}
-              <div className="flex-1 relative">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeMapType}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute inset-0"
-                  >
-                    <SentimentMap
-                      regions={regions}
-                      mapType={activeMapType}
-                      view={mapView}
-                    />
-                  </motion.div>
-                </AnimatePresence>
-              </div>
+              {/* Active Filters Display */}
+              {selectedRegionFilter && (
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-sm text-slate-500">Filtered by:</span>
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    {selectedRegionFilter}
+                    <button
+                      onClick={() => setSelectedRegionFilter(null)}
+                      className="ml-1 hover:text-red-500"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                </div>
+              )}
             </div>
-          </Card>
+
+            {/* Map View Container */}
+            <div className="relative flex-1 min-h-0">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeMapType}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute inset-0"
+                >
+                  <SentimentMap
+                    regions={regions}
+                    mapType={activeMapType}
+                    view={mapView}
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
 
         {/* Right Panel - Legend and Stats */}
-        <div className={cn(
-          "bg-white shadow-sm rounded-lg transition-all duration-300 overflow-hidden",
-          isLegendCollapsed ? "w-12" : "w-full lg:w-80"
-        )}>
+        <div 
+          className={cn(
+            "bg-white shadow-sm rounded-lg transition-all duration-300 overflow-hidden",
+            isLegendCollapsed ? "w-12" : "w-full lg:w-80"
+          )}
+        >
+          {/* Legend Header */}
           <div className="flex items-center justify-between p-4 border-b border-slate-200">
-            <h3 className={cn(
-              "font-semibold text-slate-800 transition-opacity",
-              isLegendCollapsed ? "opacity-0" : "opacity-100"
-            )}>
+            <h3 
+              className={cn(
+                "font-semibold text-slate-800 transition-opacity",
+                isLegendCollapsed ? "opacity-0" : "opacity-100"
+              )}
+            >
               Analysis Legend
             </h3>
             <Button
@@ -391,14 +395,21 @@ export default function GeographicAnalysis() {
               onClick={() => setIsLegendCollapsed(!isLegendCollapsed)}
               className="text-slate-500 hover:text-slate-700"
             >
-              {isLegendCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {isLegendCollapsed ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
             </Button>
           </div>
 
-          <div className={cn(
-            "transition-all duration-300",
-            isLegendCollapsed ? "opacity-0" : "opacity-100"
-          )}>
+          {/* Legend Content */}
+          <div 
+            className={cn(
+              "transition-all duration-300 overflow-y-auto",
+              isLegendCollapsed ? "opacity-0 h-0" : "opacity-100 h-[calc(100%-4rem)]"
+            )}
+          >
             <SentimentLegend
               mostAffectedAreas={mostAffectedAreas}
               showRegionSelection={false}
