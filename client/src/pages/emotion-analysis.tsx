@@ -17,7 +17,7 @@ export default function GeographicImpactAnalysis() {
     return {
       // Special entry for whole country
       "Philippines": [12.8797, 121.7740],
-      
+
       // Metro Manila and surrounding provinces
       "Metro Manila": [14.5995, 120.9842],
       "Manila": [14.5995, 120.9842],
@@ -27,7 +27,8 @@ export default function GeographicImpactAnalysis() {
       "Bulacan": [14.7969, 120.8787],
       "Cavite": [14.4791, 120.8970],
       "Pampanga": [15.0794, 120.6200],
-      
+      "Bacoor": [14.4624, 120.9645],  // Accurate coordinates for Bacoor, Cavite
+
       // Luzon
       "Luzon": [16.0, 121.0],
       "Ilocos Norte": [18.1647, 120.7116],
@@ -62,7 +63,7 @@ export default function GeographicImpactAnalysis() {
       "Oriental Mindoro": [13.0565, 121.4069],
       "Romblon": [12.5778, 122.2695],
       "Palawan": [9.8349, 118.7384],
-      
+
       // Visayas
       "Visayas": [11.0, 124.0],
       "Cebu": [10.3157, 123.8854],
@@ -82,7 +83,7 @@ export default function GeographicImpactAnalysis() {
       "Northern Samar": [12.4700, 124.6451],
       "Siquijor": [9.1985, 123.5950],
       "Tacloban": [11.2543, 125.0000], // City but commonly mentioned
-      
+
       // Mindanao
       "Mindanao": [7.5, 125.0],
       "Davao": [7.0707, 125.6087],
@@ -125,25 +126,25 @@ export default function GeographicImpactAnalysis() {
       disasterTypes: Map<string, number>;
       coordinates: [number, number];
     }>();
-    
+
     // Process posts to populate the map
     sentimentPosts.forEach(post => {
       if (!post.location) return;
-      
+
       // Convert possible raw location mentions to standardized regions
       let location = post.location;
       const lowerLocation = location.toLowerCase().trim();
-      
+
       // Handle Manila specifically
       if (lowerLocation.includes('manila') && !lowerLocation.includes('metro')) {
         location = 'Manila';
       }
-      
+
       // Handle main island groups if mentioned
       if (lowerLocation.includes('luzon')) location = 'Luzon';
       if (lowerLocation.includes('visayas')) location = 'Visayas';
       if (lowerLocation.includes('mindanao')) location = 'Mindanao';
-      
+
       // Handle entire Philippines as special case
       if (
         lowerLocation.includes('philippines') || 
@@ -152,10 +153,10 @@ export default function GeographicImpactAnalysis() {
       ) {
         location = 'Philippines'; 
       }
-      
+
       // If coordinates not found, use center of Philippines
       const coordinates = regionCoordinates[location as keyof typeof regionCoordinates] || regionCoordinates["Philippines"];
-      
+
       if (!data.has(location)) {
         data.set(location, {
           count: 0,
@@ -164,21 +165,21 @@ export default function GeographicImpactAnalysis() {
           coordinates
         });
       }
-      
+
       const locationData = data.get(location)!;
       locationData.count++;
-      
+
       // Track sentiments
       const currentSentimentCount = locationData.sentiments.get(post.sentiment) || 0;
       locationData.sentiments.set(post.sentiment, currentSentimentCount + 1);
-      
+
       // Track disaster types
       if (post.disasterType) {
         const currentDisasterTypeCount = locationData.disasterTypes.get(post.disasterType) || 0;
         locationData.disasterTypes.set(post.disasterType, currentDisasterTypeCount + 1);
       }
     });
-    
+
     return data;
   }, [sentimentPosts, regionCoordinates]);
 
@@ -195,11 +196,11 @@ export default function GeographicImpactAnalysis() {
           dominantSentiment = sentiment;
         }
       });
-      
+
       // Find dominant disaster type
       let maxDisasterCount = 0;
       let dominantDisasterType = null;
-      
+
       data.disasterTypes.forEach((count, disasterType) => {
         if (count > maxDisasterCount) {
           maxDisasterCount = count;
