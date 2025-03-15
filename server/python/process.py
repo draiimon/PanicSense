@@ -637,26 +637,89 @@ class DisasterSentimentBackend:
             ]
         }
 
-        # Philippine regions and locations
+        # Comprehensive Philippine regions and locations
         location_keywords = {
-            'Luzon': [
-                'Luzon', 'Manila', 'Quezon City', 'Makati', 'Taguig', 'Pasig',
-                'Batangas', 'Pampanga', 'Bulacan', 'Cavite', 'Laguna', 'Rizal',
-                'Bataan', 'Zambales', 'Pangasinan', 'Ilocos', 'Cagayan',
-                'Isabela', 'Aurora', 'Batanes', 'Bicol', 'Albay', 'Sorsogon',
-                'Camarines', 'Catanduanes', 'Baguio', 'La Union', 'Benguet',
-                'CAR', 'Cordillera', 'NCR', 'Metro Manila'
+            'NCR (Metro Manila)': [
+                'NCR', 'Metro Manila', 'Manila', 'Quezon City', 'Makati', 'Taguig', 'Pasig', 
+                'Pasay', 'Parañaque', 'Marikina', 'Mandaluyong', 'San Juan', 'Caloocan', 
+                'Navotas', 'Malabon', 'Valenzuela', 'Las Piñas', 'Muntinlupa', 'Pateros'
             ],
-            'Visayas': [
-                'Visayas', 'Cebu', 'Iloilo', 'Bacolod', 'Tacloban', 'Leyte',
-                'Samar', 'Bohol', 'Negros', 'Panay', 'Boracay', 'Aklan',
-                'Antique', 'Capiz', 'Siquijor', 'Biliran'
+            'CAR (Cordillera)': [
+                'CAR', 'Cordillera', 'Baguio', 'Benguet', 'Ifugao', 'Mountain Province',
+                'Apayao', 'Kalinga', 'Abra', 'La Trinidad', 'Mt. Province', 'Banaue'
             ],
-            'Mindanao': [
-                'Mindanao', 'Davao', 'Cagayan de Oro', 'Zamboanga',
-                'General Santos', 'Cotabato', 'Surigao', 'Butuan', 'Marawi',
-                'Iligan', 'Maguindanao', 'Sulu', 'Basilan', 'Tawi-Tawi',
-                'BARMM', 'Lanao', 'Bukidnon', 'Agusan', 'Misamis'
+            'Ilocos Region': [
+                'Ilocos', 'Pangasinan', 'La Union', 'Ilocos Norte', 'Ilocos Sur', 
+                'Vigan', 'Laoag', 'Dagupan', 'San Fernando, La Union', 'Candon', 'Batac'
+            ],
+            'Cagayan Valley': [
+                'Cagayan Valley', 'Cagayan', 'Isabela', 'Nueva Vizcaya', 'Quirino', 
+                'Batanes', 'Tuguegarao', 'Ilagan', 'Bayombong', 'Cabarroguis', 'Basco'
+            ],
+            'Central Luzon': [
+                'Central Luzon', 'Pampanga', 'Bulacan', 'Tarlac', 'Zambales', 'Nueva Ecija',
+                'Bataan', 'Aurora', 'Angeles', 'Malolos', 'Subic', 'Olongapo', 'Balanga',
+                'San Fernando, Pampanga', 'Cabanatuan', 'Tarlac City', 'Baler'
+            ],
+            'CALABARZON': [
+                'CALABARZON', 'Cavite', 'Laguna', 'Batangas', 'Rizal', 'Quezon',
+                'Antipolo', 'Lucena', 'Calamba', 'Lipa', 'Batangas City', 'Tagaytay',
+                'San Pablo', 'Dasmariñas', 'Bacoor', 'Imus', 'Taytay', 'Tanay', 'Rodriguez'
+            ],
+            'MIMAROPA': [
+                'MIMAROPA', 'Mindoro', 'Marinduque', 'Romblon', 'Palawan',
+                'Puerto Princesa', 'Calapan', 'Boac', 'Romblon City', 'Odiongan',
+                'Mamburao', 'San Jose, Occidental Mindoro', 'Coron', 'El Nido'
+            ],
+            'Bicol Region': [
+                'Bicol', 'Albay', 'Camarines Sur', 'Camarines Norte', 'Sorsogon',
+                'Catanduanes', 'Masbate', 'Naga', 'Legazpi', 'Iriga', 'Sorsogon City',
+                'Virac', 'Masbate City', 'Daet', 'Bulan', 'Guinobatan'
+            ],
+            'Western Visayas': [
+                'Western Visayas', 'Iloilo', 'Negros Occidental', 'Capiz', 'Aklan',
+                'Antique', 'Guimaras', 'Iloilo City', 'Bacolod', 'Roxas City',
+                'Kalibo', 'San Jose de Buenavista', 'Jordan', 'Boracay'
+            ],
+            'Central Visayas': [
+                'Central Visayas', 'Cebu', 'Bohol', 'Negros Oriental', 'Siquijor',
+                'Cebu City', 'Mandaue', 'Lapu-Lapu', 'Tagbilaran', 'Dumaguete',
+                'Siquijor City', 'Talisay', 'Toledo', 'Bais', 'Danao'
+            ],
+            'Eastern Visayas': [
+                'Eastern Visayas', 'Leyte', 'Samar', 'Northern Samar', 'Eastern Samar',
+                'Southern Leyte', 'Biliran', 'Tacloban', 'Ormoc', 'Calbayog', 'Catbalogan',
+                'Borongan', 'Maasin', 'Naval', 'Basey', 'Guiuan'
+            ],
+            'Zamboanga Peninsula': [
+                'Zamboanga Peninsula', 'Zamboanga del Norte', 'Zamboanga del Sur',
+                'Zamboanga Sibugay', 'Zamboanga City', 'Dipolog', 'Pagadian',
+                'Ipil', 'Dapitan', 'Isabela, Basilan'
+            ],
+            'Northern Mindanao': [
+                'Northern Mindanao', 'Misamis Oriental', 'Bukidnon', 'Misamis Occidental',
+                'Lanao del Norte', 'Camiguin', 'Cagayan de Oro', 'Malaybalay', 'Iligan',
+                'Oroquieta', 'Ozamiz', 'Gingoog', 'Valencia', 'Mambajao'
+            ],
+            'Davao Region': [
+                'Davao Region', 'Davao del Sur', 'Davao del Norte', 'Davao Oriental',
+                'Davao de Oro', 'Davao Occidental', 'Davao City', 'Tagum', 'Digos',
+                'Mati', 'Panabo', 'Samal', 'Island Garden City of Samal'
+            ],
+            'SOCCSKSARGEN': [
+                'SOCCSKSARGEN', 'South Cotabato', 'Cotabato', 'Sultan Kudarat', 'Sarangani',
+                'General Santos', 'Koronadal', 'Kidapawan', 'Tacurong', 'Alabel',
+                'North Cotabato', 'Cotabato City', 'Midsayap', 'Kabacan'
+            ],
+            'CARAGA': [
+                'CARAGA', 'Agusan del Norte', 'Agusan del Sur', 'Surigao del Norte',
+                'Surigao del Sur', 'Dinagat Islands', 'Butuan', 'Surigao City',
+                'Tandag', 'Bislig', 'San Jose', 'Cabadbaran', 'Bayugan', 'Prosperidad'
+            ],
+            'BARMM': [
+                'BARMM', 'Bangsamoro', 'Maguindanao', 'Lanao del Sur', 'Basilan',
+                'Sulu', 'Tawi-Tawi', 'Cotabato City', 'Marawi', 'Lamitan', 'Jolo',
+                'Bongao', 'Patikul', 'Datu Odin Sinsuat', 'Parang'
             ]
         }
 
