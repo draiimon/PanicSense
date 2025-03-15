@@ -251,138 +251,135 @@ export default function GeographicAnalysis() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">
-      {/* Content Container - Adjust for navbar height */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 h-[calc(100vh-4rem)] overflow-hidden">
-        {/* Left Panel - Map and Controls */}
-        <div className="flex-1 flex flex-col gap-4 min-w-0">
-          {/* Header Card */}
-          <Card className="bg-white shadow-sm border-none">
-            <CardHeader className="p-4">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-2">
-                  <Globe className="h-6 w-6 text-blue-600" />
-                  <div>
-                    <CardTitle className="text-xl font-bold text-slate-800">
-                      Geographic Analysis
-                    </CardTitle>
-                    <p className="text-sm text-slate-500 mt-1">
-                      Visualizing disaster impact across Philippine regions
-                    </p>
-                  </div>
+      {/* Content Container */}
+      <div className="flex-1 p-4 h-[calc(100vh-4rem)] overflow-y-auto">
+        {/* Header Card */}
+        <Card className="bg-white shadow-sm border-none mb-4">
+          <CardHeader className="p-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-2">
+                <Globe className="h-6 w-6 text-blue-600" />
+                <div>
+                  <CardTitle className="text-xl font-bold text-slate-800">
+                    Geographic Analysis
+                  </CardTitle>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Visualizing disaster impact across Philippine regions
+                  </p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  <span className="hidden sm:inline">Refresh Data</span>
-                </Button>
               </div>
-            </CardHeader>
-          </Card>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh Data</span>
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
 
-          {/* Main Content Area */}
-          <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
-            {/* Map Container */}
-            <div className="flex-1 flex flex-col bg-white shadow-sm rounded-lg overflow-hidden">
-              {/* Map Controls */}
-              <div className="border-b border-slate-200 p-4">
-                <div className="flex flex-wrap gap-4 items-center justify-between">
-                  {/* View Type Controls */}
-                  <div className="flex gap-2">
-                    <Button
-                      variant={activeMapType === 'disaster' ? 'default' : 'outline'}
-                      onClick={() => setActiveMapType('disaster')}
-                      className="flex items-center gap-2"
-                      size="sm"
-                    >
-                      <AlertTriangle className="h-4 w-4" />
-                      <span className="hidden sm:inline">Disaster</span>
-                    </Button>
-                    <Button
-                      variant={activeMapType === 'emotion' ? 'default' : 'outline'}
-                      onClick={() => setActiveMapType('emotion')}
-                      className="flex items-center gap-2"
-                      size="sm"
-                    >
-                      <MapPin className="h-4 w-4" />
-                      <span className="hidden sm:inline">Emotion</span>
-                    </Button>
-                  </div>
-
-                  {/* Map Style Controls */}
-                  <div className="flex rounded-lg overflow-hidden border border-slate-200">
-                    <Button
-                      size="sm"
-                      variant={mapView === 'standard' ? 'default' : 'outline'}
-                      onClick={() => setMapView('standard')}
-                      className="rounded-none border-0"
-                    >
-                      <Map className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={mapView === 'satellite' ? 'default' : 'outline'}
-                      onClick={() => setMapView('satellite')}
-                      className="rounded-none border-0"
-                    >
-                      <Satellite className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Active Filters Display */}
-                {selectedRegionFilter && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-sm text-slate-500">Filtered by:</span>
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      {selectedRegionFilter}
-                      <button
-                        onClick={() => setSelectedRegionFilter(null)}
-                        className="ml-1 hover:text-red-500"
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  </div>
-                )}
-              </div>
-
-              {/* Map View Container */}
-              <div className="relative flex-1 min-h-0">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeMapType}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute inset-0"
+        {/* Main Content Area - Stack on mobile, side-by-side on desktop */}
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Map Container */}
+          <div className="flex-1 bg-white shadow-sm rounded-lg overflow-hidden">
+            {/* Map Controls */}
+            <div className="border-b border-slate-200 p-4">
+              <div className="flex flex-wrap gap-4 items-center justify-between">
+                {/* View Type Controls */}
+                <div className="flex gap-2">
+                  <Button
+                    variant={activeMapType === 'disaster' ? 'default' : 'outline'}
+                    onClick={() => setActiveMapType('disaster')}
+                    className="flex items-center gap-2"
+                    size="sm"
                   >
-                    <SentimentMap
-                      regions={regions}
-                      mapType={activeMapType}
-                      view={mapView}
-                    />
-                  </motion.div>
-                </AnimatePresence>
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="hidden sm:inline">Disaster</span>
+                  </Button>
+                  <Button
+                    variant={activeMapType === 'emotion' ? 'default' : 'outline'}
+                    onClick={() => setActiveMapType('emotion')}
+                    className="flex items-center gap-2"
+                    size="sm"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    <span className="hidden sm:inline">Emotion</span>
+                  </Button>
+                </div>
+
+                {/* Map Style Controls */}
+                <div className="flex rounded-lg overflow-hidden border border-slate-200">
+                  <Button
+                    size="sm"
+                    variant={mapView === 'standard' ? 'default' : 'outline'}
+                    onClick={() => setMapView('standard')}
+                    className="rounded-none border-0"
+                  >
+                    <Map className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={mapView === 'satellite' ? 'default' : 'outline'}
+                    onClick={() => setMapView('satellite')}
+                    className="rounded-none border-0"
+                  >
+                    <Satellite className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
+
+              {/* Active Filters Display */}
+              {selectedRegionFilter && (
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-sm text-slate-500">Filtered by:</span>
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    {selectedRegionFilter}
+                    <button
+                      onClick={() => setSelectedRegionFilter(null)}
+                      className="ml-1 hover:text-red-500"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                </div>
+              )}
             </div>
 
-            {/* Legend Panel - Now always visible with mobile optimization */}
-            <div className="w-full lg:w-80 h-auto lg:h-full bg-white shadow-sm rounded-lg overflow-hidden">
-              <div className="p-4 border-b border-slate-200">
-                <h3 className="font-semibold text-slate-800">Analysis Legend</h3>
-              </div>
-              <div className="overflow-y-auto h-[calc(100%-4rem)]">
-                <SentimentLegend
-                  mostAffectedAreas={mostAffectedAreas}
-                  showRegionSelection={false}
-                />
-              </div>
+            {/* Map View Container */}
+            <div className="relative h-[50vh] lg:h-[60vh]">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeMapType}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute inset-0"
+                >
+                  <SentimentMap
+                    regions={regions}
+                    mapType={activeMapType}
+                    view={mapView}
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Legend Panel - Always full width on mobile */}
+          <div className="w-full bg-white shadow-sm rounded-lg overflow-hidden">
+            <div className="p-4 border-b border-slate-200">
+              <h3 className="font-semibold text-slate-800">Analysis Legend</h3>
+            </div>
+            <div className="p-4">
+              <SentimentLegend
+                mostAffectedAreas={mostAffectedAreas}
+                showRegionSelection={false}
+              />
             </div>
           </div>
         </div>
