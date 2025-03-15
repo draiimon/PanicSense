@@ -1521,3 +1521,118 @@
 
     if __name__ == "__main__":
         main()
+#!/usr/bin/env python3
+import sys
+import json
+import argparse
+import pandas as pd
+from langdetect import detect
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+
+def analyze_text(text):
+    try:
+        # Basic sentiment analysis based on keywords
+        negative_words = ['panic', 'fear', 'scary', 'terrible', 'emergency', 'help', 'disaster']
+        positive_words = ['safe', 'secure', 'rescue', 'saved', 'help arrived', 'evacuated']
+        neutral_words = ['update', 'status', 'situation', 'report']
+        
+        text_lower = text.lower()
+        
+        # Detect language
+        try:
+            language = detect(text)
+        except:
+            language = 'unknown'
+            
+        # Count word occurrences
+        negative_count = sum(1 for word in negative_words if word in text_lower)
+        positive_count = sum(1 for word in positive_words if word in text_lower)
+        neutral_count = sum(1 for word in neutral_words if word in text_lower)
+        
+        # Determine sentiment
+        if negative_count > positive_count and negative_count > neutral_count:
+            sentiment = "Panic"
+            confidence = min(negative_count / len(text.split()), 0.95)
+        elif positive_count > negative_count:
+            sentiment = "Relief"
+            confidence = min(positive_count / len(text.split()), 0.95)
+        else:
+            sentiment = "Neutral"
+            confidence = min(neutral_count / len(text.split()), 0.95)
+            
+        # Default confidence if too low
+        confidence = max(confidence, 0.3)
+            
+        return {
+            "sentiment": sentiment,
+            "confidence": confidence,
+            "language": language,
+            "explanation": f"Based on keyword analysis: {negative_count} negative, {positive_count} positive, {neutral_count} neutral words"
+        }
+    except Exception as e:
+        print(f"Error analyzing text: {str(e)}", file=sys.stderr)
+        return {
+            "sentiment": "Neutral",
+            "confidence": 0.3,
+            "language": "unknown",
+            "explanation": "Error in analysis"
+        }
+
+def process_csv(file_path):
+    try:
+        # Read CSV file
+        df = pd.read_csv(file_path)
+        results = []
+        total_rows = len(df)
+        
+        for index, row in df.iterrows():
+            # Progress update
+            if index % 10 == 0:
+                progress = {
+                    "processed": index,
+                    "total": total_rows,
+                    "stage": "Processing texts"
+                }
+                print(f"PROGRESS:{json.dumps(progress)}")
+                
+            text = str(row.get('text', ''))
+            timestamp = str(row.get('timestamp', ''))
+            source = str(row.get('source', 'Unknown'))
+            
+            analysis = analyze_text(text)
+            
+            results.append({
+                "text": text,
+                "timestamp": timestamp,
+                "source": source,
+                "sentiment": analysis["sentiment"],
+                "confidence": analysis["confidence"],
+                "language": analysis["language"],
+                "explanation": analysis["explanation"]
+            })
+            
+        return {"results": results}
+    except Exception as e:
+        print(f"Error processing CSV: {str(e)}", file=sys.stderr)
+        return {"error": str(e)}
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--file', help='CSV file to process')
+    parser.add_argument('--text', help='Single text to analyze')
+    args = parser.parse_args()
+    
+    try:
+        if args.file:
+            result = process_csv(args.file)
+        elif args.text:
+            result = analyze_text(args.text)
+        else:
+            result = {"error": "No input provided"}
+            
+        print(json.dumps(result))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+
+if __name__ == "__main__":
+    main()
