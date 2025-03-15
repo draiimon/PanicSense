@@ -56,13 +56,19 @@ export class PythonService {
     const storedFilename = `${uniqueId}-${originalFilename}`;
     const tempFilePath = path.join(this.tempDir, storedFilename);
 
-    fs.writeFileSync(tempFilePath, fileBuffer);
-
     try {
+      // Validate file content before writing
+      const content = fileBuffer.toString('utf-8');
+      const lines = content.split('\n');
+
+      if (lines.length < 2) {
+        throw new Error('CSV file appears to be empty or malformed');
+      }
+
+      fs.writeFileSync(tempFilePath, fileBuffer);
+
       log(`Processing CSV file: ${originalFilename}`, 'python-service');
-      
-      // Run the Python script only once - Python script will use key rotation
-      // to handle rate limit issues internally
+
       let result;
       try {
         result = await this.runPythonScript(tempFilePath, '', onProgress);
@@ -71,25 +77,36 @@ export class PythonService {
         throw new Error(`Failed to process CSV file: ${error}`);
       }
 
-      if (!result) throw new Error('Failed to process CSV file');
+      if (!result) {
+        throw new Error('Failed to process CSV file: No result returned from Python script');
+      }
 
-      const data = JSON.parse(result) as ProcessCSVResult;
-      
-      // Log details about what was processed
-      log(`Successfully processed ${data.results.length} records from CSV`, 'python-service');
-      
-      // Count how many records have location from the CSV
-      const withLocation = data.results.filter(r => r.location).length;
-      const withDisasterType = data.results.filter(r => r.disasterType && r.disasterType !== "Not Specified").length;
-      
-      log(`Records with location: ${withLocation}/${data.results.length}`, 'python-service');
-      log(`Records with disaster type: ${withDisasterType}/${data.results.length}`, 'python-service');
+      try {
+        const data = JSON.parse(result) as ProcessCSVResult;
 
-      return {
-        data,
-        storedFilename,
-        recordCount: data.results.length
-      };
+        if (!data.results || !Array.isArray(data.results)) {
+          throw new Error('Invalid data format returned from Python script');
+        }
+
+        // Log details about what was processed
+        log(`Successfully processed ${data.results.length} records from CSV`, 'python-service');
+
+        // Count how many records have location from the CSV
+        const withLocation = data.results.filter(r => r.location).length;
+        const withDisasterType = data.results.filter(r => r.disasterType && r.disasterType !== "Not Specified").length;
+
+        log(`Records with location: ${withLocation}/${data.results.length}`, 'python-service');
+        log(`Records with disaster type: ${withDisasterType}/${data.results.length}`, 'python-service');
+
+        return {
+          data,
+          storedFilename,
+          recordCount: data.results.length
+        };
+      } catch (error) {
+        log(`Error parsing Python script output: ${error}`, 'python-service');
+        throw new Error('Failed to parse Python script output');
+      }
     } catch (error) {
       // Clean up temp file on error
       if (fs.existsSync(tempFilePath)) {
@@ -99,6 +116,97 @@ export class PythonService {
     }
   }
 
+  private runPythonScript(
+    filePath: string = '', 
+    textToAnalyze: string = '',
+    onProgress?: (processed: number, stage: string) => void
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const args = [this.scriptPath];
+
+      if (filePath) {
+        args.push('--file', filePath);
+      }
+
+      if (textToAnalyze) {
+        args.push('--text', textToAnalyze);
+      }
+
+      log(`Running Python script with args: ${args.join(' ')}`, 'python-service');
+
+      const pythonProcess = spawn(this.pythonBinary, args);
+
+      let output = '';
+      let errorOutput = '';
+      let lastProgressUpdate = Date.now();
+
+      pythonProcess.stdout.on('data', (data) => {
+        const dataStr = data.toString();
+
+        // Handle progress updates with rate limiting
+        if (onProgress && dataStr.includes('PROGRESS:')) {
+          const now = Date.now();
+          if (now - lastProgressUpdate >= 100) { // Update every 100ms max
+            try {
+              const progressData = JSON.parse(dataStr.split('PROGRESS:')[1]);
+              onProgress(progressData.processed, progressData.stage);
+              lastProgressUpdate = now;
+            } catch (e) {
+              // Log but don't fail on progress parsing errors
+              log(`Progress parsing error: ${e}`, 'python-service');
+            }
+          }
+        } else {
+          output += dataStr;
+        }
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+        log(`Python process error: ${data.toString()}`, 'python-service');
+      });
+
+      // Set a timeout for the entire process
+      const timeout = setTimeout(() => {
+        pythonProcess.kill();
+        reject(new Error('Python script execution timed out after 5 minutes'));
+      }, 5 * 60 * 1000); // 5 minutes timeout
+
+      pythonProcess.on('close', (code) => {
+        clearTimeout(timeout);
+
+        if (code !== 0) {
+          log(`Python process error: ${errorOutput}`, 'python-service');
+          reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
+          return;
+        }
+
+        const trimmedOutput = output.trim();
+
+        if (!trimmedOutput) {
+          log(`Error: Python process returned empty output`, 'python-service');
+          reject(new Error('Python process returned empty output'));
+          return;
+        }
+
+        try {
+          // Verify output is valid JSON
+          JSON.parse(trimmedOutput);
+          resolve(trimmedOutput);
+        } catch (e) {
+          log(`Invalid JSON output: ${trimmedOutput}`, 'python-service');
+          log(`JSON parse error: ${e}`, 'python-service');
+
+          reject(new Error('Invalid JSON output from Python script'));
+        }
+      });
+
+      pythonProcess.on('error', (error) => {
+        clearTimeout(timeout);
+        reject(new Error(`Failed to start Python process: ${error.message}`));
+      });
+    });
+  }
   public async analyzeSentiment(
     text: string, 
     csvLocation?: string, 
@@ -133,99 +241,6 @@ export class PythonService {
       log(`Sentiment analysis failed: ${error}`, 'python-service');
       throw new Error(`Failed to analyze sentiment: ${error}`);
     }
-  }
-
-  private runPythonScript(
-    filePath: string = '', 
-    textToAnalyze: string = '',
-    onProgress?: (processed: number, stage: string) => void
-  ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const args = [this.scriptPath];
-
-      if (filePath) {
-        args.push('--file', filePath);
-      }
-
-      if (textToAnalyze) {
-        args.push('--text', textToAnalyze);
-      }
-
-      log(`Running Python script with args: ${args.join(' ')}`, 'python-service');
-
-      const pythonProcess = spawn(this.pythonBinary, args);
-
-      let output = '';
-      let errorOutput = '';
-
-      pythonProcess.stdout.on('data', (data) => {
-        const dataStr = data.toString();
-
-        // Check for progress updates
-        if (onProgress && dataStr.includes('PROGRESS:')) {
-          try {
-            const progressData = JSON.parse(dataStr.split('PROGRESS:')[1]);
-            onProgress(progressData.processed, progressData.stage);
-          } catch (e) {
-            // Ignore progress parsing errors
-          }
-        } else {
-          output += dataStr;
-        }
-      });
-
-      pythonProcess.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-        log(`Python process error: ${data.toString()}`, 'python-service');
-      });
-
-      pythonProcess.on('close', (code) => {
-        if (code !== 0) {
-          log(`Python process error: ${errorOutput}`, 'python-service');
-          reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
-          return;
-        }
-
-        // Trim output to remove any potential whitespace
-        const trimmedOutput = output.trim();
-        
-        if (!trimmedOutput) {
-          log(`Error: Python process returned empty output`, 'python-service');
-          reject(new Error('Python process returned empty output'));
-          return;
-        }
-
-        try {
-          // Verify output is valid JSON
-          JSON.parse(trimmedOutput);
-          resolve(trimmedOutput);
-        } catch (e) {
-          // Log the problematic output for debugging
-          log(`Invalid JSON output: ${trimmedOutput}`, 'python-service');
-          log(`JSON parse error: ${e}`, 'python-service');
-          
-          // Create a valid fallback response when JSON parsing fails
-          const fallbackResponse = JSON.stringify({
-            results: [],
-            metrics: {
-              accuracy: 0.0,
-              precision: 0.0,
-              recall: 0.0,
-              f1Score: 0.0
-            },
-            error: 'JSON parsing error',
-            originalOutput: trimmedOutput.substring(0, 100) + '...' // Include a snippet of the original output
-          });
-          
-          resolve(fallbackResponse);
-        }
-      });
-
-      // Handle process errors
-      pythonProcess.on('error', (error) => {
-        reject(new Error(`Failed to start Python process: ${error.message}`));
-      });
-    });
   }
 }
 

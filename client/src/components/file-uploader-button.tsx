@@ -27,6 +27,8 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     if (!files || files.length === 0) return;
 
     const file = files[0];
+
+    // More strict file validation
     if (!file.name.toLowerCase().endsWith('.csv')) {
       toast({
         title: 'Invalid File Format',
@@ -36,10 +38,20 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       return;
     }
 
+    // Check file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Please upload a CSV file smaller than 50MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsUploading(true);
     updateUploadProgress({
       status: 'uploading',
-      message: 'Initializing analysis...',
+      message: 'Preparing file for analysis...',
       percentage: 0,
       processedRecords: 0,
       totalRecords: 0
@@ -48,29 +60,41 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     try {
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const text = e.target?.result as string;
-        const lines = text.split('\n').length - 1;
-        updateUploadProgress({ totalRecords: lines });
-
         try {
+          const text = e.target?.result as string;
+          const lines = text.split('\n').length - 1;
+
+          // Validate minimum content
+          if (lines < 2) {
+            throw new Error('CSV file appears to be empty or malformed. Please check the file content.');
+          }
+
+          updateUploadProgress({ 
+            totalRecords: lines,
+            message: 'Starting analysis...' 
+          });
+
           const result = await uploadCSV(file, (progress) => {
-            // Normalize the progress data with default values
             const processedRecords = progress.processed || 0;
             const totalRecords = lines || 100;
             const percentage = Math.min(Math.round((processedRecords / totalRecords) * 100), 100);
-            
-            // Update the progress in the UI with proper default values
+
             updateUploadProgress({
-              processedRecords: processedRecords,
-              totalRecords: totalRecords,
-              percentage: percentage,
-              message: progress.stage || `Analyzing sentiment data... ${processedRecords}/${totalRecords}`
+              processedRecords,
+              totalRecords,
+              percentage,
+              message: progress.stage || `Processing records... ${processedRecords}/${totalRecords}`,
+              status: progress.error ? 'error' : 'uploading'
             });
 
             if (progress.error) {
               throw new Error(progress.error);
             }
           });
+
+          if (!result || !result.file || !result.posts) {
+            throw new Error('Invalid response from server');
+          }
 
           updateUploadProgress({
             status: 'success',
@@ -79,7 +103,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           });
 
           toast({
-            title: ' Analysis Complete',
+            title: 'Analysis Complete',
             description: `Successfully analyzed ${result.posts.length} posts with sentiment data`,
             duration: 5000,
           });
@@ -93,7 +117,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             onSuccess(result);
           }
 
-          // Delay resetting upload state
+          // Reset upload state after delay
           progressTimeout.current = setTimeout(() => {
             resetUploadProgress();
           }, 2000);
@@ -103,28 +127,43 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         }
       };
 
+      reader.onerror = () => {
+        handleError(new Error('Failed to read file'));
+      };
+
       reader.readAsText(file);
     } catch (error) {
       handleError(error);
     } finally {
+      // Reset file input
       event.target.value = '';
+
+      // Ensure uploading state is eventually reset
+      setTimeout(() => {
+        setIsUploading(false);
+      }, 3000);
     }
   };
 
   const handleError = (error: unknown) => {
+    console.error('File upload error:', error);
+
     updateUploadProgress({
       status: 'error',
-      message: error instanceof Error ? error.message : 'Upload failed'
+      message: error instanceof Error ? error.message : 'Upload failed',
+      percentage: 0
     });
 
     toast({
       title: 'Analysis Failed',
       description: error instanceof Error ? error.message : 'An unexpected error occurred during analysis',
       variant: 'destructive',
+      duration: 7000,
     });
 
     progressTimeout.current = setTimeout(() => {
       resetUploadProgress();
+      setIsUploading(false);
     }, 2000);
   };
 
@@ -140,11 +179,12 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         cursor-pointer transition-all duration-300
         shadow-lg hover:shadow-xl transform hover:-translate-y-0.5
         disabled:opacity-50 disabled:cursor-not-allowed
+        ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
         ${className}
       `}
     >
       <Upload className="h-5 w-5 mr-2" />
-      Upload Dataset
+      {isUploading ? 'Analyzing...' : 'Upload Dataset'}
       <input 
         type="file" 
         className="hidden" 
