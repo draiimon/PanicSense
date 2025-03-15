@@ -3,7 +3,7 @@ import { useDisasterContext } from "@/context/disaster-context";
 import { SentimentMap } from "@/components/analysis/sentiment-map";
 import { SentimentLegend } from "@/components/analysis/sentiment-legend";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, MapPin, Map, AlertTriangle, RefreshCw } from "lucide-react";
+import { Globe, MapPin, Map, AlertTriangle, RefreshCw, Satellite } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -268,7 +268,7 @@ export default function GeographicAnalysis() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="p-4 space-y-6">
       {/* Header */}
       <Card className="bg-white shadow-md border-none">
         <CardHeader className="pb-4">
@@ -277,105 +277,97 @@ export default function GeographicAnalysis() {
             Geographic Analysis
           </CardTitle>
           <p className="text-sm text-slate-500">
-            Visualizing disaster impact and emotional response distribution across Philippine regions
+            Visualizing disaster impact and emotional response across Philippine regions
           </p>
         </CardHeader>
       </Card>
 
+      {/* Main Content */}
       <div className="bg-white rounded-lg shadow-md">
-        {/* Controls Header */}
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          {/* Map Type Tabs */}
-          <div className="flex space-x-2">
-            <button
-              className={`px-6 py-2 font-medium text-sm rounded-lg transition-all flex items-center gap-2 ${
-                activeMapType === 'disaster'
-                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}
-              onClick={() => setActiveMapType('disaster')}
-            >
-              <AlertTriangle className="h-4 w-4" />
-              Disaster Impact
-            </button>
-            <button
-              className={`px-6 py-2 font-medium text-sm rounded-lg transition-all flex items-center gap-2 ${
-                activeMapType === 'emotion'
-                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}
-              onClick={() => setActiveMapType('emotion')}
-            >
-              <MapPin className="h-4 w-4" />
-              Sentiment Distribution
-            </button>
-          </div>
+        {/* Controls */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row justify-between gap-4">
+            {/* Map Type Selection */}
+            <div className="flex gap-2">
+              <Button
+                variant={activeMapType === 'disaster' ? 'default' : 'outline'}
+                onClick={() => setActiveMapType('disaster')}
+                className="flex items-center gap-2"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                <span className="hidden sm:inline">Disaster Impact</span>
+              </Button>
+              <Button
+                variant={activeMapType === 'emotion' ? 'default' : 'outline'}
+                onClick={() => setActiveMapType('emotion')}
+                className="flex items-center gap-2"
+              >
+                <MapPin className="h-4 w-4" />
+                <span className="hidden sm:inline">Sentiment Distribution</span>
+              </Button>
+            </div>
 
-          {/* Map Controls */}
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className={`flex items-center gap-2 ${isRefreshing ? 'opacity-50' : ''}`}
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh Data
-            </Button>
-            <div className="bg-slate-100 rounded-lg p-1 flex">
+            {/* Map Controls */}
+            <div className="flex items-center gap-2">
               <Button
                 size="sm"
-                variant={mapView === 'standard' ? 'default' : 'outline'}
-                className="rounded-r-none px-3 h-8"
-                onClick={() => setMapView('standard')}
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-2"
               >
-                <Map className="h-4 w-4 mr-1" />
-                <span className="text-xs">Standard</span>
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
               </Button>
-              <Button
-                size="sm"
-                variant={mapView === 'satellite' ? 'default' : 'outline'}
-                className="rounded-l-none px-3 h-8"
-                onClick={() => setMapView('satellite')}
-              >
-                <Layers className="h-4 w-4 mr-1" />
-                <span className="text-xs">Satellite</span>
-              </Button>
+              <div className="flex rounded-lg overflow-hidden border border-gray-200">
+                <Button
+                  size="sm"
+                  variant={mapView === 'standard' ? 'default' : 'outline'}
+                  onClick={() => setMapView('standard')}
+                  className="rounded-none border-0"
+                >
+                  <Map className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant={mapView === 'satellite' ? 'default' : 'outline'}
+                  onClick={() => setMapView('satellite')}
+                  className="rounded-none border-0"
+                >
+                  <Satellite className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Map and Legend Container */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
-          {/* Map Container */}
-          <div className="lg:col-span-2">
-            <Card className="border-none shadow-sm">
-              <CardContent className="p-4">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeMapType}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <SentimentMap
-                      regions={regions}
-                      colorBy={activeMapType === 'disaster' ? 'disasterType' : 'sentiment'}
-                    />
-                  </motion.div>
-                </AnimatePresence>
-              </CardContent>
-            </Card>
+        {/* Map and Legend */}
+        <div className="grid lg:grid-cols-3 gap-6 p-6">
+          {/* Map */}
+          <div className="lg:col-span-2 min-h-[500px]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeMapType}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="h-full"
+              >
+                <SentimentMap
+                  regions={regions}
+                  mapType={activeMapType}
+                  view={mapView}
+                />
+              </motion.div>
+            </AnimatePresence>
           </div>
 
-          {/* Legend Container */}
-          <div>
+          {/* Legend */}
+          <div className="lg:col-span-1">
             <SentimentLegend
               mostAffectedAreas={mostAffectedAreas}
               showRegionSelection={false}
-              colorBy={activeMapType === 'disaster' ? 'disasterType' : 'sentiment'}
             />
           </div>
         </div>

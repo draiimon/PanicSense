@@ -16,7 +16,7 @@ export function SentimentLegend({
   mostAffectedAreas = [],
   showRegionSelection = true 
 }: SentimentLegendProps) {
-  // Sentiment colors and labels
+  // Sentiment indicators
   const sentiments = [
     { name: 'Panic', color: '#ef4444' },
     { name: 'Fear/Anxiety', color: '#f97316' },
@@ -25,19 +25,19 @@ export function SentimentLegend({
     { name: 'Neutral', color: '#6b7280' }
   ];
 
-  // Disaster type colors and labels
+  // Disaster types
   const disasterTypes = [
-    { name: 'Flood', color: '#3b82f6' },     // Blue
-    { name: 'Typhoon', color: '#6b7280' },   // Gray
-    { name: 'Fire', color: '#f97316' },      // Orange
-    { name: 'Volcanic Eruption', color: '#ef4444' },   // Red
-    { name: 'Earthquake', color: '#92400e' }, // Brown
-    { name: 'Landslide', color: '#78350f' }  // Dark Brown
+    { name: 'Flood', color: '#3b82f6' },
+    { name: 'Typhoon', color: '#6b7280' },
+    { name: 'Fire', color: '#f97316' },
+    { name: 'Volcano', color: '#ef4444' },
+    { name: 'Earthquake', color: '#92400e' },
+    { name: 'Landslide', color: '#78350f' }
   ];
 
   return (
     <Card className="bg-white shadow-md border-none h-full">
-      <CardHeader className="p-5 border-b border-gray-200">
+      <CardHeader className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <Map className="h-5 w-5 text-blue-600" />
           <div>
@@ -50,108 +50,97 @@ export function SentimentLegend({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-5 space-y-6">
+      <CardContent className="p-4 space-y-4">
         {/* Sentiment Legend */}
-        <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="bg-slate-50 p-3 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
             <PieChart className="h-4 w-4 text-blue-600" />
             <h3 className="text-sm font-medium text-slate-700">Sentiment Indicators</h3>
           </div>
-          <div className="grid grid-cols-2 gap-2 ml-1">
+          <div className="grid grid-cols-2 gap-2">
             {sentiments.map((sentiment) => (
-              <div key={sentiment.name} className="flex items-center space-x-2">
+              <div key={sentiment.name} className="flex items-center gap-2">
                 <div 
-                  className="w-3 h-3 rounded-full"
+                  className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: sentiment.color }}
                 />
-                <span className="text-sm text-slate-600">{sentiment.name}</span>
+                <span className="text-sm text-slate-600 truncate">{sentiment.name}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Disaster Type Legend */}
-        <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-          <div className="flex items-center gap-2 mb-3">
+        {/* Disaster Types */}
+        <div className="bg-slate-50 p-3 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <h3 className="text-sm font-medium text-slate-700">Disaster Type Indicators</h3>
+            <h3 className="text-sm font-medium text-slate-700">Disaster Types</h3>
           </div>
-          <div className="grid grid-cols-2 gap-2 ml-1">
-            {disasterTypes.map((disasterType) => (
-              <div key={disasterType.name} className="flex items-center space-x-2">
+          <div className="grid grid-cols-2 gap-2">
+            {disasterTypes.map((type) => (
+              <div key={type.name} className="flex items-center gap-2">
                 <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: disasterType.color }}
+                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: type.color }}
                 />
-                <span className="text-sm text-slate-600">{disasterType.name}</span>
+                <span className="text-sm text-slate-600 truncate">{type.name}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Most Affected Areas */}
-        <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-              <h3 className="text-sm font-medium text-slate-700">Most Affected Areas</h3>
-            </div>
-            <Badge variant="outline" className="text-xs">Top {mostAffectedAreas.length}</Badge>
-          </div>
-
-          <div className="space-y-3">
-            {mostAffectedAreas.length === 0 ? (
-              <div className="flex items-center justify-center p-4 bg-white rounded-md border border-dashed border-slate-200">
-                <p className="text-sm text-slate-500">No affected areas data available</p>
+        {/* Affected Areas */}
+        {mostAffectedAreas && mostAffectedAreas.length > 0 && (
+          <div className="bg-slate-50 p-3 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-red-500" />
+                <h3 className="text-sm font-medium text-slate-700">Most Affected Areas</h3>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {mostAffectedAreas.map((area, index) => (
-                  <div 
-                    key={index} 
-                    className="bg-white p-3 rounded-md border border-slate-200 hover:shadow-sm transition-shadow"
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-slate-800 flex items-center gap-1">
-                        <Globe className="h-3.5 w-3.5 text-slate-500" />
-                        {area.name}
-                      </span>
-                      <span className="text-xs text-slate-500">#{index + 1}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge 
-                        variant="outline"
-                        className="text-xs flex items-center gap-1 border-2 font-medium"
-                        style={{ 
-                          borderColor: getSentimentColor(area.sentiment),
-                          color: getSentimentColor(area.sentiment)
+              <Badge variant="outline" className="text-xs">
+                Top {mostAffectedAreas.length}
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              {mostAffectedAreas.map((area, index) => (
+                <div 
+                  key={index}
+                  className="bg-white p-2 rounded-md border border-slate-200"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-slate-800 truncate">
+                      {area.name}
+                    </span>
+                    <span className="text-xs text-slate-500">#{index + 1}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge 
+                      variant="outline"
+                      className="text-xs"
+                      style={{ 
+                        borderColor: getSentimentColor(area.sentiment),
+                        color: getSentimentColor(area.sentiment)
+                      }}
+                    >
+                      {area.sentiment}
+                    </Badge>
+                    {area.disasterType && (
+                      <Badge
+                        className="text-xs"
+                        style={{
+                          backgroundColor: getDisasterTypeColor(area.disasterType),
+                          color: 'white'
                         }}
                       >
-                        <span 
-                          className="w-2 h-2 rounded-full" 
-                          style={{ backgroundColor: getSentimentColor(area.sentiment) }}
-                        />
-                        {area.sentiment}
+                        {area.disasterType}
                       </Badge>
-
-                      {area.disasterType && (
-                        <Badge
-                          className="text-xs flex items-center gap-1 font-medium"
-                          style={{
-                            backgroundColor: getDisasterTypeColor(area.disasterType),
-                            color: 'white'
-                          }}
-                        >
-                          {area.disasterType}
-                        </Badge>
-                      )}
-                    </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
