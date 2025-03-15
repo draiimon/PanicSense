@@ -145,7 +145,7 @@ export function SentimentMap({
     import('leaflet').then((L) => updateTileLayer(L, view));
   }, [view]);
 
-  // Update markers when regions change
+  // Update markers when regions change or visibility changes
   useEffect(() => {
     if (!mapInstanceRef.current || typeof window === 'undefined') return;
 
@@ -154,6 +154,9 @@ export function SentimentMap({
       markersRef.current.forEach(marker => marker.remove());
       markersRef.current = [];
 
+      // If markers are hidden, don't add any new ones
+      if (!showMarkers) return;
+      
       // Add new markers
       regions.forEach(region => {
         const color = mapType === 'disaster' && region.disasterType
@@ -252,7 +255,7 @@ export function SentimentMap({
         markersRef.current.push(message);
       }
     });
-  }, [regions, onRegionSelect, mapType, mapZoom]);
+  }, [regions, onRegionSelect, mapType, mapZoom, showMarkers]);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
