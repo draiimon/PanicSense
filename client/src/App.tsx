@@ -4,7 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
-import EmotionAnalysis from "@/pages/emotion-analysis";
+import GeographicAnalysis from "@/pages/geographic-analysis";
 import Timeline from "@/pages/timeline";
 import Comparison from "@/pages/comparison";
 import RawData from "@/pages/raw-data";
@@ -19,7 +19,9 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/dashboard" component={Dashboard} />
-      <Route path="/emotion-analysis" component={EmotionAnalysis} />
+      <Route path="/geographic-analysis" component={GeographicAnalysis} />
+      {/* Keep the old route for backward compatibility */}
+      <Route path="/emotion-analysis" component={GeographicAnalysis} />
       <Route path="/timeline" component={Timeline} />
       <Route path="/comparison" component={Comparison} />
       <Route path="/raw-data" component={RawData} />
