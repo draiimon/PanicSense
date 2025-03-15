@@ -1,0 +1,11 @@
+message,date,platform,place,sentiment,event_type
+"Severe flooding in our barangay! Need immediate assistance.",2023-08-01T09:15:00,Twitter,Marikina,Panic,Flood
+"The latest typhoon update shows it will make landfall tomorrow morning.",2023-08-01T10:20:00,News Alert,Samar,Neutral,Typhoon
+"I fear for those living near the shoreline with this storm surge warning.",2023-08-01T11:30:00,Facebook,Tacloban,Fear/Anxiety,Typhoon
+"Minor tremors felt, but no damage reported. Everyone remain vigilant.",2023-08-01T12:45:00,SMS Alert,Iloilo,Resilience,Earthquake
+"Landslide warning issued for mountainous regions following continuous rain.",2023-08-01T13:50:00,Government Alert,Benguet,Neutral,Landslide
+"This can't be happening again - another volcanic alert level increase?",2023-08-01T14:25:00,Twitter,Albay,Disbelief,Volcanic Eruption
+"Our community will come together to help those affected by flooding. #BayanihanSpirit",2023-08-01T15:40:00,Facebook,Cagayan,Resilience,Flood
+"Fire incident reported downtown, multiple fire trucks responding.",2023-08-01T16:15:00,Emergency Services,Pasig,Neutral,Fire
+"Ash fall advisory in effect. Please wear masks if going outside.",2023-08-01T17:30:00,PHIVOLCS,Tagaytay,Fear/Anxiety,Volcanic Eruption
+"Evacuation centers now open for residents in flood-prone areas.",2023-08-01T18:45:00,Local Government,Laguna,Neutral,Flood
