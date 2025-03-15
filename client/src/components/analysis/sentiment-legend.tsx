@@ -10,11 +10,13 @@ interface SentimentLegendProps {
     disasterType?: string | null;
   }[];
   showRegionSelection?: boolean;
+  colorBy?: 'sentiment' | 'disasterType';
 }
 
 export function SentimentLegend({ 
   mostAffectedAreas = [],
-  showRegionSelection = true 
+  showRegionSelection = true,
+  colorBy = 'sentiment'
 }: SentimentLegendProps) {
   // Sentiment colors and labels
   const sentiments = [
@@ -37,7 +39,7 @@ export function SentimentLegend({
 
   return (
     <Card className="bg-white shadow-md border-none h-full">
-      <CardHeader className="p-5 border-b border-gray-200">
+      <CardHeader className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <Map className="h-5 w-5 text-blue-600" />
           <div>
@@ -45,45 +47,35 @@ export function SentimentLegend({
               Geographic Analysis
             </CardTitle>
             <CardDescription className="text-sm text-slate-500">
-              Disaster impacts by region
+              {colorBy === 'sentiment' ? 'Sentiment distribution' : 'Disaster impact'} by region
             </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-5 space-y-6">
-        {/* Sentiment Legend */}
+      <CardContent className="p-4 space-y-4">
+        {/* Active Legend */}
         <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
           <div className="flex items-center gap-2 mb-3">
-            <PieChart className="h-4 w-4 text-blue-600" />
-            <h3 className="text-sm font-medium text-slate-700">Sentiment Indicators</h3>
+            {colorBy === 'sentiment' ? (
+              <>
+                <PieChart className="h-4 w-4 text-blue-600" />
+                <h3 className="text-sm font-medium text-slate-700">Sentiment Indicators</h3>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <h3 className="text-sm font-medium text-slate-700">Disaster Type Indicators</h3>
+              </>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-2 ml-1">
-            {sentiments.map((sentiment) => (
-              <div key={sentiment.name} className="flex items-center space-x-2">
+            {(colorBy === 'sentiment' ? sentiments : disasterTypes).map((item) => (
+              <div key={item.name} className="flex items-center space-x-2">
                 <div 
                   className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: sentiment.color }}
+                  style={{ backgroundColor: item.color }}
                 />
-                <span className="text-sm text-slate-600">{sentiment.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Disaster Type Legend */}
-        <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <h3 className="text-sm font-medium text-slate-700">Disaster Type Indicators</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-2 ml-1">
-            {disasterTypes.map((disasterType) => (
-              <div key={disasterType.name} className="flex items-center space-x-2">
-                <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: disasterType.color }}
-                />
-                <span className="text-sm text-slate-600">{disasterType.name}</span>
+                <span className="text-sm text-slate-600">{item.name}</span>
               </div>
             ))}
           </div>
