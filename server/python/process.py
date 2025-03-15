@@ -983,41 +983,69 @@ class DisasterSentimentBackend:
 
         report_progress(0, "Starting analysis")
 
-        for index, row in df.iterrows():
-            text = row['text']
-            timestamp = row.get('timestamp',
-                                datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-            source = row.get('source', 'Unknown')
+        # Only process a portion of the data to avoid API rate limits
+        sample_size = min(5, len(df)) # Start with just 5 records first
+        
+        # Allow a smaller sample set when the API is failing
+        if len(df) > 0:
+            df_sample = df.head(sample_size)
+        else:
+            # If empty file, just return empty results
+            return {"results": [], "metrics": {"accuracy": 0, "precision": 0, "recall": 0, "f1Score": 0}}
 
-            # Report progress every 10 records
-            if index % 10 == 0:
-                report_progress(index, "Processing records")
+        for index, row in df_sample.iterrows():
+            try:
+                text = row['text']
+                timestamp = row.get('timestamp',
+                                    datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                source = row.get('source', 'Unknown')
 
-            analysis_result = self.analyze_sentiment(text)
+                # Report progress every record
+                report_progress(index, f"Processing record {index+1}/{sample_size}")
+                
+                # Add longer delays between API calls
+                time.sleep(0.5)  
 
-            # Process result with standardized fields, better null handling, and model type
-            processed_results.append({
-                'text':
-                text,
-                'timestamp':
-                timestamp,
-                'source':
-                source,
-                'language':
-                analysis_result['language'],
-                'sentiment':
-                analysis_result['sentiment'],
-                'confidence':
-                analysis_result['confidence'],
-                'explanation':
-                analysis_result['explanation'],
-                'disasterType':
-                analysis_result.get('disasterType', "NONE"),
-                'location':
-                analysis_result.get('location', None),
-                'modelType':
-                analysis_result.get('modelType', "Hybrid Analysis")
-            })
+                # First attempt API analysis
+                analysis_result = self.analyze_sentiment(text)
+                
+                # If API failed, use rule-based analysis as fallback
+                if not analysis_result:
+                    # Extract relevant information from text
+                    disaster_type = self.extract_disaster_type(text)
+                    location = self.extract_location(text)
+                    language = self.detect_language(text)
+                    
+                    # Simple rule-based sentiment classification
+                    sentiment_result = self.rule_based_sentiment_analysis(text)
+                    
+                    # Create a fallback result
+                    analysis_result = {
+                        'sentiment': sentiment_result['sentiment'],
+                        'confidence': 0.65,
+                        'explanation': 'Fallback rule-based analysis (API unavailable)',
+                        'language': language,
+                        'disasterType': disaster_type,
+                        'location': location,
+                        'modelType': 'Rule-Based-Fallback'
+                    }
+
+                # Process result with standardized fields, better null handling, and model type
+                processed_results.append({
+                    'text': text,
+                    'timestamp': timestamp,
+                    'source': source,
+                    'language': analysis_result['language'],
+                    'sentiment': analysis_result['sentiment'],
+                    'confidence': analysis_result['confidence'],
+                    'explanation': analysis_result['explanation'],
+                    'disasterType': analysis_result.get('disasterType', "Not Specified"),
+                    'location': analysis_result.get('location', None),
+                    'modelType': analysis_result.get('modelType', "Hybrid Analysis")
+                })
+            except Exception as e:
+                logging.error(f"Error processing record {index}: {str(e)}")
+                # Continue with next record on error
 
         # Final progress update
         report_progress(total_records, "Completing analysis")

@@ -2,7 +2,17 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { motion } from "framer-motion";
-import { BrainCircuit, BarChart2, Clock, Layers, Database, ChartPie, Activity, HelpCircle, Globe } from "lucide-react";
+import {
+  BrainCircuit,
+  BarChart2,
+  Clock,
+  Layers,
+  Database,
+  ChartPie,
+  Activity,
+  HelpCircle,
+  Globe,
+} from "lucide-react";
 
 export function Header() {
   const [location] = useLocation();
@@ -10,22 +20,54 @@ export function Header() {
 
   const handleLogout = () => {
     logout();
-    window.location.assign('/login');
+    window.location.assign("/login");
   };
 
   const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: <BarChart2 className="w-4 h-4" /> },
-    { path: '/emotion-analysis', label: 'Geographic Analysis', icon: <Globe className="w-4 h-4" /> },
-    { path: '/timeline', label: 'Timeline', icon: <Clock className="w-4 h-4" /> },
-    { path: '/comparison', label: 'Comparison', icon: <Layers className="w-4 h-4" /> },
-    { path: '/raw-data', label: 'Raw Data', icon: <Database className="w-4 h-4" /> },
-    { path: '/evaluation', label: 'Evaluation', icon: <ChartPie className="w-4 h-4" /> },
-    { path: '/real-time', label: 'Real-time', icon: <Activity className="w-4 h-4" /> },
-    { path: '/about', label: 'About', icon: <HelpCircle className="w-4 h-4" /> },
+    {
+      path: "/dashboard",
+      label: "Dashboard",
+      icon: <BarChart2 className="w-4 h-4" />,
+    },
+    {
+      path: "/emotion-analysis",
+      label: "Geographic Analysis",
+      icon: <Globe className="w-4 h-4" />,
+    },
+    {
+      path: "/timeline",
+      label: "Timeline",
+      icon: <Clock className="w-4 h-4" />,
+    },
+    {
+      path: "/comparison",
+      label: "Comparison",
+      icon: <Layers className="w-4 h-4" />,
+    },
+    {
+      path: "/raw-data",
+      label: "Raw Data",
+      icon: <Database className="w-4 h-4" />,
+    },
+    {
+      path: "/evaluation",
+      label: "Evaluation",
+      icon: <ChartPie className="w-4 h-4" />,
+    },
+    {
+      path: "/real-time",
+      label: "Real-time",
+      icon: <Activity className="w-4 h-4" />,
+    },
+    {
+      path: "/about",
+      label: "About",
+      icon: <HelpCircle className="w-4 h-4" />,
+    },
   ];
 
   return (
-    <motion.header 
+    <motion.header
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       className="sticky top-0 bg-blue-50 border-b border-slate-200 py-4 px-6 shadow-md z-50"
@@ -63,9 +105,11 @@ export function Header() {
               {menuItems.map((item) => (
                 <Button
                   key={item.path}
-                  variant={location === item.path ? 'default' : 'ghost'}
+                  variant={location === item.path ? "default" : "ghost"}
                   className="flex items-center space-x-2 whitespace-nowrap"
-                  onClick={() => location !== item.path && window.location.assign(item.path)}
+                  onClick={() =>
+                    location !== item.path && window.location.assign(item.path)
+                  }
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -86,15 +130,13 @@ export function Header() {
               </div>
             ) : (
               <div className="flex space-x-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => window.location.assign('/login')}
+                <Button
+                  variant="outline"
+                  onClick={() => window.location.assign("/login")}
                 >
                   Login
                 </Button>
-                <Button 
-                  onClick={() => window.location.assign('/signup')}
-                >
+                <Button onClick={() => window.location.assign("/signup")}>
                   Sign up
                 </Button>
               </div>
