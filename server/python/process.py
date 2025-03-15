@@ -1724,19 +1724,38 @@ def main():
                                          on_bad_lines='skip')
 
                 # Make sure we have the required columns
-                if 'text' not in df.columns:
-                    # If no text column, check for possible alternatives
-                    possible_text_columns = [
-                        'content', 'message', 'tweet', 'post', 'description'
-                    ]
-                    for col in possible_text_columns:
-                        if col in df.columns:
-                            df['text'] = df[col]
+                logging.info(f"Available CSV columns: {list(df.columns)}")
+                
+                # Check for text column with different possible names (case insensitive)
+                text_column = None
+                possible_text_columns = [
+                    'text', 'content', 'message', 'tweet', 'post', 'Post', 'description', 'message_text'
+                ]
+                lowercase_columns = [col.lower() for col in df.columns]
+                
+                for col_idx, col_lower in enumerate(lowercase_columns):
+                    for pos_col in possible_text_columns:
+                        if pos_col.lower() in col_lower:
+                            text_column = df.columns[col_idx]
+                            logging.info(f"Found text column: {text_column}")
                             break
-
-                    # If still no text column, use the first column
-                    if 'text' not in df.columns and len(df.columns) > 0:
-                        df['text'] = df[df.columns[0]]
+                    if text_column:
+                        break
+                
+                # If we found a text column that's not already called 'text', rename it
+                if text_column and text_column != 'text':
+                    df['text'] = df[text_column]
+                    logging.info(f"Mapped '{text_column}' to 'text' column")
+                
+                # If still no text column, use the first column
+                if 'text' not in df.columns and len(df.columns) > 0:
+                    logging.info(f"No text column found, using first column: {df.columns[0]}")
+                    df['text'] = df[df.columns[0]]
+                
+                # Sample the first few rows to debug
+                if len(df) > 0:
+                    sample_row = df.iloc[0]
+                    logging.info(f"Sample row - Text: {sample_row.get('text', 'MISSING')}, Columns: {sample_row.keys()}")
 
                 # Make sure we have timestamp and source columns
                 if 'timestamp' not in df.columns:
