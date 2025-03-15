@@ -66,18 +66,21 @@ export function DisasterComparison({
       const selectedData = disasters.filter(d => selectedDisasters.includes(d.type));
 
       // Prepare data for chart
-      const datasets = selectedData.map((disaster, index) => {
+      const datasets = selectedData.map((disaster) => {
         // Create an array for each sentiment label
         const data = sentimentLabels.map(label => {
           const sentiment = disaster.sentiments.find(s => s.label === label);
           return sentiment ? sentiment.percentage : 0;
         });
 
+        // Get color based on disaster type
+        const disasterColor = getDisasterTypeColor(disaster.type);
+        
         return {
           label: disaster.type,
           data,
-          backgroundColor: chartColors[index % chartColors.length],
-          borderColor: chartColors[index % chartColors.length],
+          backgroundColor: disasterColor,
+          borderColor: disasterColor,
           borderWidth: 1
         };
       });
@@ -177,6 +180,13 @@ export function DisasterComparison({
                         variant={selectedDisasters.includes(disaster.type) ? "default" : "outline"}
                         className="cursor-pointer"
                         onClick={() => toggleDisaster(disaster.type)}
+                        style={{
+                          backgroundColor: selectedDisasters.includes(disaster.type) 
+                            ? getDisasterTypeColor(disaster.type) 
+                            : 'transparent',
+                          borderColor: getDisasterTypeColor(disaster.type),
+                          color: selectedDisasters.includes(disaster.type) ? 'white' : getDisasterTypeColor(disaster.type)
+                        }}
                       >
                         {disaster.type}
                       </Badge>

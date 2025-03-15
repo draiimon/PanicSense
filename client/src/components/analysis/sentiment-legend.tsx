@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { getSentimentColor, getDisasterTypeColor } from '@/lib/colors';
 
 interface SentimentLegendProps {
   selectedRegion?: {
@@ -14,6 +15,7 @@ interface SentimentLegendProps {
   mostAffectedAreas?: {
     name: string;
     sentiment: string;
+    disasterType?: string | null;
   }[];
 }
 
@@ -25,6 +27,16 @@ export function SentimentLegend({ selectedRegion, mostAffectedAreas = [] }: Sent
     { name: 'Disbelief', color: '#8b5cf6' },
     { name: 'Resilience', color: '#10b981' },
     { name: 'Neutral', color: '#6b7280' }
+  ];
+  
+  // Disaster type colors and labels
+  const disasterTypes = [
+    { name: 'Flood', color: '#3b82f6' },     // Blue
+    { name: 'Typhoon', color: '#6b7280' },   // Gray
+    { name: 'Fire', color: '#f97316' },      // Orange
+    { name: 'Volcano', color: '#ef4444' },   // Red
+    { name: 'Earthquake', color: '#92400e' },// Brown
+    { name: 'Landslide', color: '#78350f' }  // Dark Brown
   ];
 
   // Get variant type for sentiment badge
@@ -50,9 +62,9 @@ export function SentimentLegend({ selectedRegion, mostAffectedAreas = [] }: Sent
         </CardDescription>
       </CardHeader>
       <CardContent className="p-5 space-y-6">
-        {/* Legend */}
+        {/* Sentiment Legend */}
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-slate-700">Legend</h3>
+          <h3 className="text-sm font-medium text-slate-700">Sentiment Colors</h3>
           {sentiments.map((sentiment) => (
             <div key={sentiment.name} className="flex items-center space-x-2">
               <div 
@@ -60,6 +72,20 @@ export function SentimentLegend({ selectedRegion, mostAffectedAreas = [] }: Sent
                 style={{ backgroundColor: sentiment.color }}
               />
               <span className="text-sm text-slate-600">{sentiment.name}</span>
+            </div>
+          ))}
+        </div>
+        
+        {/* Disaster Type Legend */}
+        <div className="space-y-3 pt-4 border-t border-slate-200">
+          <h3 className="text-sm font-medium text-slate-700">Disaster Type Colors</h3>
+          {disasterTypes.map((disasterType) => (
+            <div key={disasterType.name} className="flex items-center space-x-2">
+              <div 
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: disasterType.color }}
+              />
+              <span className="text-sm text-slate-600">{disasterType.name}</span>
             </div>
           ))}
         </div>
@@ -91,13 +117,28 @@ export function SentimentLegend({ selectedRegion, mostAffectedAreas = [] }: Sent
               <p className="text-sm text-slate-500">No data available</p>
             ) : (
               mostAffectedAreas.map((area, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600">{area.name}</span>
-                  <Badge 
-                    variant={getSentimentVariant(area.sentiment) as any}
-                  >
-                    {area.sentiment}
-                  </Badge>
+                <div key={index} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-slate-700">{area.name}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge 
+                      variant={getSentimentVariant(area.sentiment) as any}
+                    >
+                      {area.sentiment}
+                    </Badge>
+                    
+                    {area.disasterType && (
+                      <Badge
+                        style={{
+                          backgroundColor: getDisasterTypeColor(area.disasterType),
+                          color: 'white'
+                        }}
+                      >
+                        {area.disasterType}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               ))
             )}

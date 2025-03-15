@@ -186,6 +186,17 @@ export default function EmotionAnalysis() {
           dominantSentiment = sentiment;
         }
       });
+      
+      // Find dominant disaster type
+      let maxDisasterCount = 0;
+      let dominantDisasterType = null;
+      
+      data.disasterTypes.forEach((count, disasterType) => {
+        if (count > maxDisasterCount) {
+          maxDisasterCount = count;
+          dominantDisasterType = disasterType;
+        }
+      });
 
       // Calculate intensity based on post count relative to maximum
       const maxPosts = Math.max(...Array.from(locationData.values()).map(d => d.count), 1);
@@ -195,6 +206,7 @@ export default function EmotionAnalysis() {
         name,
         coordinates: data.coordinates,
         sentiment: dominantSentiment,
+        disasterType: dominantDisasterType,
         intensity
       };
     });
@@ -207,7 +219,8 @@ export default function EmotionAnalysis() {
       .slice(0, 3)
       .map(region => ({
         name: region.name,
-        sentiment: region.sentiment
+        sentiment: region.sentiment,
+        disasterType: region.disasterType
       }));
   }, [regions]);
 
