@@ -145,7 +145,23 @@ export function SentimentMap({
     import('leaflet').then((L) => updateTileLayer(L, view));
   }, [view]);
 
-  // Update markers when regions change or visibility changes
+  // Add separate effect for marker visibility
+  useEffect(() => {
+    if (!mapInstanceRef.current || typeof window === 'undefined' || !markersRef.current.length) return;
+    
+    // Simply hide/show existing markers without recreating them
+    markersRef.current.forEach(marker => {
+      if (marker.getPopup) { // It's a circle marker
+        if (showMarkers) {
+          marker.setStyle({ opacity: 1, fillOpacity: 0.7 });
+        } else {
+          marker.setStyle({ opacity: 0, fillOpacity: 0 });
+        }
+      }
+    });
+  }, [showMarkers]);
+
+  // Update markers when regions change
   useEffect(() => {
     if (!mapInstanceRef.current || typeof window === 'undefined') return;
 
@@ -153,9 +169,6 @@ export function SentimentMap({
       // Clear previous markers
       markersRef.current.forEach(marker => marker.remove());
       markersRef.current = [];
-
-      // If markers are hidden, don't add any new ones
-      if (!showMarkers) return;
       
       // Add new markers
       regions.forEach(region => {
