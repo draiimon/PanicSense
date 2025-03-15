@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { getSentimentColor, getDisasterTypeColor } from '@/lib/colors';
-import { Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Globe, Map, Layers } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import 'leaflet/dist/leaflet.css';
 
 // Philippine map bounds
 const PH_BOUNDS = {
-  northEast: { lat: 21.120611, lng: 126.604393 }, // Northern most point of Batanes to Eastern most point
-  southWest: { lat: 4.566667, lng: 116.928406 }   // Southern tip of Tawi-Tawi to Western most point
+  northEast: [21.120611, 126.604393], // Northern most point of Batanes to Eastern most point
+  southWest: [4.566667, 116.928406]   // Southern tip of Tawi-Tawi to Western most point
 };
 
 // Center of Philippines
-const PH_CENTER: [number, number] = [12.8797, 121.7740];
+const PH_CENTER = [12.8797, 121.7740];
 
 interface Region {
   name: string;
@@ -31,14 +33,14 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard');
+  const [mapZoom, setMapZoom] = useState(6);
   const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !mapRef.current || mapInstanceRef.current) return;
 
-    const initMap = async () => {
-      const L = await import('leaflet');
-
+    import('leaflet').then((L) => {
       if (!mapRef.current) return;
 
       // Initialize map with Philippines bounds
@@ -46,32 +48,35 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
         zoomControl: false,
         attributionControl: false,
         maxBounds: [
-          [PH_BOUNDS.southWest.lat - 1, PH_BOUNDS.southWest.lng - 1],
-          [PH_BOUNDS.northEast.lat + 1, PH_BOUNDS.northEast.lng + 1]
+          [PH_BOUNDS.southWest[0] - 1, PH_BOUNDS.southWest[1] - 1], // Add padding
+          [PH_BOUNDS.northEast[0] + 1, PH_BOUNDS.northEast[1] + 1]
         ],
         minZoom: 5,
         maxZoom: 12
-      }).setView(PH_CENTER, 6);
+      }).setView(PH_CENTER, mapZoom);
 
       // Add base tile layer
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
+      const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         bounds: [
-          [PH_BOUNDS.southWest.lat, PH_BOUNDS.southWest.lng],
-          [PH_BOUNDS.northEast.lat, PH_BOUNDS.northEast.lng]
+          [PH_BOUNDS.southWest[0], PH_BOUNDS.southWest[1]],
+          [PH_BOUNDS.northEast[0], PH_BOUNDS.northEast[1]]
         ]
       }).addTo(mapInstanceRef.current);
+
+      // Add zoom change handler
+      mapInstanceRef.current.on('zoomend', () => {
+        setMapZoom(mapInstanceRef.current.getZoom());
+      });
 
       // Keep map within bounds
       mapInstanceRef.current.on('drag', () => {
         mapInstanceRef.current.panInsideBounds([
-          [PH_BOUNDS.southWest.lat, PH_BOUNDS.southWest.lng],
-          [PH_BOUNDS.northEast.lat, PH_BOUNDS.northEast.lng]
+          [PH_BOUNDS.southWest[0], PH_BOUNDS.southWest[1]],
+          [PH_BOUNDS.northEast[0], PH_BOUNDS.northEast[1]]
         ], { animate: false });
       });
-    };
-
-    initMap();
+    });
 
     return () => {
       if (mapInstanceRef.current) {
@@ -81,13 +86,36 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
     };
   }, []);
 
+  // Update map tiles when view changes
+  useEffect(() => {
+    if (!mapInstanceRef.current || typeof window === 'undefined') return;
+
+    import('leaflet').then((L) => {
+      // Remove existing tile layers
+      mapInstanceRef.current.eachLayer((layer: any) => {
+        if (layer instanceof L.TileLayer) {
+          mapInstanceRef.current.removeLayer(layer);
+        }
+      });
+
+      // Add new tile layer based on selected view
+      if (mapView === 'standard') {
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(mapInstanceRef.current);
+      } else {
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        }).addTo(mapInstanceRef.current);
+      }
+    });
+  }, [mapView]);
+
   // Update markers when regions change
   useEffect(() => {
     if (!mapInstanceRef.current || typeof window === 'undefined') return;
 
-    const updateMarkers = async () => {
-      const L = await import('leaflet');
-
+    import('leaflet').then((L) => {
       // Clear previous markers
       markersRef.current.forEach(marker => marker.remove());
       markersRef.current = [];
@@ -98,38 +126,42 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
           ? getDisasterTypeColor(region.disasterType)
           : getSentimentColor(region.sentiment);
 
-        // Scale radius based on intensity
-        const baseRadius = 15000; // Base radius in meters
-        const radius = baseRadius + (region.intensity / 100) * 30000;
+        const radius = 10 + (region.intensity / 100) * 40;
 
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
-          fillOpacity: 0.6,
-          radius,
+          fillOpacity: 0.7,
+          radius: radius * 1000, // Convert to meters
           weight: 2,
         }).addTo(mapInstanceRef.current);
 
         // Create custom popup
-        const popupContent = `
-          <div class="p-3 font-sans">
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-sm font-semibold text-slate-800">${region.name}</h3>
-              <span class="text-xs px-2 py-1 bg-slate-100 rounded-full text-slate-600">
-                ${Math.round(region.intensity)}% Impact
-              </span>
-            </div>
-            <div class="space-y-1.5">
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full" style="background-color: ${getSentimentColor(region.sentiment)}"></span>
-                <span class="text-xs text-slate-600">${region.sentiment}</span>
+        let popupContent = `
+          <div style="font-family: system-ui, sans-serif; padding: 8px;">
+            <h3 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 600;">${region.name}</h3>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${getSentimentColor(region.sentiment)}"></span>
+                <span style="font-size: 14px; color: #4b5563;">Dominant Sentiment: ${region.sentiment}</span>
               </div>
-              ${region.disasterType ? `
-                <div class="flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full" style="background-color: ${getDisasterTypeColor(region.disasterType)}"></span>
-                  <span class="text-xs text-slate-600">${region.disasterType}</span>
-                </div>
-              ` : ''}
+        `;
+
+        if (region.disasterType) {
+          popupContent += `
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${getDisasterTypeColor(region.disasterType)}"></span>
+                <span style="font-size: 14px; color: #4b5563;">Disaster Type: ${region.disasterType}</span>
+              </div>
+          `;
+        }
+
+        popupContent += `
+              <div style="margin-top: 4px;">
+                <span style="font-size: 14px; color: #4b5563;">Impact Intensity: 
+                  <span style="font-weight: 600;">${region.intensity.toFixed(1)}%</span>
+                </span>
+              </div>
             </div>
           </div>
         `;
@@ -141,18 +173,12 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
 
         // Enhanced interaction
         circle.on('mouseover', () => {
-          circle.setStyle({ 
-            weight: 3,
-            fillOpacity: 0.8 
-          });
+          circle.setStyle({ weight: 3, fillOpacity: 0.85 });
           setHoveredRegion(region);
         });
 
         circle.on('mouseout', () => {
-          circle.setStyle({ 
-            weight: 2,
-            fillOpacity: 0.6 
-          });
+          circle.setStyle({ weight: 2, fillOpacity: 0.7 });
           setHoveredRegion(null);
         });
 
@@ -169,28 +195,70 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
       // If no regions, show a message
       if (regions.length === 0) {
         const message = L.popup()
-          .setLatLng(PH_CENTER)
+          .setLatLng([12.8797, 121.7740])
           .setContent(`
-            <div class="p-4 text-center">
-              <span class="text-sm text-slate-600">No geographic data available</span>
+            <div style="font-family: system-ui, sans-serif; padding: 8px; text-align: center;">
+              <span style="font-size: 14px; color: #4b5563;">No geographic data available for this region</span>
             </div>
           `)
           .openOn(mapInstanceRef.current);
 
         markersRef.current.push(message);
       }
-    };
-
-    updateMarkers();
+    });
   }, [regions, onRegionSelect, colorBy]);
 
   return (
     <Card className="bg-white rounded-lg shadow-md border border-slate-200">
       <CardContent className="p-0 overflow-hidden relative">
+        {/* Control buttons container with higher z-index */}
+        <div className="absolute top-4 right-4 z-[1000] flex items-start gap-4">
+          {/* Zoom controls */}
+          <div className="flex flex-col gap-2">
+            <Button 
+              size="icon" 
+              variant="secondary"
+              className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
+              onClick={() => mapInstanceRef.current?.zoomIn()}
+            >
+              <span className="text-lg font-medium">+</span>
+            </Button>
+            <Button 
+              size="icon" 
+              variant="secondary"
+              className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
+              onClick={() => mapInstanceRef.current?.zoomOut()}
+            >
+              <span className="text-lg font-medium">−</span>
+            </Button>
+          </div>
+          {/* Map Type Toggle */}
+          <div className="bg-white rounded-lg shadow-lg p-1 flex">
+            <Button
+              size="sm"
+              variant={mapView === 'standard' ? 'default' : 'outline'}
+              className="rounded-r-none px-3 h-8"
+              onClick={() => setMapView('standard')}
+            >
+              <Map className="h-4 w-4 mr-1" />
+              <span className="text-xs">Standard</span>
+            </Button>
+            <Button
+              size="sm"
+              variant={mapView === 'satellite' ? 'default' : 'outline'}
+              className="rounded-l-none px-3 h-8"
+              onClick={() => setMapView('satellite')}
+            >
+              <Layers className="h-4 w-4 mr-1" />
+              <span className="text-xs">Satellite</span>
+            </Button>
+          </div>
+        </div>
+
         {/* Map Container */}
         <div 
           ref={mapRef} 
-          className="h-[600px] w-full bg-slate-50"
+          className="h-[500px] w-full bg-slate-50"
         />
 
         {/* Footer Stats */}

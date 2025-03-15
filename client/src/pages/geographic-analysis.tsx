@@ -3,7 +3,7 @@ import { useDisasterContext } from "@/context/disaster-context";
 import { SentimentMap } from "@/components/analysis/sentiment-map";
 import { SentimentLegend } from "@/components/analysis/sentiment-legend";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, MapPin, Map, AlertTriangle, RefreshCw, Layers } from "lucide-react";
+import { Globe, MapPin, Map, AlertTriangle, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -16,137 +16,13 @@ interface Region {
   intensity: number;
 }
 
+// Type for region coordinates  
+type RegionCoordinates = Record<string, [number, number]>;
+
 export default function GeographicAnalysis() {
   const [activeMapType, setActiveMapType] = useState<'disaster' | 'emotion'>('disaster');
   const { sentimentPosts, refreshData } = useDisasterContext();
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Process data for regions and map location mentions
-  const locationData = useMemo(() => {
-    const data: Record<string, {
-      count: number;
-      sentiments: Record<string, number>;
-      disasterTypes: Record<string, number>;
-      coordinates: [number, number];
-    }> = {};
-
-    // Process posts to populate the map
-    sentimentPosts.forEach(post => {
-      if (!post.location) return;
-
-      // Convert possible raw location mentions to standardized regions
-      let location = post.location;
-      const lowerLocation = location.toLowerCase().trim();
-
-      // Skip "not specified" and generic Philippines mentions
-      if (
-        lowerLocation === 'not specified' ||
-        lowerLocation === 'philippines' ||
-        lowerLocation === 'pilipinas' ||
-        lowerLocation === 'pinas'
-      ) {
-        return;
-      }
-
-      // Handle Manila specifically
-      if (lowerLocation.includes('manila') && !lowerLocation.includes('metro')) {
-        location = 'Manila';
-      }
-
-      // Handle main island groups if mentioned
-      if (lowerLocation.includes('luzon')) location = 'Luzon';
-      if (lowerLocation.includes('visayas')) location = 'Visayas';
-      if (lowerLocation.includes('mindanao')) location = 'Mindanao';
-
-      // If coordinates not found, skip this location
-      const coordinates = regionCoordinates[location as keyof typeof regionCoordinates];
-      if (!coordinates) return;
-
-      // Create location data if it doesn't exist yet
-      if (!data[location]) {
-        data[location] = {
-          count: 0,
-          sentiments: {},
-          disasterTypes: {},
-          coordinates
-        };
-      }
-
-      // Update counts
-      data[location].count++;
-
-      // Track sentiments
-      const currentSentimentCount = data[location].sentiments[post.sentiment] || 0;
-      data[location].sentiments[post.sentiment] = currentSentimentCount + 1;
-
-      // Track disaster types
-      if (post.disasterType) {
-        const currentDisasterTypeCount = data[location].disasterTypes[post.disasterType] || 0;
-        data[location].disasterTypes[post.disasterType] = currentDisasterTypeCount + 1;
-      }
-    });
-
-    return data;
-  }, [sentimentPosts]);
-
-  // Convert location data to regions for map
-  const regions = useMemo((): Region[] => {
-    return Object.entries(locationData).map(([name, data]) => {
-      // Find dominant sentiment
-      let maxCount = 0;
-      let dominantSentiment = "Neutral";
-
-      Object.entries(data.sentiments).forEach(([sentiment, count]) => {
-        if (count > maxCount) {
-          maxCount = count;
-          dominantSentiment = sentiment;
-        }
-      });
-
-      // Find dominant disaster type
-      let maxDisasterCount = 0;
-      let dominantDisasterType = "";
-
-      Object.entries(data.disasterTypes).forEach(([disasterType, count]) => {
-        if (count > maxDisasterCount) {
-          maxDisasterCount = count;
-          dominantDisasterType = disasterType;
-        }
-      });
-
-      // Calculate intensity based on post count relative to maximum
-      const allCounts = Object.values(locationData).map(d => d.count);
-      const maxPosts = allCounts.length > 0 ? Math.max(...allCounts) : 1;
-      const intensity = (data.count / maxPosts) * 100;
-
-      return {
-        name,
-        coordinates: data.coordinates,
-        sentiment: dominantSentiment,
-        disasterType: dominantDisasterType || undefined,
-        intensity
-      };
-    });
-  }, [locationData]);
-
-  // Calculate most affected areas
-  const mostAffectedAreas = useMemo(() => {
-    return regions
-      .sort((a, b) => b.intensity - a.intensity)
-      .slice(0, 5)
-      .map(region => ({
-        name: region.name,
-        sentiment: region.sentiment,
-        disasterType: region.disasterType
-      }));
-  }, [regions]);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refreshData();
-    setIsRefreshing(false);
-  };
-
   const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard'); // Added map view state
 
   // Complete Philippine region coordinates
@@ -260,16 +136,183 @@ export default function GeographicAnalysis() {
     };
   }, []);
 
+  // Process data for regions and map location mentions
+  const locationData = useMemo(() => {
+    const data: Record<string, {
+      count: number;
+      sentiments: Record<string, number>;
+      disasterTypes: Record<string, number>;
+      coordinates: [number, number];
+    }> = {};
+
+    // Process posts to populate the map
+    sentimentPosts.forEach(post => {
+      if (!post.location) return;
+
+      // Convert possible raw location mentions to standardized regions
+      let location = post.location;
+      const lowerLocation = location.toLowerCase().trim();
+
+      // Skip "not specified" and generic Philippines mentions
+      if (
+        lowerLocation === 'not specified' ||
+        lowerLocation === 'philippines' ||
+        lowerLocation === 'pilipinas' ||
+        lowerLocation === 'pinas'
+      ) {
+        return;
+      }
+
+      // Handle Manila specifically
+      if (lowerLocation.includes('manila') && !lowerLocation.includes('metro')) {
+        location = 'Manila';
+      }
+
+      // Handle main island groups if mentioned
+      if (lowerLocation.includes('luzon')) location = 'Luzon';
+      if (lowerLocation.includes('visayas')) location = 'Visayas';
+      if (lowerLocation.includes('mindanao')) location = 'Mindanao';
+
+      // If coordinates not found, skip this location
+      const rawCoordinates = regionCoordinates[location as keyof typeof regionCoordinates];
+      if (!rawCoordinates) return;
+
+      // Ensure it's a tuple of exactly 2 numbers
+      const coordinates: [number, number] = [rawCoordinates[0], rawCoordinates[1]];
+
+      // Create location data if it doesn't exist yet
+      if (!data[location]) {
+        data[location] = {
+          count: 0,
+          sentiments: {},
+          disasterTypes: {},
+          coordinates
+        };
+      }
+
+      // Update counts
+      data[location].count++;
+
+      // Track sentiments
+      const currentSentimentCount = data[location].sentiments[post.sentiment] || 0;
+      data[location].sentiments[post.sentiment] = currentSentimentCount + 1;
+
+      // Track disaster types
+      if (post.disasterType) {
+        const currentDisasterTypeCount = data[location].disasterTypes[post.disasterType] || 0;
+        data[location].disasterTypes[post.disasterType] = currentDisasterTypeCount + 1;
+      }
+    });
+
+    return data;
+  }, [sentimentPosts, regionCoordinates]);
+
+  // Convert location data to regions for map
+  const regions = useMemo((): Region[] => {
+    return Object.entries(locationData).map(([name, data]) => {
+      // Find dominant sentiment
+      let maxCount = 0;
+      let dominantSentiment = "Neutral";
+
+      // Process sentiments
+      Object.entries(data.sentiments).forEach(([sentiment, count]) => {
+        if (count > maxCount) {
+          maxCount = count;
+          dominantSentiment = sentiment;
+        }
+      });
+
+      // Find dominant disaster type
+      let maxDisasterCount = 0;
+      let dominantDisasterType = "";
+
+      // Process disaster types
+      Object.entries(data.disasterTypes).forEach(([disasterType, count]) => {
+        if (count > maxDisasterCount) {
+          maxDisasterCount = count;
+          dominantDisasterType = disasterType;
+        }
+      });
+
+      // Calculate intensity based on post count relative to maximum
+      const allCounts = Object.values(locationData).map(d => d.count);
+      const maxPosts = allCounts.length > 0 ? Math.max(...allCounts) : 1;
+      const intensity = (data.count / maxPosts) * 100;
+
+      return {
+        name,
+        coordinates: data.coordinates,
+        sentiment: dominantSentiment,
+        disasterType: dominantDisasterType || undefined,
+        intensity
+      };
+    });
+  }, [locationData]);
+
+  // Calculate most affected areas
+  const mostAffectedAreas = useMemo(() => {
+    return regions
+      .sort((a, b) => b.intensity - a.intensity)
+      .slice(0, 5)
+      .map(region => ({
+        name: region.name,
+        sentiment: region.sentiment,
+        disasterType: region.disasterType
+      }));
+  }, [regions]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshData();
+    setIsRefreshing(false);
+  };
+
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <Card className="bg-white shadow-md border-none">
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Globe className="h-6 w-6 text-blue-600" />
-              <CardTitle className="text-2xl font-bold">Geographic Analysis</CardTitle>
-            </div>
+          <CardTitle className="text-2xl font-bold flex items-center gap-2">
+            <Globe className="h-6 w-6 text-blue-600" />
+            Geographic Analysis
+          </CardTitle>
+          <p className="text-sm text-slate-500">
+            Visualizing disaster impact and emotional response distribution across Philippine regions
+          </p>
+        </CardHeader>
+      </Card>
+
+      <div className="bg-white rounded-lg shadow-md">
+        {/* Controls Header */}
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          {/* Map Type Tabs */}
+          <div className="flex space-x-2">
+            <button
+              className={`px-6 py-2 font-medium text-sm rounded-lg transition-all flex items-center gap-2 ${
+                activeMapType === 'disaster'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+              onClick={() => setActiveMapType('disaster')}
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Disaster Impact
+            </button>
+            <button
+              className={`px-6 py-2 font-medium text-sm rounded-lg transition-all flex items-center gap-2 ${
+                activeMapType === 'emotion'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+              onClick={() => setActiveMapType('emotion')}
+            >
+              <MapPin className="h-4 w-4" />
+              Sentiment Distribution
+            </button>
+          </div>
+
+          {/* Map Controls */}
+          <div className="flex items-center gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -280,64 +323,25 @@ export default function GeographicAnalysis() {
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh Data
             </Button>
-          </div>
-          <p className="text-sm text-slate-500 mt-2">
-            Visualizing disaster impact and emotional response distribution across Philippine regions
-          </p>
-        </CardHeader>
-      </Card>
-
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {/* Controls Header */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            {/* Map Type Tabs */}
-            <div className="flex space-x-2">
-              <button
-                className={`px-6 py-2 font-medium text-sm rounded-lg transition-all flex items-center gap-2 ${
-                  activeMapType === 'disaster'
-                    ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
-                onClick={() => setActiveMapType('disaster')}
+            <div className="bg-slate-100 rounded-lg p-1 flex">
+              <Button
+                size="sm"
+                variant={mapView === 'standard' ? 'default' : 'outline'}
+                className="rounded-r-none px-3 h-8"
+                onClick={() => setMapView('standard')}
               >
-                <AlertTriangle className="h-4 w-4" />
-                Disaster Impact
-              </button>
-              <button
-                className={`px-6 py-2 font-medium text-sm rounded-lg transition-all flex items-center gap-2 ${
-                  activeMapType === 'emotion'
-                    ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
-                onClick={() => setActiveMapType('emotion')}
+                <Map className="h-4 w-4 mr-1" />
+                <span className="text-xs">Standard</span>
+              </Button>
+              <Button
+                size="sm"
+                variant={mapView === 'satellite' ? 'default' : 'outline'}
+                className="rounded-l-none px-3 h-8"
+                onClick={() => setMapView('satellite')}
               >
-                <MapPin className="h-4 w-4" />
-                Sentiment Distribution
-              </button>
-            </div>
-            {/* Map Controls */}
-            <div className="flex items-center gap-2">
-              <div className="bg-slate-100 rounded-lg p-1 flex">
-                <Button
-                  size="sm"
-                  variant={mapView === 'standard' ? 'default' : 'outline'}
-                  className="rounded-r-none px-3 h-8"
-                  onClick={() => setMapView('standard')}
-                >
-                  <Map className="h-4 w-4 mr-1" />
-                  <span className="text-xs">Standard</span>
-                </Button>
-                <Button
-                  size="sm"
-                  variant={mapView === 'satellite' ? 'default' : 'outline'}
-                  className="rounded-l-none px-3 h-8"
-                  onClick={() => setMapView('satellite')}
-                >
-                  <Layers className="h-4 w-4 mr-1" />
-                  <span className="text-xs">Satellite</span>
-                </Button>
-              </div>
+                <Layers className="h-4 w-4 mr-1" />
+                <span className="text-xs">Satellite</span>
+              </Button>
             </div>
           </div>
         </div>
@@ -346,28 +350,32 @@ export default function GeographicAnalysis() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
           {/* Map Container */}
           <div className="lg:col-span-2">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeMapType}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <SentimentMap
-                  regions={regions}
-                  colorBy={activeMapType === 'disaster' ? 'disasterType' : 'sentiment'}
-                  mapView={mapView}
-                />
-              </motion.div>
-            </AnimatePresence>
+            <Card className="border-none shadow-sm">
+              <CardContent className="p-4">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeMapType}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <SentimentMap
+                      regions={regions}
+                      colorBy={activeMapType === 'disaster' ? 'disasterType' : 'sentiment'}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Legend Container */}
-          <div className="lg:col-span-1">
+          <div>
             <SentimentLegend
               mostAffectedAreas={mostAffectedAreas}
               showRegionSelection={false}
+              colorBy={activeMapType === 'disaster' ? 'disasterType' : 'sentiment'}
             />
           </div>
         </div>
