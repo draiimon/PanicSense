@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { getSentimentColor } from '@/lib/colors';
+import { getSentimentColor, getDisasterTypeColor } from '@/lib/colors';
 
 interface TimelineEvent {
   id: number;
@@ -68,12 +68,16 @@ export function KeyEvents({
             events.map((event) => {
               const color = getSentimentColor(event.sentimentImpact);
               
+              // Set background color based on disaster type instead of sentiment
+              const disasterColor = getDisasterTypeColor(event.type);
+              
               return (
                 <div key={event.id} className="relative pl-8">
                   <div 
                     className="absolute -left-14 mt-1.5 w-7 h-7 rounded-full border-4 border-white flex items-center justify-center"
-                    style={{ backgroundColor: color }}
+                    style={{ backgroundColor: disasterColor }}
                   >
+                    {/* Icon based on disaster type */}
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
@@ -83,11 +87,21 @@ export function KeyEvents({
                     {format(new Date(event.timestamp), 'MMM d, yyyy - h:mm a')}
                   </p>
                   <p className="text-sm text-slate-600 mt-2">{event.description}</p>
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <Badge 
                       variant={getSentimentVariant(event.sentimentImpact)}
                     >
                       {getSentimentBadgeText(event.sentimentImpact)}
+                    </Badge>
+                    
+                    {/* Disaster Type Badge */}
+                    <Badge
+                      style={{
+                        backgroundColor: getDisasterTypeColor(event.type),
+                        color: 'white'
+                      }}
+                    >
+                      {event.type}
                     </Badge>
                   </div>
                 </div>
