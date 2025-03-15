@@ -28,8 +28,13 @@ export function OptimizedSentimentChart({
     return data.labels.map(label => {
       const sanitizedKey = label.toLowerCase().replace(/\//g, '_');
       const colorKey = sanitizedKey as keyof typeof sentimentColors;
-      const color = sentimentColors[colorKey] || '#6b7280';
-      return color;
+      
+      if (sentimentColors[colorKey]) {
+        // Extract the background color from the sentiment color object
+        return sentimentColors[colorKey].background;
+      } else {
+        return '#6b7280'; // Default gray for unknown sentiments
+      }
     });
   }, [data.labels]);
 

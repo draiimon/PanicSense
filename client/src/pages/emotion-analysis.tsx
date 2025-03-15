@@ -2,8 +2,10 @@ import { useState, useMemo } from "react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { SentimentMap } from "@/components/analysis/sentiment-map";
 import { SentimentLegend } from "@/components/analysis/sentiment-legend";
+import { motion, AnimatePresence } from "framer-motion";
 
-export default function EmotionAnalysis() {
+export default function GeographicImpactAnalysis() {
+  const [activeMapType, setActiveMapType] = useState<'disaster' | 'emotion'>('disaster');
   const { sentimentPosts } = useDisasterContext();
   const [selectedRegion, setSelectedRegion] = useState<{
     name: string;
@@ -260,16 +262,16 @@ export default function EmotionAnalysis() {
       </div>
 
       {/* Tabs for Different Maps */}
-      <div className="flex space-x-2 border-b border-gray-200">
+      <div className="flex space-x-2 border-b border-gray-200 mb-4">
         <button 
-          className={`px-4 py-2 font-medium text-sm rounded-t-lg ${regions.length > 0 ? 'bg-white text-blue-600 border border-gray-200 border-b-white' : 'text-gray-500 hover:text-gray-700'}`}
-          onClick={() => {}}
+          className={`px-6 py-2 font-medium text-sm rounded-t-lg transition-all ${activeMapType === 'disaster' ? 'bg-white text-blue-600 border border-gray-200 border-b-white' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => setActiveMapType('disaster')}
         >
           Disaster Impact Map
         </button>
         <button 
-          className="px-4 py-2 font-medium text-sm text-gray-500 hover:text-gray-700 rounded-t-lg"
-          onClick={() => {}}
+          className={`px-6 py-2 font-medium text-sm rounded-t-lg transition-all ${activeMapType === 'emotion' ? 'bg-white text-blue-600 border border-gray-200 border-b-white' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => setActiveMapType('emotion')}
         >
           Emotion Impact Map
         </button>
@@ -277,20 +279,45 @@ export default function EmotionAnalysis() {
 
       {/* Map and Legend */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Impact Map - showing disaster impact by default */}
+        {/* Impact Map - switching between disaster and emotion */}
         <div className="lg:col-span-2">
-          <SentimentMap 
-            regions={regions}
-            onRegionSelect={handleRegionSelect}
-            colorBy="disasterType"
-          />
+          <div className="bg-white shadow-sm rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-2">
+              {activeMapType === 'disaster' ? 'Disaster Impact Map' : 'Sentiment Map'}
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {activeMapType === 'disaster' 
+                ? 'Regions colored by disaster type' 
+                : 'Regions colored by dominant emotion'}
+            </p>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeMapType}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <SentimentMap 
+                  regions={regions}
+                  onRegionSelect={handleRegionSelect}
+                  colorBy={activeMapType === 'disaster' ? 'disasterType' : 'sentiment'}
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Legend and Stats */}
-        <SentimentLegend 
-          selectedRegion={selectedRegion}
-          mostAffectedAreas={mostAffectedAreas}
-        />
+        <div className="bg-white shadow-sm rounded-lg p-4">
+          <h3 className="text-lg font-semibold mb-4">
+            {activeMapType === 'disaster' ? 'Disaster Impact Analysis' : 'Emotional Response Analysis'}
+          </h3>
+          <SentimentLegend 
+            selectedRegion={selectedRegion}
+            mostAffectedAreas={mostAffectedAreas}
+          />
+        </div>
       </div>
     </div>
   );
