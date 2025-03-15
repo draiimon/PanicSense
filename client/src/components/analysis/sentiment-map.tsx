@@ -247,35 +247,22 @@ export function SentimentMap({
         markersRef.current.push(circle);
       });
 
-      // Clear existing markers
+      // Update marker visibility
       markersRef.current.forEach(marker => {
-        if (marker) marker.remove();
+        if (marker instanceof L.Circle) {
+          if (showMarkers) {
+            marker.setStyle({ opacity: 1, fillOpacity: 0.7 });
+          } else {
+            marker.setStyle({ opacity: 0, fillOpacity: 0 });
+          }
+        }
       });
-      markersRef.current = [];
 
-      // Add markers if they should be shown
-      if (showMarkers) {
-        regions.forEach(region => {
-          const circle = L.circle(region.coordinates, {
-            color: getSentimentColor(region.sentiment),
-            fillColor: getSentimentColor(region.sentiment),
-            fillOpacity: 0.7,
-            weight: 1,
-            radius: 20000 * (region.intensity || 1)
-          })
-            .bindPopup(`
-              <div class="p-2">
-                <div class="font-medium">${region.name}</div>
-                <div class="text-sm text-slate-600">${region.sentiment}</div>
-                ${region.disasterType ? `<div class="text-sm text-slate-600">${region.disasterType}</div>` : ''}
-              </div>
-            `)
-            .addTo(mapInstanceRef.current);
+      // Show message when markers are hidden
+      const existingMessage = markersRef.current.find(m => m instanceof L.Popup);
+      if (existingMessage) existingMessage.remove();
 
-          markersRef.current.push(circle);
-        });
-      } else {
-        // Show message when markers are hidden
+      if (!showMarkers) {
         const message = L.popup()
           .setLatLng(PH_CENTER)
           .setContent(`
