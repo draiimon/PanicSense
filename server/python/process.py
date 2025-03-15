@@ -510,12 +510,13 @@ class DisasterSentimentBackend:
         except:
             return 'en'  # Fallback to English on detection failure
 
-    def analyze_sentiment(self, text):
+    def analyze_sentiment(self, text, csv_location=None, csv_emotion=None, csv_disaster_type=None):
         """
         Enhanced sentiment analysis using Groq API only:
         1. Detect language first for better prompting
         2. Send to Groq API for full analysis
         3. Process the response to extract sentiment, location, and disaster type
+        4. Override with CSV data if available
         """
         # Detect language first for better prompting
         language = self.detect_language(text)
@@ -529,17 +530,73 @@ class DisasterSentimentBackend:
 
         if not api_result:
             # In case of API failure, use simple disaster type and location extraction as fallback
+            disaster_type = csv_disaster_type or self.extract_disaster_type(text) or "Not Specified"
+            location = csv_location or self.extract_location(text)
+            
+            # Use CSV emotion if available, otherwise use rule-based analysis
+            if csv_emotion:
+                # Map CSV emotion to our sentiment categories
+                sentiment_map = {
+                    'fear': 'Fear/Anxiety',
+                    'anxiety': 'Fear/Anxiety',
+                    'fear/anxiety': 'Fear/Anxiety',
+                    'panic': 'Panic',
+                    'scared': 'Fear/Anxiety',
+                    'disbelief': 'Disbelief',
+                    'doubt': 'Disbelief',
+                    'skepticism': 'Disbelief',
+                    'resilience': 'Resilience',
+                    'hope': 'Resilience',
+                    'strength': 'Resilience',
+                    'neutral': 'Neutral'
+                }
+                sentiment = sentiment_map.get(csv_emotion.lower(), csv_emotion)
+                explanation = f'Using emotion from CSV: {csv_emotion}'
+                confidence = 0.9  # Higher confidence for direct CSV data
+            else:
+                # Use rule-based sentiment analysis
+                sentiment_result = self.rule_based_sentiment_analysis(text)
+                sentiment = sentiment_result.get('sentiment', 'Neutral')
+                explanation = sentiment_result.get('explanation', 'Rule-based fallback analysis.')
+                confidence = 0.7
+                
             fallback_result = {
-                'sentiment': 'Neutral',
-                'confidence': 0.7,
-                'explanation': 'Fallback analysis due to API unavailability.',
-                'disasterType': self.extract_disaster_type(text)
-                or "Not Specified",
-                'location': self.extract_location(text),
+                'sentiment': sentiment,
+                'confidence': confidence,
+                'explanation': explanation,
+                'disasterType': disaster_type,
+                'location': location,
                 'language': language,
                 'modelType': 'API-Fallback'
             }
             return fallback_result
+
+        # Override with CSV data if available
+        if csv_location:
+            api_result['location'] = csv_location
+        
+        if csv_emotion:
+            # Map CSV emotion to our sentiment categories
+            sentiment_map = {
+                'fear': 'Fear/Anxiety',
+                'anxiety': 'Fear/Anxiety',
+                'fear/anxiety': 'Fear/Anxiety',
+                'panic': 'Panic',
+                'scared': 'Fear/Anxiety',
+                'disbelief': 'Disbelief',
+                'doubt': 'Disbelief',
+                'skepticism': 'Disbelief',
+                'resilience': 'Resilience',
+                'hope': 'Resilience',
+                'strength': 'Resilience',
+                'neutral': 'Neutral'
+            }
+            api_result['sentiment'] = sentiment_map.get(csv_emotion.lower(), csv_emotion)
+            api_result['explanation'] += f' (CSV emotion: {csv_emotion})'
+            api_result['confidence'] = 0.9  # Higher confidence for direct CSV data
+        
+        if csv_disaster_type:
+            api_result['disasterType'] = csv_disaster_type
 
         # Add model type for tracking
         api_result['modelType'] = 'Groq-API'
@@ -1298,10 +1355,34 @@ class DisasterSentimentBackend:
             if 'text' not in df.columns and len(df.columns) > 0:
                 df['text'] = df[df.columns[0]]
 
+        # Check for location column with different possible names
+        location_column = None
+        possible_location_columns = ['location', 'place', 'area', 'region', 'city', 'province']
+        for col in possible_location_columns:
+            if col in df.columns:
+                location_column = col
+                break
+
+        # Check for emotion/sentiment column with different possible names
+        emotion_column = None
+        possible_emotion_columns = ['emotion', 'sentiment', 'feeling', 'mood']
+        for col in possible_emotion_columns:
+            if col in df.columns:
+                emotion_column = col
+                break
+                
+        # Check for disaster type column with different possible names
+        disaster_column = None
+        possible_disaster_columns = ['disaster', 'disaster_type', 'disaster type', 'event_type', 'event type', 'calamity', 'emergency']
+        for col in possible_disaster_columns:
+            if col in df.columns:
+                disaster_column = col
+                break
+
         report_progress(0, "Starting analysis")
 
         # Process more records, but limit to a reasonable number
-        sample_size = min(20, len(df))  # Increase sample size
+        sample_size = min(50, len(df))  # Increase sample size to 50
 
         # Allow a smaller sample set when the API is failing
         if len(df) > 0:
@@ -1331,6 +1412,21 @@ class DisasterSentimentBackend:
                     'timestamp',
                     datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                 source = row.get('source', 'CSV Import')
+                
+                # Get location directly from CSV if available
+                csv_location = None
+                if location_column and not pd.isna(row.get(location_column)):
+                    csv_location = str(row.get(location_column))
+                
+                # Get emotion directly from CSV if available
+                csv_emotion = None
+                if emotion_column and not pd.isna(row.get(emotion_column)):
+                    csv_emotion = str(row.get(emotion_column))
+                
+                # Get disaster type directly from CSV if available
+                csv_disaster_type = None
+                if disaster_column and not pd.isna(row.get(disaster_column)):
+                    csv_disaster_type = str(row.get(disaster_column))
 
                 # Report progress for every record
                 report_progress(index,
@@ -1340,16 +1436,39 @@ class DisasterSentimentBackend:
                 # Only use API for a few records to maintain quality without hitting rate limits
                 if not use_api_for_all and index > 3:
                     # Fast rule-based processing for most records
-                    disaster_type = self.extract_disaster_type(text)
-                    location = self.extract_location(text)
+                    disaster_type = csv_disaster_type or self.extract_disaster_type(text)
+                    location = csv_location or self.extract_location(text)
                     language = self.detect_language(text)
-                    sentiment_result = self.rule_based_sentiment_analysis(text)
+                    
+                    # Use CSV emotion if available, otherwise use rule-based analysis
+                    if csv_emotion:
+                        # Map CSV emotion to our sentiment categories
+                        sentiment_map = {
+                            'fear': 'Fear/Anxiety',
+                            'anxiety': 'Fear/Anxiety',
+                            'fear/anxiety': 'Fear/Anxiety',
+                            'panic': 'Panic',
+                            'scared': 'Fear/Anxiety',
+                            'disbelief': 'Disbelief',
+                            'doubt': 'Disbelief',
+                            'skepticism': 'Disbelief',
+                            'resilience': 'Resilience',
+                            'hope': 'Resilience',
+                            'strength': 'Resilience',
+                            'neutral': 'Neutral'
+                        }
+                        sentiment = sentiment_map.get(csv_emotion.lower(), csv_emotion)
+                        sentiment_result = {
+                            'sentiment': sentiment,
+                            'explanation': f'Using emotion from CSV: {csv_emotion}'
+                        }
+                    else:
+                        sentiment_result = self.rule_based_sentiment_analysis(text)
 
                     analysis_result = {
                         'sentiment': sentiment_result['sentiment'],
-                        'confidence': 0.75,
-                        'explanation':
-                        f'Rule-based analysis: {sentiment_result.get("explanation", "")}',
+                        'confidence': 0.85,  # Higher confidence since we use CSV data
+                        'explanation': f'Rule-based analysis: {sentiment_result.get("explanation", "")}',
                         'language': language,
                         'disasterType': disaster_type,
                         'location': location,
@@ -1364,23 +1483,69 @@ class DisasterSentimentBackend:
                     # First attempt API analysis
                     analysis_result = self.analyze_sentiment(text)
 
+                    # Override with CSV data if available
+                    if csv_location:
+                        analysis_result['location'] = csv_location
+                    
+                    if csv_emotion:
+                        # Map CSV emotion to our sentiment categories
+                        sentiment_map = {
+                            'fear': 'Fear/Anxiety',
+                            'anxiety': 'Fear/Anxiety',
+                            'fear/anxiety': 'Fear/Anxiety',
+                            'panic': 'Panic',
+                            'scared': 'Fear/Anxiety',
+                            'disbelief': 'Disbelief',
+                            'doubt': 'Disbelief',
+                            'skepticism': 'Disbelief',
+                            'resilience': 'Resilience',
+                            'hope': 'Resilience',
+                            'strength': 'Resilience',
+                            'neutral': 'Neutral'
+                        }
+                        analysis_result['sentiment'] = sentiment_map.get(csv_emotion.lower(), csv_emotion)
+                        analysis_result['explanation'] += f' (CSV emotion: {csv_emotion})'
+                    
+                    if csv_disaster_type:
+                        analysis_result['disasterType'] = csv_disaster_type
+
                     # If API failed, use rule-based analysis as fallback
                     if not analysis_result:
                         # Extract relevant information from text
-                        disaster_type = self.extract_disaster_type(text)
-                        location = self.extract_location(text)
+                        disaster_type = csv_disaster_type or self.extract_disaster_type(text)
+                        location = csv_location or self.extract_location(text)
                         language = self.detect_language(text)
 
-                        # Simple rule-based sentiment classification
-                        sentiment_result = self.rule_based_sentiment_analysis(
-                            text)
+                        # Use CSV emotion if available, otherwise use rule-based analysis
+                        if csv_emotion:
+                            # Map CSV emotion to our sentiment categories
+                            sentiment_map = {
+                                'fear': 'Fear/Anxiety',
+                                'anxiety': 'Fear/Anxiety',
+                                'fear/anxiety': 'Fear/Anxiety',
+                                'panic': 'Panic',
+                                'scared': 'Fear/Anxiety',
+                                'disbelief': 'Disbelief',
+                                'doubt': 'Disbelief',
+                                'skepticism': 'Disbelief',
+                                'resilience': 'Resilience',
+                                'hope': 'Resilience',
+                                'strength': 'Resilience',
+                                'neutral': 'Neutral'
+                            }
+                            sentiment = sentiment_map.get(csv_emotion.lower(), csv_emotion)
+                            sentiment_result = {
+                                'sentiment': sentiment,
+                                'explanation': f'Using emotion from CSV: {csv_emotion}'
+                            }
+                        else:
+                            sentiment_result = self.rule_based_sentiment_analysis(text)
 
                         # Create a fallback result
                         analysis_result = {
                             'sentiment': sentiment_result['sentiment'],
-                            'confidence': 0.7,
-                            'explanation':
-                            f'Fallback analysis: {sentiment_result.get("explanation", "")}',
+                            'confidence': 0.8,  # Higher confidence since we use CSV data
+                            'explanation': f'Fallback analysis: {sentiment_result.get("explanation", "")}',
                             'language': language,
                             'disasterType': disaster_type,
                             'location': location,
@@ -1389,26 +1554,16 @@ class DisasterSentimentBackend:
 
                 # Process result with standardized fields and better null handling
                 processed_results.append({
-                    'text':
-                    text,
-                    'timestamp':
-                    timestamp,
-                    'source':
-                    source,
-                    'language':
-                    analysis_result['language'],
-                    'sentiment':
-                    analysis_result['sentiment'],
-                    'confidence':
-                    analysis_result['confidence'],
-                    'explanation':
-                    analysis_result['explanation'],
-                    'disasterType':
-                    analysis_result.get('disasterType', "Not Specified"),
-                    'location':
-                    analysis_result.get('location', None),
-                    'modelType':
-                    analysis_result.get('modelType', "Hybrid Analysis")
+                    'text': text,
+                    'timestamp': timestamp,
+                    'source': source,
+                    'language': analysis_result['language'],
+                    'sentiment': analysis_result['sentiment'],
+                    'confidence': analysis_result['confidence'],
+                    'explanation': analysis_result['explanation'],
+                    'disasterType': analysis_result.get('disasterType', "Not Specified"),
+                    'location': analysis_result.get('location', None),
+                    'modelType': analysis_result.get('modelType', "Hybrid Analysis")
                 })
             except Exception as e:
                 logging.error(f"Error processing record {index}: {str(e)}")
@@ -1472,7 +1627,31 @@ def main():
         backend = DisasterSentimentBackend()
 
         if args.text:
-            # Single text analysis
+            # Check if the text is a JSON object with parameters
+            try:
+                params = json.loads(args.text)
+                if isinstance(params, dict) and 'text' in params:
+                    # Extract parameters
+                    text = params['text']
+                    csv_location = params.get('csvLocation')
+                    csv_emotion = params.get('csvEmotion')
+                    csv_disaster_type = params.get('csvDisasterType')
+                    
+                    # Single text analysis with optional CSV fields
+                    result = backend.analyze_sentiment(
+                        text, 
+                        csv_location=csv_location,
+                        csv_emotion=csv_emotion,
+                        csv_disaster_type=csv_disaster_type
+                    )
+                    print(json.dumps(result))
+                    sys.stdout.flush()
+                    return
+            except json.JSONDecodeError:
+                # Not a JSON object, treat as regular text
+                pass
+                
+            # Regular single text analysis
             result = backend.analyze_sentiment(args.text)
             print(json.dumps(result))
             sys.stdout.flush()
@@ -1517,6 +1696,30 @@ def main():
 
                 if 'source' not in df.columns:
                     df['source'] = 'CSV Import'
+                    
+                # Check for location column with different possible names
+                location_column = None
+                possible_location_columns = ['location', 'place', 'area', 'region', 'city', 'province']
+                for col in possible_location_columns:
+                    if col in df.columns:
+                        location_column = col
+                        break
+
+                # Check for emotion/sentiment column with different possible names
+                emotion_column = None
+                possible_emotion_columns = ['emotion', 'sentiment', 'feeling', 'mood']
+                for col in possible_emotion_columns:
+                    if col in df.columns:
+                        emotion_column = col
+                        break
+                        
+                # Check for disaster type column with different possible names
+                disaster_column = None
+                possible_disaster_columns = ['disaster', 'disaster_type', 'disaster type', 'event_type', 'event type', 'calamity', 'emergency']
+                for col in possible_disaster_columns:
+                    if col in df.columns:
+                        disaster_column = col
+                        break
 
                 total_records = min(
                     len(df), 50)  # Process maximum 50 records for testing
@@ -1533,6 +1736,21 @@ def main():
                         timestamp = row.get('timestamp',
                                             datetime.now().isoformat())
                         source = row.get('source', 'CSV Import')
+                        
+                        # Get location directly from CSV if available
+                        csv_location = None
+                        if location_column and not pd.isna(row.get(location_column)):
+                            csv_location = str(row.get(location_column))
+                        
+                        # Get emotion directly from CSV if available
+                        csv_emotion = None
+                        if emotion_column and not pd.isna(row.get(emotion_column)):
+                            csv_emotion = str(row.get(emotion_column))
+                        
+                        # Get disaster type directly from CSV if available
+                        csv_disaster_type = None
+                        if disaster_column and not pd.isna(row.get(disaster_column)):
+                            csv_disaster_type = str(row.get(disaster_column))
 
                         if text.strip():  # Only process non-empty text
                             # Add delay between requests to avoid rate limits
@@ -1540,26 +1758,24 @@ def main():
                                 time.sleep(
                                     1.5)  # 1.5 second delay every 3 items
 
-                            result = backend.analyze_sentiment(text)
-                            results.append({
-                                'text':
+                            # Analyze the text with CSV data included directly
+                            result = backend.analyze_sentiment(
                                 text,
-                                'timestamp':
-                                timestamp,
-                                'source':
-                                source,
-                                'language':
-                                result.get('language', 'en'),
-                                'sentiment':
-                                result.get('sentiment', 'Neutral'),
-                                'confidence':
-                                result.get('confidence', 0.0),
-                                'explanation':
-                                result.get('explanation', ''),
-                                'disasterType':
-                                result.get('disasterType', 'Not Specified'),
-                                'location':
-                                result.get('location')
+                                csv_location=csv_location,
+                                csv_emotion=csv_emotion,
+                                csv_disaster_type=csv_disaster_type
+                            )
+                                
+                            results.append({
+                                'text': text,
+                                'timestamp': timestamp,
+                                'source': source,
+                                'language': result.get('language', 'en'),
+                                'sentiment': result.get('sentiment', 'Neutral'),
+                                'confidence': result.get('confidence', 0.0),
+                                'explanation': result.get('explanation', ''),
+                                'disasterType': result.get('disasterType', 'Not Specified'),
+                                'location': result.get('location')
                             })
 
                             # Report individual progress

@@ -59,6 +59,8 @@ export class PythonService {
     fs.writeFileSync(tempFilePath, fileBuffer);
 
     try {
+      log(`Processing CSV file: ${originalFilename}`, 'python-service');
+      
       // Run the Python script with retries
       let attempt = 0;
       let result;
@@ -68,6 +70,7 @@ export class PythonService {
           break;
         } catch (error) {
           attempt++;
+          log(`Attempt ${attempt} failed: ${error}`, 'python-service');
           if (attempt === this.maxRetries) throw error;
           await new Promise(resolve => setTimeout(resolve, this.retryDelay));
         }
@@ -76,6 +79,16 @@ export class PythonService {
       if (!result) throw new Error('Failed to process CSV file after retries');
 
       const data = JSON.parse(result) as ProcessCSVResult;
+      
+      // Log details about what was processed
+      log(`Successfully processed ${data.results.length} records from CSV`, 'python-service');
+      
+      // Count how many records have location from the CSV
+      const withLocation = data.results.filter(r => r.location).length;
+      const withDisasterType = data.results.filter(r => r.disasterType && r.disasterType !== "Not Specified").length;
+      
+      log(`Records with location: ${withLocation}/${data.results.length}`, 'python-service');
+      log(`Records with disaster type: ${withDisasterType}/${data.results.length}`, 'python-service');
 
       return {
         data,
@@ -91,7 +104,12 @@ export class PythonService {
     }
   }
 
-  public async analyzeSentiment(text: string): Promise<{
+  public async analyzeSentiment(
+    text: string, 
+    csvLocation?: string, 
+    csvEmotion?: string, 
+    csvDisasterType?: string
+  ): Promise<{
     sentiment: string; 
     confidence: number;
     explanation: string;
@@ -102,12 +120,25 @@ export class PythonService {
     // Run the Python script with retries
     let attempt = 0;
     let result;
+    
+    // Create a JSON object with the parameters
+    const params = {
+      text,
+      csvLocation,
+      csvEmotion,
+      csvDisasterType
+    };
+    
+    const paramsJson = JSON.stringify(params);
+    
     while (attempt < this.maxRetries) {
       try {
-        result = await this.runPythonScript('', text);
+        // We pass the JSON parameters as the text parameter
+        result = await this.runPythonScript('', paramsJson);
         break;
       } catch (error) {
         attempt++;
+        log(`Sentiment analysis attempt ${attempt} failed: ${error}`, 'python-service');
         if (attempt === this.maxRetries) throw error;
         await new Promise(resolve => setTimeout(resolve, this.retryDelay));
       }
