@@ -371,6 +371,9 @@ Key sentiment analysis rules:
             # Print column names for debugging
             logging.info(f"CSV columns found: {', '.join(df.columns)}")
 
+            # Report initial progress
+            report_progress(0, "Starting data analysis")
+
             # Analyze column headers to find column types
             column_matches = {
                 "text": ["text", "content", "message", "tweet", "post", "Text"],
@@ -480,10 +483,21 @@ Key sentiment analysis rules:
 
             # Process records (limit to 50 for demo)
             sample_size = min(50, len(df))
-            report_progress(0, "Starting analysis")
+
+            # Report column identification progress
+            report_progress(5, "Identified data columns")
 
             for i, row in df.head(sample_size).iterrows():
                 try:
+                    # Calculate percentage progress (0-100)
+                    progress_percentage = int((i / sample_size) * 90) + 5  # Starts at 5%, goes to 95%
+
+                    # Report progress with percentage
+                    report_progress(
+                        progress_percentage,
+                        f"Analyzing record {i+1} of {sample_size} ({progress_percentage}% complete)"
+                    )
+
                     # Extract text
                     text = str(row.get("text", ""))
                     if not text.strip():
@@ -501,9 +515,6 @@ Key sentiment analysis rules:
                     csv_disaster = str(row.get(disaster_col, "")) if disaster_col else None
                     if csv_disaster and csv_disaster.lower() in ["nan", "none", ""]:
                         csv_disaster = None
-
-                    # Report progress
-                    report_progress(i+1, f"Processing record {i+1}/{sample_size}")
 
                     # Check if language is specified in the CSV
                     csv_language = str(row.get(language_col, "")) if language_col else None
@@ -538,6 +549,9 @@ Key sentiment analysis rules:
 
                 except Exception as e:
                     logging.error(f"Error processing row {i}: {str(e)}")
+
+            # Report completion
+            report_progress(100, "Analysis complete!")
 
             # Log stats
             loc_count = sum(1 for r in processed_results if r.get("location"))
