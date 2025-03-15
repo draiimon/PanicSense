@@ -372,11 +372,11 @@ export default function GeographicAnalysis() {
           </div>
 
           {/* Legend Panel - 1/3 width on desktop, full width and fixed height on mobile */}
-          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg flex flex-col h-[400px] lg:h-[calc(100vh-8rem)] mb-20 lg:mb-0">
+          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg flex flex-col h-[400px] lg:h-[calc(100vh-8rem)]">
             <div className="p-2 border-b border-slate-200">
               <h3 className="font-semibold text-slate-800 text-sm">Analysis Legend</h3>
             </div>
-            <div className="flex-1 overflow-y-auto pb-4">
+            <div className="flex-1 overflow-y-auto">
               <SentimentLegend
                 mostAffectedAreas={mostAffectedAreas}
                 showRegionSelection={false}
