@@ -54,34 +54,27 @@ export function SentimentMap({
         zoomControl: false,
         attributionControl: false,
         maxBounds: [
-          [PH_BOUNDS.southWest[0], PH_BOUNDS.southWest[1]],
-          [PH_BOUNDS.northEast[0], PH_BOUNDS.northEast[1]]
+          [0, 110],
+          [25, 130]
         ],
-        minZoom: 5.5,
+        minZoom: 5.2,
         maxZoom: 12,
-        maxBoundsViscosity: 1.0, // Prevents dragging outside bounds
+        maxBoundsViscosity: 1.0,
         scrollWheelZoom: true,
         dragging: true,
-        zoomDelta: 0.5,
-        zoomSnap: 0.5
-      }).setView(PH_CENTER, mapZoom);
+        zoomDelta: 0.25,
+        zoomSnap: 0.25,
+      }).fitBounds([
+        [4.566667, 116.928406],
+        [21.120611, 126.604393]
+      ]);
 
       // Add base tile layer with noWrap option
       updateTileLayer(L, view);
 
       // Keep map within bounds and prevent white edges
       mapInstanceRef.current.on('moveend', () => {
-        const bounds = mapInstanceRef.current.getBounds();
         const newZoom = mapInstanceRef.current.getZoom();
-
-        // Adjust zoom if we're seeing white edges
-        if (bounds.getSouth() < PH_BOUNDS.southWest[0] || 
-            bounds.getNorth() > PH_BOUNDS.northEast[0] ||
-            bounds.getWest() < PH_BOUNDS.southWest[1] ||
-            bounds.getEast() > PH_BOUNDS.northEast[1]) {
-          mapInstanceRef.current.setView(PH_CENTER, newZoom);
-        }
-
         setMapZoom(newZoom);
       });
 
@@ -254,21 +247,30 @@ export function SentimentMap({
         markersRef.current.push(circle);
       });
 
-      // Show message if no regions or if markers are hidden
-      if (regions.length === 0 || !showMarkers) {
-        const messageText = !showMarkers 
-          ? "Map markers are currently hidden" 
-          : "No geographic data available";
-          
+      // Update marker visibility
+      markersRef.current.forEach(marker => {
+        if (marker instanceof L.Circle) {
+          if (showMarkers) {
+            marker.setStyle({ opacity: 1, fillOpacity: 0.7 });
+          } else {
+            marker.setStyle({ opacity: 0, fillOpacity: 0 });
+          }
+        }
+      });
+
+      // Show message when markers are hidden
+      const existingMessage = markersRef.current.find(m => m instanceof L.Popup);
+      if (existingMessage) existingMessage.remove();
+
+      if (!showMarkers) {
         const message = L.popup()
           .setLatLng(PH_CENTER)
           .setContent(`
             <div class="p-4 text-center">
-              <span class="text-sm text-slate-600">${messageText}</span>
+              <span class="text-sm text-slate-600">Map markers are currently hidden</span>
             </div>
           `)
           .openOn(mapInstanceRef.current);
-
         markersRef.current.push(message);
       }
     });
