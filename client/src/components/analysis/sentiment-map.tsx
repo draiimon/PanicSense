@@ -3,7 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { getSentimentColor, getDisasterTypeColor } from '@/lib/colors';
 import { Button } from '@/components/ui/button';
 import { Globe, Map, Layers } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import 'leaflet/dist/leaflet.css';
 
 // Philippine map bounds
@@ -211,28 +210,28 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
   return (
     <Card className="bg-white rounded-lg shadow-md border border-slate-200">
       <CardContent className="p-0 overflow-hidden relative">
-        {/* Control buttons container with higher z-index */}
-        <div className="absolute top-4 right-4 z-[1000] flex items-start gap-4">
-          {/* Zoom controls */}
-          <div className="flex flex-col gap-2">
-            <Button 
-              size="icon" 
-              variant="secondary"
-              className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
-              onClick={() => mapInstanceRef.current?.zoomIn()}
-            >
-              <span className="text-lg font-medium">+</span>
-            </Button>
-            <Button 
-              size="icon" 
-              variant="secondary"
-              className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
-              onClick={() => mapInstanceRef.current?.zoomOut()}
-            >
-              <span className="text-lg font-medium">−</span>
-            </Button>
-          </div>
-          {/* Map Type Toggle */}
+        {/* Zoom controls - moved to left */}
+        <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
+            onClick={() => mapInstanceRef.current?.zoomIn()}
+          >
+            <span className="text-lg font-medium">+</span>
+          </Button>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
+            onClick={() => mapInstanceRef.current?.zoomOut()}
+          >
+            <span className="text-lg font-medium">−</span>
+          </Button>
+        </div>
+
+        {/* Map Type Toggle - moved outside zoom controls */}
+        <div className="absolute top-4 right-4 z-[1000] flex items-center gap-4">
           <div className="bg-white rounded-lg shadow-lg p-1 flex">
             <Button
               size="sm"
@@ -255,9 +254,10 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
           </div>
         </div>
 
+
         {/* Map Container */}
-        <div 
-          ref={mapRef} 
+        <div
+          ref={mapRef}
           className="h-[500px] w-full bg-slate-50"
         />
 

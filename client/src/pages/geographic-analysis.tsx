@@ -308,7 +308,7 @@ export default function GeographicAnalysis() {
             </div>
 
             {/* Map Controls */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               <Button
                 size="sm"
                 variant="outline"
@@ -319,24 +319,24 @@ export default function GeographicAnalysis() {
                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">Refresh</span>
               </Button>
-              <div className="flex rounded-lg overflow-hidden border border-gray-200">
-                <Button
-                  size="sm"
-                  variant={mapView === 'standard' ? 'default' : 'outline'}
-                  onClick={() => setMapView('standard')}
-                  className="rounded-none border-0"
-                >
-                  <Map className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant={mapView === 'satellite' ? 'default' : 'outline'}
-                  onClick={() => setMapView('satellite')}
-                  className="rounded-none border-0"
-                >
-                  <Satellite className="h-4 w-4" />
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                variant={mapView === 'standard' ? 'default' : 'outline'}
+                onClick={() => setMapView('standard')}
+                className="flex items-center gap-2"
+              >
+                <Map className="h-4 w-4" />
+                <span className="hidden sm:inline">Standard</span>
+              </Button>
+              <Button
+                size="sm"
+                variant={mapView === 'satellite' ? 'default' : 'outline'}
+                onClick={() => setMapView('satellite')}
+                className="flex items-center gap-2"
+              >
+                <Satellite className="h-4 w-4" />
+                <span className="hidden sm:inline">Satellite</span>
+              </Button>
             </div>
           </div>
         </div>
