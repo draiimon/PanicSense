@@ -417,10 +417,14 @@ class DisasterSentimentBackend:
         return None
 
     def fetch_api(self, headers, payload, retry_count=0):
+        """
+        General API fetch method with improved error handling.
+        """
         try:
             response = requests.post(self.api_url,
                                      headers=headers,
-                                     json=payload)
+                                     json=payload,
+                                     timeout=5)  # Add timeout to prevent hanging
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -431,10 +435,11 @@ class DisasterSentimentBackend:
                 )
                 self.current_api_index = (self.current_api_index + 1) % len(
                     self.api_keys)
+                # Use a short delay before trying the next key
                 logging.info(
-                    f"Waiting {self.limit_delay} seconds before trying next key"
+                    f"Waiting 0.5 seconds before trying next key"
                 )
-                time.sleep(self.limit_delay)
+                time.sleep(0.5)
                 if retry_count < self.max_retries:
                     return self.fetch_api(headers, payload, retry_count + 1)
                 else:
@@ -458,6 +463,10 @@ class DisasterSentimentBackend:
                 return None
 
     def fetch_groq(self, headers, payload, retry_count=0):
+        """
+        Improved version of fetch_groq with faster API key rotation and better error handling.
+        When one API key fails, it immediately tries the next available key.
+        """
         try:
             # Track which keys have been tried in this request sequence
             if retry_count == 0:
@@ -470,11 +479,20 @@ class DisasterSentimentBackend:
             # Remember that we tried this key
             self.tried_keys.add(self.current_api_index)
             
+            # Make the API call
             response = requests.post(self.api_url,
                                      headers=headers,
-                                     json=payload)
+                                     json=payload,
+                                     timeout=5)  # Add timeout to prevent hanging
             response.raise_for_status()
+            
+            # Successfully used this key
             logging.info(f"Successfully used API key {self.current_api_index + 1}")
+            
+            # Track successful usage
+            if self.current_api_index not in self.key_success_count:
+                self.key_success_count[self.current_api_index] = 0
+            self.key_success_count[self.current_api_index] += 1
             
             # Save this key as the last successful key
             self.last_successful_key = self.current_api_index
@@ -483,56 +501,64 @@ class DisasterSentimentBackend:
             self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
             
             return response.json()
+            
         except requests.exceptions.RequestException as e:
-            # Always rotate to the next key on any kind of error
+            # Save the current index before changing it
             prev_index = self.current_api_index
             
-            # Try to use keys that haven't been tried in this sequence first
+            # FAST FAIL: Immediately move to the next key that hasn't been tried yet
+            next_key_found = False
             for i in range(len(self.groq_api_keys)):
-                next_index = (self.current_api_index + i) % len(self.groq_api_keys)
-                if next_index not in self.tried_keys:
+                next_index = (prev_index + i + 1) % len(self.groq_api_keys)
+                if next_index not in self.tried_keys and next_index not in self.failed_keys:
                     self.current_api_index = next_index
+                    next_key_found = True
                     break
-            else:
-                # If all keys tried, just move to the next one
-                self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
             
+            # If all keys have been tried in this sequence, just move to the next one
+            if not next_key_found:
+                self.current_api_index = (prev_index + 1) % len(self.groq_api_keys)
+            
+            # Handle specific error responses
             if hasattr(e, 'response') and e.response:
                 if e.response.status_code == 429:
-                    delay = min(self.base_delay * (2 ** retry_count), self.max_delay)
-                    logging.warning(
-                        f"API key {prev_index + 1} rate limited. Waiting {delay}s before retry."
-                    )
-                    time.sleep(delay)
-                    if retry_count >= self.max_retries:
-                        self.failed_keys.add(prev_index)
+                    # Rate limited - mark this key and immediately try another
+                    logging.warning(f"API key {prev_index + 1} rate limited. Switching to key {self.current_api_index + 1}")
+                    self.failed_keys.add(prev_index)  # Mark as failed for this session
                 elif e.response.status_code == 401:
-                    logging.warning(
-                        f"API key {prev_index + 1} unauthorized. Switching to key {self.current_api_index + 1}/{len(self.groq_api_keys)}"
-                    )
+                    # Unauthorized - this key is invalid, mark it permanently
+                    logging.warning(f"API key {prev_index + 1} unauthorized. Switching to key {self.current_api_index + 1}")
+                    self.failed_keys.add(prev_index)
                 else:
+                    # Other API error
                     logging.error(f"API Error with key {prev_index + 1}: {e}")
-                    time.sleep(self.retry_delay)
             else:
+                # Network or other request error
                 logging.error(f"Request error with key {prev_index + 1}: {e}")
-                time.sleep(self.retry_delay)
-                
-            # Keep retrying with different keys as long as we haven't exceeded max retries
-            # and we haven't tried all keys
-            if retry_count < self.max_retries * len(self.groq_api_keys) and len(self.tried_keys) < len(self.groq_api_keys):
-                return self.fetch_groq(headers, payload, retry_count + 1)
-            else:
-                logging.error(f"Max retries exceeded after trying all {len(self.groq_api_keys)} API keys.")
-                return None
-        except Exception as e:
-            logging.error(f"Unexpected error: {e}")
-            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
-            time.sleep(self.retry_delay)
             
-            if retry_count < self.max_retries * len(self.groq_api_keys):
+            # Immediate retry with the new key, with minimal delay
+            if retry_count < len(self.groq_api_keys) * 2 and len(self.tried_keys) < len(self.groq_api_keys):
+                # Only wait if we've tried multiple keys
+                if len(self.tried_keys) > len(self.groq_api_keys) / 2:
+                    time.sleep(0.1)  # Very minimal delay to prevent overwhelming the network
                 return self.fetch_groq(headers, payload, retry_count + 1)
             else:
-                logging.error("Max retries exceeded for request error.")
+                logging.error(f"Failed after trying {len(self.tried_keys)} different API keys")
+                return None
+                
+        except Exception as e:
+            # Handle unexpected errors
+            logging.error(f"Unexpected error in API call: {e}")
+            
+            # Move to next key
+            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+            
+            # Retry with minimal delay
+            if retry_count < len(self.groq_api_keys):
+                time.sleep(0.1)  # Very minimal delay
+                return self.fetch_groq(headers, payload, retry_count + 1)
+            else:
+                logging.error("Max retries exceeded for unexpected errors")
                 return None
 
     def detect_language(self, text):
@@ -1562,18 +1588,18 @@ class DisasterSentimentBackend:
         # Process all records up to a reasonable limit
         sample_size = min(1000, len(df))  
         
-        # If we have a lot of records, process in batches for better efficiency
-        batch_size = 1  # Process one record at a time
+        # Process records in larger batches for better efficiency
+        batch_size = 5  # Increase to process 5 records at a time
         processed_count = 0
         
-        # Add delay between batches to avoid rate limits
-        batch_delay = 1.0
+        # Minimize delay between batches to speed up processing
+        batch_delay = 0.2
         
         # Divide the sample into batches
         batches = []
         current_batch = []
         
-        # Prepare data in batches (with better field detection)
+        # Prepare data in batches with better field detection
         for index, row in df.head(sample_size).iterrows():
             try:
                 # Get text with fallback to first column
