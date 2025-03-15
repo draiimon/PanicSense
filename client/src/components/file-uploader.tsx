@@ -23,10 +23,10 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-[8.1px] right-[8.1px] z-[9999]"
+            className="fixed inset-0 flex items-center justify-center z-[9999] bg-black/20 backdrop-blur-sm"
           >
-            <div className="bg-white/95 backdrop-blur-lg rounded-xl border border-blue-100 p-4 max-w-md">
-              <div className="flex items-center mb-3">
+            <div className="bg-white/95 backdrop-blur-lg rounded-xl border border-blue-100 p-6 max-w-md w-full mx-4 shadow-2xl">
+              <div className="flex items-center mb-4">
                 {uploadProgress.status === "uploading" && (
                   <Loader2 className="animate-spin h-5 w-5 mr-2 text-blue-600" />
                 )}
@@ -50,7 +50,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
               </div>
 
               <div className="relative">
-                <div className="overflow-hidden h-1.5 text-xs flex rounded-full bg-slate-200/50 backdrop-blur-sm">
+                <div className="overflow-hidden h-2.5 text-xs flex rounded-full bg-slate-200/50 backdrop-blur-sm">
                   <motion.div
                     className={`
                       shadow-sm flex flex-col text-center whitespace-nowrap text-white justify-center
