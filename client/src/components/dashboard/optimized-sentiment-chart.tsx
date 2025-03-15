@@ -3,7 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import Chart from 'chart.js/auto';
 import { sentimentColors } from '@/lib/colors';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 
 interface SentimentChartProps {
@@ -164,10 +163,17 @@ export function OptimizedSentimentChart({
     <div style={{ height }} className="relative">
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-            <p className="text-sm font-medium text-slate-600">Processing data...</p>
+        <div className="absolute inset-0 flex items-center justify-center z-50">
+          {/* Semi-transparent backdrop */}
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-lg"></div>
+
+          {/* Loading content */}
+          <div className="relative z-10 flex flex-col items-center gap-4 p-6 bg-white/50 rounded-xl shadow-lg backdrop-blur-sm">
+            <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
+            <div className="text-center">
+              <p className="text-lg font-semibold text-slate-800">Processing Data</p>
+              <p className="text-sm text-slate-600">Please wait while we update the chart...</p>
+            </div>
           </div>
         </div>
       )}
@@ -179,7 +185,7 @@ export function OptimizedSentimentChart({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
-          className="h-full"
+          className="h-full relative"
         >
           <canvas ref={chartRef}></canvas>
         </motion.div>

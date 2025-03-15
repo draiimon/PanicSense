@@ -13,6 +13,24 @@ const fadeInUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
 };
 
+function LoadingOverlay({ message }: { message: string }) {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center z-50">
+      {/* Semi-transparent backdrop */}
+      <div className="absolute inset-0 bg-white/90 backdrop-blur-lg"></div>
+
+      {/* Loading content */}
+      <div className="relative z-10 flex flex-col items-center gap-4 p-6 bg-white/50 rounded-xl shadow-lg backdrop-blur-sm">
+        <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
+        <div className="text-center">
+          <p className="text-lg font-semibold text-slate-800">Processing Data</p>
+          <p className="text-sm text-slate-600">{message}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { 
     sentimentPosts = [],
@@ -61,12 +79,12 @@ export default function Dashboard() {
               </CardTitle>
               <p className="text-sm text-slate-500 mt-1">Real-time sentiment monitoring and analysis</p>
             </div>
-            {/* File uploader with loading state feedback */}
+            {/* File uploader with loading state */}
             <div className="relative">
               <FileUploader className="mt-0" />
               {isLoadingSentimentPosts && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-lg">
-                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-lg rounded-lg">
+                  <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
                 </div>
               )}
             </div>
@@ -145,12 +163,7 @@ export default function Dashboard() {
               isLoading={isLoadingSentimentPosts}
             />
             {isLoadingSentimentPosts && (
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-                  <p className="text-sm font-medium text-slate-600">Updating affected areas...</p>
-                </div>
-              </div>
+              <LoadingOverlay message="Updating affected areas..." />
             )}
           </motion.div>
         </div>
@@ -185,12 +198,7 @@ export default function Dashboard() {
                   isLoading={isLoadingSentimentPosts}
                 />
                 {isLoadingSentimentPosts && (
-                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
-                    <div className="flex flex-col items-center gap-3">
-                      <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-                      <p className="text-sm font-medium text-slate-600">Loading recent posts...</p>
-                    </div>
-                  </div>
+                  <LoadingOverlay message="Loading recent posts..." />
                 )}
               </CardContent>
             </Card>
