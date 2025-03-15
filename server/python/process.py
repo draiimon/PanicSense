@@ -91,12 +91,12 @@ class DisasterSentimentBackend:
             self.groq_api_keys = self.api_keys.copy()
 
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
-        self.retry_delay = 1.0  # Increase delay between retries
-        self.limit_delay = 1.0  # Increase delay for rate limits
-        self.groq_limit_delay = 1.0  # Increase Groq API delay
+        self.base_delay = 2.0  # Base delay for exponential backoff
+        self.max_delay = 32.0  # Maximum delay between retries
         self.current_api_index = 0
-        self.max_retries = 5  # Maximum retry attempts for API requests
+        self.max_retries = 3  # Reduced max retries per key
         self.last_successful_key = None
+        self.failed_keys = set()  # Track completely failed keys
         self.tried_keys = set()
         self.key_success_count = {}  # Track successful uses of each key
         
@@ -492,10 +492,13 @@ class DisasterSentimentBackend:
             
             if hasattr(e, 'response') and e.response:
                 if e.response.status_code == 429:
+                    delay = min(self.base_delay * (2 ** retry_count), self.max_delay)
                     logging.warning(
-                        f"API key {prev_index + 1} rate limited. Switching to key {self.current_api_index + 1}/{len(self.groq_api_keys)}"
+                        f"API key {prev_index + 1} rate limited. Waiting {delay}s before retry."
                     )
-                    time.sleep(self.groq_limit_delay)
+                    time.sleep(delay)
+                    if retry_count >= self.max_retries:
+                        self.failed_keys.add(prev_index)
                 elif e.response.status_code == 401:
                     logging.warning(
                         f"API key {prev_index + 1} unauthorized. Switching to key {self.current_api_index + 1}/{len(self.groq_api_keys)}"
@@ -1553,8 +1556,11 @@ class DisasterSentimentBackend:
         sample_size = min(1000, len(df))  
         
         # If we have a lot of records, process in batches for better efficiency
-        batch_size = 2  # Process fewer records at a time to avoid rate limits
+        batch_size = 1  # Process one record at a time
         processed_count = 0
+        
+        # Add delay between batches to avoid rate limits
+        batch_delay = 1.0
         
         # Divide the sample into batches
         batches = []
