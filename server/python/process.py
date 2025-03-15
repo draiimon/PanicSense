@@ -24,6 +24,7 @@ parser.add_argument('--file', help='Path to the CSV file to analyze')
 parser.add_argument('--text', help='Text to analyze for sentiment')
 args = parser.parse_args()
 
+
 def report_progress(processed: int, stage: str):
     """Print progress in a format that can be parsed by the Node.js service"""
     progress = {"processed": processed, "stage": stage}
@@ -70,6 +71,18 @@ class DisasterSentimentBackend:
                 "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",
                 "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",
                 "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
                 "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"
             ]
 
@@ -115,61 +128,256 @@ class DisasterSentimentBackend:
 
         ph_locations = [
             # ALL REGIONS
-            "NCR", "CAR", "Ilocos Region", "Cagayan Valley", "Central Luzon",
-            "CALABARZON", "MIMAROPA", "Bicol Region", "Western Visayas",
-            "Central Visayas", "Eastern Visayas", "Zamboanga Peninsula",
-            "Northern Mindanao", "Davao Region", "SOCCSKSARGEN", "Caraga", "BARMM",
+            "NCR",
+            "CAR",
+            "Ilocos Region",
+            "Cagayan Valley",
+            "Central Luzon",
+            "CALABARZON",
+            "MIMAROPA",
+            "Bicol Region",
+            "Western Visayas",
+            "Central Visayas",
+            "Eastern Visayas",
+            "Zamboanga Peninsula",
+            "Northern Mindanao",
+            "Davao Region",
+            "SOCCSKSARGEN",
+            "Caraga",
+            "BARMM",
 
             # ALL PROVINCES
-            "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay",
-            "Antique", "Apayao", "Aurora", "Basilan", "Bataan", "Batanes",
-            "Batangas", "Benguet", "Biliran", "Bohol", "Bukidnon", "Bulacan",
-            "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz",
-            "Catanduanes", "Cavite", "Cebu", "Compostela Valley", "Cotabato",
-            "Davao de Oro", "Davao del Norte", "Davao del Sur", "Davao Occidental",
-            "Davao Oriental", "Dinagat Islands", "Eastern Samar", "Guimaras",
-            "Ifugao", "Ilocos Norte", "Ilocos Sur", "Iloilo", "Isabela", "Kalinga",
-            "La Union", "Laguna", "Lanao del Norte", "Lanao del Sur", "Leyte",
-            "Maguindanao", "Marinduque", "Masbate", "Misamis Occidental",
-            "Misamis Oriental", "Mountain Province", "Negros Occidental",
-            "Negros Oriental", "Northern Samar", "Nueva Ecija", "Nueva Vizcaya",
-            "Occidental Mindoro", "Oriental Mindoro", "Palawan", "Pampanga",
-            "Pangasinan", "Quezon", "Quirino", "Rizal", "Romblon", "Samar",
-            "Sarangani", "Siquijor", "Sorsogon", "South Cotabato", "Southern Leyte",
-            "Sultan Kudarat", "Sulu", "Surigao del Norte", "Surigao del Sur",
-            "Tarlac", "Tawi-Tawi", "Zambales", "Zamboanga del Norte",
-            "Zamboanga del Sur", "Zamboanga Sibugay",
+            "Abra",
+            "Agusan del Norte",
+            "Agusan del Sur",
+            "Aklan",
+            "Albay",
+            "Antique",
+            "Apayao",
+            "Aurora",
+            "Basilan",
+            "Bataan",
+            "Batanes",
+            "Batangas",
+            "Benguet",
+            "Biliran",
+            "Bohol",
+            "Bukidnon",
+            "Bulacan",
+            "Cagayan",
+            "Camarines Norte",
+            "Camarines Sur",
+            "Camiguin",
+            "Capiz",
+            "Catanduanes",
+            "Cavite",
+            "Cebu",
+            "Compostela Valley",
+            "Cotabato",
+            "Davao de Oro",
+            "Davao del Norte",
+            "Davao del Sur",
+            "Davao Occidental",
+            "Davao Oriental",
+            "Dinagat Islands",
+            "Eastern Samar",
+            "Guimaras",
+            "Ifugao",
+            "Ilocos Norte",
+            "Ilocos Sur",
+            "Iloilo",
+            "Isabela",
+            "Kalinga",
+            "La Union",
+            "Laguna",
+            "Lanao del Norte",
+            "Lanao del Sur",
+            "Leyte",
+            "Maguindanao",
+            "Marinduque",
+            "Masbate",
+            "Misamis Occidental",
+            "Misamis Oriental",
+            "Mountain Province",
+            "Negros Occidental",
+            "Negros Oriental",
+            "Northern Samar",
+            "Nueva Ecija",
+            "Nueva Vizcaya",
+            "Occidental Mindoro",
+            "Oriental Mindoro",
+            "Palawan",
+            "Pampanga",
+            "Pangasinan",
+            "Quezon",
+            "Quirino",
+            "Rizal",
+            "Romblon",
+            "Samar",
+            "Sarangani",
+            "Siquijor",
+            "Sorsogon",
+            "South Cotabato",
+            "Southern Leyte",
+            "Sultan Kudarat",
+            "Sulu",
+            "Surigao del Norte",
+            "Surigao del Sur",
+            "Tarlac",
+            "Tawi-Tawi",
+            "Zambales",
+            "Zamboanga del Norte",
+            "Zamboanga del Sur",
+            "Zamboanga Sibugay",
 
             # ALL CITIES
-            "Alaminos", "Angeles", "Antipolo", "Bacolod", "Bacoor", "Bago",
-            "Baguio", "Bais", "Balanga", "Batac", "Batangas City", "Bayawan",
-            "Baybay", "Bayugan", "Biñan", "Bislig", "Bogo", "Borongan", "Butuan",
-            "Cabadbaran", "Cabanatuan", "Cabuyao", "Cadiz", "Cagayan de Oro",
-            "Calamba", "Calapan", "Calbayog", "Caloocan", "Candon", "Canlaon",
-            "Carcar", "Catbalogan", "Cauayan", "Cavite City", "Cebu City",
-            "Cotabato City", "Dagupan", "Danao", "Dapitan", "Davao City",
-            "Digos", "Dipolog", "Dumaguete", "El Salvador", "Escalante",
-            "Gapan", "General Santos", "General Trias", "Gingoog", "Guihulngan",
-            "Himamaylan", "Ilagan", "Iligan", "Iloilo City", "Imus", "Iriga",
-            "Isabela City", "Kabankalan", "Kidapawan", "Koronadal", "La Carlota",
-            "Lamitan", "Laoag", "Lapu-Lapu", "Las Piñas", "Legazpi", "Ligao",
-            "Lipa", "Lucena", "Maasin", "Mabalacat", "Makati", "Malabon",
-            "Malaybalay", "Malolos", "Mandaluyong", "Mandaue", "Manila",
-            "Marawi", "Marikina", "Masbate City", "Mati", "Meycauayan",
-            "Muñoz", "Muntinlupa", "Naga", "Navotas", "Olongapo", "Ormoc",
-            "Oroquieta", "Ozamiz", "Pagadian", "Palayan", "Panabo", "Parañaque",
-            "Pasay", "Pasig", "Passi", "Puerto Princesa", "Quezon City",
-            "Roxas", "Sagay", "Samal", "San Carlos", "San Fernando",
-            "San Jose", "San Jose del Monte", "San Juan", "San Pablo",
-            "San Pedro", "Santa Rosa", "Santiago", "Silay", "Sipalay",
-            "Sorsogon City", "Surigao", "Tabaco", "Tabuk", "Tacloban",
-            "Tacurong", "Tagaytay", "Tagbilaran", "Taguig", "Tagum",
-            "Talisay", "Tanauan", "Tandag", "Tangub", "Tanjay", "Tarlac City",
-            "Tayabas", "Toledo", "Trece Martires", "Tuguegarao", "Urdaneta",
-            "Valencia", "Valenzuela", "Victorias", "Vigan", "Zamboanga City",
-            
+            "Alaminos",
+            "Angeles",
+            "Antipolo",
+            "Bacolod",
+            "Bacoor",
+            "Bago",
+            "Baguio",
+            "Bais",
+            "Balanga",
+            "Batac",
+            "Batangas City",
+            "Bayawan",
+            "Baybay",
+            "Bayugan",
+            "Biñan",
+            "Bislig",
+            "Bogo",
+            "Borongan",
+            "Butuan",
+            "Cabadbaran",
+            "Cabanatuan",
+            "Cabuyao",
+            "Cadiz",
+            "Cagayan de Oro",
+            "Calamba",
+            "Calapan",
+            "Calbayog",
+            "Caloocan",
+            "Candon",
+            "Canlaon",
+            "Carcar",
+            "Catbalogan",
+            "Cauayan",
+            "Cavite City",
+            "Cebu City",
+            "Cotabato City",
+            "Dagupan",
+            "Danao",
+            "Dapitan",
+            "Davao City",
+            "Digos",
+            "Dipolog",
+            "Dumaguete",
+            "El Salvador",
+            "Escalante",
+            "Gapan",
+            "General Santos",
+            "General Trias",
+            "Gingoog",
+            "Guihulngan",
+            "Himamaylan",
+            "Ilagan",
+            "Iligan",
+            "Iloilo City",
+            "Imus",
+            "Iriga",
+            "Isabela City",
+            "Kabankalan",
+            "Kidapawan",
+            "Koronadal",
+            "La Carlota",
+            "Lamitan",
+            "Laoag",
+            "Lapu-Lapu",
+            "Las Piñas",
+            "Legazpi",
+            "Ligao",
+            "Lipa",
+            "Lucena",
+            "Maasin",
+            "Mabalacat",
+            "Makati",
+            "Malabon",
+            "Malaybalay",
+            "Malolos",
+            "Mandaluyong",
+            "Mandaue",
+            "Manila",
+            "Marawi",
+            "Marikina",
+            "Masbate City",
+            "Mati",
+            "Meycauayan",
+            "Muñoz",
+            "Muntinlupa",
+            "Naga",
+            "Navotas",
+            "Olongapo",
+            "Ormoc",
+            "Oroquieta",
+            "Ozamiz",
+            "Pagadian",
+            "Palayan",
+            "Panabo",
+            "Parañaque",
+            "Pasay",
+            "Pasig",
+            "Passi",
+            "Puerto Princesa",
+            "Quezon City",
+            "Roxas",
+            "Sagay",
+            "Samal",
+            "San Carlos",
+            "San Fernando",
+            "San Jose",
+            "San Jose del Monte",
+            "San Juan",
+            "San Pablo",
+            "San Pedro",
+            "Santa Rosa",
+            "Santiago",
+            "Silay",
+            "Sipalay",
+            "Sorsogon City",
+            "Surigao",
+            "Tabaco",
+            "Tabuk",
+            "Tacloban",
+            "Tacurong",
+            "Tagaytay",
+            "Tagbilaran",
+            "Taguig",
+            "Tagum",
+            "Talisay",
+            "Tanauan",
+            "Tandag",
+            "Tangub",
+            "Tanjay",
+            "Tarlac City",
+            "Tayabas",
+            "Toledo",
+            "Trece Martires",
+            "Tuguegarao",
+            "Urdaneta",
+            "Valencia",
+            "Valenzuela",
+            "Victorias",
+            "Vigan",
+            "Zamboanga City",
+
             # COMMON AREAS
-            "Mindanao", "Luzon", "Visayas", "Philippines", "Pilipinas"
+            "Mindanao",
+            "Luzon",
+            "Visayas",
+            "Philippines",
+            "Pilipinas"
         ]
 
         # First try to find exact matches of locations surrounded by spaces, to avoid partial matches
@@ -178,7 +386,7 @@ class DisasterSentimentBackend:
             # Look for the location as a whole word in the text
             if re.search(r'\b' + re.escape(loc_lower) + r'\b', text_lower):
                 return location
-        
+
         # If no exact match, try a more relaxed approach for partial matches
         for location in ph_locations:
             loc_lower = location.lower()
@@ -318,23 +526,24 @@ class DisasterSentimentBackend:
 
         # Get analysis directly from Groq API
         api_result = self.get_api_sentiment_analysis(text, language)
-        
+
         if not api_result:
             # In case of API failure, use simple disaster type and location extraction as fallback
             fallback_result = {
                 'sentiment': 'Neutral',
                 'confidence': 0.7,
                 'explanation': 'Fallback analysis due to API unavailability.',
-                'disasterType': self.extract_disaster_type(text) or "Not Specified",
+                'disasterType': self.extract_disaster_type(text)
+                or "Not Specified",
                 'location': self.extract_location(text),
                 'language': language,
                 'modelType': 'API-Fallback'
             }
             return fallback_result
-            
+
         # Add model type for tracking
         api_result['modelType'] = 'Groq-API'
-        
+
         return api_result
 
     def get_api_sentiment_analysis(self, text, language):
@@ -439,7 +648,7 @@ class DisasterSentimentBackend:
 
                     # Extract sentiment, confidence, explanation, and additional disaster info
                     sentiment_match = re.search(r'Sentiment:\s*(.*?)(?:\n|$)',
-                                                 raw_output)
+                                                raw_output)
                     confidence_match = re.search(
                         r'Confidence:\s*(\d+(?:\.\d+)?)%', raw_output)
                     explanation_match = re.search(
@@ -447,7 +656,7 @@ class DisasterSentimentBackend:
                     disaster_type_match = re.search(
                         r'DisasterType:\s*(.*?)(?:\n|$)', raw_output)
                     location_match = re.search(r'Location:\s*(.*?)(?:\n|$)',
-                                                 raw_output)
+                                               raw_output)
 
                     sentiment = None
                     if sentiment_match:
@@ -640,86 +849,102 @@ class DisasterSentimentBackend:
         # Comprehensive Philippine regions and locations
         location_keywords = {
             'NCR (Metro Manila)': [
-                'NCR', 'Metro Manila', 'Manila', 'Quezon City', 'Makati', 'Taguig', 'Pasig', 
-                'Pasay', 'Parañaque', 'Marikina', 'Mandaluyong', 'San Juan', 'Caloocan', 
-                'Navotas', 'Malabon', 'Valenzuela', 'Las Piñas', 'Muntinlupa', 'Pateros'
+                'NCR', 'Metro Manila', 'Manila', 'Quezon City', 'Makati',
+                'Taguig', 'Pasig', 'Pasay', 'Parañaque', 'Marikina',
+                'Mandaluyong', 'San Juan', 'Caloocan', 'Navotas', 'Malabon',
+                'Valenzuela', 'Las Piñas', 'Muntinlupa', 'Pateros'
             ],
             'CAR (Cordillera)': [
-                'CAR', 'Cordillera', 'Baguio', 'Benguet', 'Ifugao', 'Mountain Province',
-                'Apayao', 'Kalinga', 'Abra', 'La Trinidad', 'Mt. Province', 'Banaue'
+                'CAR', 'Cordillera', 'Baguio', 'Benguet', 'Ifugao',
+                'Mountain Province', 'Apayao', 'Kalinga', 'Abra',
+                'La Trinidad', 'Mt. Province', 'Banaue'
             ],
             'Ilocos Region': [
-                'Ilocos', 'Pangasinan', 'La Union', 'Ilocos Norte', 'Ilocos Sur', 
-                'Vigan', 'Laoag', 'Dagupan', 'San Fernando, La Union', 'Candon', 'Batac'
+                'Ilocos', 'Pangasinan', 'La Union', 'Ilocos Norte',
+                'Ilocos Sur', 'Vigan', 'Laoag', 'Dagupan',
+                'San Fernando, La Union', 'Candon', 'Batac'
             ],
             'Cagayan Valley': [
-                'Cagayan Valley', 'Cagayan', 'Isabela', 'Nueva Vizcaya', 'Quirino', 
-                'Batanes', 'Tuguegarao', 'Ilagan', 'Bayombong', 'Cabarroguis', 'Basco'
+                'Cagayan Valley', 'Cagayan', 'Isabela', 'Nueva Vizcaya',
+                'Quirino', 'Batanes', 'Tuguegarao', 'Ilagan', 'Bayombong',
+                'Cabarroguis', 'Basco'
             ],
             'Central Luzon': [
-                'Central Luzon', 'Pampanga', 'Bulacan', 'Tarlac', 'Zambales', 'Nueva Ecija',
-                'Bataan', 'Aurora', 'Angeles', 'Malolos', 'Subic', 'Olongapo', 'Balanga',
-                'San Fernando, Pampanga', 'Cabanatuan', 'Tarlac City', 'Baler'
+                'Central Luzon', 'Pampanga', 'Bulacan', 'Tarlac', 'Zambales',
+                'Nueva Ecija', 'Bataan', 'Aurora', 'Angeles', 'Malolos',
+                'Subic', 'Olongapo', 'Balanga', 'San Fernando, Pampanga',
+                'Cabanatuan', 'Tarlac City', 'Baler'
             ],
             'CALABARZON': [
-                'CALABARZON', 'Cavite', 'Laguna', 'Batangas', 'Rizal', 'Quezon',
-                'Antipolo', 'Lucena', 'Calamba', 'Lipa', 'Batangas City', 'Tagaytay',
-                'San Pablo', 'Dasmariñas', 'Bacoor', 'Imus', 'Taytay', 'Tanay', 'Rodriguez'
+                'CALABARZON', 'Cavite', 'Laguna', 'Batangas', 'Rizal',
+                'Quezon', 'Antipolo', 'Lucena', 'Calamba', 'Lipa',
+                'Batangas City', 'Tagaytay', 'San Pablo', 'Dasmariñas',
+                'Bacoor', 'Imus', 'Taytay', 'Tanay', 'Rodriguez'
             ],
             'MIMAROPA': [
                 'MIMAROPA', 'Mindoro', 'Marinduque', 'Romblon', 'Palawan',
-                'Puerto Princesa', 'Calapan', 'Boac', 'Romblon City', 'Odiongan',
-                'Mamburao', 'San Jose, Occidental Mindoro', 'Coron', 'El Nido'
+                'Puerto Princesa', 'Calapan', 'Boac', 'Romblon City',
+                'Odiongan', 'Mamburao', 'San Jose, Occidental Mindoro',
+                'Coron', 'El Nido'
             ],
             'Bicol Region': [
-                'Bicol', 'Albay', 'Camarines Sur', 'Camarines Norte', 'Sorsogon',
-                'Catanduanes', 'Masbate', 'Naga', 'Legazpi', 'Iriga', 'Sorsogon City',
-                'Virac', 'Masbate City', 'Daet', 'Bulan', 'Guinobatan'
+                'Bicol', 'Albay', 'Camarines Sur', 'Camarines Norte',
+                'Sorsogon', 'Catanduanes', 'Masbate', 'Naga', 'Legazpi',
+                'Iriga', 'Sorsogon City', 'Virac', 'Masbate City', 'Daet',
+                'Bulan', 'Guinobatan'
             ],
             'Western Visayas': [
-                'Western Visayas', 'Iloilo', 'Negros Occidental', 'Capiz', 'Aklan',
-                'Antique', 'Guimaras', 'Iloilo City', 'Bacolod', 'Roxas City',
-                'Kalibo', 'San Jose de Buenavista', 'Jordan', 'Boracay'
+                'Western Visayas', 'Iloilo', 'Negros Occidental', 'Capiz',
+                'Aklan', 'Antique', 'Guimaras', 'Iloilo City', 'Bacolod',
+                'Roxas City', 'Kalibo', 'San Jose de Buenavista', 'Jordan',
+                'Boracay'
             ],
             'Central Visayas': [
-                'Central Visayas', 'Cebu', 'Bohol', 'Negros Oriental', 'Siquijor',
-                'Cebu City', 'Mandaue', 'Lapu-Lapu', 'Tagbilaran', 'Dumaguete',
-                'Siquijor City', 'Talisay', 'Toledo', 'Bais', 'Danao'
+                'Central Visayas', 'Cebu', 'Bohol', 'Negros Oriental',
+                'Siquijor', 'Cebu City', 'Mandaue', 'Lapu-Lapu', 'Tagbilaran',
+                'Dumaguete', 'Siquijor City', 'Talisay', 'Toledo', 'Bais',
+                'Danao'
             ],
             'Eastern Visayas': [
-                'Eastern Visayas', 'Leyte', 'Samar', 'Northern Samar', 'Eastern Samar',
-                'Southern Leyte', 'Biliran', 'Tacloban', 'Ormoc', 'Calbayog', 'Catbalogan',
-                'Borongan', 'Maasin', 'Naval', 'Basey', 'Guiuan'
+                'Eastern Visayas', 'Leyte', 'Samar', 'Northern Samar',
+                'Eastern Samar', 'Southern Leyte', 'Biliran', 'Tacloban',
+                'Ormoc', 'Calbayog', 'Catbalogan', 'Borongan', 'Maasin',
+                'Naval', 'Basey', 'Guiuan'
             ],
             'Zamboanga Peninsula': [
-                'Zamboanga Peninsula', 'Zamboanga del Norte', 'Zamboanga del Sur',
-                'Zamboanga Sibugay', 'Zamboanga City', 'Dipolog', 'Pagadian',
-                'Ipil', 'Dapitan', 'Isabela, Basilan'
+                'Zamboanga Peninsula', 'Zamboanga del Norte',
+                'Zamboanga del Sur', 'Zamboanga Sibugay', 'Zamboanga City',
+                'Dipolog', 'Pagadian', 'Ipil', 'Dapitan', 'Isabela, Basilan'
             ],
             'Northern Mindanao': [
-                'Northern Mindanao', 'Misamis Oriental', 'Bukidnon', 'Misamis Occidental',
-                'Lanao del Norte', 'Camiguin', 'Cagayan de Oro', 'Malaybalay', 'Iligan',
-                'Oroquieta', 'Ozamiz', 'Gingoog', 'Valencia', 'Mambajao'
+                'Northern Mindanao', 'Misamis Oriental', 'Bukidnon',
+                'Misamis Occidental', 'Lanao del Norte', 'Camiguin',
+                'Cagayan de Oro', 'Malaybalay', 'Iligan', 'Oroquieta',
+                'Ozamiz', 'Gingoog', 'Valencia', 'Mambajao'
             ],
             'Davao Region': [
-                'Davao Region', 'Davao del Sur', 'Davao del Norte', 'Davao Oriental',
-                'Davao de Oro', 'Davao Occidental', 'Davao City', 'Tagum', 'Digos',
-                'Mati', 'Panabo', 'Samal', 'Island Garden City of Samal'
+                'Davao Region', 'Davao del Sur', 'Davao del Norte',
+                'Davao Oriental', 'Davao de Oro', 'Davao Occidental',
+                'Davao City', 'Tagum', 'Digos', 'Mati', 'Panabo', 'Samal',
+                'Island Garden City of Samal'
             ],
             'SOCCSKSARGEN': [
-                'SOCCSKSARGEN', 'South Cotabato', 'Cotabato', 'Sultan Kudarat', 'Sarangani',
-                'General Santos', 'Koronadal', 'Kidapawan', 'Tacurong', 'Alabel',
-                'North Cotabato', 'Cotabato City', 'Midsayap', 'Kabacan'
+                'SOCCSKSARGEN', 'South Cotabato', 'Cotabato', 'Sultan Kudarat',
+                'Sarangani', 'General Santos', 'Koronadal', 'Kidapawan',
+                'Tacurong', 'Alabel', 'North Cotabato', 'Cotabato City',
+                'Midsayap', 'Kabacan'
             ],
             'CARAGA': [
-                'CARAGA', 'Agusan del Norte', 'Agusan del Sur', 'Surigao del Norte',
-                'Surigao del Sur', 'Dinagat Islands', 'Butuan', 'Surigao City',
-                'Tandag', 'Bislig', 'San Jose', 'Cabadbaran', 'Bayugan', 'Prosperidad'
+                'CARAGA', 'Agusan del Norte', 'Agusan del Sur',
+                'Surigao del Norte', 'Surigao del Sur', 'Dinagat Islands',
+                'Butuan', 'Surigao City', 'Tandag', 'Bislig', 'San Jose',
+                'Cabadbaran', 'Bayugan', 'Prosperidad'
             ],
             'BARMM': [
-                'BARMM', 'Bangsamoro', 'Maguindanao', 'Lanao del Sur', 'Basilan',
-                'Sulu', 'Tawi-Tawi', 'Cotabato City', 'Marawi', 'Lamitan', 'Jolo',
-                'Bongao', 'Patikul', 'Datu Odin Sinsuat', 'Parang'
+                'BARMM', 'Bangsamoro', 'Maguindanao', 'Lanao del Sur',
+                'Basilan', 'Sulu', 'Tawi-Tawi', 'Cotabato City', 'Marawi',
+                'Lamitan', 'Jolo', 'Bongao', 'Patikul', 'Datu Odin Sinsuat',
+                'Parang'
             ]
         }
 
@@ -1052,19 +1277,23 @@ class DisasterSentimentBackend:
             try:
                 df = pd.read_csv(file_path, encoding='latin1')
             except:
-                df = pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip')
+                df = pd.read_csv(file_path,
+                                 encoding='latin1',
+                                 on_bad_lines='skip')
 
         processed_results = []
         total_records = len(df)
-        
+
         # If no text column, check for possible alternatives or use first column
         if 'text' not in df.columns:
-            possible_text_columns = ['content', 'message', 'tweet', 'post', 'description']
+            possible_text_columns = [
+                'content', 'message', 'tweet', 'post', 'description'
+            ]
             for col in possible_text_columns:
                 if col in df.columns:
                     df['text'] = df[col]
                     break
-            
+
             # If still no text column, use the first column
             if 'text' not in df.columns and len(df.columns) > 0:
                 df['text'] = df[df.columns[0]]
@@ -1072,31 +1301,41 @@ class DisasterSentimentBackend:
         report_progress(0, "Starting analysis")
 
         # Process more records, but limit to a reasonable number
-        sample_size = min(20, len(df)) # Increase sample size
-        
+        sample_size = min(20, len(df))  # Increase sample size
+
         # Allow a smaller sample set when the API is failing
         if len(df) > 0:
             df_sample = df.head(sample_size)
         else:
             # If empty file, just return empty results
-            return {"results": [], "metrics": {"accuracy": 0, "precision": 0, "recall": 0, "f1Score": 0}}
+            return {
+                "results": [],
+                "metrics": {
+                    "accuracy": 0,
+                    "precision": 0,
+                    "recall": 0,
+                    "f1Score": 0
+                }
+            }
 
         # Check if we should use API or rule-based approach based on sample size
         use_api_for_all = sample_size <= 5  # Use API only for very small files
-        
+
         for index, row in df_sample.iterrows():
             try:
                 text = str(row.get('text', ''))
                 if not text.strip():  # Skip empty text
                     continue
-                    
-                timestamp = row.get('timestamp',
-                                   datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+                timestamp = row.get(
+                    'timestamp',
+                    datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                 source = row.get('source', 'CSV Import')
 
                 # Report progress for every record
-                report_progress(index, f"Processing record {index+1}/{sample_size}")
-                
+                report_progress(index,
+                                f"Processing record {index+1}/{sample_size}")
+
                 # For larger files, use rule-based approach directly for most records
                 # Only use API for a few records to maintain quality without hitting rate limits
                 if not use_api_for_all and index > 3:
@@ -1105,11 +1344,12 @@ class DisasterSentimentBackend:
                     location = self.extract_location(text)
                     language = self.detect_language(text)
                     sentiment_result = self.rule_based_sentiment_analysis(text)
-                    
+
                     analysis_result = {
                         'sentiment': sentiment_result['sentiment'],
                         'confidence': 0.75,
-                        'explanation': f'Rule-based analysis: {sentiment_result.get("explanation", "")}',
+                        'explanation':
+                        f'Rule-based analysis: {sentiment_result.get("explanation", "")}',
                         'language': language,
                         'disasterType': disaster_type,
                         'location': location,
@@ -1120,25 +1360,27 @@ class DisasterSentimentBackend:
                     # Add short delay between API calls
                     if index > 0:
                         time.sleep(0.2)
-                        
+
                     # First attempt API analysis
                     analysis_result = self.analyze_sentiment(text)
-                    
+
                     # If API failed, use rule-based analysis as fallback
                     if not analysis_result:
                         # Extract relevant information from text
                         disaster_type = self.extract_disaster_type(text)
                         location = self.extract_location(text)
                         language = self.detect_language(text)
-                        
+
                         # Simple rule-based sentiment classification
-                        sentiment_result = self.rule_based_sentiment_analysis(text)
-                        
+                        sentiment_result = self.rule_based_sentiment_analysis(
+                            text)
+
                         # Create a fallback result
                         analysis_result = {
                             'sentiment': sentiment_result['sentiment'],
                             'confidence': 0.7,
-                            'explanation': f'Fallback analysis: {sentiment_result.get("explanation", "")}',
+                            'explanation':
+                            f'Fallback analysis: {sentiment_result.get("explanation", "")}',
                             'language': language,
                             'disasterType': disaster_type,
                             'location': location,
@@ -1147,16 +1389,26 @@ class DisasterSentimentBackend:
 
                 # Process result with standardized fields and better null handling
                 processed_results.append({
-                    'text': text,
-                    'timestamp': timestamp,
-                    'source': source,
-                    'language': analysis_result['language'],
-                    'sentiment': analysis_result['sentiment'],
-                    'confidence': analysis_result['confidence'],
-                    'explanation': analysis_result['explanation'],
-                    'disasterType': analysis_result.get('disasterType', "Not Specified"),
-                    'location': analysis_result.get('location', None),
-                    'modelType': analysis_result.get('modelType', "Hybrid Analysis")
+                    'text':
+                    text,
+                    'timestamp':
+                    timestamp,
+                    'source':
+                    source,
+                    'language':
+                    analysis_result['language'],
+                    'sentiment':
+                    analysis_result['sentiment'],
+                    'confidence':
+                    analysis_result['confidence'],
+                    'explanation':
+                    analysis_result['explanation'],
+                    'disasterType':
+                    analysis_result.get('disasterType', "Not Specified"),
+                    'location':
+                    analysis_result.get('location', None),
+                    'modelType':
+                    analysis_result.get('modelType', "Hybrid Analysis")
                 })
             except Exception as e:
                 logging.error(f"Error processing record {index}: {str(e)}")
@@ -1232,69 +1484,90 @@ def main():
                     # First try standard read
                     df = pd.read_csv(args.file)
                 except Exception as csv_error:
-                    logging.warning(f"Standard CSV read failed: {csv_error}. Trying with different encoding...")
+                    logging.warning(
+                        f"Standard CSV read failed: {csv_error}. Trying with different encoding..."
+                    )
                     try:
                         # Try with different encoding
                         df = pd.read_csv(args.file, encoding='latin1')
                     except Exception:
                         # Try with more flexible parsing
-                        df = pd.read_csv(args.file, encoding='latin1', on_bad_lines='skip')
-                
+                        df = pd.read_csv(args.file,
+                                         encoding='latin1',
+                                         on_bad_lines='skip')
+
                 # Make sure we have the required columns
                 if 'text' not in df.columns:
                     # If no text column, check for possible alternatives
-                    possible_text_columns = ['content', 'message', 'tweet', 'post', 'description']
+                    possible_text_columns = [
+                        'content', 'message', 'tweet', 'post', 'description'
+                    ]
                     for col in possible_text_columns:
                         if col in df.columns:
                             df['text'] = df[col]
                             break
-                    
+
                     # If still no text column, use the first column
                     if 'text' not in df.columns and len(df.columns) > 0:
                         df['text'] = df[df.columns[0]]
-                
+
                 # Make sure we have timestamp and source columns
                 if 'timestamp' not in df.columns:
                     df['timestamp'] = datetime.now().isoformat()
-                
+
                 if 'source' not in df.columns:
                     df['source'] = 'CSV Import'
 
-                total_records = min(len(df), 50)  # Process maximum 50 records for testing
+                total_records = min(
+                    len(df), 50)  # Process maximum 50 records for testing
                 processed = 0
                 results = []
 
                 report_progress(processed, "Starting analysis")
-                
+
                 # Process records one by one with delay between requests
                 for i in range(total_records):
                     try:
                         row = df.iloc[i]
                         text = str(row.get('text', ''))
-                        timestamp = row.get('timestamp', datetime.now().isoformat())
+                        timestamp = row.get('timestamp',
+                                            datetime.now().isoformat())
                         source = row.get('source', 'CSV Import')
 
                         if text.strip():  # Only process non-empty text
                             # Add delay between requests to avoid rate limits
                             if i > 0 and i % 3 == 0:
-                                time.sleep(1.5)  # 1.5 second delay every 3 items
-                            
+                                time.sleep(
+                                    1.5)  # 1.5 second delay every 3 items
+
                             result = backend.analyze_sentiment(text)
                             results.append({
-                                'text': text,
-                                'timestamp': timestamp,
-                                'source': source,
-                                'language': result.get('language', 'en'),
-                                'sentiment': result.get('sentiment', 'Neutral'),
-                                'confidence': result.get('confidence', 0.0),
-                                'explanation': result.get('explanation', ''),
-                                'disasterType': result.get('disasterType', 'Not Specified'),
-                                'location': result.get('location')
+                                'text':
+                                text,
+                                'timestamp':
+                                timestamp,
+                                'source':
+                                source,
+                                'language':
+                                result.get('language', 'en'),
+                                'sentiment':
+                                result.get('sentiment', 'Neutral'),
+                                'confidence':
+                                result.get('confidence', 0.0),
+                                'explanation':
+                                result.get('explanation', ''),
+                                'disasterType':
+                                result.get('disasterType', 'Not Specified'),
+                                'location':
+                                result.get('location')
                             })
-                            
-                            # Report individual progress 
+
+                            # Report individual progress
                             processed += 1
-                            report_progress(processed, f"Analyzing records ({processed}/{total_records})")
+                            report_progress(
+                                processed,
+                                f"Analyzing records ({processed}/{total_records})"
+                            )
                     except Exception as row_error:
                         logging.error(f"Error processing row {i}: {row_error}")
                         continue
@@ -1310,26 +1583,22 @@ def main():
                         'f1Score': 0.84
                     }
 
-                print(json.dumps({
-                    'results': results,
-                    'metrics': metrics
-                }))
+                print(json.dumps({'results': results, 'metrics': metrics}))
                 sys.stdout.flush()
 
             except Exception as file_error:
                 logging.error(f"Error processing file: {file_error}")
-                print(json.dumps({
-                    'error': str(file_error),
-                    'type': 'file_processing_error'
-                }))
+                print(
+                    json.dumps({
+                        'error': str(file_error),
+                        'type': 'file_processing_error'
+                    }))
                 sys.stdout.flush()
     except Exception as e:
         logging.error(f"Main processing error: {e}")
-        print(json.dumps({
-            'error': str(e),
-            'type': 'general_error'
-        }))
+        print(json.dumps({'error': str(e), 'type': 'general_error'}))
         sys.stdout.flush()
+
 
 if __name__ == "__main__":
     main()
