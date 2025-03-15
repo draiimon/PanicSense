@@ -61,22 +61,17 @@ export class PythonService {
     try {
       log(`Processing CSV file: ${originalFilename}`, 'python-service');
       
-      // Run the Python script with retries
-      let attempt = 0;
+      // Run the Python script only once - Python script will use key rotation
+      // to handle rate limit issues internally
       let result;
-      while (attempt < this.maxRetries) {
-        try {
-          result = await this.runPythonScript(tempFilePath, '', onProgress);
-          break;
-        } catch (error) {
-          attempt++;
-          log(`Attempt ${attempt} failed: ${error}`, 'python-service');
-          if (attempt === this.maxRetries) throw error;
-          await new Promise(resolve => setTimeout(resolve, this.retryDelay));
-        }
+      try {
+        result = await this.runPythonScript(tempFilePath, '', onProgress);
+      } catch (error) {
+        log(`CSV processing failed: ${error}`, 'python-service');
+        throw new Error(`Failed to process CSV file: ${error}`);
       }
 
-      if (!result) throw new Error('Failed to process CSV file after retries');
+      if (!result) throw new Error('Failed to process CSV file');
 
       const data = JSON.parse(result) as ProcessCSVResult;
       
@@ -117,9 +112,8 @@ export class PythonService {
     disasterType?: string;
     location?: string;
   }> {
-    // Run the Python script with retries
-    let attempt = 0;
-    let result;
+    // Run the Python script only once - don't retry
+    // The Python script itself will manage key rotation to handle rate limits
     
     // Create a JSON object with the parameters
     const params = {
@@ -131,21 +125,14 @@ export class PythonService {
     
     const paramsJson = JSON.stringify(params);
     
-    while (attempt < this.maxRetries) {
-      try {
-        // We pass the JSON parameters as the text parameter
-        result = await this.runPythonScript('', paramsJson);
-        break;
-      } catch (error) {
-        attempt++;
-        log(`Sentiment analysis attempt ${attempt} failed: ${error}`, 'python-service');
-        if (attempt === this.maxRetries) throw error;
-        await new Promise(resolve => setTimeout(resolve, this.retryDelay));
-      }
+    try {
+      // We pass the JSON parameters as the text parameter
+      const result = await this.runPythonScript('', paramsJson);
+      return JSON.parse(result);
+    } catch (error) {
+      log(`Sentiment analysis failed: ${error}`, 'python-service');
+      throw new Error(`Failed to analyze sentiment: ${error}`);
     }
-
-    if (!result) throw new Error('Failed to analyze sentiment after retries');
-    return JSON.parse(result);
   }
 
   private runPythonScript(
