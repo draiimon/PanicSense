@@ -36,7 +36,6 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
   const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard');
   const [mapZoom, setMapZoom] = useState(6);
   const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
-  const [selectedRegions, setSelectedRegions] = useState<Region[]>([]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !mapRef.current || mapInstanceRef.current) return;
@@ -123,23 +122,21 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
 
       // Add new markers
       regions.forEach(region => {
-        // Choose color based on the colorBy preference
         const color = colorBy === 'disasterType' && region.disasterType
           ? getDisasterTypeColor(region.disasterType)
           : getSentimentColor(region.sentiment);
 
-        // Calculate radius based on intensity (min 10, max 50)
         const radius = 10 + (region.intensity / 100) * 40;
 
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
           fillOpacity: 0.7,
-          radius: radius * 100, // Radius for visualization
-          weight: 2, // Border width
+          radius: radius * 1000, // Convert to meters
+          weight: 2,
         }).addTo(mapInstanceRef.current);
 
-        // Create custom popup with enhanced styling
+        // Create custom popup
         let popupContent = `
           <div style="font-family: system-ui, sans-serif; padding: 8px;">
             <h3 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 600;">${region.name}</h3>
@@ -189,11 +186,6 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
         circle.on('click', () => {
           if (onRegionSelect) {
             onRegionSelect(region);
-
-            // Add to selected regions (avoiding duplicates)
-            if (!selectedRegions.some(r => r.name === region.name)) {
-              setSelectedRegions(prev => [...prev.slice(-2), region]); // Keep last 3
-            }
           }
         });
 
@@ -206,13 +198,6 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
           .setLatLng([12.8797, 121.7740])
           .setContent(`
             <div style="font-family: system-ui, sans-serif; padding: 8px; text-align: center;">
-              <div style="color: #f97316; margin-bottom: 8px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="8" x2="12" y2="12"></line>
-                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-              </div>
               <span style="font-size: 14px; color: #4b5563;">No geographic data available for this region</span>
             </div>
           `)
@@ -220,57 +205,36 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
 
         markersRef.current.push(message);
       }
-
-      // Ensure custom style is applied
-      const style = document.createElement('style');
-      style.textContent = `
-        .custom-popup .leaflet-popup-content-wrapper {
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        .custom-popup .leaflet-popup-tip {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-      `;
-      document.head.appendChild(style);
-
-      return () => {
-        document.head.removeChild(style);
-      };
     });
   }, [regions, onRegionSelect, colorBy]);
 
   return (
     <Card className="bg-white rounded-lg shadow-md border border-slate-200">
       <CardContent className="p-0 overflow-hidden relative">
-        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-          <Button 
-            size="icon" 
-            variant="outline" 
-            className="h-8 w-8 bg-white shadow-md hover:bg-slate-50"
-            onClick={() => mapInstanceRef.current?.zoomIn()}
-          >
-            <span className="text-lg font-medium">+</span>
-          </Button>
-          <Button 
-            size="icon" 
-            variant="outline" 
-            className="h-8 w-8 bg-white shadow-md hover:bg-slate-50"
-            onClick={() => mapInstanceRef.current?.zoomOut()}
-          >
-            <span className="text-lg font-medium">−</span>
-          </Button>
-        </div>
+        {/* Control buttons container with higher z-index */}
+        <div className="absolute top-4 right-4 z-50 flex items-start gap-4">
+          {/* Zoom controls */}
+          <div className="flex flex-col gap-2">
+            <Button 
+              size="icon" 
+              variant="secondary"
+              className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
+              onClick={() => mapInstanceRef.current?.zoomIn()}
+            >
+              <span className="text-lg font-medium">+</span>
+            </Button>
+            <Button 
+              size="icon" 
+              variant="secondary"
+              className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
+              onClick={() => mapInstanceRef.current?.zoomOut()}
+            >
+              <span className="text-lg font-medium">−</span>
+            </Button>
+          </div>
 
-        {/* Map Container */}
-        <div 
-          ref={mapRef} 
-          className="h-[500px] w-full bg-slate-50"
-        />
-
-        {/* Map Type Toggle */}
-        <div className="absolute top-4 right-4 z-10">
-          <div className="bg-white rounded-lg shadow-md p-1 flex">
+          {/* Map Type Toggle */}
+          <div className="bg-white rounded-lg shadow-lg p-1 flex">
             <Button
               size="sm"
               variant={mapView === 'standard' ? 'default' : 'outline'}
@@ -291,6 +255,12 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
             </Button>
           </div>
         </div>
+
+        {/* Map Container */}
+        <div 
+          ref={mapRef} 
+          className="h-[500px] w-full bg-slate-50"
+        />
 
         {/* Footer Stats */}
         <div className="p-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-600">
