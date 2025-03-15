@@ -94,7 +94,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <User className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600">John Doe</span>
+                <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600">Mark Andrei</span>
               </div>
               <Button 
                 variant="outline" 
