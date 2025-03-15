@@ -22,13 +22,23 @@ export default function Dashboard() {
     isLoadingSentimentPosts = false
   } = useDisasterContext();
 
+  // Filter out "Not specified" and generic "Philippines" locations
+  const filteredPosts = sentimentPosts.filter(post => {
+    const location = post.location?.toLowerCase();
+    return location && 
+           location !== 'not specified' && 
+           location !== 'philippines' &&
+           location !== 'pilipinas' &&
+           location !== 'pinas';
+  });
+
   const sentimentData = {
     labels: ['Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'],
     values: [0, 0, 0, 0, 0]
   };
 
-  // Count sentiments
-  sentimentPosts.forEach(post => {
+  // Count sentiments from filtered posts
+  filteredPosts.forEach(post => {
     const index = sentimentData.labels.indexOf(post.sentiment);
     if (index !== -1) {
       sentimentData.values[index]++;
@@ -70,6 +80,7 @@ export default function Dashboard() {
             isUpward: true,
             label: "from last week"
           }}
+          isLoading={isLoadingSentimentPosts}
         />
         <StatusCard 
           title="Analyzed Posts"
@@ -80,6 +91,7 @@ export default function Dashboard() {
             isUpward: true,
             label: "increase in analysis"
           }}
+          isLoading={isLoadingSentimentPosts}
         />
         <StatusCard 
           title="Dominant Sentiment"
@@ -90,6 +102,7 @@ export default function Dashboard() {
             isUpward: null,
             label: "sentiment trend"
           }}
+          isLoading={isLoadingSentimentPosts}
         />
         <StatusCard 
           title="Model Confidence"
@@ -100,6 +113,7 @@ export default function Dashboard() {
             isUpward: true,
             label: "accuracy improvement"
           }}
+          isLoading={isLoadingSentimentPosts}
         />
       </motion.div>
 
@@ -115,10 +129,13 @@ export default function Dashboard() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <AffectedAreasCard sentimentPosts={sentimentPosts} />
+            <AffectedAreasCard 
+              sentimentPosts={filteredPosts} 
+              isLoading={isLoadingSentimentPosts}
+            />
           </motion.div>
         </div>
-        
+
         <div className="lg:col-span-2">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -131,7 +148,10 @@ export default function Dashboard() {
                 <CardTitle className="text-lg font-semibold">Sentiment Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                <OptimizedSentimentChart data={sentimentData} />
+                <OptimizedSentimentChart 
+                  data={sentimentData}
+                  isLoading={isLoadingSentimentPosts}
+                />
               </CardContent>
             </Card>
 
@@ -140,7 +160,11 @@ export default function Dashboard() {
                 <CardTitle className="text-lg font-semibold">Recent Posts</CardTitle>
               </CardHeader>
               <CardContent>
-                <RecentPostsTable posts={sentimentPosts} limit={5} />
+                <RecentPostsTable 
+                  posts={filteredPosts} 
+                  limit={5}
+                  isLoading={isLoadingSentimentPosts}
+                />
               </CardContent>
             </Card>
           </motion.div>

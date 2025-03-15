@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import Chart from 'chart.js/auto';
 import { sentimentColors } from '@/lib/colors';
 import { motion } from 'framer-motion';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface SentimentChartProps {
   data: {
@@ -13,12 +14,14 @@ interface SentimentChartProps {
   };
   type?: 'doughnut' | 'bar' | 'line';
   height?: string;
+  isLoading?: boolean;
 }
 
 export function OptimizedSentimentChart({ 
   data,
   type = 'doughnut',
-  height = '300px'
+  height = '300px',
+  isLoading = false
 }: SentimentChartProps) {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
@@ -49,7 +52,7 @@ export function OptimizedSentimentChart({
       responsive: true,
       maintainAspectRatio: false,
       animation: {
-        duration: 800, // slower animations to reduce flickering
+        duration: 800,
         easing: 'easeOutQuart' as const
       },
       plugins: {
@@ -111,24 +114,24 @@ export function OptimizedSentimentChart({
 
   // Update chart instead of recreating when possible
   useEffect(() => {
-    if (!chartRef.current) return;
-    
+    if (isLoading || !chartRef.current) return;
+
     const ctx = chartRef.current.getContext('2d');
     if (!ctx) return;
-    
+
     // If chart exists, update data instead of destroying
     if (chartInstance.current) {
       chartInstance.current.data.labels = data.labels;
       chartInstance.current.data.datasets[0].data = data.values;
       chartInstance.current.data.datasets[0].backgroundColor = colors;
-      
+
       if (type === 'line') {
         chartInstance.current.data.datasets[0].borderColor = colors;
       } else {
         chartInstance.current.data.datasets[0].borderColor = Array(data.labels.length).fill('rgba(255, 255, 255, 0.8)');
       }
-      
-      chartInstance.current.update('none'); // update without animation first time
+
+      chartInstance.current.update('none');
       return;
     }
 
@@ -163,7 +166,22 @@ export function OptimizedSentimentChart({
         chartInstance.current = null;
       }
     };
-  }, [data, colors, type, chartOptions]);
+  }, [data, colors, type, chartOptions, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div style={{ height }} className="flex items-center justify-center">
+        <div className="space-y-4 w-full">
+          <Skeleton className="h-[200px] w-full bg-gray-200" />
+          <div className="flex justify-center space-x-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-4 w-20 bg-gray-200" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div 
