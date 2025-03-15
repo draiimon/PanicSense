@@ -463,70 +463,103 @@ class DisasterSentimentBackend:
             # Remember that we tried this key
             self.tried_keys.add(self.current_api_index)
             
+            # Log which key we're using
+            logging.info(f"Attempting API request with key {self.current_api_index + 1}/{len(self.groq_api_keys)}")
+            
             response = requests.post(self.api_url,
                                      headers=headers,
-                                     json=payload)
+                                     json=payload,
+                                     timeout=30)  # Add timeout to prevent hanging requests
+            
+            # Check status code
             response.raise_for_status()
-            logging.info(f"Successfully used API key {self.current_api_index + 1}")
+            
+            # Increment success counter for this key
+            self.key_success_count[self.current_api_index] = self.key_success_count.get(self.current_api_index, 0) + 1
+            logging.info(f"Successfully used API key {self.current_api_index + 1} (total successes: {self.key_success_count[self.current_api_index]})")
             
             # Save this key as the last successful key
             self.last_successful_key = self.current_api_index
             
-            # Rotate to next key for load balancing
-            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+            # Rotate to next key for load balancing (ensure we don't use a key that's failed too many times)
+            self._rotate_to_next_available_key()
             
+            # Parse and return the JSON response
             return response.json()
+            
         except requests.exceptions.RequestException as e:
-            # Always rotate to the next key on any kind of error
-            prev_index = self.current_api_index
+            # Make note of the key that failed
+            failed_key_index = self.current_api_index
             
-            # Try to use keys that haven't been tried in this sequence first
-            for i in range(len(self.groq_api_keys)):
-                next_index = (self.current_api_index + i) % len(self.groq_api_keys)
-                if next_index not in self.tried_keys:
-                    self.current_api_index = next_index
-                    break
-            else:
-                # If all keys tried, just move to the next one
-                self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+            # Rotate to a different key
+            self._rotate_to_next_available_key()
             
+            # Handle different types of request exceptions
             if hasattr(e, 'response') and e.response:
-                if e.response.status_code == 429:
-                    delay = min(self.base_delay * (2 ** retry_count), self.max_delay)
-                    logging.warning(
-                        f"API key {prev_index + 1} rate limited. Waiting {delay}s before retry."
-                    )
-                    time.sleep(delay)
-                    if retry_count >= self.max_retries:
-                        self.failed_keys.add(prev_index)
-                elif e.response.status_code == 401:
-                    logging.warning(
-                        f"API key {prev_index + 1} unauthorized. Switching to key {self.current_api_index + 1}/{len(self.groq_api_keys)}"
-                    )
-                else:
-                    logging.error(f"API Error with key {prev_index + 1}: {e}")
-                    time.sleep(self.retry_delay)
-            else:
-                logging.error(f"Request error with key {prev_index + 1}: {e}")
-                time.sleep(self.retry_delay)
+                status_code = e.response.status_code
                 
-            # Keep retrying with different keys as long as we haven't exceeded max retries
-            # and we haven't tried all keys
-            if retry_count < self.max_retries * len(self.groq_api_keys) and len(self.tried_keys) < len(self.groq_api_keys):
-                return self.fetch_groq(headers, payload, retry_count + 1)
-            else:
-                logging.error(f"Max retries exceeded after trying all {len(self.groq_api_keys)} API keys.")
-                return None
-        except Exception as e:
-            logging.error(f"Unexpected error: {e}")
-            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
-            time.sleep(self.retry_delay)
+                if status_code == 429:  # Rate limit
+                    delay = min(self.base_delay * (2 ** retry_count), self.max_delay)
+                    logging.warning(f"API key {failed_key_index + 1} rate limited (429). Switching to key {self.current_api_index + 1}. Will retry after {delay}s.")
+                    time.sleep(delay)
+                elif status_code == 401:  # Unauthorized
+                    logging.warning(f"API key {failed_key_index + 1} unauthorized (401). Marking as failed and switching to key {self.current_api_index + 1}.")
+                    self.failed_keys.add(failed_key_index)  # Mark this key as completely failed
+                elif status_code >= 500:  # Server errors
+                    logging.warning(f"API server error ({status_code}) with key {failed_key_index + 1}. Switching to key {self.current_api_index + 1}.")
+                    time.sleep(self.base_delay)  # Short delay for server errors
+                else:  # Other HTTP errors
+                    logging.error(f"API Error ({status_code}) with key {failed_key_index + 1}: {str(e)}. Switching to key {self.current_api_index + 1}.")
+                    time.sleep(1)  # Small delay
+            else:  # Network or timeout errors
+                logging.error(f"Network error with key {failed_key_index + 1}: {str(e)}. Switching to key {self.current_api_index + 1}.")
+                time.sleep(2)  # Slightly longer delay for network issues
             
-            if retry_count < self.max_retries * len(self.groq_api_keys):
+            # Only retry if we haven't tried all keys and haven't exceeded our retry limit
+            keys_available = len(self.groq_api_keys) - len(self.failed_keys)
+            if keys_available > 0 and retry_count < self.max_retries * keys_available:
+                logging.info(f"Retrying with key {self.current_api_index + 1} (attempt {retry_count + 1}/{self.max_retries * keys_available})")
                 return self.fetch_groq(headers, payload, retry_count + 1)
             else:
-                logging.error("Max retries exceeded for request error.")
+                if keys_available == 0:
+                    logging.error("All API keys have failed. Falling back to rule-based analysis.")
+                else:
+                    logging.error(f"Max retries ({self.max_retries * keys_available}) exceeded. Falling back to rule-based analysis.")
                 return None
+                
+        except Exception as e:
+            # For any other unexpected errors
+            logging.error(f"Unexpected error with key {self.current_api_index + 1}: {str(e)}")
+            
+            # Rotate to a different key
+            self._rotate_to_next_available_key()
+            
+            # Only retry if we haven't exceeded our retry limit
+            if retry_count < self.max_retries:
+                logging.info(f"Retrying after unexpected error (attempt {retry_count + 1}/{self.max_retries})")
+                time.sleep(1)  # Short delay
+                return self.fetch_groq(headers, payload, retry_count + 1)
+            else:
+                logging.error("Max retries exceeded after unexpected errors. Falling back to rule-based analysis.")
+                return None
+                
+    def _rotate_to_next_available_key(self):
+        """Helper method to rotate to the next available API key, skipping any that are known to have failed"""
+        # Start with the next key in sequence
+        original_index = self.current_api_index
+        next_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+        
+        # If we have a last successful key and we've gone through all options, prefer that one
+        if self.last_successful_key is not None and next_index == original_index:
+            self.current_api_index = self.last_successful_key
+            return
+            
+        # If the next key is in the failed keys set, keep looking
+        while next_index in self.failed_keys and next_index != original_index:
+            next_index = (next_index + 1) % len(self.groq_api_keys)
+            
+        # Update the current index
+        self.current_api_index = next_index
 
     def detect_language(self, text):
         """
@@ -1762,126 +1795,77 @@ def main():
             print(json.dumps(result))
             sys.stdout.flush()
         elif args.file:
-            # Process CSV file
+            # Process CSV file using the process_csv method
             try:
-                # Try different CSV reading strategies
-                try:
-                    # First try standard read
-                    df = pd.read_csv(args.file)
-                except Exception as csv_error:
-                    logging.warning(
-                        f"Standard CSV read failed: {csv_error}. Trying with different encoding..."
-                    )
-                    try:
-                        # Try with different encoding
-                        df = pd.read_csv(args.file, encoding='latin1')
-                    except Exception:
-                        # Try with more flexible parsing
-                        df = pd.read_csv(args.file,
-                                         encoding='latin1',
-                                         on_bad_lines='skip')
-
-                # Make sure we have the required columns
-                if 'text' not in df.columns:
-                    # If no text column, check for possible alternatives
-                    possible_text_columns = [
-                        'content', 'message', 'tweet', 'post', 'description'
-                    ]
-                    for col in possible_text_columns:
-                        if col in df.columns:
-                            df['text'] = df[col]
-                            break
-
-                    # If still no text column, use the first column
-                    if 'text' not in df.columns and len(df.columns) > 0:
-                        df['text'] = df[df.columns[0]]
-
-                # Make sure we have timestamp and source columns
-                if 'timestamp' not in df.columns:
-                    df['timestamp'] = datetime.now().isoformat()
-
-                if 'source' not in df.columns:
-                    df['source'] = 'CSV Import'
-
-                total_records = min(
-                    len(df), 50)  # Process maximum 50 records for testing
-                processed = 0
-                results = []
-
-                report_progress(processed, "Starting analysis")
-
-                # Process records one by one with delay between requests
-                for i in range(total_records):
-                    try:
-                        row = df.iloc[i]
-                        text = str(row.get('text', ''))
-                        timestamp = row.get('timestamp',
-                                            datetime.now().isoformat())
-                        source = row.get('source', 'CSV Import')
-
-                        if text.strip():  # Only process non-empty text
-                            # Add delay between requests to avoid rate limits
-                            if i > 0 and i % 3 == 0:
-                                time.sleep(
-                                    1.5)  # 1.5 second delay every 3 items
-
-                            result = backend.analyze_sentiment(text)
-                            results.append({
-                                'text':
-                                text,
-                                'timestamp':
-                                timestamp,
-                                'source':
-                                source,
-                                'language':
-                                result.get('language', 'en'),
-                                'sentiment':
-                                result.get('sentiment', 'Neutral'),
-                                'confidence':
-                                result.get('confidence', 0.0),
-                                'explanation':
-                                result.get('explanation', ''),
-                                'disasterType':
-                                result.get('disasterType', 'Not Specified'),
-                                'location':
-                                result.get('location')
-                            })
-
-                            # Report individual progress
-                            processed += 1
-                            report_progress(
-                                processed,
-                                f"Analyzing records ({processed}/{total_records})"
-                            )
-                    except Exception as row_error:
-                        logging.error(f"Error processing row {i}: {row_error}")
-                        continue
-
-                # Get real metrics if we have results
-                if results:
-                    metrics = backend.calculate_real_metrics(results)
+                # Process the CSV file using our dedicated method that handles API rotation
+                logging.info(f"Processing CSV file: {args.file}")
+                
+                processed_results = backend.process_csv(args.file)
+                
+                # If we have results, calculate metrics
+                if processed_results and len(processed_results) > 0:
+                    metrics = backend.calculate_real_metrics(processed_results)
+                    
+                    # Ensure we have valid data in processed_results
+                    for i, result in enumerate(processed_results):
+                        # Make sure all entries have required fields
+                        if 'sentiment' not in result or not result['sentiment']:
+                            processed_results[i]['sentiment'] = 'Neutral'
+                        if 'confidence' not in result or not result['confidence']:
+                            processed_results[i]['confidence'] = 0.7
+                        if 'disasterType' not in result or not result['disasterType']:
+                            processed_results[i]['disasterType'] = 'Not Specified'
+                    
+                    logging.info(f"Successfully processed {len(processed_results)} records from CSV")
+                    
+                    # Return the results and metrics as a JSON object
+                    print(json.dumps({'results': processed_results, 'metrics': metrics}))
+                    sys.stdout.flush()
                 else:
-                    metrics = {
-                        'accuracy': 0.85,
-                        'precision': 0.83,
-                        'recall': 0.82,
-                        'f1Score': 0.84
-                    }
-
-                print(json.dumps({'results': results, 'metrics': metrics}))
-                sys.stdout.flush()
-
-            except Exception as file_error:
-                logging.error(f"Error processing file: {file_error}")
-                print(
-                    json.dumps({
-                        'error': str(file_error),
-                        'type': 'file_processing_error'
+                    # If no results were produced, return a warning with empty arrays
+                    logging.warning("No results were produced from CSV processing")
+                    print(json.dumps({
+                        'results': [], 
+                        'metrics': {
+                            'accuracy': 0.0,
+                            'precision': 0.0,
+                            'recall': 0.0,
+                            'f1Score': 0.0
+                        }
                     }))
+                    sys.stdout.flush()
+                    
+            except Exception as file_error:
+                logging.error(f"Error processing file: {str(file_error)}")
+                # Ensure we always return valid JSON even on error
+                error_response = {
+                    'error': str(file_error),
+                    'type': 'file_processing_error',
+                    'results': [],
+                    'metrics': {
+                        'accuracy': 0.0,
+                        'precision': 0.0,
+                        'recall': 0.0,
+                        'f1Score': 0.0
+                    }
+                }
+                print(json.dumps(error_response))
                 sys.stdout.flush()
     except Exception as e:
-        logging.error(f"Main processing error: {e}")
-        print(json.dumps({'error': str(e), 'type': 'general_error'}))
+        logging.error(f"Main processing error: {str(e)}")
+        # Ensure we always return valid JSON even on general error
+        error_response = {
+            'error': str(e),
+            'type': 'general_error',
+            'results': [],
+            'metrics': {
+                'accuracy': 0.0,
+                'precision': 0.0,
+                'recall': 0.0,
+                'f1Score': 0.0
+            }
+        }
+        print(json.dumps(error_response))
         sys.stdout.flush()
 
 
