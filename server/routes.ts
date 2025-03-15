@@ -417,19 +417,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateProgress
       );
 
+      // Filter out non-disaster content using the same strict validation as real-time analysis
+      const filteredResults = data.results.filter(post => {
+        const isNonDisasterInput = post.text.length < 9 || 
+                                  !post.explanation || 
+                                  post.disasterType === "Not Specified" ||
+                                  !post.disasterType ||
+                                  post.text.match(/^[!?.,;:*\s]+$/);
+
+        return !isNonDisasterInput;
+      });
+
+      // Log the filtering results
+      console.log(`Filtered ${data.results.length - filteredResults.length} non-disaster posts out of ${data.results.length} total posts`, 'routes');
+
       // Save the analyzed file record
       const analyzedFile = await storage.createAnalyzedFile(
         insertAnalyzedFileSchema.parse({
           originalName: originalFilename,
           storedName: storedFilename,
-          recordCount: recordCount,
+          recordCount: filteredResults.length, // Update to use filtered count
           evaluationMetrics: data.metrics
         })
       );
 
-      // Save all sentiment posts
+      // Save only the filtered sentiment posts
       const sentimentPosts = await Promise.all(
-        data.results.map(post => 
+        filteredResults.map(post => 
           storage.createSentimentPost(
             insertSentimentPostSchema.parse({
               text: post.text,
