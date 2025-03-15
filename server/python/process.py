@@ -1942,11 +1942,33 @@ def main():
                                     sanitized_result[key] = "<non-serializable>"
                         sanitized_results.append(sanitized_result)
                     
-                    # Generate safe JSON output with clean data
+                    # Prepare minimal safe output in a fixed, predictable structure
+                    results_output = []
+                    for result in sanitized_results:
+                        # Ensure each result has consistent fields with default values
+                        safe_result = {
+                            "text": result.get("text", ""),
+                            "timestamp": result.get("timestamp", ""),
+                            "source": result.get("source", ""),
+                            "language": result.get("language", "en"),
+                            "sentiment": result.get("sentiment", "Neutral"),
+                            "confidence": float(result.get("confidence", 0.5)),
+                            "explanation": result.get("explanation", ""),
+                            "disasterType": result.get("disasterType", ""),
+                            "location": result.get("location", "")
+                        }
+                        results_output.append(safe_result)
+                    
+                    # Generate safe JSON output with minimal, clean data
                     output = json.dumps({
-                        'results': sanitized_results, 
-                        'metrics': metrics
-                    }, ensure_ascii=True, default=str)
+                        'results': results_output, 
+                        'metrics': {
+                            'accuracy': float(metrics.get('accuracy', 0.0)),
+                            'precision': float(metrics.get('precision', 0.0)),
+                            'recall': float(metrics.get('recall', 0.0)),
+                            'f1Score': float(metrics.get('f1Score', 0.0))
+                        }
+                    }, ensure_ascii=True)
                     
                     # Log the first few characters for debugging
                     logging.info(f"JSON Output Preview: {output[:100]}...")
@@ -1956,34 +1978,34 @@ def main():
                     sys.stdout.flush()
                 except Exception as json_error:
                     logging.error(f"Error generating JSON output: {json_error}")
-                    # Fallback to minimal safe output
+                    # Provide consistent output format even in error case
                     print(json.dumps({
                         'results': [],
-                        'metrics': {'accuracy': 0, 'precision': 0, 'recall': 0, 'f1Score': 0},
-                        'error': f"JSON encoding error: {str(json_error)}"
-                    }))
+                        'metrics': {'accuracy': 0.0, 'precision': 0.0, 'recall': 0.0, 'f1Score': 0.0},
+                        'error': f"JSON encoding error: {str(json_error).replace('"', '\\"').replace('\n', ' ')}"
+                    }, ensure_ascii=True))
                     sys.stdout.flush()
 
             except Exception as file_error:
                 logging.error(f"Error processing file: {file_error}")
-                # Ensure error message is JSON-safe
-                error_msg = str(file_error).replace('"', "'").replace('\n', ' ')
+                # Ensure error message is JSON-safe with consistent format
+                error_msg = str(file_error).replace('"', '\\"').replace('\n', ' ')
                 print(json.dumps({
                     'error': error_msg,
                     'type': 'file_processing_error',
                     'results': [],
-                    'metrics': {'accuracy': 0, 'precision': 0, 'recall': 0, 'f1Score': 0}
-                }))
+                    'metrics': {'accuracy': 0.0, 'precision': 0.0, 'recall': 0.0, 'f1Score': 0.0}
+                }, ensure_ascii=True))
                 sys.stdout.flush()
     except Exception as e:
         logging.error(f"Main processing error: {e}")
-        error_msg = str(e).replace('"', "'").replace('\n', ' ')
+        error_msg = str(e).replace('"', '\\"').replace('\n', ' ')
         print(json.dumps({
             'error': error_msg, 
             'type': 'general_error',
             'results': [],
-            'metrics': {'accuracy': 0, 'precision': 0, 'recall': 0, 'f1Score': 0}
-        }))
+            'metrics': {'accuracy': 0.0, 'precision': 0.0, 'recall': 0.0, 'f1Score': 0.0}
+        }, ensure_ascii=True))
         sys.stdout.flush()
 
 
