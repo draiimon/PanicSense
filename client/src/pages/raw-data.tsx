@@ -19,8 +19,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import { deleteAllData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2 } from 'lucide-react'; // Assuming these icons are needed
-
+import { Loader2, Trash2 } from 'lucide-react'; 
 
 // Language mapping
 const languageMap: Record<string, string> = {
@@ -160,7 +159,10 @@ export default function RawData() {
             </AlertDialogContent>
           </AlertDialog>
 
-          <FileUploader className="w-auto" />
+          <FileUploader 
+            className="w-auto" 
+            containedProgress={true}
+          />
         </div>
       </div>
 

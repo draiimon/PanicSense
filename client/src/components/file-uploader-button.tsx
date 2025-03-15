@@ -39,7 +39,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     setIsUploading(true);
     updateUploadProgress({
       status: 'uploading',
-      message: 'Initializing analysis...',
+      message: 'Preparing file for analysis...',
       percentage: 0,
       processedRecords: 0,
       totalRecords: 0
@@ -50,21 +50,30 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       reader.onload = async (e) => {
         const text = e.target?.result as string;
         const lines = text.split('\n').length - 1;
-        updateUploadProgress({ totalRecords: lines });
+
+        // Update initial progress with total records
+        updateUploadProgress({
+          totalRecords: lines,
+          message: 'Starting analysis...',
+          percentage: 0,
+          processedRecords: 0
+        });
 
         try {
           const result = await uploadCSV(file, (progress) => {
-            // Normalize the progress data with default values
+            // Calculate percentage based on processed records
             const processedRecords = progress.processed || 0;
-            const totalRecords = lines || 100;
+            const totalRecords = lines;
             const percentage = Math.min(Math.round((processedRecords / totalRecords) * 100), 100);
-            
-            // Update the progress in the UI with proper default values
+
+            // Update the progress with detailed information
             updateUploadProgress({
+              status: 'uploading',
               processedRecords: processedRecords,
               totalRecords: totalRecords,
               percentage: percentage,
-              message: progress.stage || `Analyzing sentiment data... ${processedRecords}/${totalRecords}`
+              message: progress.stage || `Analyzing records (${processedRecords}/${totalRecords})`,
+              stage: progress.stage
             });
 
             if (progress.error) {
@@ -72,14 +81,17 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             }
           });
 
+          // Show success state
           updateUploadProgress({
             status: 'success',
             message: 'Analysis Complete!',
-            percentage: 100
+            percentage: 100,
+            processedRecords: lines,
+            totalRecords: lines
           });
 
           toast({
-            title: ' Analysis Complete',
+            title: 'Analysis Complete',
             description: `Successfully analyzed ${result.posts.length} posts with sentiment data`,
             duration: 5000,
           });
@@ -96,6 +108,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           // Delay resetting upload state
           progressTimeout.current = setTimeout(() => {
             resetUploadProgress();
+            setIsUploading(false);
           }, 2000);
 
         } catch (error) {
@@ -114,7 +127,8 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
   const handleError = (error: unknown) => {
     updateUploadProgress({
       status: 'error',
-      message: error instanceof Error ? error.message : 'Upload failed'
+      message: error instanceof Error ? error.message : 'Upload failed',
+      percentage: 0
     });
 
     toast({
@@ -125,6 +139,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
     progressTimeout.current = setTimeout(() => {
       resetUploadProgress();
+      setIsUploading(false);
     }, 2000);
   };
 

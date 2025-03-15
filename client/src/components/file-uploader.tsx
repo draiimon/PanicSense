@@ -6,26 +6,38 @@ import { FileUploaderButton } from "./file-uploader-button";
 interface FileUploaderProps {
   onSuccess?: (data: any) => void;
   className?: string;
+  containedProgress?: boolean;
 }
 
-export function FileUploader({ onSuccess, className }: FileUploaderProps) {
+export function FileUploader({ 
+  onSuccess, 
+  className,
+  containedProgress = false 
+}: FileUploaderProps) {
   const { isUploading, uploadProgress } = useDisasterContext();
 
   return (
-    <>
+    <div className="relative">
       {/* Upload Button */}
       <FileUploaderButton onSuccess={onSuccess} className={className} />
 
-      {/* Global Progress Indicator - Always rendered from the same place */}
+      {/* Progress Indicator */}
       <AnimatePresence>
         {isUploading && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed inset-0 flex items-center justify-center z-[9999] bg-black/20 backdrop-blur-sm"
+            className={`${
+              containedProgress 
+                ? 'absolute top-full right-0 mt-4' 
+                : 'fixed inset-0 flex items-center justify-center'
+            } z-[9999] ${!containedProgress && 'bg-black/20 backdrop-blur-sm'}`}
           >
-            <div className="bg-white/95 backdrop-blur-lg rounded-xl border border-blue-100 p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className={`bg-white/95 backdrop-blur-lg rounded-xl border border-blue-100 p-6 shadow-2xl ${
+              containedProgress ? 'w-96' : 'max-w-md w-full mx-4'
+            }`}>
+              {/* Progress Header */}
               <div className="flex items-center mb-4">
                 {uploadProgress.status === "uploading" && (
                   <Loader2 className="animate-spin h-5 w-5 mr-2 text-blue-600" />
@@ -49,6 +61,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
                 </span>
               </div>
 
+              {/* Progress Bar */}
               <div className="relative">
                 <div className="overflow-hidden h-2.5 text-xs flex rounded-full bg-slate-200/50 backdrop-blur-sm">
                   <motion.div
@@ -69,25 +82,38 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
                 </div>
               </div>
 
-              {uploadProgress.totalRecords > 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-2 text-xs text-slate-600 flex justify-between items-center"
-                >
-                  <span>
-                    Processing: {uploadProgress.processedRecords} of{" "}
-                    {uploadProgress.totalRecords}
-                  </span>
-                  <span className="font-semibold">
+              {/* Progress Details */}
+              <div className="mt-4 space-y-2">
+                {/* Percentage Display */}
+                <div className="flex justify-center">
+                  <span className="text-2xl font-bold text-slate-800">
                     {uploadProgress.percentage}%
                   </span>
-                </motion.div>
-              )}
+                </div>
+
+                {/* Records Progress */}
+                {uploadProgress.totalRecords > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-sm text-slate-600 flex justify-between items-center"
+                  >
+                    <span>
+                      Records Analyzed: {uploadProgress.processedRecords} of{" "}
+                      {uploadProgress.totalRecords}
+                    </span>
+                  </motion.div>
+                )}
+
+                {/* Status Message */}
+                <div className="text-sm text-slate-500 text-center">
+                  {uploadProgress.stage || "Analyzing data..."}
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }
