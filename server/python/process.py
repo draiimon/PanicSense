@@ -42,10 +42,7 @@ class DisasterSentimentBackend:
         self.current_api_index = 0
         self.api_key_failures = {}  # Track failed keys
         self.max_key_failures = 3   # Max failures before marking a key as bad
-        self.api_keys = []
-        import os
-        import random
-
+        
         # Provided API keys - these will be used with rotation to avoid rate limiting
         self.api_keys = [
             "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",
@@ -56,29 +53,197 @@ class DisasterSentimentBackend:
             "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",
             "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",
             "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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"
-            ]
-
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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"
+        ]
+        
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
         self.retry_delay = 0.5  # Decrease retry delay for faster processing
         self.limit_delay = 0.5  # Decrease limit delay for faster processing
-        self.current_api_index = 0
         self.max_retries = 3  # Maximum retry attempts for API requests
+
+    def try_parse_date(self, value):
+        """Try multiple date formats to parse a date string"""
+        try:
+            # First try pandas to_datetime which handles many formats
+            return pd.to_datetime(value)
+        except Exception as e:
+            logging.debug(f"pandas to_datetime failed: {e}")
+            # Try common formats manually
+            formats = [
+                '%Y-%m-%d', '%Y/%m/%d', '%d-%m-%Y', '%d/%m/%Y',
+                '%Y-%m-%d %H:%M:%S', '%Y/%m/%d %H:%M:%S',
+                '%d-%m-%Y %H:%M:%S', '%d/%m/%Y %H:%M:%S'
+            ]
+            for fmt in formats:
+                try:
+                    return datetime.strptime(str(value), fmt)
+                except ValueError:
+                    continue
+            logging.debug(f"All date format attempts failed for value: {value}")
+            return None
+
+    def process_csv(self, file_content: str) -> Dict:
+        """
+        Process CSV file with flexible column handling - accepts any format
+        Added more debug logging to track data placement
+        """
+        try:
+            # Read CSV file with minimal assumptions
+            df = pd.read_csv(pd.StringIO(file_content))
+            
+            # Log column names found
+            logging.info(f"Found columns in CSV: {df.columns.tolist()}")
+            
+            # Initialize results
+            results = []
+            processed = 0
+            total_rows = len(df)
+            
+            logging.info(f"CSV Processing - Found {total_rows} rows")
+            
+            # Process each row
+            for index, row in df.iterrows():
+                try:
+                    # Get text from any column that might contain it
+                    text = None
+                    used_column = None
+                    
+                    # Try common text column names first
+                    text_cols = ['text', 'content', 'message', 'post', 'tweet', 'description']
+                    for col in text_cols:
+                        if col in df.columns and pd.notna(row.get(col)):
+                            text = str(row.get(col))
+                            used_column = col
+                            logging.info(f"Found text in column: {col}")
+                            break
+                    
+                    # If no text found, use first column 
+                    if not text:
+                        text = str(row.iloc[0])
+                        used_column = df.columns[0]
+                        logging.info(f"Using first column for text: {used_column}")
+                    
+                    # Skip empty texts
+                    if not text or not text.strip():
+                        logging.warning(f"Skipping empty text in row {index}")
+                        continue
+
+                    # Try to get timestamp if available
+                    timestamp = None
+                    time_used_col = None
+                    for time_col in ['timestamp', 'date', 'datetime', 'time']:
+                        if time_col in df.columns and pd.notna(row.get(time_col)):
+                            parsed_time = self.try_parse_date(row.get(time_col))
+                            if parsed_time:
+                                timestamp = parsed_time
+                                time_used_col = time_col
+                                logging.info(f"Found timestamp in column: {time_col}")
+                                break
+                    
+                    if not timestamp:
+                        timestamp = datetime.now()
+                        logging.info("Using current time as timestamp")
+
+                    # Get location if available
+                    location = None
+                    loc_used_col = None
+                    for loc_col in ['location', 'place', 'city', 'province', 'region']:
+                        if loc_col in df.columns and pd.notna(row.get(loc_col)):
+                            location = str(row.get(loc_col))
+                            loc_used_col = loc_col
+                            logging.info(f"Found location in column: {loc_col}")
+                            break
+
+                    # Get emotion if available
+                    emotion = None
+                    emotion_used_col = None
+                    for emotion_col in ['emotion', 'sentiment', 'feeling']:
+                        if emotion_col in df.columns and pd.notna(row.get(emotion_col)):
+                            emotion = str(row.get(emotion_col))
+                            emotion_used_col = emotion_col
+                            logging.info(f"Found emotion in column: {emotion_col}")
+                            break
+
+                    # Get disaster type if available
+                    disaster_type = None 
+                    disaster_used_col = None
+                    for disaster_col in ['disaster', 'disaster_type', 'type', 'emergency']:
+                        if disaster_col in df.columns and pd.notna(row.get(disaster_col)):
+                            disaster_type = str(row.get(disaster_col))
+                            disaster_used_col = disaster_col
+                            logging.info(f"Found disaster type in column: {disaster_col}")
+                            break
+
+                    # Log what we found for this row
+                    logging.info(f"""
+                    Row {index} data mapping:
+                    - Text: from column '{used_column}'
+                    - Time: from column '{time_used_col or 'current time'}'
+                    - Location: from column '{loc_used_col or 'none'}'
+                    - Emotion: from column '{emotion_used_col or 'none'}'
+                    - Disaster: from column '{disaster_used_col or 'none'}'
+                    """)
+
+                    # Analyze sentiment using available CSV data
+                    result = self.analyze_sentiment(
+                        text,
+                        csv_location=location,
+                        csv_emotion=emotion,
+                        csv_disaster_type=disaster_type
+                    )
+                    
+                    # Build result object
+                    results.append({
+                        'text': text,
+                        'timestamp': timestamp.isoformat(),
+                        'source': 'CSV Import',
+                        'language': result['language'],
+                        'sentiment': result['sentiment'],
+                        'confidence': result['confidence'],
+                        'explanation': result.get('explanation'),
+                        'location': result['location'],
+                        'disasterType': result['disasterType']
+                    })
+
+                    processed += 1
+                    if processed % 10 == 0:  # Report progress every 10 rows
+                        report_progress(processed, f"Processing rows ({processed}/{total_rows})")
+
+                except Exception as row_error:
+                    logging.error(f"Error processing row {index}: {row_error}")
+                    continue  # Skip problematic rows but continue processing
+
+            # Report final progress
+            report_progress(processed, f"Completed processing {processed} rows")
+
+            # Return results with metrics
+            return {
+                'results': results,
+                'metrics': {
+                    'total_processed': processed,
+                    'total_rows': total_rows,
+                    'success_rate': processed / total_rows if total_rows > 0 else 0
+                }
+            }
+
+        except Exception as e:
+            logging.error(f"CSV Processing Error: {e}")
+            raise Exception(f"Failed to process CSV: {str(e)}")
 
     def initialize_models(self):
         pass
