@@ -283,9 +283,9 @@ export default function GeographicAnalysis() {
         </Card>
 
         {/* Main Content Area - Mobile-friendly Grid layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full min-h-[600px]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
           {/* Map Container - Takes 2/3 of the screen on desktop, full width and fixed height on mobile */}
-          <div className="lg:col-span-2 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-[500px] lg:h-full">
+          <div className="lg:col-span-2 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-[500px] lg:h-[calc(100vh-8rem)]">
             {/* Map Controls */}
             <div className="border-b border-slate-200 p-4">
               <div className="flex flex-wrap gap-4 items-center justify-between">
@@ -372,7 +372,7 @@ export default function GeographicAnalysis() {
           </div>
 
           {/* Legend Panel - 1/3 width on desktop, full width and fixed height on mobile */}
-          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg flex flex-col h-[400px] lg:h-full">
+          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg flex flex-col h-[400px] lg:h-[calc(100vh-8rem)]">
             <div className="p-2 border-b border-slate-200">
               <h3 className="font-semibold text-slate-800 text-sm">Analysis Legend</h3>
             </div>
