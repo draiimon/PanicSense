@@ -101,7 +101,7 @@ export function Header() {
           </div>
 
           {user && (
-            <nav className="flex items-center space-x-1 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+            <div className="flex items-center space-x-1 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
               {menuItems.map((item) => (
                 <Button
                   key={item.path}
@@ -115,7 +115,7 @@ export function Header() {
                   <span>{item.label}</span>
                 </Button>
               ))}
-            </nav>
+            </div>
           )}
 
           <div className="flex items-center space-x-4">

@@ -105,30 +105,33 @@ export function Sidebar() {
           <div className="space-y-1">
             {navItems.map((item) => (
               <div key={item.href} className="relative">
-                <Link href={item.href}>
-                  <div
-                    className={cn(
-                      "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer",
-                      location === item.href
-                        ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
-                        : "text-slate-400 hover:text-white hover:bg-white/10",
-                    )}
-                  >
-                    {item.icon}
-                    <span>{item.label}</span>
-                    {location === item.href && (
-                      <motion.div
-                        layoutId="activeNav"
-                        className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full"
-                        transition={{
-                          type: "spring",
-                          stiffness: 300,
-                          damping: 30,
-                        }}
-                      />
-                    )}
-                  </div>
-                </Link>
+                <div
+                  className={cn(
+                    "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer",
+                    location === item.href
+                      ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
+                      : "text-slate-400 hover:text-white hover:bg-white/10",
+                  )}
+                  onClick={() => {
+                    if (location !== item.href) {
+                      window.location.href = item.href;
+                    }
+                  }}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                  {location === item.href && (
+                    <motion.div
+                      layoutId="activeNav"
+                      className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full"
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -177,22 +180,23 @@ export function Sidebar() {
               <div className="space-y-1">
                 {navItems.map((item) => (
                   <div key={item.href} className="relative">
-                    <Link
-                      href={item.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
+                    <div
+                      className={cn(
+                        "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer",
+                        location === item.href
+                          ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
+                          : "text-slate-400 hover:text-white hover:bg-white/10",
+                      )}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        if (location !== item.href) {
+                          window.location.href = item.href;
+                        }
+                      }}
                     >
-                      <div
-                        className={cn(
-                          "flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer",
-                          location === item.href
-                            ? "bg-gradient-to-r from-blue-600/20 to-indigo-600/20 text-white"
-                            : "text-slate-400 hover:text-white hover:bg-white/10",
-                        )}
-                      >
-                        {item.icon}
-                        <span>{item.label}</span>
-                      </div>
-                    </Link>
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </div>
                   </div>
                 ))}
               </div>
