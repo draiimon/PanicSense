@@ -1343,6 +1343,39 @@ class DisasterSentimentBackend:
             # If still no text column, use the first column
             if 'text' not in df.columns and len(df.columns) > 0:
                 df['text'] = df[df.columns[0]]
+                
+        # Look for location column - if exists, we'll use this data directly
+        location_column = None
+        possible_location_columns = [
+            'location', 'place', 'city', 'province', 'region', 'area', 'lugar'
+        ]
+        for col in possible_location_columns:
+            if col in df.columns:
+                location_column = col
+                logging.info(f"Found location column: {col}")
+                break
+                
+        # Look for disaster type column - if exists, we'll use this data directly
+        disaster_column = None
+        possible_disaster_columns = [
+            'disaster', 'disaster_type', 'event', 'incident', 'emergency', 'type'
+        ]
+        for col in possible_disaster_columns:
+            if col in df.columns:
+                disaster_column = col
+                logging.info(f"Found disaster type column: {col}")
+                break
+                
+        # Look for sentiment column if already available
+        sentiment_column = None
+        possible_sentiment_columns = [
+            'sentiment', 'emotion', 'feeling', 'mood', 'attitude'
+        ]
+        for col in possible_sentiment_columns:
+            if col in df.columns:
+                sentiment_column = col
+                logging.info(f"Found sentiment column: {col}")
+                break
 
         report_progress(0, "Starting analysis")
 
@@ -1364,97 +1397,109 @@ class DisasterSentimentBackend:
                 }
             }
 
-        # Check if we should use API or rule-based approach based on sample size
-        use_api_for_all = sample_size <= 5  # Use API only for very small files
-
-        for index, row in df_sample.iterrows():
+        # Process all records through the AI by default
+        # Increased sample size - process more records
+        sample_size = min(1000, len(df))  # Increased from 20 to 1000
+        
+        # If we have a lot of records, process in batches for better efficiency
+        batch_size = 5  # Process 5 records at a time for efficient processing
+        processed_count = 0
+        
+        # Divide the sample into batches
+        batches = []
+        current_batch = []
+        
+        for index, row in df.head(sample_size).iterrows():
             try:
                 text = str(row.get('text', ''))
                 if not text.strip():  # Skip empty text
                     continue
-
+                    
                 timestamp = row.get(
                     'timestamp',
                     datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                 source = row.get('source', 'CSV Import')
-
-                # Report progress for every record
-                report_progress(index,
-                                f"Processing record {index+1}/{sample_size}")
-
-                # For larger files, use rule-based approach directly for most records
-                # Only use API for a few records to maintain quality without hitting rate limits
-                if not use_api_for_all and index > 3:
-                    # Fast rule-based processing for most records
-                    disaster_type = self.extract_disaster_type(text)
-                    location = self.extract_location(text)
-                    language = self.detect_language(text)
-                    sentiment_result = self.rule_based_sentiment_analysis(text)
-
-                    analysis_result = {
-                        'sentiment': sentiment_result['sentiment'],
-                        'confidence': 0.75,
-                        'explanation':
-                        f'Rule-based analysis: {sentiment_result.get("explanation", "")}',
-                        'language': language,
-                        'disasterType': disaster_type,
-                        'location': location,
-                        'modelType': 'Rule-Based'
-                    }
-                else:
-                    # Use API for selected records
-                    # Add short delay between API calls
-                    if index > 0:
-                        time.sleep(0.2)
-
-                    # First attempt API analysis
-                    analysis_result = self.analyze_sentiment(text)
-
-                    # If API failed, use rule-based analysis as fallback
-                    if not analysis_result:
-                        # Extract relevant information from text
-                        disaster_type = self.extract_disaster_type(text)
-                        location = self.extract_location(text)
-                        language = self.detect_language(text)
-
-                        # Simple rule-based sentiment classification
-                        sentiment_result = self.rule_based_sentiment_analysis(
-                            text)
-
-                        # Create a fallback result
-                        analysis_result = {
-                            'sentiment': sentiment_result['sentiment'],
-                            'confidence': 0.7,
-                            'explanation':
-                            f'Fallback analysis: {sentiment_result.get("explanation", "")}',
-                            'language': language,
-                            'disasterType': disaster_type,
-                            'location': location,
-                            'modelType': 'Rule-Based-Fallback'
-                        }
-
+                
+                # Get location from dedicated column if available
+                location = None
+                if location_column and location_column in row:
+                    location = str(row[location_column])
+                    if location and location.lower() != 'nan' and location.strip():
+                        location = location.strip()
+                    else:
+                        location = None
+                        
+                # Get disaster type from dedicated column if available  
+                disaster_type = None
+                if disaster_column and disaster_column in row:
+                    disaster_type = str(row[disaster_column])
+                    if disaster_type and disaster_type.lower() != 'nan' and disaster_type.strip():
+                        disaster_type = disaster_type.strip()
+                    else:
+                        disaster_type = None
+                        
+                # Get sentiment from dedicated column if available
+                sentiment = None
+                if sentiment_column and sentiment_column in row:
+                    sentiment = str(row[sentiment_column])
+                    if sentiment and sentiment.lower() != 'nan' and sentiment.strip():
+                        sentiment = sentiment.strip()
+                    else:
+                        sentiment = None
+                
+                # Add record to current batch with all metadata
+                current_batch.append({
+                    'index': index,
+                    'text': text,
+                    'timestamp': timestamp,
+                    'source': source,
+                    'location': location,
+                    'disasterType': disaster_type,
+                    'predefined_sentiment': sentiment
+                })
+                
+                # When batch is full, add to batches list and reset
+                if len(current_batch) >= batch_size:
+                    batches.append(current_batch)
+                    current_batch = []
+            except Exception as e:
+                logging.error(f"Error processing row {index}: {e}")
+                
+        # Add any remaining records as the final batch
+        if current_batch:
+            batches.append(current_batch)
+            
+        logging.info(f"Processing {len(batches)} batches with {batch_size} records each")
+        
+        # Process each batch
+        for batch_idx, batch in enumerate(batches):
+            for record in batch:
+                index = record['index']
+                text = record['text']
+                timestamp = record['timestamp']
+                source = record['source']
+                
+                processed_count += 1
+                
+                # Report progress for each record
+                report_progress(processed_count,
+                                f"Processing record {processed_count}/{sample_size}")
+                
+                # Always try to use AI for all records
+                analysis_result = self.analyze_sentiment(text)  # This will try API first, then fall back to rule-based if needed
+                
                 # Process result with standardized fields and better null handling
                 processed_results.append({
-                    'text':
-                    text,
-                    'timestamp':
-                    timestamp,
-                    'source':
-                    source,
-                    'language':
-                    analysis_result['language'],
-                    'sentiment':
-                    analysis_result['sentiment'],
-                    'confidence':
-                    analysis_result['confidence'],
-                    'explanation':
-                    analysis_result['explanation'],
-                    'disasterType':
-                    analysis_result.get('disasterType', "Not Specified"),
-                    'location':
-                    analysis_result.get('location', None),
-                    'modelType':
-                    analysis_result.get('modelType', "Hybrid Analysis")
+                    'text': text,
+                    'timestamp': timestamp,
+                    'source': source,
+                    'language': analysis_result.get('language', 'en'),
+                    'sentiment': analysis_result.get('sentiment', 'Neutral'),
+                    'confidence': analysis_result.get('confidence', 0.7),
+                    'explanation': analysis_result.get('explanation', 'Analysis not available'),
+                    'disasterType': analysis_result.get('disasterType', "Not Specified"),
+                    'location': analysis_result.get('location', None),
+                    'modelType': analysis_result.get('modelType', 'API with Fallback')
                 })
             except Exception as e:
                 logging.error(f"Error processing record {index}: {str(e)}")
