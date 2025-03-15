@@ -282,10 +282,10 @@ export default function GeographicAnalysis() {
           </CardHeader>
         </Card>
 
-        {/* Main Content Area - Grid layout for both mobile and desktop, with different configurations */}
+        {/* Main Content Area - Improved Grid layout for both mobile and desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[600px] h-[calc(100vh-10rem)]">
-          {/* Map Container - Takes 2/3 of the screen on desktop, full width on mobile */}
-          <div className="lg:col-span-2 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-full">
+          {/* Map Container - Takes 2/3 of the screen on desktop, full width on mobile, with proper height */}
+          <div className="lg:col-span-2 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-full min-h-0">
             {/* Map Controls */}
             <div className="border-b border-slate-200 p-4">
               <div className="flex flex-wrap gap-4 items-center justify-between">
@@ -349,8 +349,8 @@ export default function GeographicAnalysis() {
               )}
             </div>
 
-            {/* Map View Container - Takes remaining height of parent container */}
-            <div className="relative flex-1 min-h-[70vh] lg:min-h-0">
+            {/* Map View Container - Takes remaining height of parent container with proper sizing */}
+            <div className="relative flex-1 min-h-0 h-full">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeMapType}
@@ -370,12 +370,12 @@ export default function GeographicAnalysis() {
             </div>
           </div>
 
-          {/* Legend Panel - 1/3 width on desktop, full width on mobile, with consistent height */}
-          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-full">
-            <div className="p-4 border-b border-slate-200">
-              <h3 className="font-semibold text-slate-800">Analysis Legend</h3>
+          {/* Legend Panel - 1/3 width on desktop, full width on mobile, with fixed height */}
+          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-full min-h-0">
+            <div className="p-2 border-b border-slate-200">
+              <h3 className="font-semibold text-slate-800 text-sm">Analysis Legend</h3>
             </div>
-            <div className="p-4 flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-hidden min-h-0">
               <SentimentLegend
                 mostAffectedAreas={mostAffectedAreas}
                 showRegionSelection={false}

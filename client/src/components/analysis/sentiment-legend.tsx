@@ -36,7 +36,7 @@ export function SentimentLegend({
   ];
 
   return (
-    <Card className="bg-white shadow-md border-none h-full">
+    <Card className="bg-white shadow-md border-none h-full flex flex-col">
       <CardHeader className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <Map className="h-5 w-5 text-blue-600" />
@@ -50,7 +50,7 @@ export function SentimentLegend({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4 space-y-4">
+      <CardContent className="p-4 space-y-4 overflow-y-auto flex-grow">
         {/* Sentiment Legend */}
         <div className="bg-slate-50 p-3 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
@@ -89,9 +89,9 @@ export function SentimentLegend({
           </div>
         </div>
 
-        {/* Affected Areas */}
+        {/* Affected Areas - Now with scrolling */}
         {mostAffectedAreas && mostAffectedAreas.length > 0 && (
-          <div className="bg-slate-50 p-3 rounded-lg">
+          <div className="bg-slate-50 p-3 rounded-lg flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-red-500" />
@@ -101,14 +101,14 @@ export function SentimentLegend({
                 Top {mostAffectedAreas.length}
               </Badge>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-y-auto max-h-[250px] pr-1 scrollbar-thin">
               {mostAffectedAreas.map((area, index) => (
                 <div 
                   key={index}
                   className="bg-white p-2 rounded-md border border-slate-200"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-slate-800 truncate">
+                    <span className="text-sm font-medium text-slate-800 truncate max-w-[70%]">
                       {area.name}
                     </span>
                     <span className="text-xs text-slate-500">#{index + 1}</span>
