@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { chartColors } from '@/lib/colors';
+import { chartColors, getDisasterTypeColor } from '@/lib/colors';
 import Chart from 'chart.js/auto';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';

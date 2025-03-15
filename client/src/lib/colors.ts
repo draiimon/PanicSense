@@ -41,6 +41,18 @@ export const sentimentColors = {
   }
 };
 
+// Disaster type colors as per user specification
+export const disasterTypeColors = {
+  'Flood': '#3b82f6',      // Blue
+  'Typhoon': '#6b7280',    // Gray
+  'Fire': '#f97316',       // Orange
+  'Volcano': '#ef4444',    // Red
+  'Volcanic Eruption': '#ef4444', // Red (same as Volcano)
+  'Earthquake': '#92400e', // Brown
+  'Landslide': '#78350f',  // Dark Brown
+  'Default': '#6b7280'     // Neutral color for other disaster types
+};
+
 export const chartColors = [
   '#ef4444', // Panic - Red
   '#f97316', // Fear/Anxiety - Orange
@@ -82,4 +94,32 @@ export function getSentimentBadgeClasses(sentiment: string | null): string {
     default:
       return 'bg-slate-100 text-slate-600';
   }
+}
+
+/**
+ * Get color for disaster type according to user specifications:
+ * - Flood: Blue
+ * - Typhoon: Gray
+ * - Fire: Orange
+ * - Volcano/Volcanic Eruption: Red
+ * - Earthquake: Brown
+ * - Landslide: Dark Brown
+ * - Others: Neutral gray
+ */
+export function getDisasterTypeColor(disasterType: string | null): string {
+  if (!disasterType) return disasterTypeColors.Default;
+  
+  // Normalize the input by converting to lowercase
+  const normalizedType = disasterType.toLowerCase();
+  
+  // Check for each disaster type, including variations
+  if (normalizedType.includes('flood')) return disasterTypeColors.Flood;
+  if (normalizedType.includes('typhoon') || normalizedType.includes('storm') || normalizedType.includes('bagyo')) return disasterTypeColors.Typhoon;
+  if (normalizedType.includes('fire') || normalizedType.includes('sunog')) return disasterTypeColors.Fire;
+  if (normalizedType.includes('volcano') || normalizedType.includes('volcanic') || normalizedType.includes('eruption') || normalizedType.includes('bulkan')) return disasterTypeColors.Volcano;
+  if (normalizedType.includes('earthquake') || normalizedType.includes('quake') || normalizedType.includes('lindol')) return disasterTypeColors.Earthquake;
+  if (normalizedType.includes('landslide') || normalizedType.includes('mudslide')) return disasterTypeColors.Landslide;
+  
+  // Default color for other disaster types
+  return disasterTypeColors.Default;
 }

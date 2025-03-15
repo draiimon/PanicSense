@@ -1,21 +1,23 @@
 import { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { getSentimentColor } from '@/lib/colors';
+import { getSentimentColor, getDisasterTypeColor } from '@/lib/colors';
 import 'leaflet/dist/leaflet.css';
 
 interface Region {
   name: string;
   coordinates: [number, number]; // [latitude, longitude]
   sentiment: string;
+  disasterType?: string;
   intensity: number; // 0-100
 }
 
 interface SentimentMapProps {
   regions: Region[];
   onRegionSelect?: (region: Region) => void;
+  colorBy?: 'sentiment' | 'disasterType';
 }
 
-export function SentimentMap({ regions, onRegionSelect }: SentimentMapProps) {
+export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType' }: SentimentMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -54,7 +56,10 @@ export function SentimentMap({ regions, onRegionSelect }: SentimentMapProps) {
 
       // Add new markers
       regions.forEach(region => {
-        const color = getSentimentColor(region.sentiment);
+        // Choose color based on the colorBy preference
+        const color = colorBy === 'disasterType' && region.disasterType
+          ? getDisasterTypeColor(region.disasterType)
+          : getSentimentColor(region.sentiment);
 
         // Calculate radius based on intensity (min 10, max 50)
         const radius = 10 + (region.intensity / 100) * 40;
@@ -66,12 +71,17 @@ export function SentimentMap({ regions, onRegionSelect }: SentimentMapProps) {
           radius: radius * 1000 // Convert to meters
         }).addTo(mapInstanceRef.current);
 
-        // Add a popup
-        circle.bindPopup(`
-          <strong>${region.name}</strong><br>
-          Sentiment: ${region.sentiment}<br>
-          Intensity: ${region.intensity.toFixed(1)}%
-        `);
+        // Add a popup with different content based on colorBy
+        let popupContent = `<strong>${region.name}</strong><br>`;
+        popupContent += `Sentiment: ${region.sentiment}<br>`;
+        
+        if (region.disasterType) {
+          popupContent += `Disaster Type: ${region.disasterType}<br>`;
+        }
+        
+        popupContent += `Intensity: ${region.intensity.toFixed(1)}%`;
+        
+        circle.bindPopup(popupContent);
 
         // Handle click event
         if (onRegionSelect) {
@@ -93,16 +103,18 @@ export function SentimentMap({ regions, onRegionSelect }: SentimentMapProps) {
         markersRef.current.push(message);
       }
     });
-  }, [regions, onRegionSelect]);
+  }, [regions, onRegionSelect, colorBy]);
 
   return (
     <Card className="bg-white rounded-lg shadow">
       <CardHeader className="p-5 border-b border-gray-200">
         <CardTitle className="text-lg font-medium text-slate-800">
-          Sentiment Map
+          {colorBy === 'disasterType' ? 'Disaster Impact Map' : 'Sentiment Map'}
         </CardTitle>
         <CardDescription className="text-sm text-slate-500">
-          Philippine regions colored by dominant emotion
+          {colorBy === 'disasterType' 
+            ? 'Regions colored by disaster type (flood: blue, typhoon: gray, fire: orange, volcanic: red, earthquake: brown, landslide: dark brown)' 
+            : 'Regions colored by dominant emotion'}
         </CardDescription>
       </CardHeader>
       <CardContent className="p-5">

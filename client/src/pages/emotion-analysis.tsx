@@ -119,6 +119,7 @@ export default function EmotionAnalysis() {
     const data = new Map<string, {
       count: number;
       sentiments: Map<string, number>;
+      disasterTypes: Map<string, number>;
       coordinates: [number, number];
     }>();
     
@@ -150,6 +151,7 @@ export default function EmotionAnalysis() {
         data.set(location, {
           count: 0,
           sentiments: new Map(),
+          disasterTypes: new Map(),
           coordinates
         });
       }
@@ -157,8 +159,15 @@ export default function EmotionAnalysis() {
       const locationData = data.get(location)!;
       locationData.count++;
       
+      // Track sentiments
       const currentSentimentCount = locationData.sentiments.get(post.sentiment) || 0;
       locationData.sentiments.set(post.sentiment, currentSentimentCount + 1);
+      
+      // Track disaster types
+      if (post.disasterType) {
+        const currentDisasterTypeCount = locationData.disasterTypes.get(post.disasterType) || 0;
+        locationData.disasterTypes.set(post.disasterType, currentDisasterTypeCount + 1);
+      }
     });
     
     return data;
