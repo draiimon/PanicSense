@@ -800,6 +800,7 @@ class DisasterSentimentBackend:
             parse_attempts = [
                 lambda: pd.read_csv(file_path),
                 lambda: pd.read_csv(file_path, encoding='latin1'),
+                lambda: pd.read_csv(file_path, encoding='utf-8'),
                 lambda: pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip'),
                 lambda: pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip', sep=None, engine='python')
             ]
@@ -822,17 +823,21 @@ class DisasterSentimentBackend:
             # Log available columns
             logging.info(f"Available CSV columns: {list(df.columns)}")
             
-            # If no text column, check for possible alternatives or use first column
+            # Use the first text-like column we find, or just the first column
             text_column = None
-            if 'text' in df.columns:
-                text_column = 'text'
-            elif 'message' in df.columns:
-                text_column = 'message'
-                df['text'] = df['message']
-                logging.info("Found text column (exact match): message")
+            for col in df.columns:
+                # Check if column contains string data
+                if df[col].dtype == 'object':
+                    sample = df[col].dropna().head(1)
+                    if len(sample) > 0 and isinstance(sample.iloc[0], str):
+                        text_column = col
+                        logging.info(f"Using column for text analysis: {col}")
+                        break
             
-            if text_column is None:
-                raise Exception("Could not find text or message column in CSV")
+            # If no string column found, use first column
+            if text_column is None and len(df.columns) > 0:
+                text_column = df.columns[0]
+                logging.info(f"Using first column for analysis: {text_column}")
             
             logging.info(f"Mapped '{text_column}' to 'text' column")
             
