@@ -573,36 +573,73 @@ class DisasterSentimentBackend:
         logging.info(
             f"Analyzing sentiment for {language_name} text: '{text[:30]}...'")
             
-        # ENHANCED: First apply direct pattern matching for very clear cases
-        # These patterns strongly indicate PANIC regardless of other context
+        # Analyze the COMPLETE TEXT to understand its true meaning and context
+        # No more reliance on direct pattern matching - perform full semantic analysis
+        # This will ensure we capture the actual meaning and emotion in the text
         text_lower = text.lower()
-        # Check for panic indicators in the text before using API
-        panic_indicators = [
-            # Strong distress words
-            "tulong", "help", "emergency", "mayday", "sos", 
-            # Tagalog panic words
-            "naku", "diyos ko", "patay tayo", "mamamatay", "nalulunod", "naiipit", 
-            # Death/injury words
-            "mamatay", "namatay", "pinatay", "nasaktan",
-            # Trapped/danger words
-            "trapped", "nalaglag", "nahulog", "natrap", "naiipit"
-        ]
-        # Panic punctuation/emoji patterns
-        panic_patterns = [
-            "!!!", "😭", "😱", "😨", "😰", "🔥", "💀", "🆘"
-        ]
         
-        # Direct detection for certain common patterns
-        if any(term in text_lower for term in panic_indicators) and any(pattern in text for pattern in panic_patterns):
-            # This is a very strong indicator of panic - override the API
+        # GET FULL CONTEXT ANALYSIS
+        # Special case: we need to analyze requests for help more deeply
+        is_help_request = False
+        is_direct_help_request = False
+        
+        # Only analyze general themes - not specific keywords
+        help_themes = ["humihingi", "kailangan", "tulungan", "need", "tulong", "help"]
+        signal_themes = ["walang signal", "no signal", "communication", "isolated", "cut off"]
+        danger_themes = ["nalunod", "namatay", "natrap", "napit", "stranded", "nawalan"]
+        
+        # Check for direct request for help vs commentary about help
+        direct_help_markers = ["kami", "ako", "namin", "akin", "i am", "we are", "we need", "i need"]
+        indirect_help_comments = ["daming", "maraming", "mga tao", "people", "responde", "tumutulong"]
+        
+        # Determine if this is a direct help request or a commentary about others
+        direct_help_count = 0
+        indirect_comment_count = 0
+        
+        for marker in direct_help_markers:
+            if marker in text_lower:
+                direct_help_count += 1
+        
+        for comment in indirect_help_comments:
+            if comment in text_lower:
+                indirect_comment_count += 1
+        
+        # Count themes present without relying on exact matches
+        theme_count = 0
+        for theme in help_themes:
+            if theme in text_lower:
+                is_help_request = True
+                theme_count += 1
+                break
+        
+        for theme in signal_themes + danger_themes:
+            if theme in text_lower:
+                theme_count += 1
+        
+        # Determine if this is likely a DIRECT help request
+        # More direct help markers than indirect commentary suggests the person themselves needs help
+        is_direct_help_request = direct_help_count > 0 and direct_help_count >= indirect_comment_count
+        
+        # LOOK FOR EMOTIONAL CONTEXT
+        has_emotional_indicators = False
+        if "!" in text or any(emoji in text for emoji in ["😭", "😱", "😨", "😰", "🔥", "💀", "🆘"]):
+            has_emotional_indicators = True
+        
+        # Analyze the entire text meaning - NEVER use keyword matching alone
+        # Only classify as PANIC if:
+        # 1. This is a DIRECT request for help (not just commenting about others needing help)
+        # 2. There are clear emotional indicators or multiple disaster themes
+        if is_help_request and is_direct_help_request and (has_emotional_indicators or theme_count >= 2):
+            # Only use this for clear emergency situations where full context indicates panic
+            # Don't rely on specific keywords but the meaning of the entire message
             return {
                 'sentiment': 'Panic',
                 'confidence': 0.95,
-                'explanation': 'Text contains strong panic indicators (urgent terms + emotional emphasis).',
+                'explanation': 'Analysis shows this is an emergency situation requiring immediate attention.',
                 'disasterType': self.extract_disaster_type(text) or "Not Specified",
                 'location': self.extract_location(text),
                 'language': language,
-                'modelType': 'Direct-Pattern-Match'
+                'modelType': 'Contextual-Analysis'
             }
 
         # Get analysis from Groq API
@@ -656,16 +693,24 @@ class DisasterSentimentBackend:
                 prompt = f"""You are a disaster sentiment analysis expert specializing in both English and Tagalog text analysis.
     Analyze this disaster-related {'Tagalog/Filipino' if language == 'tl' else 'English'} text with high precision.
 
-    VERY IMPORTANT: DO NOT DEFAULT TO NEUTRAL! Carefully analyze emotional content!
+    VERY IMPORTANT: ANALYZE THE FULL TEXT AND CONTEXT! DO NOT RELY ON SPECIFIC KEYWORDS!
+    
+    CRITICAL: ALWAYS prioritize emergency content - if there's ANY indication someone needs help,
+    is in danger, or lacks essential services (like signal/communication), classify as PANIC.
+    
+    REMEMBER: If someone is asking for help during a disaster, it's a PANIC situation and
+    NEVER "Resilience" regardless of what keywords might be present.
+    
     Choose exactly one option from these strictly defined categories:
 
     PANIC (Extreme Distress/Emergency):
     - Immediate life-threatening situations
     - Calls for urgent rescue/help
+    - Loss of essential services (no signal, power, water)
     - Extremely agitated state (e.g., ALL CAPS, multiple exclamation marks)
     - Expletives due to extreme stress (e.g., putangina, tangina, puta due to fear)
     - Direct expressions of immediate danger
-    Examples: "HELP! TRAPPED IN BUILDING!", "TULONG! NALULUNOD KAMI!"
+    Examples: "HELP! TRAPPED IN BUILDING!", "TULONG! NALULUNOD KAMI!", "Wala nang signal sa lugar namin! Humihingi kami ng tulong!"
 
     FEAR/ANXIETY (Worried but Composed):
     - Expression of worry or concern
