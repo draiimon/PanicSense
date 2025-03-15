@@ -262,7 +262,16 @@ export default function GeographicImpactAnalysis() {
       {/* Impact Analysis Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Geographic Analysis</h1>
+          <h1 className="text-2xl font-bold text-slate-800">
+            <span className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+                <path d="M2 12h20"/>
+              </svg>
+              Geographic Analysis
+            </span>
+          </h1>
           <p className="mt-1 text-sm text-slate-500">Visualizing disaster impact across regions</p>
         </div>
       </div>
