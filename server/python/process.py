@@ -91,11 +91,20 @@ class DisasterSentimentBackend:
             self.groq_api_keys = self.api_keys.copy()
 
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
-        self.retry_delay = 0.5  # Decrease retry delay for faster processing
-        self.limit_delay = 0.5  # Decrease limit delay for faster processing
-        self.groq_limit_delay = 0.5  # Specific delay for Groq API
+        self.retry_delay = 0.2  # Decrease retry delay for faster processing
+        self.limit_delay = 0.2  # Decrease limit delay for faster processing
+        self.groq_limit_delay = 0.2  # Specific delay for Groq API
         self.current_api_index = 0
-        self.max_retries = 3  # Maximum retry attempts for API requests
+        self.max_retries = 5  # Maximum retry attempts for API requests
+        self.last_successful_key = None
+        self.tried_keys = set()
+        self.key_success_count = {}  # Track successful uses of each key
+        
+        # Initialize success counter for each key
+        for i in range(len(self.groq_api_keys)):
+            self.key_success_count[i] = 0
+            
+        logging.info(f"Loaded {len(self.groq_api_keys)} API keys for rotation")
 
     def initialize_models(self):
         pass
