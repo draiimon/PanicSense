@@ -282,10 +282,10 @@ export default function GeographicAnalysis() {
           </CardHeader>
         </Card>
 
-        {/* Main Content Area - Stack on mobile, side-by-side on desktop */}
-        <div className="flex flex-col lg:flex-row gap-4 min-h-[600px] lg:h-[calc(100vh-10rem)]">
-          {/* Map Container */}
-          <div className="flex-1 min-h-[400px] lg:h-full bg-white shadow-sm rounded-lg overflow-hidden">
+        {/* Main Content Area - Grid layout for both mobile and desktop, with different configurations */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[600px] h-[calc(100vh-10rem)]">
+          {/* Map Container - Takes 2/3 of the screen on desktop, full width on mobile */}
+          <div className="lg:col-span-2 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-full">
             {/* Map Controls */}
             <div className="border-b border-slate-200 p-4">
               <div className="flex flex-wrap gap-4 items-center justify-between">
@@ -298,7 +298,7 @@ export default function GeographicAnalysis() {
                     size="sm"
                   >
                     <AlertTriangle className="h-4 w-4" />
-                    <span className="hidden sm:inline">Disaster</span>
+                    <span className="inline">Disaster</span>
                   </Button>
                   <Button
                     variant={activeMapType === 'emotion' ? 'default' : 'outline'}
@@ -307,7 +307,7 @@ export default function GeographicAnalysis() {
                     size="sm"
                   >
                     <MapPin className="h-4 w-4" />
-                    <span className="hidden sm:inline">Emotion</span>
+                    <span className="inline">Emotion</span>
                   </Button>
                 </div>
 
@@ -349,8 +349,8 @@ export default function GeographicAnalysis() {
               )}
             </div>
 
-            {/* Map View Container */}
-            <div className="relative h-[50vh] lg:h-[60vh]">
+            {/* Map View Container - Takes remaining height of parent container */}
+            <div className="relative flex-1 min-h-[70vh] lg:min-h-0">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeMapType}
@@ -370,12 +370,12 @@ export default function GeographicAnalysis() {
             </div>
           </div>
 
-          {/* Legend Panel - Always full width on mobile */}
-          <div className="w-full bg-white shadow-sm rounded-lg overflow-hidden">
+          {/* Legend Panel - 1/3 width on desktop, full width on mobile, with consistent height */}
+          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-full">
             <div className="p-4 border-b border-slate-200">
               <h3 className="font-semibold text-slate-800">Analysis Legend</h3>
             </div>
-            <div className="p-4">
+            <div className="p-4 flex-1 overflow-y-auto">
               <SentimentLegend
                 mostAffectedAreas={mostAffectedAreas}
                 showRegionSelection={false}

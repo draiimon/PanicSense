@@ -249,13 +249,13 @@ export function SentimentMap({
   }, [regions, onRegionSelect, mapType, mapZoom]);
 
   return (
-    <div className="relative h-[500px] lg:h-full w-full">
-      {/* Zoom controls */}
+    <div className="relative h-full w-full overflow-hidden">
+      {/* Zoom controls - Now has better contrast and positioning */}
       <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
         <Button
           size="icon"
           variant="secondary"
-          className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
+          className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50 border border-slate-200"
           onClick={() => mapInstanceRef.current?.zoomIn()}
         >
           <ZoomIn className="h-4 w-4" />
@@ -263,24 +263,25 @@ export function SentimentMap({
         <Button
           size="icon"
           variant="secondary"
-          className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
+          className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50 border border-slate-200"
           onClick={() => mapInstanceRef.current?.zoomOut()}
         >
           <ZoomOut className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Map Container */}
+      {/* Map Container - Made to take all available space */}
       <div
         ref={mapRef}
-        className="h-full w-full bg-slate-100"
+        className="absolute inset-0 bg-slate-100"
+        style={{ width: '100%', height: '100%' }}
       />
 
-      {/* Status Bar */}
-      <div className="absolute bottom-0 left-0 right-0 p-2 bg-white/80 backdrop-blur-sm border-t border-slate-200">
-        <div className="flex items-center justify-between text-xs text-slate-600">
+      {/* Status Bar - Now with improved visibility */}
+      <div className="absolute bottom-0 left-0 right-0 p-2 bg-white/90 backdrop-blur-sm border-t border-slate-200 z-[500]">
+        <div className="flex items-center justify-between text-xs text-slate-700 font-medium">
           <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4 text-slate-400" />
+            <Globe className="h-4 w-4 text-blue-500" />
             <span>{hoveredRegion ? hoveredRegion.name : 'Philippine Region Map'}</span>
           </div>
           <div>
