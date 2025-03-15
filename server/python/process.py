@@ -90,11 +90,18 @@ class DisasterSentimentBackend:
             ]
             self.groq_api_keys = self.api_keys.copy()
 
+        # Shuffle API keys to distribute load better
+        import random
+        random.shuffle(self.groq_api_keys)
+        
+        logging.info(f"Loaded {len(self.groq_api_keys)} API keys for rotation")
+        
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
-        self.base_delay = 2.0  # Base delay for exponential backoff
-        self.max_delay = 32.0  # Maximum delay between retries
+        self.base_delay = 1.0  # Reduced base delay for faster processing
+        self.max_delay = 5.0  # Reduced maximum delay to speed up processing
+        self.retry_delay = 0.5  # Add missing retry_delay attribute
         self.current_api_index = 0
-        self.max_retries = 3  # Reduced max retries per key
+        self.max_retries = 2  # Reduced max retries to fail faster and move to next key
         self.last_successful_key = None
         self.failed_keys = set()  # Track completely failed keys
         self.tried_keys = set()
