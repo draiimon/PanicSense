@@ -26,14 +26,19 @@ export function OptimizedSentimentChart({
   // Memoize colors to prevent recalculation on every render
   const colors = useMemo(() => {
     return data.labels.map(label => {
-      const sanitizedKey = label.toLowerCase().replace(/\//g, '_');
-      const colorKey = sanitizedKey as keyof typeof sentimentColors;
-      
-      if (sentimentColors[colorKey]) {
-        // Extract the background color from the sentiment color object
-        return sentimentColors[colorKey].background;
-      } else {
-        return '#6b7280'; // Default gray for unknown sentiments
+      // Direct mapping to sentiment colors
+      switch (label) {
+        case 'Panic':
+          return '#ef4444';
+        case 'Fear/Anxiety':
+          return '#f97316';
+        case 'Disbelief':
+          return '#8b5cf6';
+        case 'Resilience':
+          return '#10b981';
+        case 'Neutral':
+        default:
+          return '#6b7280';
       }
     });
   }, [data.labels]);
