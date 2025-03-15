@@ -5,6 +5,18 @@ import { SentimentLegend } from "@/components/analysis/sentiment-legend";
 import { motion, AnimatePresence } from "framer-motion";
 import { Globe, MapPin, Map, AlertTriangle } from "lucide-react";
 
+// Define types for the component
+interface Region {
+  name: string;
+  coordinates: [number, number];
+  sentiment: string;
+  disasterType?: string;
+  intensity: number;
+}
+
+// Type for region coordinates  
+type RegionCoordinates = Record<string, [number, number]>;
+
 export default function GeographicAnalysis() {
   const [activeMapType, setActiveMapType] = useState<'disaster' | 'emotion'>('disaster');
   const { sentimentPosts } = useDisasterContext();
@@ -162,7 +174,10 @@ export default function GeographicAnalysis() {
       }
 
       // If coordinates not found, use center of Philippines
-      const coordinates = regionCoordinates[location as keyof typeof regionCoordinates] || regionCoordinates["Philippines"];
+      const rawCoordinates = regionCoordinates[location as keyof typeof regionCoordinates] || regionCoordinates["Philippines"];
+      
+      // Ensure it's a tuple of exactly 2 numbers
+      const coordinates: [number, number] = [rawCoordinates[0], rawCoordinates[1]];
 
       // Create location data if it doesn't exist yet
       if (!data[location]) {
@@ -192,7 +207,7 @@ export default function GeographicAnalysis() {
   }, [sentimentPosts, regionCoordinates]);
 
   // Convert location data to regions for map
-  const regions = useMemo(() => {
+  const regions = useMemo((): Region[] => {
     return Object.entries(locationData).map(([name, data]) => {
       // Find dominant sentiment
       let maxCount = 0;
@@ -208,7 +223,7 @@ export default function GeographicAnalysis() {
 
       // Find dominant disaster type
       let maxDisasterCount = 0;
-      let dominantDisasterType = null;
+      let dominantDisasterType = "";
 
       // Process disaster types
       Object.entries(data.disasterTypes).forEach(([disasterType, count]) => {
@@ -223,11 +238,16 @@ export default function GeographicAnalysis() {
       const maxPosts = allCounts.length > 0 ? Math.max(...allCounts) : 1;
       const intensity = (data.count / maxPosts) * 100;
 
+      // Ensure coordinates is always a tuple of exactly 2 numbers
+      const coordinates: [number, number] = Array.isArray(data.coordinates) && data.coordinates.length >= 2 
+        ? [data.coordinates[0], data.coordinates[1]] 
+        : [12.8797, 121.7740]; // Default to center of Philippines
+
       return {
         name,
-        coordinates: data.coordinates,
+        coordinates,
         sentiment: dominantSentiment,
-        disasterType: dominantDisasterType,
+        disasterType: dominantDisasterType || undefined,
         intensity
       };
     });
@@ -246,17 +266,18 @@ export default function GeographicAnalysis() {
   }, [regions]);
 
   const handleRegionSelect = (region: {name: string}) => {
-    const regionData = locationData.get(region.name);
+    const regionData = locationData[region.name];
     if (!regionData) return;
 
-    const totalSentiments = Array.from(regionData.sentiments.entries()).reduce(
-      (sum, [_, count]) => sum + count, 
+    // Calculate total sentiments for percentage calculation
+    const totalSentiments = Object.values(regionData.sentiments).reduce(
+      (sum, count) => sum + count, 
       0
     );
 
     setSelectedRegion({
       name: region.name,
-      sentiments: Array.from(regionData.sentiments.entries()).map(([name, count]) => ({
+      sentiments: Object.entries(regionData.sentiments).map(([name, count]) => ({
         name,
         percentage: (count / totalSentiments) * 100
       }))
