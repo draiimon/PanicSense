@@ -251,20 +251,20 @@ export default function GeographicAnalysis() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50">
-      {/* Content Container - Adjusted padding */}
-      <div className="flex-1 p-4 pb-16 h-[calc(100vh-4rem)] overflow-y-auto"> {/* Added pb-16 for footer spacing */}
-        {/* Header Card */}
-        <Card className="bg-white shadow-sm border-none mb-4">
-          <CardHeader className="p-4">
-            <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="flex flex-col min-h-screen bg-slate-50">
+      {/* Content Container - Mobile-optimized layout */}
+      <div className="flex-1 px-2 sm:px-4 py-2 sm:py-4 overflow-y-auto">
+        {/* Header Card - More compact on mobile */}
+        <Card className="bg-white shadow-sm border-none mb-2 sm:mb-4">
+          <CardHeader className="p-2 sm:p-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <Globe className="h-6 w-6 text-blue-600" />
+                <Globe className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                 <div>
-                  <CardTitle className="text-xl font-bold text-slate-800">
+                  <CardTitle className="text-lg sm:text-xl font-bold text-slate-800">
                     Geographic Analysis
                   </CardTitle>
-                  <p className="text-sm text-slate-500 mt-1">
+                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1">
                     Visualizing disaster impact across Philippine regions
                   </p>
                 </div>
@@ -273,41 +273,41 @@ export default function GeographicAnalysis() {
                 size="sm"
                 variant="outline"
                 onClick={() => setShowMarkers(!showMarkers)}
-                className="flex items-center gap-2 z-10" // Added z-10 to ensure button stays above map
+                className="flex items-center gap-1 z-10 text-xs sm:text-sm py-1 px-2 h-8"
               >
-                {showMarkers ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                <span className="hidden sm:inline">{showMarkers ? 'Hide Markers' : 'Show Markers'}</span>
+                {showMarkers ? <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" /> : <Eye className="h-3 w-3 sm:h-4 sm:w-4" />}
+                <span>{showMarkers ? 'Hide' : 'Show'}</span>
               </Button>
             </div>
           </CardHeader>
         </Card>
 
-        {/* Main Content Area - Adjusted for mobile */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Map Container - Adjusted height for mobile */}
-          <div className="lg:col-span-2 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col min-h-[400px] lg:h-[calc(100vh-12rem)]">
-            {/* Map Controls */}
-            <div className="border-b border-slate-200 p-4">
-              <div className="flex flex-wrap gap-4 items-center justify-between">
+        {/* Main Content Area - Optimized for mobile */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4">
+          {/* Map Container - Better height management */}
+          <div className="lg:col-span-2 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-[calc(100vh-10rem)] sm:h-[calc(100vh-12rem)]">
+            {/* Map Controls - Compact on mobile */}
+            <div className="border-b border-slate-200 p-2 sm:p-4">
+              <div className="flex flex-wrap gap-2 items-center justify-between">
                 {/* View Type Controls */}
-                <div className="flex gap-2">
+                <div className="flex gap-1 sm:gap-2">
                   <Button
                     variant={activeMapType === 'disaster' ? 'default' : 'outline'}
                     onClick={() => setActiveMapType('disaster')}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-1 text-xs sm:text-sm h-8"
                     size="sm"
                   >
-                    <AlertTriangle className="h-4 w-4" />
-                    <span className="inline">Disaster</span>
+                    <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>Disaster</span>
                   </Button>
                   <Button
                     variant={activeMapType === 'emotion' ? 'default' : 'outline'}
                     onClick={() => setActiveMapType('emotion')}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-1 text-xs sm:text-sm h-8"
                     size="sm"
                   >
-                    <BarChart3 className="h-4 w-4" />
-                    <span className="inline">Sentiment</span>
+                    <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>Sentiment</span>
                   </Button>
                 </div>
 
@@ -317,26 +317,26 @@ export default function GeographicAnalysis() {
                     size="sm"
                     variant={mapView === 'standard' ? 'default' : 'outline'}
                     onClick={() => setMapView('standard')}
-                    className="rounded-none border-0"
+                    className="rounded-none border-0 h-8 px-2"
                   >
-                    <Map className="h-4 w-4" />
+                    <Map className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                   <Button
                     size="sm"
                     variant={mapView === 'satellite' ? 'default' : 'outline'}
                     onClick={() => setMapView('satellite')}
-                    className="rounded-none border-0"
+                    className="rounded-none border-0 h-8 px-2"
                   >
-                    <Satellite className="h-4 w-4" />
+                    <Satellite className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                 </div>
               </div>
 
-              {/* Active Filters Display */}
+              {/* Active Filters Display - Compact on mobile */}
               {selectedRegionFilter && (
-                <div className="mt-3 flex items-center gap-2">
-                  <span className="text-sm text-slate-500">Filtered by:</span>
-                  <Badge variant="secondary" className="flex items-center gap-1">
+                <div className="mt-2 flex items-center gap-1 sm:gap-2">
+                  <span className="text-xs sm:text-sm text-slate-500">Filtered by:</span>
+                  <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                     {selectedRegionFilter}
                     <button
                       onClick={() => setSelectedRegionFilter(null)}
@@ -371,10 +371,10 @@ export default function GeographicAnalysis() {
             </div>
           </div>
 
-          {/* Legend Panel - Adjusted height for mobile */}
-          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg flex flex-col min-h-[400px] lg:h-[calc(100vh-12rem)]">
+          {/* Legend Panel - Adjusted for mobile */}
+          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg flex flex-col min-h-[300px] sm:min-h-[400px] lg:h-[calc(100vh-12rem)]">
             <div className="p-2 border-b border-slate-200">
-              <h3 className="font-semibold text-slate-800 text-sm">Analysis Legend</h3>
+              <h3 className="font-semibold text-slate-800 text-xs sm:text-sm">Analysis Legend</h3>
             </div>
             <div className="flex-1 overflow-y-auto">
               <SentimentLegend
