@@ -99,105 +99,66 @@ class DisasterSentimentBackend:
 
     def process_csv(self, file_content: str) -> Dict:
         """
-        Process CSV file with flexible column handling - accepts any format
-        Added more debug logging to track data placement
+        Process CSV file with minimal assumptions - accepts any format
         """
         try:
-            # Read CSV file with minimal assumptions
+            # Read CSV file with basic settings
             df = pd.read_csv(pd.StringIO(file_content))
-            
-            # Log column names found
-            logging.info(f"Found columns in CSV: {df.columns.tolist()}")
             
             # Initialize results
             results = []
             processed = 0
             total_rows = len(df)
             
-            logging.info(f"CSV Processing - Found {total_rows} rows")
-            
             # Process each row
             for index, row in df.iterrows():
                 try:
-                    # Get text from any column that might contain it
-                    text = None
-                    used_column = None
-                    
-                    # Try common text column names first
-                    text_cols = ['text', 'content', 'message', 'post', 'tweet', 'description']
-                    for col in text_cols:
-                        if col in df.columns and pd.notna(row.get(col)):
-                            text = str(row.get(col))
-                            used_column = col
-                            logging.info(f"Found text in column: {col}")
-                            break
-                    
-                    # If no text found, use first column 
-                    if not text:
-                        text = str(row.iloc[0])
-                        used_column = df.columns[0]
-                        logging.info(f"Using first column for text: {used_column}")
+                    # Get text from first column by default
+                    text = str(row.iloc[0])
                     
                     # Skip empty texts
-                    if not text or not text.strip():
-                        logging.warning(f"Skipping empty text in row {index}")
+                    if not text or text.strip() == '':
                         continue
 
+                    # Try to find better columns if available
+                    for col in ['text', 'content', 'message', 'post', 'tweet', 'description']:
+                        if col in df.columns and pd.notna(row.get(col)):
+                            text = str(row.get(col))
+                            break
+                    
                     # Try to get timestamp if available
                     timestamp = None
-                    time_used_col = None
                     for time_col in ['timestamp', 'date', 'datetime', 'time']:
                         if time_col in df.columns and pd.notna(row.get(time_col)):
-                            parsed_time = self.try_parse_date(row.get(time_col))
-                            if parsed_time:
-                                timestamp = parsed_time
-                                time_used_col = time_col
-                                logging.info(f"Found timestamp in column: {time_col}")
+                            try:
+                                timestamp = pd.to_datetime(row.get(time_col))
                                 break
+                            except:
+                                continue
                     
                     if not timestamp:
                         timestamp = datetime.now()
-                        logging.info("Using current time as timestamp")
 
                     # Get location if available
                     location = None
-                    loc_used_col = None
                     for loc_col in ['location', 'place', 'city', 'province', 'region']:
                         if loc_col in df.columns and pd.notna(row.get(loc_col)):
                             location = str(row.get(loc_col))
-                            loc_used_col = loc_col
-                            logging.info(f"Found location in column: {loc_col}")
                             break
 
                     # Get emotion if available
                     emotion = None
-                    emotion_used_col = None
                     for emotion_col in ['emotion', 'sentiment', 'feeling']:
                         if emotion_col in df.columns and pd.notna(row.get(emotion_col)):
                             emotion = str(row.get(emotion_col))
-                            emotion_used_col = emotion_col
-                            logging.info(f"Found emotion in column: {emotion_col}")
                             break
 
                     # Get disaster type if available
-                    disaster_type = None 
-                    disaster_used_col = None
+                    disaster_type = None
                     for disaster_col in ['disaster', 'disaster_type', 'type', 'emergency']:
                         if disaster_col in df.columns and pd.notna(row.get(disaster_col)):
                             disaster_type = str(row.get(disaster_col))
-                            disaster_used_col = disaster_col
-                            logging.info(f"Found disaster type in column: {disaster_col}")
                             break
-
-                    # Log what we found for this row
-                    logging.info(f"""
-                    Row {index} data mapping:
-                    - Text: from column '{used_column}'
-                    - Time: from column '{time_used_col or 'current time'}'
-                    - Location: from column '{loc_used_col or 'none'}'
-                    - Emotion: from column '{emotion_used_col or 'none'}'
-                    - Disaster: from column '{disaster_used_col or 'none'}'
-                    """)
 
                     # Analyze sentiment using available CSV data
                     result = self.analyze_sentiment(
