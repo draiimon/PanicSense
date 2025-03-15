@@ -1,0 +1,13 @@
+What I want to happen is for the data to automatically fall into their respective sources. For example, if a row in a CSV file contains mentions of location, disaster type, source, and timestamp, the AI should take care of processing everything and place the data into their respective columns in the Complete Sentiment Dataset. That’s all I want to happen! Essentially, the AI will read the entire CSV file row by row, and once it’s done, it will have already placed the data where they belong—whether it’s the location, disaster type, source, or timestamp.
+
+Just like how Real-Time Analysis works, where it places data into the Sentiment Dataset, the same should happen with the Raw Data. The AI should check where each piece of data belongs and automatically detect the location, disaster type, and everything else. What should happen is that for each entire row in the CSV, the AI will detect the text content and extract all relevant information from it. The entire row should be processed as one unit, but only the text part (from the first column) will be used for analysis. The rest of the row (like location, disaster, source, and timestamp) will be detected and categorized by the AI.
+
+For example, take this row from the CSV:
+"Di ko akalaing ganito kabilis tataas ang tubig! 😭 2025-03-07 3:58:00 X (Twitter) Cebu Panic"
+
+The AI should only take the text part:
+"Di ko akalaing ganito kabilis tataas ang tubig! 😭"
+
+From this text, the AI will detect the location (e.g., "Cebu"), the disaster type (e.g., "Flood"), the source (e.g., "Twitter"), and the timestamp (e.g., "2025-03-07 3:58:00"). These detected values will then be placed into their respective columns in the Complete Sentiment Dataset. The AI will handle everything automatically, ensuring that the data is organized correctly without manual intervention.
+
+In summary, the goal is to create a system where the AI processes each row of the CSV file, extracts the text content, and automatically detects and categorizes the location, disaster type, source, and timestamp. The processed data will then be saved into a structured dataset, ready for further analysis or reporting. This approach ensures efficiency and accuracy, as the AI handles the entire process seamlessly.

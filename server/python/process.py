@@ -120,33 +120,183 @@ class DisasterSentimentBackend:
         return text
 
     def extract_disaster_type(self, text):
-        """Extract disaster type from text using keyword matching"""
+        """
+        Enhanced disaster type extraction using more comprehensive keyword matching
+        and contextual clues with both English and Tagalog support
+        """
+        if not text:
+            return "Not Specified"
+            
         text_lower = text.lower()
-
+        
+        # More comprehensive disaster type dictionary with scoring for better accuracy
         disaster_types = {
-            "Earthquake":
-            ["earthquake", "quake", "tremor", "seismic", "lindol", "linog"],
-            "Flood": ["flood", "flooding", "inundation", "baha", "tubig"],
-            "Typhoon": ["typhoon", "storm", "cyclone", "hurricane", "bagyo"],
-            "Fire": ["fire", "blaze", "burning", "sunog", "apoy"],
-            "Landslide":
-            ["landslide", "mudslide", "avalanche", "guho", "pagguho"],
-            "Volcano":
-            ["volcano", "eruption", "lava", "ash", "bulkan", "lahar"],
-            "Drought": ["drought", "dry spell", "water shortage", "tagtuyot"]
+            "Earthquake": {
+                "keywords": [
+                    "earthquake", "quake", "tremor", "seismic", "magnitude", "richter", 
+                    "epicenter", "shaking", "ground movement", "lindol", "pagyanig", 
+                    "pagkayanig", "yumanig", "niyanig", "lumindol", "linog"
+                ],
+                "emoji": ["🌋", "🏚️"],
+                "score": 0
+            },
+            "Typhoon": {
+                "keywords": [
+                    "typhoon", "hurricane", "storm", "cyclone", "wind", "gust", 
+                    "heavy rain", "rainfall", "winds", "tropical depression",
+                    "bagyo", "unos", "hanging", "ulan", "malakas na hangin", "signal no"
+                ],
+                "emoji": ["🌪️", "🌀", "💨", "🌧️", "☔", "🌊"],
+                "score": 0
+            },
+            "Flood": {
+                "keywords": [
+                    "flood", "flooding", "inundation", "submerged", "water level", 
+                    "overflow", "rising water", "high water", "baha", "tubig", 
+                    "umaapaw", "bumaha", "pagbaha", "nalulubog", "lumubog", "napakataas na tubig"
+                ],
+                "emoji": ["🌊", "💧", "💦"],
+                "score": 0
+            },
+            "Landslide": {
+                "keywords": [
+                    "landslide", "landslip", "rock fall", "mudslide", "ground collapse", 
+                    "soil erosion", "avalanche", "pagguho", "guho", "pagkatibag", 
+                    "natibag", "nagtibag", "pagkaguho"
+                ],
+                "emoji": ["🏔️", "⛰️"],
+                "score": 0
+            },
+            "Volcanic Eruption": {
+                "keywords": [
+                    "volcano", "volcanic", "eruption", "ash", "lava", "magma", 
+                    "pyroclastic", "crater", "bulkan", "pagputok", "abo", 
+                    "lahar", "pumutok", "nagputok", "bulkang"
+                ],
+                "emoji": ["🌋", "🔥", "💨"],
+                "score": 0
+            },
+            "Fire": {
+                "keywords": [
+                    "fire", "flames", "burning", "smoke", "burn", "blaze", 
+                    "inferno", "combustion", "sunog", "apoy", "nasusunog", 
+                    "nasunog", "nag-aapoy", "usok", "nagliliyab", "sinunog"
+                ],
+                "emoji": ["🔥", "💥", "🧯"],
+                "score": 0
+            },
+            "Tsunami": {
+                "keywords": [
+                    "tsunami", "tidal wave", "seismic sea wave", "giant wave",
+                    "malaking alon", "alon"
+                ],
+                "emoji": ["🌊"],
+                "score": 0
+            },
+            "Drought": {
+                "keywords": [
+                    "drought", "water shortage", "dry spell", "arid", "no water", 
+                    "water crisis", "tagtuyot", "taggutom", "walang tubig", "kakapusan ng tubig"
+                ],
+                "emoji": ["☀️", "🏜️"],
+                "score": 0
+            }
         }
-
-        for disaster_type, keywords in disaster_types.items():
-            if any(keyword in text_lower for keyword in keywords):
-                return disaster_type
-
-        # Standardize the return value for unknown disaster types
+        
+        # Check for emojis first (strong indicators)
+        for disaster, properties in disaster_types.items():
+            for emoji in properties["emoji"]:
+                if emoji in text:
+                    properties["score"] += 2
+        
+        # Check all keywords for each disaster type
+        for disaster, properties in disaster_types.items():
+            for keyword in properties["keywords"]:
+                if keyword in text_lower:
+                    properties["score"] += 1
+        
+        # Look for contextual clues that signal specific disasters
+        if "magnitude" in text_lower or "intensity" in text_lower or "richter" in text_lower:
+            disaster_types["Earthquake"]["score"] += 2
+        if "signal no" in text_lower or "storm signal" in text_lower:
+            disaster_types["Typhoon"]["score"] += 2
+        if "tubig" in text_lower and ("mataas" in text_lower or "apaw" in text_lower or "lubog" in text_lower):
+            disaster_types["Flood"]["score"] += 2
+        if "evacuate" in text_lower or "evacuated" in text_lower or "evacuation" in text_lower:
+            # Evacuation applies to many disasters, but most commonly to volcanic eruptions
+            disaster_types["Volcanic Eruption"]["score"] += 1
+            disaster_types["Fire"]["score"] += 1
+            disaster_types["Typhoon"]["score"] += 1
+            disaster_types["Flood"]["score"] += 1
+        
+        # Find the disaster type with the highest score
+        best_match = None
+        highest_score = 0
+        
+        for disaster, properties in disaster_types.items():
+            if properties["score"] > highest_score:
+                highest_score = properties["score"]
+                best_match = disaster
+                
+        # Only return a disaster type if we have a reasonable confidence
+        if highest_score >= 1:
+            return best_match
+        
+        # Check for general disaster keywords if no specific type found
+        general_disaster_keywords = ["disaster", "emergency", "calamity", "crisis", "catastrophe", "sakuna", "kalamidad"]
+        for keyword in general_disaster_keywords:
+            if keyword in text_lower:
+                return "Other Disaster"
+        
+        # If no disaster type identified with reasonable confidence, return the standard value
         return "Not Specified"
 
     def extract_location(self, text):
-        """Extract location from text using comprehensive Philippine location names"""
+        """
+        Enhanced location extraction for Philippines using multiple detection strategies:
+        1. Check for exact matches of location names (surrounded by spaces)
+        2. Fall back to partial matches for longer location names
+        3. Add special handling for metro areas and common abbreviations
+        """
+        if not text:
+            return None
+            
         text_lower = text.lower()
-
+        
+        # Add regex import here to support word boundary matching
+        import re
+        
+        # Special handling for metro areas and abbreviations with their proper names
+        metro_areas = {
+            "ncr": "Metro Manila",
+            "metro manila": "Metro Manila",
+            "metro cebu": "Metro Cebu",
+            "metro davao": "Metro Davao",
+            "car": "Cordillera Administrative Region",
+            "calabarzon": "CALABARZON",
+            "mimaropa": "MIMAROPA",
+            "mmla": "Metro Manila",
+            "mm": "Metro Manila",
+            "qc": "Quezon City",
+            "mla": "Manila",
+            "cdo": "Cagayan de Oro",
+            "gensan": "General Santos City",
+            "ceby": "Cebu",
+            "baguio": "Baguio City",
+            "caloocan": "Caloocan City",
+            "cainta": "Cainta",
+            "mnl": "Manila",
+            "sorsogon": "Sorsogon",
+            "marikina": "Marikina City",
+            "taguig": "Taguig City"
+        }
+        
+        # Check for metro areas and abbreviations first
+        for abbr, full_name in metro_areas.items():
+            if re.search(r'\b' + re.escape(abbr) + r'\b', text_lower):
+                return full_name
+        
+        # Main location list for Philippines
         ph_locations = [
             # ALL REGIONS
             "NCR",
@@ -1599,12 +1749,36 @@ class DisasterSentimentBackend:
         batches = []
         current_batch = []
         
-        # Prepare data in batches with better field detection
+        # Prepare data in batches with enhanced detection and parsing capabilities
         for index, row in df.head(sample_size).iterrows():
             try:
+                # First, attempt to handle the case where all data might be combined in a single field
+                # This handles rows like: "Text 2025-03-07 3:58:00 X (Twitter) Cebu Panic"
+                combined_text = None
+                
+                # If only one column exists, check if it might contain all the data
+                if len(df.columns) == 1:
+                    combined_text = str(row[df.columns[0]])
+                    logging.info(f"Processing single column data: {combined_text[:50]}...")
+                
                 # Get text with fallback to first column
                 text = ""
-                if 'text' in row:
+                if combined_text:
+                    # Try to parse combined text intelligently
+                    parts = combined_text.split('\t')
+                    if len(parts) >= 3:  # We have multiple tab-separated parts
+                        text = parts[0].strip()
+                        # We'll extract other fields below
+                    else:
+                        # If not tab-separated, assume the first part (before any date pattern) is the text
+                        # This regex looks for date patterns like 2025-03-07
+                        import re
+                        date_match = re.search(r'\d{4}-\d{2}-\d{2}', combined_text)
+                        if date_match:
+                            text = combined_text[:date_match.start()].strip()
+                        else:
+                            text = combined_text  # Use full text if no date found
+                elif 'text' in row:
                     text = str(row['text'])
                 elif len(df.columns) > 0:
                     text = str(row[df.columns[0]])
@@ -1612,9 +1786,18 @@ class DisasterSentimentBackend:
                 if not text.strip():  # Skip empty text
                     continue
                 
-                # Get timestamp with improved detection
+                # Get timestamp with enhanced detection
                 timestamp = None
-                if timestamp_column:
+                if combined_text:
+                    # Try to extract timestamp from combined text
+                    import re
+                    # Look for patterns like 2025-03-07 3:58:00 or 2025-03-07
+                    date_match = re.search(r'\d{4}-\d{2}-\d{2}(\s+\d{1,2}:\d{2}(:\d{2})?)?', combined_text)
+                    if date_match:
+                        timestamp = date_match.group().strip()
+                    else:
+                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                elif timestamp_column:
                     timestamp = str(row[timestamp_column])
                     if timestamp and timestamp.lower() != 'nan' and timestamp.strip():
                         timestamp = timestamp.strip()
@@ -1623,30 +1806,87 @@ class DisasterSentimentBackend:
                 else:
                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 
-                # Get source with improved detection
+                # Get source with enhanced detection
                 source = "CSV Import"  # Default fallback
-                if source_column:
+                if combined_text:
+                    # Try to extract source from combined text
+                    # Look for common social media markers
+                    parts = combined_text.split('\t')
+                    if len(parts) >= 3:
+                        source = parts[2].strip()  # Assume 3rd tab-separated part is source
+                    else:
+                        # Look for common social media platforms
+                        social_media = ["Facebook", "Twitter", "X (Twitter)", "Instagram", "TikTok", "YouTube", "LinkedIn"]
+                        for platform in social_media:
+                            if platform in combined_text:
+                                source = platform
+                                break
+                elif source_column:
                     source_value = str(row[source_column])
                     if source_value and source_value.lower() != 'nan' and source_value.strip():
                         source = source_value.strip()
                 
-                # Get location with improved detection
+                # Get location with enhanced detection
                 location = None
-                if location_column:
+                if combined_text:
+                    # Try to extract location from combined text if it has a Philippines location
+                    # This will be refined by the API later, but we make a first attempt
+                    parts = combined_text.split('\t')
+                    if len(parts) >= 4:
+                        location = parts[3].strip()  # Assume 4th tab-separated part is location
+                    else:
+                        # Look for common Philippine locations
+                        ph_locations = ["Manila", "Cebu", "Davao", "Quezon City", "Makati", "Baguio", 
+                                       "Iloilo", "Tacloban", "Legazpi", "Batangas", "Pampanga", "Luzon", 
+                                       "Visayas", "Mindanao", "NCR", "CAR", "Bicol", "Cagayan Valley"]
+                        for loc in ph_locations:
+                            if loc in combined_text:
+                                location = loc
+                                break
+                elif location_column:
                     location_value = str(row[location_column])
                     if location_value and location_value.lower() not in ['nan', 'unknown', 'none', ''] and location_value.strip():
                         location = location_value.strip()
                 
-                # Get disaster type with improved detection
+                # Get disaster type with enhanced detection
                 disaster_type = None
-                if disaster_column:
+                if combined_text:
+                    # We'll let the API handle disaster type extraction, but make a first attempt
+                    disaster_keywords = {
+                        "Typhoon": ["typhoon", "bagyo", "storm", "cyclone", "hurricane"],
+                        "Flood": ["flood", "baha", "tubig", "overflow", "inundation"],
+                        "Earthquake": ["earthquake", "lindol", "quake", "tremor", "seismic"],
+                        "Landslide": ["landslide", "avalanche", "mudslide", "soil erosion", "ground movement"],
+                        "Volcanic Eruption": ["volcano", "volcanic", "eruption", "bulkan", "ash fall", "lava"],
+                        "Fire": ["fire", "sunog", "burning", "flames", "wildfire", "forest fire"],
+                        "Tsunami": ["tsunami", "tidal wave", "seismic sea wave"]
+                    }
+                    
+                    text_lower = text.lower()
+                    for disaster, keywords in disaster_keywords.items():
+                        if any(keyword in text_lower for keyword in keywords):
+                            disaster_type = disaster
+                            break
+                elif disaster_column:
                     disaster_value = str(row[disaster_column])
                     if disaster_value and disaster_value.lower() not in ['nan', 'unknown', 'none', ''] and disaster_value.strip():
                         disaster_type = disaster_value.strip()
                 
-                # Get sentiment with improved detection
+                # Get sentiment with enhanced detection
                 sentiment = None
-                if sentiment_column:
+                if combined_text:
+                    # Check if sentiment is explicitly mentioned
+                    parts = combined_text.split('\t')
+                    if len(parts) >= 5:
+                        sentiment = parts[4].strip()  # Assume 5th tab-separated part is sentiment
+                    else:
+                        # Look for sentiment keywords in the last part of the text
+                        words = combined_text.split()
+                        if len(words) > 0:
+                            last_word = words[-1].lower()
+                            if last_word in ["panic", "fear/anxiety", "disbelief", "resilience", "neutral"]:
+                                sentiment = last_word.capitalize()
+                elif sentiment_column:
                     sentiment_value = str(row[sentiment_column])
                     if sentiment_value and sentiment_value.lower() not in ['nan', 'unknown', 'none', ''] and sentiment_value.strip():
                         sentiment = sentiment_value.strip()
