@@ -92,17 +92,19 @@ class DisasterSentimentBackend:
         """Extract disaster type from text using keyword matching"""
         text_lower = text.lower()
 
+        # Only use these 6 specific disaster types:
         disaster_types = {
-            "Earthquake": ["earthquake", "quake", "tremor", "seismic", "lindol"],
-            "Flood": ["flood", "flooding", "inundation", "baha"],
-            "Typhoon": ["typhoon", "storm", "cyclone", "hurricane", "bagyo"],
-            "Fire": ["fire", "blaze", "burning", "sunog"],
-            "Landslide": ["landslide", "mudslide", "avalanche", "guho"],
-            "Volcano": ["volcano", "eruption", "lava", "ash", "bulkan"]
+            "Earthquake": ["earthquake", "quake", "tremor", "seismic", "lindol", "magnitude", "aftershock", "shaking"],
+            "Flood": ["flood", "flooding", "inundation", "baha", "tubig", "binaha", "flash flood", "rising water"],
+            "Typhoon": ["typhoon", "storm", "cyclone", "hurricane", "bagyo", "super typhoon", "habagat", "ulan", "buhos", "malakas na hangin"],
+            "Fire": ["fire", "blaze", "burning", "sunog", "nasunog", "nagliliyab", "flame", "apoy"],
+            "Volcano": ["volcano", "eruption", "lava", "ash", "bulkan", "ashfall", "magma", "volcanic", "bulkang", "active volcano"],
+            "Landslide": ["landslide", "mudslide", "avalanche", "guho", "pagguho", "pagguho ng lupa", "collapsed"]
         }
 
         for disaster_type, keywords in disaster_types.items():
             if any(keyword in text_lower for keyword in keywords):
+                # Return just the disaster type name, no explanation
                 return disaster_type
 
         return "Not Specified"
@@ -111,14 +113,69 @@ class DisasterSentimentBackend:
         """Extract location from text using Philippine location names"""
         text_lower = text.lower()
         
-        # Simplified location list for demo
+        # Comprehensive list of Philippine locations
         ph_locations = [
-            "Manila", "Cebu", "Davao", "Quezon City", "Makati",
-            "Baguio", "Iloilo", "Mindanao", "Luzon", "Visayas"
+            # ALL REGIONS
+            "NCR", "CAR", "Ilocos Region", "Cagayan Valley", "Central Luzon",
+            "CALABARZON", "MIMAROPA", "Bicol Region", "Western Visayas",
+            "Central Visayas", "Eastern Visayas", "Zamboanga Peninsula",
+            "Northern Mindanao", "Davao Region", "SOCCSKSARGEN", "Caraga", "BARMM",
+
+            # ALL PROVINCES
+            "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay",
+            "Antique", "Apayao", "Aurora", "Basilan", "Bataan", "Batanes",
+            "Batangas", "Benguet", "Biliran", "Bohol", "Bukidnon", "Bulacan",
+            "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz",
+            "Catanduanes", "Cavite", "Cebu", "Compostela Valley", "Cotabato",
+            "Davao de Oro", "Davao del Norte", "Davao del Sur", "Davao Occidental",
+            "Davao Oriental", "Dinagat Islands", "Eastern Samar", "Guimaras",
+            "Ifugao", "Ilocos Norte", "Ilocos Sur", "Iloilo", "Isabela", "Kalinga",
+            "La Union", "Laguna", "Lanao del Norte", "Lanao del Sur", "Leyte",
+            "Maguindanao", "Marinduque", "Masbate", "Misamis Occidental",
+            "Misamis Oriental", "Mountain Province", "Negros Occidental",
+            "Negros Oriental", "Northern Samar", "Nueva Ecija", "Nueva Vizcaya",
+            "Occidental Mindoro", "Oriental Mindoro", "Palawan", "Pampanga",
+            "Pangasinan", "Quezon", "Quirino", "Rizal", "Romblon", "Samar",
+            "Sarangani", "Siquijor", "Sorsogon", "South Cotabato", "Southern Leyte",
+            "Sultan Kudarat", "Sulu", "Surigao del Norte", "Surigao del Sur",
+            "Tarlac", "Tawi-Tawi", "Zambales", "Zamboanga del Norte",
+            "Zamboanga del Sur", "Zamboanga Sibugay",
+
+            # ALL CITIES
+            "Alaminos", "Angeles", "Antipolo", "Bacolod", "Bacoor", "Bago",
+            "Baguio", "Bais", "Balanga", "Batac", "Batangas City", "Bayawan",
+            "Baybay", "Bayugan", "Biñan", "Bislig", "Bogo", "Borongan", "Butuan",
+            "Cabadbaran", "Cabanatuan", "Cabuyao", "Cadiz", "Cagayan de Oro",
+            "Calamba", "Calapan", "Calbayog", "Caloocan", "Candon", "Canlaon",
+            "Carcar", "Catbalogan", "Cauayan", "Cavite City", "Cebu City",
+            "Cotabato City", "Dagupan", "Danao", "Dapitan", "Davao City",
+            "Digos", "Dipolog", "Dumaguete", "El Salvador", "Escalante",
+            "Gapan", "General Santos", "General Trias", "Gingoog", "Guihulngan",
+            "Himamaylan", "Ilagan", "Iligan", "Iloilo City", "Imus", "Iriga",
+            "Isabela City", "Kabankalan", "Kidapawan", "Koronadal", "La Carlota",
+            "Lamitan", "Laoag", "Lapu-Lapu", "Las Piñas", "Legazpi", "Ligao",
+            "Lipa", "Lucena", "Maasin", "Mabalacat", "Makati", "Malabon",
+            "Malaybalay", "Malolos", "Mandaluyong", "Mandaue", "Manila",
+            "Marawi", "Marikina", "Masbate City", "Mati", "Meycauayan",
+            "Muñoz", "Muntinlupa", "Naga", "Navotas", "Olongapo", "Ormoc",
+            "Oroquieta", "Ozamiz", "Pagadian", "Palayan", "Panabo", "Parañaque",
+            "Pasay", "Pasig", "Passi", "Puerto Princesa", "Quezon City",
+            "Roxas", "Sagay", "Samal", "San Carlos", "San Fernando",
+            "San Jose", "San Jose del Monte", "San Juan", "San Pablo",
+            "San Pedro", "Santa Rosa", "Santiago", "Silay", "Sipalay",
+            "Sorsogon City", "Surigao", "Tabaco", "Tabuk", "Tacloban",
+            "Tacurong", "Tagaytay", "Tagbilaran", "Taguig", "Tagum",
+            "Talisay", "Tanauan", "Tandag", "Tangub", "Tanjay", "Tarlac City",
+            "Tayabas", "Toledo", "Trece Martires", "Tuguegarao", "Urdaneta",
+            "Valencia", "Valenzuela", "Victorias", "Vigan", "Zamboanga City",
+            
+            # COMMON AREAS
+            "Luzon", "Visayas", "Mindanao"
         ]
 
         for location in ph_locations:
             if location.lower() in text_lower:
+                # Return ONLY the location name, no explanation
                 return location
 
         return None
@@ -158,12 +215,14 @@ class DisasterSentimentBackend:
         prompt = f"""Analyze the sentiment in this disaster-related message (language: {language}):
 "{text}"
 
-Respond only with a JSON object containing:
+Respond ONLY with a JSON object containing:
 1. sentiment: one of [Panic, Fear/Anxiety, Disbelief, Resilience, Neutral]
 2. confidence: a number between 0 and 1
 3. explanation: brief reason for the classification
-4. disasterType: the type of disaster mentioned
-5. location: location mentioned, if any
+4. disasterType: MUST be one of [Earthquake, Flood, Typhoon, Fire, Volcano, Landslide] or "Not Specified" if none detected
+5. location: ONLY return the exact location name if mentioned (a Philippine location), with no explanation
+
+Important: For disasterType, use ONLY the words listed above - not "hurricane", not "storm", etc. Use only the exact terms provided.
 """
         
         payload = {
