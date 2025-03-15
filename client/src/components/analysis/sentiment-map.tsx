@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Globe, Map, Layers } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
-// Philippine map bounds
+// Philippine map bounds - Tightly focused on the archipelago
 const PH_BOUNDS = {
-  northEast: [21.120611, 126.604393], // Northern most point of Batanes to Eastern most point
-  southWest: [4.566667, 116.928406]   // Southern tip of Tawi-Tawi to Western most point
+  northEast: [21.120611, 126.604393], // Northern most point of Batanes
+  southWest: [4.566667, 116.928406]   // Southern tip of Tawi-Tawi
 };
 
 // Center of Philippines
@@ -26,13 +26,19 @@ interface SentimentMapProps {
   regions: Region[];
   onRegionSelect?: (region: Region) => void;
   colorBy?: 'sentiment' | 'disasterType';
+  mapType?: 'disaster' | 'emotion';
+  view?: 'standard' | 'satellite';
 }
 
-export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType' }: SentimentMapProps) {
+export function SentimentMap({ 
+  regions, 
+  onRegionSelect, 
+  colorBy = 'disasterType',
+  view = 'standard' 
+}: SentimentMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
-  const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard');
   const [mapZoom, setMapZoom] = useState(6);
   const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
 
@@ -42,26 +48,21 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
     import('leaflet').then((L) => {
       if (!mapRef.current) return;
 
-      // Initialize map with Philippines bounds
+      // Initialize map with exact Philippines bounds
       mapInstanceRef.current = L.map(mapRef.current, {
         zoomControl: false,
         attributionControl: false,
         maxBounds: [
-          [PH_BOUNDS.southWest[0] - 1, PH_BOUNDS.southWest[1] - 1], // Add padding
-          [PH_BOUNDS.northEast[0] + 1, PH_BOUNDS.northEast[1] + 1]
-        ],
-        minZoom: 5,
-        maxZoom: 12
-      }).setView(PH_CENTER, mapZoom);
-
-      // Add base tile layer
-      const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        bounds: [
           [PH_BOUNDS.southWest[0], PH_BOUNDS.southWest[1]],
           [PH_BOUNDS.northEast[0], PH_BOUNDS.northEast[1]]
-        ]
-      }).addTo(mapInstanceRef.current);
+        ],
+        minZoom: 5.5,
+        maxZoom: 12,
+        maxBoundsViscosity: 1.0 // Prevents dragging outside bounds
+      }).setView(PH_CENTER, mapZoom);
+
+      // Add base tile layer with noWrap option
+      updateTileLayer(L, view);
 
       // Add zoom change handler
       mapInstanceRef.current.on('zoomend', () => {
@@ -85,30 +86,45 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
     };
   }, []);
 
+  // Function to update tile layer with correct options
+  const updateTileLayer = (L: any, mapView: string) => {
+    if (!mapInstanceRef.current) return;
+
+    // Remove existing tile layers
+    mapInstanceRef.current.eachLayer((layer: any) => {
+      if (layer instanceof L.TileLayer) {
+        mapInstanceRef.current.removeLayer(layer);
+      }
+    });
+
+    // Common tile layer options
+    const tileOptions = {
+      noWrap: true,
+      bounds: [
+        [PH_BOUNDS.southWest[0], PH_BOUNDS.southWest[1]],
+        [PH_BOUNDS.northEast[0], PH_BOUNDS.northEast[1]]
+      ]
+    };
+
+    // Add new tile layer based on selected view
+    if (mapView === 'standard') {
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        ...tileOptions,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(mapInstanceRef.current);
+    } else {
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        ...tileOptions,
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+      }).addTo(mapInstanceRef.current);
+    }
+  };
+
   // Update map tiles when view changes
   useEffect(() => {
     if (!mapInstanceRef.current || typeof window === 'undefined') return;
-
-    import('leaflet').then((L) => {
-      // Remove existing tile layers
-      mapInstanceRef.current.eachLayer((layer: any) => {
-        if (layer instanceof L.TileLayer) {
-          mapInstanceRef.current.removeLayer(layer);
-        }
-      });
-
-      // Add new tile layer based on selected view
-      if (mapView === 'standard') {
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(mapInstanceRef.current);
-      } else {
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-        }).addTo(mapInstanceRef.current);
-      }
-    });
-  }, [mapView]);
+    import('leaflet').then((L) => updateTileLayer(L, view));
+  }, [view]);
 
   // Update markers when regions change
   useEffect(() => {
@@ -131,7 +147,7 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
           color,
           fillColor: color,
           fillOpacity: 0.7,
-          radius: radius * 1000, // Convert to meters
+          radius: radius * 1000,
           weight: 2,
         }).addTo(mapInstanceRef.current);
 
@@ -194,7 +210,7 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
       // If no regions, show a message
       if (regions.length === 0) {
         const message = L.popup()
-          .setLatLng([12.8797, 121.7740])
+          .setLatLng(PH_CENTER)
           .setContent(`
             <div style="font-family: system-ui, sans-serif; padding: 8px; text-align: center;">
               <span style="font-size: 14px; color: #4b5563;">No geographic data available for this region</span>
@@ -208,9 +224,9 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
   }, [regions, onRegionSelect, colorBy]);
 
   return (
-    <Card className="bg-white rounded-lg shadow-md border border-slate-200">
-      <CardContent className="p-0 overflow-hidden relative">
-        {/* Zoom controls - moved to left */}
+    <Card className="bg-white border-none shadow-none h-full">
+      <CardContent className="p-0 h-full overflow-hidden relative">
+        {/* Zoom controls */}
         <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
           <Button
             size="icon"
@@ -230,49 +246,27 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
           </Button>
         </div>
 
-        {/* Map Type Toggle - moved outside zoom controls */}
-        <div className="absolute top-4 right-4 z-[1000] flex items-center gap-4">
-          <div className="bg-white rounded-lg shadow-lg p-1 flex">
-            <Button
-              size="sm"
-              variant={mapView === 'standard' ? 'default' : 'outline'}
-              className="rounded-r-none px-3 h-8"
-              onClick={() => setMapView('standard')}
-            >
-              <Map className="h-4 w-4 mr-1" />
-              <span className="text-xs">Standard</span>
-            </Button>
-            <Button
-              size="sm"
-              variant={mapView === 'satellite' ? 'default' : 'outline'}
-              className="rounded-l-none px-3 h-8"
-              onClick={() => setMapView('satellite')}
-            >
-              <Layers className="h-4 w-4 mr-1" />
-              <span className="text-xs">Satellite</span>
-            </Button>
-          </div>
-        </div>
-
-
         {/* Map Container */}
         <div
           ref={mapRef}
-          className="h-[500px] w-full bg-slate-50"
+          className="h-full w-full bg-slate-50"
+          style={{ minHeight: '600px' }}
         />
 
         {/* Footer Stats */}
-        <div className="p-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-600">
-          <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4 text-slate-400" />
-            <span>Philippine Region Map</span>
-          </div>
-          <div>
-            {regions.length > 0 ? (
-              <span>Showing {regions.length} affected areas</span>
-            ) : (
-              <span>No impact data available</span>
-            )}
+        <div className="absolute bottom-0 left-0 right-0 p-3 bg-white/80 backdrop-blur-sm border-t border-slate-200">
+          <div className="flex items-center justify-between text-xs text-slate-600">
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-slate-400" />
+              <span>Philippine Region Map</span>
+            </div>
+            <div>
+              {regions.length > 0 ? (
+                <span>Showing {regions.length} affected areas</span>
+              ) : (
+                <span>No impact data available</span>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
