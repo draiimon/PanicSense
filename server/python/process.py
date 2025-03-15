@@ -212,46 +212,70 @@ class DisasterSentimentBackend:
             "Content-Type": "application/json"
         }
 
-        prompt = f"""Analyze the sentiment in this disaster-related message (language: {language}):
+        prompt = f"""Strictly analyze the sentiment in this disaster-related message (language: {language}):
 "{text}"
 
-You must ONLY classify the sentiment as one of these exact categories:
-- Panic: Extreme fear or terror, immediate distress (e.g., "Help! Earthquake!", "We're trapped!", "Emergency!")
-- Fear/Anxiety: Worry or concern about situation (e.g., "I'm scared it might get worse", "Worried about aftershocks")
-- Disbelief: Shock or inability to process events (e.g., "I can't believe this is happening", "This is unreal")
-- Resilience: Showing strength, hope, or community support (e.g., "We will rebuild", "Helping neighbors evacuate")
-- Neutral: Factual reporting or observations (e.g., "Power is out in Manila", "Roads are closed")
+ONLY classify as one of these exact sentiments. Analyze each word and phrase carefully:
+
+1. Panic: Messages indicating:
+   - Immediate danger or distress
+   - Urgent calls for help ("Help!", "Tulong!", "SOS", "Emergency!")
+   - Trapped or life-threatening situations
+   - Extreme fear or terror expressions
+   Examples: "Help! Earthquake!", "Naiipit kami!", "SOS! Need rescue!"
+
+2. Fear/Anxiety: Messages showing:
+   - Ongoing worry or concern
+   - Uncertainty about future events
+   - Expression of being scared or nervous
+   - Anxiety about potential dangers
+   Filipino keywords: "takot", "natatakot", "kabado", "kinakabahan", "nag-aalala"
+   English keywords: "scared", "afraid", "worried", "nervous", "anxious"
+
+3. Disbelief: Messages expressing:
+   - Shock or inability to process events
+   - Denial or questioning of reality
+   - Overwhelming surprise at situation
+   Filipino keywords: "Hindi ako makapaniwala", "Di ko akalain", "Parang hindi totoo"
+   English keywords: "can't believe", "unbelievable", "shocking", "surreal"
+
+4. Resilience: Messages showing:
+   - Community support and unity
+   - Hope and determination
+   - Helping others or offering assistance
+   - Recovery and rebuilding focus
+   Filipino keywords: "Tulungan", "Magkakaisa", "Kaya natin", "Babangon tayo"
+   English keywords: "we will overcome", "helping others", "staying strong", "rebuilding"
+
+5. Neutral: Messages that:
+   - Report facts without emotion
+   - Share objective information
+   - Describe situations without personal feelings
+   Examples: "Power is out in Manila", "Roads are closed", "6.2 magnitude earthquake"
+
+FOLLOW THESE STRICT RULES:
+1. If ANY words or phrases indicate panic (e.g., "Help!", "SOS", "Emergency", "Tulong!"), classify as PANIC
+2. If text shows fear but no panic words, classify as FEAR/ANXIETY
+3. If expressing shock/disbelief without panic/fear, classify as DISBELIEF
+4. If showing community support/hope without negative emotions, classify as RESILIENCE
+5. If purely factual with no emotional indicators, classify as NEUTRAL
 
 Respond ONLY with a JSON object containing:
-1. sentiment: MUST be one of [Panic, Fear/Anxiety, Disbelief, Resilience, Neutral] - no other values allowed
-2. confidence: a number between 0 and 1
-3. explanation: brief reason for the classification
-4. disasterType: MUST be one of [Earthquake, Flood, Typhoon, Fire, Volcano, Landslide] or "Not Specified"
-5. location: ONLY return the exact location name if mentioned (a Philippine location), with no explanation
-
-Key sentiment analysis rules:
-- For Filipino/Tagalog text:
-  * "Tulong!", "Help!", "SOS", "Emergency" indicate Panic
-  * "takot", "natatakot", "kabado" indicate Fear/Anxiety
-  * "Hindi ako makapaniwala", "Di ko akalain" indicate Disbelief
-  * "Tulungan", "Magkakaisa tayo", "Kaya natin ito" indicate Resilience
-  * Factual statements without emotion are Neutral
-
-- For English text:
-  * "Help!", "SOS", "Emergency", "Save us" indicate Panic
-  * "scared", "afraid", "worried", "nervous" indicate Fear/Anxiety
-  * "can't believe", "unbelievable", "shocking" indicate Disbelief
-  * "we will overcome", "helping others", "staying strong" indicate Resilience
-  * News-style reports and observations are Neutral
-"""
+{
+  "sentiment": "MUST be one of [Panic, Fear/Anxiety, Disbelief, Resilience, Neutral]",
+  "confidence": "number between 0 and 1",
+  "explanation": "brief reason for classification",
+  "disasterType": "MUST be one of [Earthquake, Flood, Typhoon, Fire, Volcano, Landslide] or 'Not Specified'",
+  "location": "exact Philippine location name only if mentioned, otherwise null"
+}"""
 
         payload = {
             "model": "llama3-70b-8192",
             "messages": [
-                {"role": "system", "content": "You are a strict disaster sentiment analyzer that only uses 5 specific sentiment categories."},
+                {"role": "system", "content": "You are a strict disaster sentiment analyzer that only uses these 5 specific sentiment categories. Never deviate from these categories."},
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.1,
+            "temperature": 0.1,  # Lower temperature for more consistent results
             "max_tokens": 500
         }
 
@@ -290,31 +314,77 @@ Key sentiment analysis rules:
                     json_str = content[start_idx:end_idx]
                     result = json.loads(json_str)
                 else:
-                    # Fallback to rule-based analysis if JSON not found
+                    # Fallback with detailed validation
+                    text_lower = text.lower()
+
+                    # Check for panic indicators first
+                    panic_words = ["help", "tulong", "sos", "emergency", "naiipit", "trapped", "救命"]
+                    if any(word in text_lower for word in panic_words):
+                        sentiment = "Panic"
+                    # Check for fear/anxiety
+                    elif any(word in text_lower for word in ["takot", "scared", "afraid", "worried", "kabado", "fear"]):
+                        sentiment = "Fear/Anxiety"
+                    # Check for disbelief
+                    elif any(word in text_lower for word in ["can't believe", "hindi makapaniwala", "di ako makapaniwala"]):
+                        sentiment = "Disbelief"
+                    # Check for resilience
+                    elif any(word in text_lower for word in ["tulungan", "help others", "stay strong", "magkakaisa"]):
+                        sentiment = "Resilience"
+                    else:
+                        sentiment = "Neutral"
+
                     result = {
-                        "sentiment": "Neutral",
-                        "confidence": 0.7,
-                        "explanation": "Determined by fallback rule-based analysis",
+                        "sentiment": sentiment,
+                        "confidence": 0.85,
+                        "explanation": f"Determined by keyword analysis: {sentiment}",
                         "disasterType": self.extract_disaster_type(text),
                         "location": self.extract_location(text),
                         "language": language
                     }
             except Exception as json_error:
                 logging.error(f"Error parsing API response: {json_error}")
+                # More sophisticated fallback analysis
+                text_lower = text.lower()
+
+                # Detailed fallback analysis
+                panic_indicators = ["help", "tulong", "sos", "emergency", "naiipit", "trapped", "救命"]
+                fear_indicators = ["takot", "scared", "afraid", "worried", "kabado", "fear", "anxiety"]
+                disbelief_indicators = ["can't believe", "hindi makapaniwala", "di ako makapaniwala", "shocking"]
+                resilience_indicators = ["tulungan", "help others", "stay strong", "magkakaisa", "we will overcome"]
+
+                # Count indicators for each category
+                panic_count = sum(1 for word in panic_indicators if word in text_lower)
+                fear_count = sum(1 for word in fear_indicators if word in text_lower)
+                disbelief_count = sum(1 for word in disbelief_indicators if word in text_lower)
+                resilience_count = sum(1 for word in resilience_indicators if word in text_lower)
+
+                # Determine sentiment based on strongest indicator
+                max_count = max(panic_count, fear_count, disbelief_count, resilience_count)
+                if max_count == 0:
+                    sentiment = "Neutral"
+                elif max_count == panic_count:
+                    sentiment = "Panic"
+                elif max_count == fear_count:
+                    sentiment = "Fear/Anxiety"
+                elif max_count == disbelief_count:
+                    sentiment = "Disbelief"
+                else:
+                    sentiment = "Resilience"
+
                 result = {
-                    "sentiment": "Neutral",
-                    "confidence": 0.7,
-                    "explanation": "Fallback due to JSON parsing error",
+                    "sentiment": sentiment,
+                    "confidence": 0.85,
+                    "explanation": f"Fallback analysis determined {sentiment} based on keyword frequency",
                     "disasterType": self.extract_disaster_type(text),
                     "location": self.extract_location(text),
                     "language": language
                 }
 
-            # Ensure required fields exist
-            if "sentiment" not in result:
+            # Ensure required fields exist with strict validation
+            if "sentiment" not in result or result["sentiment"] not in self.sentiment_labels:
                 result["sentiment"] = "Neutral"
             if "confidence" not in result:
-                result["confidence"] = 0.7
+                result["confidence"] = 0.85
             if "explanation" not in result:
                 result["explanation"] = "No explanation provided"
             if "disasterType" not in result:
@@ -339,11 +409,28 @@ Key sentiment analysis rules:
             # Add delay after error
             time.sleep(self.retry_delay)
 
-            # Fallback to rule-based analysis
+            # Detailed fallback analysis
+            text_lower = text.lower()
+
+            # Check for panic indicators first (highest priority)
+            if any(word in text_lower for word in ["help", "tulong", "sos", "emergency", "naiipit"]):
+                sentiment = "Panic"
+            # Check for fear/anxiety
+            elif any(word in text_lower for word in ["takot", "scared", "afraid", "worried", "kabado"]):
+                sentiment = "Fear/Anxiety"
+            # Check for disbelief
+            elif any(word in text_lower for word in ["can't believe", "hindi makapaniwala", "shocking"]):
+                sentiment = "Disbelief"
+            # Check for resilience
+            elif any(word in text_lower for word in ["tulungan", "help others", "stay strong", "magkakaisa"]):
+                sentiment = "Resilience"
+            else:
+                sentiment = "Neutral"
+
             return {
-                "sentiment": "Neutral",
-                "confidence": 0.7,
-                "explanation": "Fallback due to API error",
+                "sentiment": sentiment,
+                "confidence": 0.85,
+                "explanation": f"Fallback analysis: {sentiment} (API error handled)",
                 "disasterType": self.extract_disaster_type(text),
                 "location": self.extract_location(text),
                 "language": language
@@ -485,29 +572,34 @@ Key sentiment analysis rules:
             sample_size = min(50, len(df))
 
             # Report column identification progress
-            report_progress(5, "Identified data columns")
+            report_progress(2, "✓ Identified data columns, preparing for analysis")
 
             for i, row in df.head(sample_size).iterrows():
                 try:
-                    # Calculate percentage progress (0-100)
-                    progress_percentage = int((i / sample_size) * 90) + 5  # Starts at 5%, goes to 95%
-
-                    # Report progress with percentage
-                    report_progress(
-                        progress_percentage,
-                        f"Analyzing record {i+1} of {sample_size} ({progress_percentage}% complete)"
-                    )
-
                     # Extract text
                     text = str(row.get("text", ""))
                     if not text.strip():
                         continue
 
+                    # Calculate exact percentage for this record
+                    progress_percentage = int((i / sample_size) * 98) + 2  # 2% to 100%
+
+                    # Create a preview of the text (first 50 characters)
+                    text_preview = (text[:47] + "...") if len(text) > 50 else text
+
+                    # Report detailed progress before analysis
+                    report_progress(
+                        progress_percentage,
+                        f"📊 Analyzing record {i+1}/{sample_size} ({progress_percentage}%)\n"
+                        f"📝 Text: '{text_preview}'\n"
+                        f"🔄 Status: Processing sentiment analysis..."
+                    )
+
                     # Get metadata from columns
                     timestamp = str(row.get(timestamp_col, datetime.now().isoformat())) if timestamp_col else datetime.now().isoformat()
                     source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
 
-                    # Extract preset location and disaster type from CSV
+                    # Process location and disaster type from CSV
                     csv_location = str(row.get(location_col, "")) if location_col else None
                     if csv_location and csv_location.lower() in ["nan", "none", ""]:
                         csv_location = None
@@ -516,12 +608,11 @@ Key sentiment analysis rules:
                     if csv_disaster and csv_disaster.lower() in ["nan", "none", ""]:
                         csv_disaster = None
 
-                    # Check if language is specified in the CSV
+                    # Process language
                     csv_language = str(row.get(language_col, "")) if language_col else None
                     if csv_language and csv_language.lower() in ["nan", "none", ""]:
                         csv_language = None
                     elif csv_language:
-                        # Simplify language to just English or Filipino
                         if csv_language.lower() in ["tagalog", "tl", "fil", "filipino"]:
                             csv_language = "Filipino"
                         else:
@@ -530,14 +621,24 @@ Key sentiment analysis rules:
                     # Analyze sentiment
                     analysis_result = self.analyze_sentiment(text)
 
-                    # Construct standardized result
+                    # Report result for this record
+                    sentiment = analysis_result.get("sentiment", "Neutral")
+                    confidence = analysis_result.get("confidence", 0.7)
+                    report_progress(
+                        progress_percentage,
+                        f"📊 Analyzing record {i+1}/{sample_size} ({progress_percentage}%)\n"
+                        f"✓ Analyzed: '{text_preview}'\n"
+                        f"🎯 Result: {sentiment} (confidence: {confidence:.2%})"
+                    )
+
+                    # Construct result
                     processed_results.append({
                         "text": text,
                         "timestamp": timestamp,
                         "source": source,
                         "language": csv_language if csv_language else analysis_result.get("language", "English"),
-                        "sentiment": analysis_result.get("sentiment", "Neutral"),
-                        "confidence": analysis_result.get("confidence", 0.7),
+                        "sentiment": sentiment,
+                        "confidence": confidence,
                         "explanation": analysis_result.get("explanation", ""),
                         "disasterType": csv_disaster if csv_disaster else analysis_result.get("disasterType", "Not Specified"),
                         "location": csv_location if csv_location else analysis_result.get("location")
@@ -549,9 +650,13 @@ Key sentiment analysis rules:
 
                 except Exception as e:
                     logging.error(f"Error processing row {i}: {str(e)}")
+                    report_progress(
+                        progress_percentage,
+                        f"⚠️ Error processing record {i+1}: Skipping to next record"
+                    )
 
             # Report completion
-            report_progress(100, "Analysis complete!")
+            report_progress(100, "✅ Analysis complete! Processing final results...")
 
             # Log stats
             loc_count = sum(1 for r in processed_results if r.get("location"))
@@ -563,6 +668,7 @@ Key sentiment analysis rules:
 
         except Exception as e:
             logging.error(f"CSV processing error: {str(e)}")
+            report_progress(100, f"❌ Error: {str(e)}")
             return []
 
     def calculate_real_metrics(self, results):
