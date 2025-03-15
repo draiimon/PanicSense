@@ -52,6 +52,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       >
         <div className="max-w-[2000px] mx-auto">
           <div className="flex items-center justify-between px-3 py-2 sm:px-6 sm:py-4">
+            {/* Left side - Logo and Title */}
             <div className="flex items-center gap-2 sm:gap-4">
               <div className="relative w-8 h-8 sm:w-10 sm:h-10">
                 <motion.div
@@ -78,15 +79,35 @@ export function MainLayout({ children }: MainLayoutProps) {
               </div>
             </div>
 
-            {/* Menu Button - Mobile Optimized */}
-            <div className="flex items-center gap-2">
+            {/* Right side - Profile and Menu */}
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Profile - More compact on mobile */}
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
+                  <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-slate-700 hidden sm:inline">Mark Andrei</span>
+              </div>
+
+              {/* Logout Button - Icon only on mobile */}
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
+                className="h-8 w-8 sm:h-9 sm:w-auto rounded-full hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+                onClick={() => console.log('Logout clicked')}
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline ml-2">Logout</span>
+              </Button>
+
+              {/* Menu Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
-                <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Menu className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -153,7 +174,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         </div>
       </footer>
 
-      {/* Wave animation styles remain unchanged */}
+      {/* Wave animation styles */}
       <style>{`
         .wave-animation {
           position: absolute;
