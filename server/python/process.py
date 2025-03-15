@@ -90,18 +90,11 @@ class DisasterSentimentBackend:
             ]
             self.groq_api_keys = self.api_keys.copy()
 
-        # Shuffle API keys to distribute load better
-        import random
-        random.shuffle(self.groq_api_keys)
-        
-        logging.info(f"Loaded {len(self.groq_api_keys)} API keys for rotation")
-        
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
-        self.base_delay = 1.0  # Reduced base delay for faster processing
-        self.max_delay = 5.0  # Reduced maximum delay to speed up processing
-        self.retry_delay = 0.5  # Add missing retry_delay attribute
+        self.base_delay = 2.0  # Base delay for exponential backoff
+        self.max_delay = 32.0  # Maximum delay between retries
         self.current_api_index = 0
-        self.max_retries = 2  # Reduced max retries to fail faster and move to next key
+        self.max_retries = 3  # Reduced max retries per key
         self.last_successful_key = None
         self.failed_keys = set()  # Track completely failed keys
         self.tried_keys = set()
@@ -120,183 +113,33 @@ class DisasterSentimentBackend:
         return text
 
     def extract_disaster_type(self, text):
-        """
-        Enhanced disaster type extraction using more comprehensive keyword matching
-        and contextual clues with both English and Tagalog support
-        """
-        if not text:
-            return "Not Specified"
-            
+        """Extract disaster type from text using keyword matching"""
         text_lower = text.lower()
-        
-        # More comprehensive disaster type dictionary with scoring for better accuracy
+
         disaster_types = {
-            "Earthquake": {
-                "keywords": [
-                    "earthquake", "quake", "tremor", "seismic", "magnitude", "richter", 
-                    "epicenter", "shaking", "ground movement", "lindol", "pagyanig", 
-                    "pagkayanig", "yumanig", "niyanig", "lumindol", "linog"
-                ],
-                "emoji": ["🌋", "🏚️"],
-                "score": 0
-            },
-            "Typhoon": {
-                "keywords": [
-                    "typhoon", "hurricane", "storm", "cyclone", "wind", "gust", 
-                    "heavy rain", "rainfall", "winds", "tropical depression",
-                    "bagyo", "unos", "hanging", "ulan", "malakas na hangin", "signal no"
-                ],
-                "emoji": ["🌪️", "🌀", "💨", "🌧️", "☔", "🌊"],
-                "score": 0
-            },
-            "Flood": {
-                "keywords": [
-                    "flood", "flooding", "inundation", "submerged", "water level", 
-                    "overflow", "rising water", "high water", "baha", "tubig", 
-                    "umaapaw", "bumaha", "pagbaha", "nalulubog", "lumubog", "napakataas na tubig"
-                ],
-                "emoji": ["🌊", "💧", "💦"],
-                "score": 0
-            },
-            "Landslide": {
-                "keywords": [
-                    "landslide", "landslip", "rock fall", "mudslide", "ground collapse", 
-                    "soil erosion", "avalanche", "pagguho", "guho", "pagkatibag", 
-                    "natibag", "nagtibag", "pagkaguho"
-                ],
-                "emoji": ["🏔️", "⛰️"],
-                "score": 0
-            },
-            "Volcanic Eruption": {
-                "keywords": [
-                    "volcano", "volcanic", "eruption", "ash", "lava", "magma", 
-                    "pyroclastic", "crater", "bulkan", "pagputok", "abo", 
-                    "lahar", "pumutok", "nagputok", "bulkang"
-                ],
-                "emoji": ["🌋", "🔥", "💨"],
-                "score": 0
-            },
-            "Fire": {
-                "keywords": [
-                    "fire", "flames", "burning", "smoke", "burn", "blaze", 
-                    "inferno", "combustion", "sunog", "apoy", "nasusunog", 
-                    "nasunog", "nag-aapoy", "usok", "nagliliyab", "sinunog"
-                ],
-                "emoji": ["🔥", "💥", "🧯"],
-                "score": 0
-            },
-            "Tsunami": {
-                "keywords": [
-                    "tsunami", "tidal wave", "seismic sea wave", "giant wave",
-                    "malaking alon", "alon"
-                ],
-                "emoji": ["🌊"],
-                "score": 0
-            },
-            "Drought": {
-                "keywords": [
-                    "drought", "water shortage", "dry spell", "arid", "no water", 
-                    "water crisis", "tagtuyot", "taggutom", "walang tubig", "kakapusan ng tubig"
-                ],
-                "emoji": ["☀️", "🏜️"],
-                "score": 0
-            }
+            "Earthquake":
+            ["earthquake", "quake", "tremor", "seismic", "lindol", "linog"],
+            "Flood": ["flood", "flooding", "inundation", "baha", "tubig"],
+            "Typhoon": ["typhoon", "storm", "cyclone", "hurricane", "bagyo"],
+            "Fire": ["fire", "blaze", "burning", "sunog", "apoy"],
+            "Landslide":
+            ["landslide", "mudslide", "avalanche", "guho", "pagguho"],
+            "Volcano":
+            ["volcano", "eruption", "lava", "ash", "bulkan", "lahar"],
+            "Drought": ["drought", "dry spell", "water shortage", "tagtuyot"]
         }
-        
-        # Check for emojis first (strong indicators)
-        for disaster, properties in disaster_types.items():
-            for emoji in properties["emoji"]:
-                if emoji in text:
-                    properties["score"] += 2
-        
-        # Check all keywords for each disaster type
-        for disaster, properties in disaster_types.items():
-            for keyword in properties["keywords"]:
-                if keyword in text_lower:
-                    properties["score"] += 1
-        
-        # Look for contextual clues that signal specific disasters
-        if "magnitude" in text_lower or "intensity" in text_lower or "richter" in text_lower:
-            disaster_types["Earthquake"]["score"] += 2
-        if "signal no" in text_lower or "storm signal" in text_lower:
-            disaster_types["Typhoon"]["score"] += 2
-        if "tubig" in text_lower and ("mataas" in text_lower or "apaw" in text_lower or "lubog" in text_lower):
-            disaster_types["Flood"]["score"] += 2
-        if "evacuate" in text_lower or "evacuated" in text_lower or "evacuation" in text_lower:
-            # Evacuation applies to many disasters, but most commonly to volcanic eruptions
-            disaster_types["Volcanic Eruption"]["score"] += 1
-            disaster_types["Fire"]["score"] += 1
-            disaster_types["Typhoon"]["score"] += 1
-            disaster_types["Flood"]["score"] += 1
-        
-        # Find the disaster type with the highest score
-        best_match = None
-        highest_score = 0
-        
-        for disaster, properties in disaster_types.items():
-            if properties["score"] > highest_score:
-                highest_score = properties["score"]
-                best_match = disaster
-                
-        # Only return a disaster type if we have a reasonable confidence
-        if highest_score >= 1:
-            return best_match
-        
-        # Check for general disaster keywords if no specific type found
-        general_disaster_keywords = ["disaster", "emergency", "calamity", "crisis", "catastrophe", "sakuna", "kalamidad"]
-        for keyword in general_disaster_keywords:
-            if keyword in text_lower:
-                return "Other Disaster"
-        
-        # If no disaster type identified with reasonable confidence, return the standard value
+
+        for disaster_type, keywords in disaster_types.items():
+            if any(keyword in text_lower for keyword in keywords):
+                return disaster_type
+
+        # Standardize the return value for unknown disaster types
         return "Not Specified"
 
     def extract_location(self, text):
-        """
-        Enhanced location extraction for Philippines using multiple detection strategies:
-        1. Check for exact matches of location names (surrounded by spaces)
-        2. Fall back to partial matches for longer location names
-        3. Add special handling for metro areas and common abbreviations
-        """
-        if not text:
-            return None
-            
+        """Extract location from text using comprehensive Philippine location names"""
         text_lower = text.lower()
-        
-        # Add regex import here to support word boundary matching
-        import re
-        
-        # Special handling for metro areas and abbreviations with their proper names
-        metro_areas = {
-            "ncr": "Metro Manila",
-            "metro manila": "Metro Manila",
-            "metro cebu": "Metro Cebu",
-            "metro davao": "Metro Davao",
-            "car": "Cordillera Administrative Region",
-            "calabarzon": "CALABARZON",
-            "mimaropa": "MIMAROPA",
-            "mmla": "Metro Manila",
-            "mm": "Metro Manila",
-            "qc": "Quezon City",
-            "mla": "Manila",
-            "cdo": "Cagayan de Oro",
-            "gensan": "General Santos City",
-            "ceby": "Cebu",
-            "baguio": "Baguio City",
-            "caloocan": "Caloocan City",
-            "cainta": "Cainta",
-            "mnl": "Manila",
-            "sorsogon": "Sorsogon",
-            "marikina": "Marikina City",
-            "taguig": "Taguig City"
-        }
-        
-        # Check for metro areas and abbreviations first
-        for abbr, full_name in metro_areas.items():
-            if re.search(r'\b' + re.escape(abbr) + r'\b', text_lower):
-                return full_name
-        
-        # Main location list for Philippines
+
         ph_locations = [
             # ALL REGIONS
             "NCR",
@@ -567,14 +410,10 @@ class DisasterSentimentBackend:
         return None
 
     def fetch_api(self, headers, payload, retry_count=0):
-        """
-        General API fetch method with improved error handling.
-        """
         try:
             response = requests.post(self.api_url,
                                      headers=headers,
-                                     json=payload,
-                                     timeout=5)  # Add timeout to prevent hanging
+                                     json=payload)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -585,11 +424,10 @@ class DisasterSentimentBackend:
                 )
                 self.current_api_index = (self.current_api_index + 1) % len(
                     self.api_keys)
-                # Use a short delay before trying the next key
                 logging.info(
-                    f"Waiting 0.5 seconds before trying next key"
+                    f"Waiting {self.limit_delay} seconds before trying next key"
                 )
-                time.sleep(0.5)
+                time.sleep(self.limit_delay)
                 if retry_count < self.max_retries:
                     return self.fetch_api(headers, payload, retry_count + 1)
                 else:
@@ -613,10 +451,6 @@ class DisasterSentimentBackend:
                 return None
 
     def fetch_groq(self, headers, payload, retry_count=0):
-        """
-        Improved version of fetch_groq with faster API key rotation and better error handling.
-        When one API key fails, it immediately tries the next available key.
-        """
         try:
             # Track which keys have been tried in this request sequence
             if retry_count == 0:
@@ -629,20 +463,11 @@ class DisasterSentimentBackend:
             # Remember that we tried this key
             self.tried_keys.add(self.current_api_index)
             
-            # Make the API call
             response = requests.post(self.api_url,
                                      headers=headers,
-                                     json=payload,
-                                     timeout=5)  # Add timeout to prevent hanging
+                                     json=payload)
             response.raise_for_status()
-            
-            # Successfully used this key
             logging.info(f"Successfully used API key {self.current_api_index + 1}")
-            
-            # Track successful usage
-            if self.current_api_index not in self.key_success_count:
-                self.key_success_count[self.current_api_index] = 0
-            self.key_success_count[self.current_api_index] += 1
             
             # Save this key as the last successful key
             self.last_successful_key = self.current_api_index
@@ -651,64 +476,56 @@ class DisasterSentimentBackend:
             self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
             
             return response.json()
-            
         except requests.exceptions.RequestException as e:
-            # Save the current index before changing it
+            # Always rotate to the next key on any kind of error
             prev_index = self.current_api_index
             
-            # FAST FAIL: Immediately move to the next key that hasn't been tried yet
-            next_key_found = False
+            # Try to use keys that haven't been tried in this sequence first
             for i in range(len(self.groq_api_keys)):
-                next_index = (prev_index + i + 1) % len(self.groq_api_keys)
-                if next_index not in self.tried_keys and next_index not in self.failed_keys:
+                next_index = (self.current_api_index + i) % len(self.groq_api_keys)
+                if next_index not in self.tried_keys:
                     self.current_api_index = next_index
-                    next_key_found = True
                     break
+            else:
+                # If all keys tried, just move to the next one
+                self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
             
-            # If all keys have been tried in this sequence, just move to the next one
-            if not next_key_found:
-                self.current_api_index = (prev_index + 1) % len(self.groq_api_keys)
-            
-            # Handle specific error responses
             if hasattr(e, 'response') and e.response:
                 if e.response.status_code == 429:
-                    # Rate limited - mark this key and immediately try another
-                    logging.warning(f"API key {prev_index + 1} rate limited. Switching to key {self.current_api_index + 1}")
-                    self.failed_keys.add(prev_index)  # Mark as failed for this session
+                    delay = min(self.base_delay * (2 ** retry_count), self.max_delay)
+                    logging.warning(
+                        f"API key {prev_index + 1} rate limited. Waiting {delay}s before retry."
+                    )
+                    time.sleep(delay)
+                    if retry_count >= self.max_retries:
+                        self.failed_keys.add(prev_index)
                 elif e.response.status_code == 401:
-                    # Unauthorized - this key is invalid, mark it permanently
-                    logging.warning(f"API key {prev_index + 1} unauthorized. Switching to key {self.current_api_index + 1}")
-                    self.failed_keys.add(prev_index)
+                    logging.warning(
+                        f"API key {prev_index + 1} unauthorized. Switching to key {self.current_api_index + 1}/{len(self.groq_api_keys)}"
+                    )
                 else:
-                    # Other API error
                     logging.error(f"API Error with key {prev_index + 1}: {e}")
+                    time.sleep(self.retry_delay)
             else:
-                # Network or other request error
                 logging.error(f"Request error with key {prev_index + 1}: {e}")
-            
-            # Immediate retry with the new key, with minimal delay
-            if retry_count < len(self.groq_api_keys) * 2 and len(self.tried_keys) < len(self.groq_api_keys):
-                # Only wait if we've tried multiple keys
-                if len(self.tried_keys) > len(self.groq_api_keys) / 2:
-                    time.sleep(0.1)  # Very minimal delay to prevent overwhelming the network
-                return self.fetch_groq(headers, payload, retry_count + 1)
-            else:
-                logging.error(f"Failed after trying {len(self.tried_keys)} different API keys")
-                return None
+                time.sleep(self.retry_delay)
                 
-        except Exception as e:
-            # Handle unexpected errors
-            logging.error(f"Unexpected error in API call: {e}")
-            
-            # Move to next key
-            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
-            
-            # Retry with minimal delay
-            if retry_count < len(self.groq_api_keys):
-                time.sleep(0.1)  # Very minimal delay
+            # Keep retrying with different keys as long as we haven't exceeded max retries
+            # and we haven't tried all keys
+            if retry_count < self.max_retries * len(self.groq_api_keys) and len(self.tried_keys) < len(self.groq_api_keys):
                 return self.fetch_groq(headers, payload, retry_count + 1)
             else:
-                logging.error("Max retries exceeded for unexpected errors")
+                logging.error(f"Max retries exceeded after trying all {len(self.groq_api_keys)} API keys.")
+                return None
+        except Exception as e:
+            logging.error(f"Unexpected error: {e}")
+            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+            time.sleep(self.retry_delay)
+            
+            if retry_count < self.max_retries * len(self.groq_api_keys):
+                return self.fetch_groq(headers, payload, retry_count + 1)
+            else:
+                logging.error("Max retries exceeded for request error.")
                 return None
 
     def detect_language(self, text):
@@ -1738,47 +1555,23 @@ class DisasterSentimentBackend:
         # Process all records up to a reasonable limit
         sample_size = min(1000, len(df))  
         
-        # Process records in larger batches for better efficiency
-        batch_size = 5  # Increase to process 5 records at a time
+        # If we have a lot of records, process in batches for better efficiency
+        batch_size = 1  # Process one record at a time
         processed_count = 0
         
-        # Minimize delay between batches to speed up processing
-        batch_delay = 0.2
+        # Add delay between batches to avoid rate limits
+        batch_delay = 1.0
         
         # Divide the sample into batches
         batches = []
         current_batch = []
         
-        # Prepare data in batches with enhanced detection and parsing capabilities
+        # Prepare data in batches (with better field detection)
         for index, row in df.head(sample_size).iterrows():
             try:
-                # First, attempt to handle the case where all data might be combined in a single field
-                # This handles rows like: "Text 2025-03-07 3:58:00 X (Twitter) Cebu Panic"
-                combined_text = None
-                
-                # If only one column exists, check if it might contain all the data
-                if len(df.columns) == 1:
-                    combined_text = str(row[df.columns[0]])
-                    logging.info(f"Processing single column data: {combined_text[:50]}...")
-                
                 # Get text with fallback to first column
                 text = ""
-                if combined_text:
-                    # Try to parse combined text intelligently
-                    parts = combined_text.split('\t')
-                    if len(parts) >= 3:  # We have multiple tab-separated parts
-                        text = parts[0].strip()
-                        # We'll extract other fields below
-                    else:
-                        # If not tab-separated, assume the first part (before any date pattern) is the text
-                        # This regex looks for date patterns like 2025-03-07
-                        import re
-                        date_match = re.search(r'\d{4}-\d{2}-\d{2}', combined_text)
-                        if date_match:
-                            text = combined_text[:date_match.start()].strip()
-                        else:
-                            text = combined_text  # Use full text if no date found
-                elif 'text' in row:
+                if 'text' in row:
                     text = str(row['text'])
                 elif len(df.columns) > 0:
                     text = str(row[df.columns[0]])
@@ -1786,18 +1579,9 @@ class DisasterSentimentBackend:
                 if not text.strip():  # Skip empty text
                     continue
                 
-                # Get timestamp with enhanced detection
+                # Get timestamp with improved detection
                 timestamp = None
-                if combined_text:
-                    # Try to extract timestamp from combined text
-                    import re
-                    # Look for patterns like 2025-03-07 3:58:00 or 2025-03-07
-                    date_match = re.search(r'\d{4}-\d{2}-\d{2}(\s+\d{1,2}:\d{2}(:\d{2})?)?', combined_text)
-                    if date_match:
-                        timestamp = date_match.group().strip()
-                    else:
-                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                elif timestamp_column:
+                if timestamp_column:
                     timestamp = str(row[timestamp_column])
                     if timestamp and timestamp.lower() != 'nan' and timestamp.strip():
                         timestamp = timestamp.strip()
@@ -1806,87 +1590,30 @@ class DisasterSentimentBackend:
                 else:
                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 
-                # Get source with enhanced detection
+                # Get source with improved detection
                 source = "CSV Import"  # Default fallback
-                if combined_text:
-                    # Try to extract source from combined text
-                    # Look for common social media markers
-                    parts = combined_text.split('\t')
-                    if len(parts) >= 3:
-                        source = parts[2].strip()  # Assume 3rd tab-separated part is source
-                    else:
-                        # Look for common social media platforms
-                        social_media = ["Facebook", "Twitter", "X (Twitter)", "Instagram", "TikTok", "YouTube", "LinkedIn"]
-                        for platform in social_media:
-                            if platform in combined_text:
-                                source = platform
-                                break
-                elif source_column:
+                if source_column:
                     source_value = str(row[source_column])
                     if source_value and source_value.lower() != 'nan' and source_value.strip():
                         source = source_value.strip()
                 
-                # Get location with enhanced detection
+                # Get location with improved detection
                 location = None
-                if combined_text:
-                    # Try to extract location from combined text if it has a Philippines location
-                    # This will be refined by the API later, but we make a first attempt
-                    parts = combined_text.split('\t')
-                    if len(parts) >= 4:
-                        location = parts[3].strip()  # Assume 4th tab-separated part is location
-                    else:
-                        # Look for common Philippine locations
-                        ph_locations = ["Manila", "Cebu", "Davao", "Quezon City", "Makati", "Baguio", 
-                                       "Iloilo", "Tacloban", "Legazpi", "Batangas", "Pampanga", "Luzon", 
-                                       "Visayas", "Mindanao", "NCR", "CAR", "Bicol", "Cagayan Valley"]
-                        for loc in ph_locations:
-                            if loc in combined_text:
-                                location = loc
-                                break
-                elif location_column:
+                if location_column:
                     location_value = str(row[location_column])
                     if location_value and location_value.lower() not in ['nan', 'unknown', 'none', ''] and location_value.strip():
                         location = location_value.strip()
                 
-                # Get disaster type with enhanced detection
+                # Get disaster type with improved detection
                 disaster_type = None
-                if combined_text:
-                    # We'll let the API handle disaster type extraction, but make a first attempt
-                    disaster_keywords = {
-                        "Typhoon": ["typhoon", "bagyo", "storm", "cyclone", "hurricane"],
-                        "Flood": ["flood", "baha", "tubig", "overflow", "inundation"],
-                        "Earthquake": ["earthquake", "lindol", "quake", "tremor", "seismic"],
-                        "Landslide": ["landslide", "avalanche", "mudslide", "soil erosion", "ground movement"],
-                        "Volcanic Eruption": ["volcano", "volcanic", "eruption", "bulkan", "ash fall", "lava"],
-                        "Fire": ["fire", "sunog", "burning", "flames", "wildfire", "forest fire"],
-                        "Tsunami": ["tsunami", "tidal wave", "seismic sea wave"]
-                    }
-                    
-                    text_lower = text.lower()
-                    for disaster, keywords in disaster_keywords.items():
-                        if any(keyword in text_lower for keyword in keywords):
-                            disaster_type = disaster
-                            break
-                elif disaster_column:
+                if disaster_column:
                     disaster_value = str(row[disaster_column])
                     if disaster_value and disaster_value.lower() not in ['nan', 'unknown', 'none', ''] and disaster_value.strip():
                         disaster_type = disaster_value.strip()
                 
-                # Get sentiment with enhanced detection
+                # Get sentiment with improved detection
                 sentiment = None
-                if combined_text:
-                    # Check if sentiment is explicitly mentioned
-                    parts = combined_text.split('\t')
-                    if len(parts) >= 5:
-                        sentiment = parts[4].strip()  # Assume 5th tab-separated part is sentiment
-                    else:
-                        # Look for sentiment keywords in the last part of the text
-                        words = combined_text.split()
-                        if len(words) > 0:
-                            last_word = words[-1].lower()
-                            if last_word in ["panic", "fear/anxiety", "disbelief", "resilience", "neutral"]:
-                                sentiment = last_word.capitalize()
-                elif sentiment_column:
+                if sentiment_column:
                     sentiment_value = str(row[sentiment_column])
                     if sentiment_value and sentiment_value.lower() not in ['nan', 'unknown', 'none', ''] and sentiment_value.strip():
                         sentiment = sentiment_value.strip()
