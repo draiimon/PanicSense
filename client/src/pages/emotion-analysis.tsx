@@ -18,6 +18,7 @@ export default function EmotionAnalysis() {
       
       // Metro Manila and surrounding provinces
       "Metro Manila": [14.5995, 120.9842],
+      "Manila": [14.5995, 120.9842],
       "Batangas": [13.7565, 121.0583],
       "Rizal": [14.6042, 121.3035],
       "Laguna": [14.2691, 121.4113],
@@ -129,17 +130,23 @@ export default function EmotionAnalysis() {
       
       // Convert possible raw location mentions to standardized regions
       let location = post.location;
+      const lowerLocation = location.toLowerCase().trim();
+      
+      // Handle Manila specifically
+      if (lowerLocation.includes('manila') && !lowerLocation.includes('metro')) {
+        location = 'Manila';
+      }
       
       // Handle main island groups if mentioned
-      if (location.toLowerCase().includes('luzon')) location = 'Luzon';
-      if (location.toLowerCase().includes('visayas')) location = 'Visayas';
-      if (location.toLowerCase().includes('mindanao')) location = 'Mindanao';
+      if (lowerLocation.includes('luzon')) location = 'Luzon';
+      if (lowerLocation.includes('visayas')) location = 'Visayas';
+      if (lowerLocation.includes('mindanao')) location = 'Mindanao';
       
       // Handle entire Philippines as special case
       if (
-        location.toLowerCase().includes('philippines') || 
-        location.toLowerCase().includes('pilipinas') ||
-        location.toLowerCase().includes('pinas')
+        lowerLocation.includes('philippines') || 
+        lowerLocation.includes('pilipinas') ||
+        lowerLocation.includes('pinas')
       ) {
         location = 'Philippines'; 
       }
@@ -244,25 +251,42 @@ export default function EmotionAnalysis() {
 
   return (
     <div className="space-y-6">
-      {/* Emotion Analysis Header */}
+      {/* Impact Analysis Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Emotion Analysis</h1>
-          <p className="mt-1 text-sm text-slate-500">Mapping emotions by geographic area</p>
+          <h1 className="text-2xl font-bold text-slate-800">Geographic Impact Analyzer</h1>
+          <p className="mt-1 text-sm text-slate-500">Visualizing disaster and emotional impact by region</p>
         </div>
+      </div>
+
+      {/* Tabs for Different Maps */}
+      <div className="flex space-x-2 border-b border-gray-200">
+        <button 
+          className={`px-4 py-2 font-medium text-sm rounded-t-lg ${regions.length > 0 ? 'bg-white text-blue-600 border border-gray-200 border-b-white' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => {}}
+        >
+          Disaster Impact Map
+        </button>
+        <button 
+          className="px-4 py-2 font-medium text-sm text-gray-500 hover:text-gray-700 rounded-t-lg"
+          onClick={() => {}}
+        >
+          Emotion Impact Map
+        </button>
       </div>
 
       {/* Map and Legend */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sentiment Map */}
+        {/* Impact Map - showing disaster impact by default */}
         <div className="lg:col-span-2">
           <SentimentMap 
             regions={regions}
             onRegionSelect={handleRegionSelect}
+            colorBy="disasterType"
           />
         </div>
 
-        {/* Sentiment Legend and Stats */}
+        {/* Legend and Stats */}
         <SentimentLegend 
           selectedRegion={selectedRegion}
           mostAffectedAreas={mostAffectedAreas}

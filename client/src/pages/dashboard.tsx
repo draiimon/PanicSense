@@ -1,10 +1,10 @@
 import { useDisasterContext } from "@/context/disaster-context";
 import { StatusCard } from "@/components/dashboard/status-card";
-import { SentimentChart } from "@/components/dashboard/sentiment-chart";
+import { OptimizedSentimentChart } from "@/components/dashboard/optimized-sentiment-chart";
 import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
 import { AffectedAreasCard } from "@/components/dashboard/affected-areas-card";
 import { FileUploader } from "@/components/file-uploader";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const fadeInUp = {
@@ -131,7 +131,7 @@ export default function Dashboard() {
                 <CardTitle className="text-lg font-semibold">Sentiment Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                <SentimentChart data={sentimentData} />
+                <OptimizedSentimentChart data={sentimentData} />
               </CardContent>
             </Card>
 
