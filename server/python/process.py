@@ -39,7 +39,7 @@ def report_progress(processed: int, stage: str):
 class DisasterSentimentBackend:
     def __init__(self):
         self.sentiment_labels = [
-            'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'
+            'Panic', 'Fear/Anxiety', 'Disbelief', 'Neutral'
         ]
         self.api_keys = []
         self.groq_api_keys = []
@@ -211,24 +211,34 @@ class DisasterSentimentBackend:
         headers = {
             "Content-Type": "application/json"
         }
-        
+
         prompt = f"""Analyze the sentiment in this disaster-related message (language: {language}):
 "{text}"
 
+You must ONLY classify the sentiment as one of these exact categories:
+- Panic: Extreme fear or terror, immediate distress (e.g., "Help! Earthquake!", "We're trapped!")
+- Fear/Anxiety: Worry or concern about situation (e.g., "I'm scared it might get worse", "Worried about aftershocks")
+- Disbelief: Shock or inability to process events (e.g., "I can't believe this is happening", "This is unreal")
+- Neutral: Factual reporting or observations (e.g., "Power is out in Manila", "Roads are closed")
+
 Respond ONLY with a JSON object containing:
-1. sentiment: one of [Panic, Fear/Anxiety, Disbelief, Resilience, Neutral]
+1. sentiment: MUST be one of [Panic, Fear/Anxiety, Disbelief, Neutral] - no other values allowed
 2. confidence: a number between 0 and 1
 3. explanation: brief reason for the classification
-4. disasterType: MUST be one of [Earthquake, Flood, Typhoon, Fire, Volcano, Landslide] or "Not Specified" if none detected
+4. disasterType: MUST be one of [Earthquake, Flood, Typhoon, Fire, Volcano, Landslide] or "Not Specified"
 5. location: ONLY return the exact location name if mentioned (a Philippine location), with no explanation
 
-Important: For disasterType, use ONLY the words listed above - not "hurricane", not "storm", etc. Use only the exact terms provided.
+Key sentiment analysis rules:
+- For Filipino/Tagalog text, words like "takot", "natatakot" indicate Fear/Anxiety
+- "Tulong!", "Help!" indicate Panic
+- "Hindi ako makapaniwala", "Di ko akalain" indicate Disbelief
+- Factual statements without emotion are Neutral
 """
-        
+
         payload = {
             "model": "llama3-70b-8192",
             "messages": [
-                {"role": "system", "content": "You are a disaster sentiment analysis expert."},
+                {"role": "system", "content": "You are a strict disaster sentiment analyzer that only uses 4 specific sentiment categories."},
                 {"role": "user", "content": prompt}
             ],
             "temperature": 0.1,
