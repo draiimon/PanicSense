@@ -2,7 +2,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { motion } from "framer-motion";
-import { BrainCircuit, BarChart2, Clock, Layers, Database, ChartPie, Activity, HelpCircle } from "lucide-react";
+import { BrainCircuit, BarChart2, Clock, Layers, Database, ChartPie, Activity, HelpCircle, Globe } from "lucide-react";
 
 export function Header() {
   const [location] = useLocation();
@@ -15,7 +15,7 @@ export function Header() {
 
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: <BarChart2 className="w-4 h-4" /> },
-    { path: '/emotion-analysis', label: 'Geographic Analysis', icon: <BrainCircuit className="w-4 h-4" /> },
+    { path: '/emotion-analysis', label: 'Geographic Analysis', icon: <Globe className="w-4 h-4" /> },
     { path: '/timeline', label: 'Timeline', icon: <Clock className="w-4 h-4" /> },
     { path: '/comparison', label: 'Comparison', icon: <Layers className="w-4 h-4" /> },
     { path: '/raw-data', label: 'Raw Data', icon: <Database className="w-4 h-4" /> },

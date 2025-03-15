@@ -11,7 +11,8 @@ import {
   HelpCircle,
   Menu, 
   User, 
-  LogOut 
+  LogOut,
+  Globe
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
@@ -27,7 +28,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: <BarChart2 className="w-4 h-4" /> },
-    { path: '/emotion-analysis', label: 'Emotion Analysis', icon: <BrainCircuit className="w-4 h-4" /> },
+    { path: '/emotion-analysis', label: 'Geographic Analysis', icon: <Globe className="w-4 h-4" /> },
     { path: '/timeline', label: 'Timeline', icon: <Clock className="w-4 h-4" /> },
     { path: '/comparison', label: 'Comparison', icon: <Layers className="w-4 h-4" /> },
     { path: '/raw-data', label: 'Raw Data', icon: <Database className="w-4 h-4" /> },

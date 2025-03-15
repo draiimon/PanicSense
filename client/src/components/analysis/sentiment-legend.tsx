@@ -55,10 +55,10 @@ export function SentimentLegend({ selectedRegion, mostAffectedAreas = [] }: Sent
     <Card className="bg-white rounded-lg shadow">
       <CardHeader className="p-5 border-b border-gray-200">
         <CardTitle className="text-lg font-medium text-slate-800">
-          Emotion Distribution
+          Geographic Distribution
         </CardTitle>
         <CardDescription className="text-sm text-slate-500">
-          By region and intensity
+          By region and impact intensity
         </CardDescription>
       </CardHeader>
       <CardContent className="p-5 space-y-6">

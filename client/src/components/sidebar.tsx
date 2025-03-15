@@ -15,6 +15,7 @@ import {
   X,
   User,
   LogOut,
+  Globe,
 } from "lucide-react";
 
 interface NavItem {
@@ -35,8 +36,8 @@ export function Sidebar() {
     },
     {
       href: "/emotion-analysis",
-      label: "Emotion Analysis",
-      icon: <BrainCircuit className="h-5 w-5" />,
+      label: "Geographic Analysis",
+      icon: <Globe className="h-5 w-5" />,
     },
     {
       href: "/timeline",
