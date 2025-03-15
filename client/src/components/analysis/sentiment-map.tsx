@@ -42,6 +42,7 @@ export function SentimentMap({
   const markersRef = useRef<any[]>([]);
   const [mapZoom, setMapZoom] = useState(6);
   const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
+  const popupRef = useRef<any>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !mapRef.current || mapInstanceRef.current) return;
@@ -138,32 +139,25 @@ export function SentimentMap({
     import('leaflet').then((L) => updateTileLayer(L, view));
   }, [view]);
 
-  // Add separate effect for marker visibility
-  useEffect(() => {
-    if (!mapInstanceRef.current || typeof window === 'undefined' || !markersRef.current.length) return;
-    
-    // Simply hide/show existing markers without recreating them
-    markersRef.current.forEach(marker => {
-      if (marker.getPopup) { // It's a circle marker
-        if (showMarkers) {
-          marker.setStyle({ opacity: 1, fillOpacity: 0.7 });
-        } else {
-          marker.setStyle({ opacity: 0, fillOpacity: 0 });
-        }
-      }
-    });
-  }, [showMarkers]);
-
-  // Update markers when regions change
-  useEffect(() => {
+  // Clear existing markers and create new ones
+  const updateMarkers = async () => {
     if (!mapInstanceRef.current || typeof window === 'undefined') return;
 
-    import('leaflet').then((L) => {
-      // Clear previous markers
-      markersRef.current.forEach(marker => marker.remove());
-      markersRef.current = [];
-      
-      // Add new markers
+    const L = await import('leaflet');
+
+    // Clear previous markers and popup
+    markersRef.current.forEach(marker => {
+      if (marker) marker.remove();
+    });
+    markersRef.current = [];
+
+    if (popupRef.current) {
+      popupRef.current.remove();
+      popupRef.current = null;
+    }
+
+    // Add new markers if showMarkers is true
+    if (showMarkers) {
       regions.forEach(region => {
         const color = mapType === 'disaster' && region.disasterType
           ? getDisasterTypeColor(region.disasterType)
@@ -171,13 +165,13 @@ export function SentimentMap({
 
         // Scale radius based on zoom level and intensity
         const baseRadius = 10 + (region.intensity / 100) * 40;
-        const radius = baseRadius * Math.pow(1.2, mapZoom - 6); // Adjust radius based on zoom
+        const radius = baseRadius * Math.pow(1.2, mapZoom - 6);
 
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
           fillOpacity: 0.7,
-          radius: radius * 1000, // Convert to meters
+          radius: radius * 1000,
           weight: 2,
         }).addTo(mapInstanceRef.current);
 
@@ -214,30 +208,25 @@ export function SentimentMap({
 
         // Enhanced hover interactions
         circle.on('mouseover', () => {
-          // Apply hover styles without using radius property which is not supported in setStyle
           circle.setStyle({ 
             weight: 3, 
             fillOpacity: 0.85
           });
-          // Update radius separately
-          circle.setRadius(radius * 1100); // Slightly larger on hover
+          circle.setRadius(radius * 1100);
           setHoveredRegion(region);
           circle.openPopup();
         });
 
         circle.on('mouseout', () => {
-          // Apply normal styles without using radius property
           circle.setStyle({ 
             weight: 2, 
             fillOpacity: 0.7
           });
-          // Reset radius separately
           circle.setRadius(radius * 1000);
           setHoveredRegion(null);
           circle.closePopup();
         });
 
-        // Handle click event
         circle.on('click', () => {
           if (onRegionSelect) {
             onRegionSelect(region);
@@ -246,35 +235,24 @@ export function SentimentMap({
 
         markersRef.current.push(circle);
       });
-
-      // Update marker visibility
-      markersRef.current.forEach(marker => {
-        if (marker instanceof L.Circle) {
-          if (showMarkers) {
-            marker.setStyle({ opacity: 1, fillOpacity: 0.7 });
-          } else {
-            marker.setStyle({ opacity: 0, fillOpacity: 0 });
-          }
-        }
-      });
-
+    } else {
       // Show message when markers are hidden
-      const existingMessage = markersRef.current.find(m => m instanceof L.Popup);
-      if (existingMessage) existingMessage.remove();
+      popupRef.current = L.popup()
+        .setLatLng(PH_CENTER)
+        .setContent(`
+          <div class="p-4 text-center">
+            <span class="text-sm text-slate-600">Map markers are currently hidden</span>
+          </div>
+        `)
+        .openOn(mapInstanceRef.current);
+      markersRef.current.push(popupRef.current);
+    }
+  };
 
-      if (!showMarkers) {
-        const message = L.popup()
-          .setLatLng(PH_CENTER)
-          .setContent(`
-            <div class="p-4 text-center">
-              <span class="text-sm text-slate-600">Map markers are currently hidden</span>
-            </div>
-          `)
-          .openOn(mapInstanceRef.current);
-        markersRef.current.push(message);
-      }
-    });
-  }, [regions, onRegionSelect, mapType, mapZoom, showMarkers]);
+  // Update markers when regions, mapType, mapZoom, or showMarkers changes
+  useEffect(() => {
+    updateMarkers();
+  }, [regions, mapType, mapZoom, showMarkers]);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -298,14 +276,14 @@ export function SentimentMap({
         </Button>
       </div>
 
-      {/* Map Container - Made to take all available space */}
+      {/* Map Container */}
       <div
         ref={mapRef}
         className="absolute inset-0 bg-slate-100"
         style={{ width: '100%', height: '100%' }}
       />
 
-      {/* Status Bar - Now with improved visibility */}
+      {/* Status Bar */}
       <div className="absolute bottom-0 left-0 right-0 p-2 bg-white/90 backdrop-blur-sm border-t border-slate-200 z-[500]">
         <div className="flex items-center justify-between text-xs text-slate-700 font-medium">
           <div className="flex items-center gap-2">
@@ -314,7 +292,7 @@ export function SentimentMap({
           </div>
           <div>
             {regions.length > 0 ? (
-              <span>Showing {regions.length} affected areas</span>
+              <span>Showing {showMarkers ? regions.length : 0} affected areas</span>
             ) : (
               <span>No impact data available</span>
             )}
