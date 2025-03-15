@@ -2,6 +2,7 @@ import { useDisasterContext } from "@/context/disaster-context";
 import { StatusCard } from "@/components/dashboard/status-card";
 import { SentimentChart } from "@/components/dashboard/sentiment-chart";
 import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
+import { AffectedAreasCard } from "@/components/dashboard/affected-areas-card";
 import { FileUploader } from "@/components/file-uploader";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -106,25 +107,44 @@ export default function Dashboard() {
         initial="hidden"
         animate="visible"
         variants={fadeInUp}
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
       >
-        <Card className="bg-white/50 backdrop-blur-sm border-none">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Sentiment Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SentimentChart data={sentimentData} />
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-1">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <AffectedAreasCard sentimentPosts={sentimentPosts} />
+          </motion.div>
+        </div>
+        
+        <div className="lg:col-span-2">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="grid grid-cols-1 gap-6 h-full"
+          >
+            <Card className="bg-white/50 backdrop-blur-sm border-none">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">Sentiment Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SentimentChart data={sentimentData} />
+              </CardContent>
+            </Card>
 
-        <Card className="bg-white/50 backdrop-blur-sm border-none">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Recent Posts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RecentPostsTable posts={sentimentPosts} limit={5} />
-          </CardContent>
-        </Card>
+            <Card className="bg-white/50 backdrop-blur-sm border-none">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">Recent Posts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RecentPostsTable posts={sentimentPosts} limit={5} />
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
       </motion.div>
     </div>
   );

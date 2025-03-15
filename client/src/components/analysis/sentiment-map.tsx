@@ -113,7 +113,7 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
         </CardTitle>
         <CardDescription className="text-sm text-slate-500">
           {colorBy === 'disasterType' 
-            ? 'Regions colored by disaster type (flood: blue, typhoon: gray, fire: orange, volcanic: red, earthquake: brown, landslide: dark brown)' 
+            ? 'Disaster type impact visualization' 
             : 'Regions colored by dominant emotion'}
         </CardDescription>
       </CardHeader>
