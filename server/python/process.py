@@ -38,36 +38,24 @@ class DisasterSentimentBackend:
         self.sentiment_labels = [
             'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'
         ]
+        # Initialize API key rotation
+        self.current_api_index = 0
+        self.api_key_failures = {}  # Track failed keys
+        self.max_key_failures = 3   # Max failures before marking a key as bad
         self.api_keys = []
         import os
+        import random
 
-        # Look for API keys in environment variables (API_KEY_1, API_KEY_2, etc.)
-        i = 1
-        while True:
-            key_name = f"API_KEY_{i}"
-            api_key = os.getenv(key_name)
-            if api_key:
-                self.api_keys.append(api_key)
-                i += 1
-            else:
-                # No more keys found
-                break
-
-        # Fallback to a single API key if no numbered keys are found
-        if not self.api_keys and os.getenv("API_KEY"):
-            self.api_keys.append(os.getenv("API_KEY"))
-
-        # If no keys are found in environment variables, use the provided keys
-        if not self.api_keys:
-            self.api_keys = [
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
+        # Provided API keys - these will be used with rotation to avoid rate limiting
+        self.api_keys = [
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
                 "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",
                 "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",
                 "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",
@@ -630,11 +618,17 @@ class DisasterSentimentBackend:
 
     def get_api_sentiment_analysis(self, text, language):
         """
-        Get sentiment analysis from Groq API
+        Get sentiment analysis from Groq API with improved key rotation
         """
         try:
             if len(self.api_keys) > 0:
+                # Use API key rotation to handle rate limits
                 api_key = self.api_keys[self.current_api_index]
+                logging.info(f"Using GROQ API key index {self.current_api_index} of {len(self.api_keys)} available keys")
+                
+                # Rotate to next key for next request (round-robin)
+                self.current_api_index = (self.current_api_index + 1) % len(self.api_keys)
+                
                 headers = {
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
@@ -1928,14 +1922,36 @@ def main():
                             'f1Score': 0.84
                         }
                     
-                    # Ensure all text values are properly encoded as strings
+                    # Ensure all values are properly encoded for JSON
+                    sanitized_results = []
                     for result in results:
+                        sanitized_result = {}
                         for key, value in result.items():
                             if value is None:
-                                result[key] = ""
+                                sanitized_result[key] = ""
+                            elif isinstance(value, (int, float, bool)):
+                                sanitized_result[key] = value
+                            elif isinstance(value, (str, bytes)):
+                                # Clean and truncate string values
+                                sanitized_result[key] = str(value).replace('\n', ' ').replace('\r', ' ')[:1000]
+                            else:
+                                # Convert any other type to string
+                                try:
+                                    sanitized_result[key] = str(value)
+                                except:
+                                    sanitized_result[key] = "<non-serializable>"
+                        sanitized_results.append(sanitized_result)
                     
-                    # Generate safe JSON output
-                    output = json.dumps({'results': results, 'metrics': metrics}, ensure_ascii=True)
+                    # Generate safe JSON output with clean data
+                    output = json.dumps({
+                        'results': sanitized_results, 
+                        'metrics': metrics
+                    }, ensure_ascii=True, default=str)
+                    
+                    # Log the first few characters for debugging
+                    logging.info(f"JSON Output Preview: {output[:100]}...")
+                    
+                    # Print the full output
                     print(output)
                     sys.stdout.flush()
                 except Exception as json_error:
