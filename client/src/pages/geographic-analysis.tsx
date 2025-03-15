@@ -3,8 +3,9 @@ import { useDisasterContext } from "@/context/disaster-context";
 import { SentimentMap } from "@/components/analysis/sentiment-map";
 import { SentimentLegend } from "@/components/analysis/sentiment-legend";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, MapPin, Map, AlertTriangle } from "lucide-react";
+import { Globe, MapPin, Map, AlertTriangle, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 // Define types for the component
 interface Region {
@@ -20,7 +21,9 @@ type RegionCoordinates = Record<string, [number, number]>;
 
 export default function GeographicAnalysis() {
   const [activeMapType, setActiveMapType] = useState<'disaster' | 'emotion'>('disaster');
-  const { sentimentPosts } = useDisasterContext();
+  const { sentimentPosts, refreshData } = useDisasterContext();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard'); // Added map view state
 
   // Complete Philippine region coordinates
   const regionCoordinates = useMemo(() => {
@@ -258,6 +261,12 @@ export default function GeographicAnalysis() {
       }));
   }, [regions]);
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshData();
+    setIsRefreshing(false);
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -274,30 +283,67 @@ export default function GeographicAnalysis() {
       </Card>
 
       <div className="bg-white rounded-lg shadow-md">
-        {/* Map Selection Tabs */}
-        <div className="flex space-x-2 border-b border-gray-200 px-4">
-          <button 
-            className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all flex items-center gap-2 ${
-              activeMapType === 'disaster' 
-                ? 'bg-white text-blue-600 border border-gray-200 border-b-white shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveMapType('disaster')}
-          >
-            <AlertTriangle className="h-4 w-4" />
-            Disaster Impact
-          </button>
-          <button 
-            className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all flex items-center gap-2 ${
-              activeMapType === 'emotion' 
-                ? 'bg-white text-blue-600 border border-gray-200 border-b-white shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveMapType('emotion')}
-          >
-            <MapPin className="h-4 w-4" />
-            Sentiment Distribution
-          </button>
+        {/* Controls Header */}
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          {/* Map Type Tabs */}
+          <div className="flex space-x-2">
+            <button
+              className={`px-6 py-2 font-medium text-sm rounded-lg transition-all flex items-center gap-2 ${
+                activeMapType === 'disaster'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+              onClick={() => setActiveMapType('disaster')}
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Disaster Impact
+            </button>
+            <button
+              className={`px-6 py-2 font-medium text-sm rounded-lg transition-all flex items-center gap-2 ${
+                activeMapType === 'emotion'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+              onClick={() => setActiveMapType('emotion')}
+            >
+              <MapPin className="h-4 w-4" />
+              Sentiment Distribution
+            </button>
+          </div>
+
+          {/* Map Controls */}
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className={`flex items-center gap-2 ${isRefreshing ? 'opacity-50' : ''}`}
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh Data
+            </Button>
+            <div className="bg-slate-100 rounded-lg p-1 flex">
+              <Button
+                size="sm"
+                variant={mapView === 'standard' ? 'default' : 'outline'}
+                className="rounded-r-none px-3 h-8"
+                onClick={() => setMapView('standard')}
+              >
+                <Map className="h-4 w-4 mr-1" />
+                <span className="text-xs">Standard</span>
+              </Button>
+              <Button
+                size="sm"
+                variant={mapView === 'satellite' ? 'default' : 'outline'}
+                className="rounded-l-none px-3 h-8"
+                onClick={() => setMapView('satellite')}
+              >
+                <Layers className="h-4 w-4 mr-1" />
+                <span className="text-xs">Satellite</span>
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Map and Legend Container */}
@@ -313,9 +359,8 @@ export default function GeographicAnalysis() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="aspect-[16/9]"
                   >
-                    <SentimentMap 
+                    <SentimentMap
                       regions={regions}
                       colorBy={activeMapType === 'disaster' ? 'disasterType' : 'sentiment'}
                     />
@@ -327,9 +372,10 @@ export default function GeographicAnalysis() {
 
           {/* Legend Container */}
           <div>
-            <SentimentLegend 
+            <SentimentLegend
               mostAffectedAreas={mostAffectedAreas}
               showRegionSelection={false}
+              colorBy={activeMapType === 'disaster' ? 'disasterType' : 'sentiment'}
             />
           </div>
         </div>

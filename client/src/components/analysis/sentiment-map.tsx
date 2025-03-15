@@ -213,27 +213,6 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
       <CardContent className="p-0 overflow-hidden relative">
         {/* Control buttons container with higher z-index */}
         <div className="absolute top-4 right-4 z-[1000] flex items-start gap-4">
-          {/* Map Type Toggle */}
-          <div className="bg-white rounded-lg shadow-lg p-1 flex">
-            <Button
-              size="sm"
-              variant={mapView === 'standard' ? 'default' : 'outline'}
-              className="rounded-r-none px-3 h-8"
-              onClick={() => setMapView('standard')}
-            >
-              <Map className="h-4 w-4 mr-1" />
-              <span className="text-xs">Standard</span>
-            </Button>
-            <Button
-              size="sm"
-              variant={mapView === 'satellite' ? 'default' : 'outline'}
-              className="rounded-l-none px-3 h-8"
-              onClick={() => setMapView('satellite')}
-            >
-              <Layers className="h-4 w-4 mr-1" />
-              <span className="text-xs">Satellite</span>
-            </Button>
-          </div>
           {/* Zoom controls */}
           <div className="flex flex-col gap-2">
             <Button 
@@ -252,8 +231,7 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
             >
               <span className="text-lg font-medium">−</span>
             </Button>
-          </div>v>
-
+          </div>
           {/* Map Type Toggle */}
           <div className="bg-white rounded-lg shadow-lg p-1 flex">
             <Button
