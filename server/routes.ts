@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import multer from "multer";
 import { pythonService } from "./python-service";
@@ -30,7 +31,61 @@ const uploadProgressMap = new Map<string, {
   error?: string;
 }>();
 
+// Track connected WebSocket clients
+const connectedClients = new Set<WebSocket>();
+
+// Broadcast updates to all connected clients
+function broadcastUpdate(data: any) {
+  const message = JSON.stringify(data);
+  connectedClients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Create HTTP server
+  const httpServer = createServer(app);
+
+  // Create WebSocket server
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws'  // Distinct path to avoid conflicts with Vite's HMR
+  });
+
+  // WebSocket connection handler
+  wss.on('connection', (ws: WebSocket) => {
+    console.log('New WebSocket client connected');
+    connectedClients.add(ws);
+
+    // Send initial data
+    storage.getSentimentPosts().then(posts => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'initial_data',
+          data: posts
+        }));
+      }
+    });
+
+    // Handle client disconnection
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+      connectedClients.delete(ws);
+    });
+
+    // Handle client messages
+    ws.on('message', (message: string) => {
+      try {
+        const data = JSON.parse(message.toString());
+        console.log('Received message:', data);
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error);
+      }
+    });
+  });
+
   // Add the SSE endpoint inside registerRoutes
   app.get('/api/upload-progress/:sessionId', (req: Request, res: Response) => {
     const sessionId = req.params.sessionId;
@@ -313,7 +368,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update file upload endpoint with better progress tracking
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
     let sessionId = '';
-    // Define the updateProgress function with a default implementation
     let updateProgress = (processed: number, stage: string, error?: string) => {
       if (sessionId) {
         const progress = uploadProgressMap.get(sessionId);
@@ -322,6 +376,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           progress.stage = stage;
           progress.timestamp = Date.now();
           progress.error = error;
+
+          // Broadcast progress to all connected clients
+          broadcastUpdate({
+            type: 'upload_progress',
+            sessionId,
+            progress
+          });
         }
       }
     };
@@ -349,8 +410,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: Date.now()
       });
 
-      // We already have the updateProgress function defined at the beginning
-      // We don't need to redefine it here
 
       const { data, storedFilename, recordCount } = await pythonService.processCSV(
         fileBuffer,
@@ -394,6 +453,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (sessionId && updateProgress) {
         updateProgress(totalRecords, 'Analysis complete');
       }
+
+      // After successful processing, broadcast the new data
+      broadcastUpdate({
+        type: 'new_data',
+        data: {
+          posts: sentimentPosts,
+          file: analyzedFile
+        }
+      });
 
       res.json({
         file: analyzedFile,
@@ -606,6 +674,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
   return httpServer;
 }
