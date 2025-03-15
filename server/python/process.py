@@ -1348,14 +1348,24 @@ class DisasterSentimentBackend:
 
     def process_csv(self, file_path):
         try:
-            df = pd.read_csv(file_path)
-        except:
+            # Try different CSV parsing approaches
             try:
-                df = pd.read_csv(file_path, encoding='latin1')
+                df = pd.read_csv(file_path)
             except:
-                df = pd.read_csv(file_path,
-                                 encoding='latin1',
-                                 on_bad_lines='skip')
+                try:
+                    # Try with different encoding
+                    df = pd.read_csv(file_path, encoding='latin1')
+                except:
+                    try:
+                        # Try with flexible parsing
+                        df = pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip')
+                    except:
+                        try:
+                            # Try with more flexible parsing
+                            df = pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip', sep=None, engine='python')
+                        except Exception as e:
+                            logging.error(f"All CSV parsing attempts failed: {str(e)}")
+                            raise Exception("Could not parse CSV file - please check the file format")s='skip')
 
         processed_results = []
         total_records = len(df)
@@ -1982,7 +1992,7 @@ def main():
                     print(json.dumps({
                         'results': [],
                         'metrics': {'accuracy': 0.0, 'precision': 0.0, 'recall': 0.0, 'f1Score': 0.0},
-                        'error': f"JSON encoding error: {str(json_error).replace('"', '\\"').replace('\n', ' ')}"
+                        'error': f'JSON encoding error: {str(json_error).replace(chr(34), chr(92)+chr(34)).replace(chr(10), " ")}'
                     }, ensure_ascii=True))
                     sys.stdout.flush()
 
