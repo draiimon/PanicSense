@@ -1,54 +1,40 @@
 #!/usr/bin/env python3
 import sys
-import json
 import pandas as pd
-import logging
 from datetime import datetime
 
-# Setup logging to stdout for debugging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(message)s',
-    stream=sys.stdout
-)
-
+# Just print everything, no JSON
 def process_csv_file(file_path):
-    """
-    Super basic CSV processor - just reads first column
-    """
     try:
-        # Try reading with UTF-8
+        # Try different ways to read
         try:
             df = pd.read_csv(file_path)
-            logging.info("Read CSV with UTF-8")
-        except Exception as e:
-            logging.info(f"UTF-8 failed: {str(e)}")
-
-            # Try with Latin-1
+            print("Read CSV successfully")
+        except:
             try:
                 df = pd.read_csv(file_path, encoding='latin1')
-                logging.info("Read CSV with Latin-1")
-            except Exception as e:
-                logging.info(f"Latin-1 failed: {str(e)}")
-
-                # Last try - most flexible
+                print("Read CSV with latin1")
+            except:
                 df = pd.read_csv(file_path, encoding='latin1', 
-                               on_bad_lines='skip', engine='python')
-                logging.info("Read CSV with flexible parser")
+                               engine='python', on_bad_lines='skip')
+                print("Read CSV with flexible parser")
 
-        # Get results
         results = []
+        total = len(df)
+        print(f"Found {total} rows")
+
+        # Process rows - just get first column
         for idx, row in df.iterrows():
             try:
-                # Just get first column text
+                # Get text from first column
                 text = str(row.iloc[0])
 
-                # Skip empty texts
+                # Skip empty
                 if not text.strip():
                     continue
 
-                # Add to results
-                results.append({
+                # Basic result
+                result = {
                     'text': text,
                     'timestamp': datetime.now().isoformat(),
                     'source': 'CSV Import',
@@ -58,19 +44,20 @@ def process_csv_file(file_path):
                     'explanation': 'Basic processing',
                     'location': None,
                     'disasterType': None
-                })
+                }
 
-                # Log progress every 10 rows
+                results.append(result)
+
+                # Simple progress print
                 if idx % 10 == 0:
-                    sys.stdout.write(f"PROGRESS:{json.dumps({'processed': idx})}\n")
-                    sys.stdout.flush()
+                    print(f"Processed {idx} of {total}")
 
-            except Exception as e:
-                logging.error(f"Error processing row {idx}: {str(e)}")
+            except:
+                print(f"Skipped row {idx}")
                 continue
 
-        # Return results with metrics
-        output = {
+        print(f"Finished processing {len(results)} rows")
+        return {
             'results': results,
             'metrics': {
                 'accuracy': 0.8,
@@ -81,34 +68,21 @@ def process_csv_file(file_path):
             }
         }
 
-        # Log success
-        logging.info(f"Processed {len(results)} rows successfully")
-        return output
-
     except Exception as e:
-        logging.error(f"Failed to process CSV: {str(e)}")
+        print(f"Failed to process CSV: {str(e)}")
         raise
 
 def main():
-    """Super simple main function"""
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--file', required=True)
-    args = parser.parse_args()
+    if len(sys.argv) < 2:
+        print("Error: No file specified")
+        sys.exit(1)
 
     try:
-        # Process the file
-        results = process_csv_file(args.file)
-
-        # Print results as JSON
-        print(json.dumps(results))
+        result = process_csv_file(sys.argv[1])
+        print(str(result))
         sys.stdout.flush()
-
     except Exception as e:
-        # Print error as JSON
-        print(json.dumps({
-            "error": str(e)
-        }))
+        print(str(e))
         sys.exit(1)
 
 if __name__ == "__main__":
