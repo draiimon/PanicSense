@@ -28,7 +28,7 @@ export function Header() {
     <motion.header 
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="sticky top-0 bg-white/90 backdrop-blur-sm border-b border-slate-200 py-4 px-6 shadow-sm z-50"
+      className="sticky top-0 bg-blue-50 border-b border-slate-200 py-4 px-6 shadow-md z-50"
     >
       <div className="max-w-[2000px] mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
