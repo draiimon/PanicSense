@@ -68,7 +68,7 @@ export function SentimentMap({ regions, onRegionSelect, colorBy = 'disasterType'
           color,
           fillColor: color,
           fillOpacity: 0.6,
-          radius: radius * 300 // Reduced radius multiplier for more specific circles
+          radius: radius * 100 // Further reduced radius for more precise visualization
         }).addTo(mapInstanceRef.current);
 
         // Add a popup with different content based on colorBy
