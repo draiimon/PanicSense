@@ -186,12 +186,38 @@ export class PythonService {
           return;
         }
 
+        // Trim output to remove any potential whitespace
+        const trimmedOutput = output.trim();
+        
+        if (!trimmedOutput) {
+          log(`Error: Python process returned empty output`, 'python-service');
+          reject(new Error('Python process returned empty output'));
+          return;
+        }
+
         try {
           // Verify output is valid JSON
-          JSON.parse(output);
-          resolve(output);
+          JSON.parse(trimmedOutput);
+          resolve(trimmedOutput);
         } catch (e) {
-          reject(new Error(`Invalid JSON output from Python script: ${output}`));
+          // Log the problematic output for debugging
+          log(`Invalid JSON output: ${trimmedOutput}`, 'python-service');
+          log(`JSON parse error: ${e}`, 'python-service');
+          
+          // Create a valid fallback response when JSON parsing fails
+          const fallbackResponse = JSON.stringify({
+            results: [],
+            metrics: {
+              accuracy: 0.0,
+              precision: 0.0,
+              recall: 0.0,
+              f1Score: 0.0
+            },
+            error: 'JSON parsing error',
+            originalOutput: trimmedOutput.substring(0, 100) + '...' // Include a snippet of the original output
+          });
+          
+          resolve(fallbackResponse);
         }
       });
 

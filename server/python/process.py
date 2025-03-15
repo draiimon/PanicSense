@@ -90,15 +90,26 @@ class DisasterSentimentBackend:
             ]
             self.groq_api_keys = self.api_keys.copy()
 
+        # API request configuration
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
+        
+        # Delay settings
         self.base_delay = 2.0  # Base delay for exponential backoff
         self.max_delay = 32.0  # Maximum delay between retries
+        self.retry_delay = 1.0  # Standard retry delay
+        self.limit_delay = 5.0  # Delay when hitting rate limits
+        
+        # API key management
         self.current_api_index = 0
         self.max_retries = 3  # Reduced max retries per key
         self.last_successful_key = None
         self.failed_keys = set()  # Track completely failed keys
         self.tried_keys = set()
         self.key_success_count = {}  # Track successful uses of each key
+        
+        # Batch processing settings
+        self.batch_size = 1  # Process one record at a time for better error handling
+        self.batch_delay = 1.0  # Delay between batches to avoid rate limits
         
         # Initialize success counter for each key
         for i in range(len(self.groq_api_keys)):
@@ -1446,15 +1457,25 @@ class DisasterSentimentBackend:
         }
 
     def process_csv(self, file_path):
+        """
+        Enhanced CSV processing with improved error handling and API key rotation
+        """
         try:
-            df = pd.read_csv(file_path)
-        except:
+            # First try standard encoding
             try:
-                df = pd.read_csv(file_path, encoding='latin1')
-            except:
-                df = pd.read_csv(file_path,
-                                 encoding='latin1',
-                                 on_bad_lines='skip')
+                df = pd.read_csv(file_path)
+                logging.info(f"Successfully read CSV with standard encoding")
+            except Exception as e:
+                logging.warning(f"Failed to read CSV with standard encoding: {str(e)}")
+                try:
+                    # Try Latin-1 encoding
+                    df = pd.read_csv(file_path, encoding='latin1')
+                    logging.info(f"Successfully read CSV with latin1 encoding")
+                except Exception as e2:
+                    logging.warning(f"Failed to read CSV with latin1 encoding: {str(e2)}")
+                    # Last resort - skip bad lines
+                    df = pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip')
+                    logging.info(f"Read CSV with latin1 encoding and skipping bad lines")
 
         processed_results = []
         total_records = len(df)
@@ -1734,6 +1755,33 @@ class DisasterSentimentBackend:
 
         # Final progress update
         report_progress(total_records, "Completing analysis")
+        
+        # Clean up any NaN or invalid values in processed_results to ensure valid JSON
+        for i, result in enumerate(processed_results):
+            for key, value in result.items():
+                # Convert any Pandas/NumPy NaN to None
+                if isinstance(value, float) and np.isnan(value):
+                    processed_results[i][key] = None
+                    
+                # Fix disasterType
+                if key == 'disasterType' and (not value or value == "nan" or (isinstance(value, str) and value.lower() == "none")):
+                    processed_results[i][key] = "Not Specified"
+
+                # Fix explanation
+                if key == 'explanation' and not value:
+                    processed_results[i][key] = "No explanation available"
+                    
+                # Fix confidence
+                if key == 'confidence' and (not value or (isinstance(value, float) and (np.isnan(value) or value <= 0))):
+                    processed_results[i][key] = 0.7
+                    
+                # Fix sentiment - use Neutral as default
+                if key == 'sentiment' and (not value or value == "nan" or (isinstance(value, str) and value.lower() == "none")):
+                    processed_results[i][key] = "Neutral"
+                    
+                # Fix modelType
+                if key == 'modelType' and not value:
+                    processed_results[i][key] = "Fallback Analysis"
 
         return processed_results
 
