@@ -9,6 +9,59 @@ import { Globe, MapPin, Map, AlertTriangle } from "lucide-react";
 interface Region {
   name: string;
   coordinates: [number, number];
+
+// List of valid Philippine locations
+const philippineLocations = [
+    "NCR", "CAR", "Ilocos Region", "Cagayan Valley", "Central Luzon",
+    "CALABARZON", "MIMAROPA", "Bicol Region", "Western Visayas",
+    "Central Visayas", "Eastern Visayas", "Zamboanga Peninsula",
+    "Northern Mindanao", "Davao Region", "SOCCSKSARGEN", "Caraga", "BARMM",
+    "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay",
+    "Antique", "Apayao", "Aurora", "Basilan", "Bataan", "Batanes",
+    "Batangas", "Benguet", "Biliran", "Bohol", "Bukidnon", "Bulacan",
+    "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz",
+    "Catanduanes", "Cavite", "Cebu", "Compostela Valley", "Cotabato",
+    "Davao de Oro", "Davao del Norte", "Davao del Sur", "Davao Occidental",
+    "Davao Oriental", "Dinagat Islands", "Eastern Samar", "Guimaras",
+    "Ifugao", "Ilocos Norte", "Ilocos Sur", "Iloilo", "Isabela", "Kalinga",
+    "La Union", "Laguna", "Lanao del Norte", "Lanao del Sur", "Leyte",
+    "Maguindanao", "Marinduque", "Masbate", "Misamis Occidental",
+    "Misamis Oriental", "Mountain Province", "Negros Occidental",
+    "Negros Oriental", "Northern Samar", "Nueva Ecija", "Nueva Vizcaya",
+    "Occidental Mindoro", "Oriental Mindoro", "Palawan", "Pampanga",
+    "Pangasinan", "Quezon", "Quirino", "Rizal", "Romblon", "Samar",
+    "Sarangani", "Siquijor", "Sorsogon", "South Cotabato", "Southern Leyte",
+    "Sultan Kudarat", "Sulu", "Surigao del Norte", "Surigao del Sur",
+    "Tarlac", "Tawi-Tawi", "Zambales", "Zamboanga del Norte",
+    "Zamboanga del Sur", "Zamboanga Sibugay",
+    "Alaminos", "Angeles", "Antipolo", "Bacolod", "Bacoor", "Bago",
+    "Baguio", "Bais", "Balanga", "Batac", "Batangas City", "Bayawan",
+    "Baybay", "Bayugan", "Biñan", "Bislig", "Bogo", "Borongan", "Butuan",
+    "Cabadbaran", "Cabanatuan", "Cabuyao", "Cadiz", "Cagayan de Oro",
+    "Calamba", "Calapan", "Calbayog", "Caloocan", "Candon", "Canlaon",
+    "Carcar", "Catbalogan", "Cauayan", "Cavite City", "Cebu City",
+    "Cotabato City", "Dagupan", "Danao", "Dapitan", "Davao City",
+    "Digos", "Dipolog", "Dumaguete", "El Salvador", "Escalante",
+    "Gapan", "General Santos", "General Trias", "Gingoog", "Guihulngan",
+    "Himamaylan", "Ilagan", "Iligan", "Iloilo City", "Imus", "Iriga",
+    "Isabela City", "Kabankalan", "Kidapawan", "Koronadal", "La Carlota",
+    "Lamitan", "Laoag", "Lapu-Lapu", "Las Piñas", "Legazpi", "Ligao",
+    "Lipa", "Lucena", "Maasin", "Mabalacat", "Makati", "Malabon",
+    "Malaybalay", "Malolos", "Mandaluyong", "Mandaue", "Manila",
+    "Marawi", "Marikina", "Masbate City", "Mati", "Meycauayan",
+    "Muñoz", "Muntinlupa", "Naga", "Navotas", "Olongapo", "Ormoc",
+    "Oroquieta", "Ozamiz", "Pagadian", "Palayan", "Panabo", "Parañaque",
+    "Pasay", "Pasig", "Passi", "Puerto Princesa", "Quezon City",
+    "Roxas", "Sagay", "Samal", "San Carlos", "San Fernando",
+    "San Jose", "San Jose del Monte", "San Juan", "San Pablo",
+    "San Pedro", "Santa Rosa", "Santiago", "Silay", "Sipalay",
+    "Sorsogon City", "Surigao", "Tabaco", "Tabuk", "Tacloban",
+    "Tacurong", "Tagaytay", "Tagbilaran", "Taguig", "Tagum",
+    "Talisay", "Tanauan", "Tandag", "Tangub", "Tanjay", "Tarlac City",
+    "Tayabas", "Toledo", "Trece Martires", "Tuguegarao", "Urdaneta",
+    "Valencia", "Valenzuela", "Victorias", "Vigan", "Zamboanga City"
+];
+
   sentiment: string;
   disasterType?: string;
   intensity: number;
@@ -148,7 +201,16 @@ export default function GeographicAnalysis() {
 
     // Process posts to populate the map
     sentimentPosts.forEach(post => {
-      if (!post.location) return;
+      // Skip if location is missing, unknown, or unspecified
+      if (!post.location || 
+          post.location.toLowerCase().includes('unknown') ||
+          post.location.toLowerCase().includes('unspecified') ||
+          post.location.toLowerCase().includes('not specified') ||
+          post.location.toLowerCase().includes('not mentioned') ||
+          post.location === 'None' ||
+          post.location.toLowerCase().includes('none')) {
+        return;
+      }
 
       // Convert possible raw location mentions to standardized regions
       let location = post.location;
@@ -157,6 +219,15 @@ export default function GeographicAnalysis() {
       // Handle Manila specifically
       if (lowerLocation.includes('manila') && !lowerLocation.includes('metro')) {
         location = 'Manila';
+      }
+
+      // Check if location exists in Philippine locations list
+      const isValidLocation = philippineLocations.some(
+        validLoc => validLoc.toLowerCase() === location.toLowerCase()
+      );
+      
+      if (!isValidLocation) {
+        return;  // Skip if location is not in the valid locations list
       }
 
       // Handle main island groups if mentioned
