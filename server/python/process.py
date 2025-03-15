@@ -365,7 +365,7 @@ class DisasterSentimentBackend:
                     }],
                     "model": "mixtral-8x7b-32768",
                     "temperature": 0.6,
-                    "maxtokens": 150,
+                    "max_tokens": 150
                 }
 
                 result = self.fetch_groq(headers, payload)
