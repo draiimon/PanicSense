@@ -287,57 +287,9 @@ export default function GeographicAnalysis() {
         {/* Controls */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex flex-col sm:flex-row justify-between gap-4">
-            {/* Map Type Selection */}
-            <div className="flex gap-2">
-              <Button
-                variant={activeMapType === 'disaster' ? 'default' : 'outline'}
-                onClick={() => setActiveMapType('disaster')}
-                className="flex items-center gap-2"
-              >
-                <AlertTriangle className="h-4 w-4" />
-                <span className="hidden sm:inline">Disaster Impact</span>
-              </Button>
-              <Button
-                variant={activeMapType === 'emotion' ? 'default' : 'outline'}
-                onClick={() => setActiveMapType('emotion')}
-                className="flex items-center gap-2"
-              >
-                <MapPin className="h-4 w-4" />
-                <span className="hidden sm:inline">Sentiment Distribution</span>
-              </Button>
-            </div>
+            <div></div>
 
-            {/* Map Controls */}
-            <div className="flex items-center gap-4">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Refresh</span>
-              </Button>
-              <Button
-                size="sm"
-                variant={mapView === 'standard' ? 'default' : 'outline'}
-                onClick={() => setMapView('standard')}
-                className="flex items-center gap-2"
-              >
-                <Map className="h-4 w-4" />
-                <span className="hidden sm:inline">Standard</span>
-              </Button>
-              <Button
-                size="sm"
-                variant={mapView === 'satellite' ? 'default' : 'outline'}
-                onClick={() => setMapView('satellite')}
-                className="flex items-center gap-2"
-              >
-                <Satellite className="h-4 w-4" />
-                <span className="hidden sm:inline">Satellite</span>
-              </Button>
-            </div>
+            <div></div>
           </div>
         </div>
 
