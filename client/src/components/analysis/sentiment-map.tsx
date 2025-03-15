@@ -54,17 +54,18 @@ export function SentimentMap({
         zoomControl: false,
         attributionControl: false,
         maxBounds: [
-          [PH_BOUNDS.southWest[0], PH_BOUNDS.southWest[1]],
-          [PH_BOUNDS.northEast[0], PH_BOUNDS.northEast[1]]
+          [PH_BOUNDS.southWest[0] - 0.5, PH_BOUNDS.southWest[1] - 0.5],
+          [PH_BOUNDS.northEast[0] + 0.5, PH_BOUNDS.northEast[1] + 0.5]
         ],
-        minZoom: 5.5,
+        minZoom: 5.8,
         maxZoom: 12,
-        maxBoundsViscosity: 1.0, // Prevents dragging outside bounds
+        maxBoundsViscosity: 1.0,
         scrollWheelZoom: true,
         dragging: true,
-        zoomDelta: 0.5,
-        zoomSnap: 0.5
-      }).setView(PH_CENTER, mapZoom);
+        zoomDelta: 0.25,
+        zoomSnap: 0.25,
+        boundsOptions: { padding: [50, 50] }
+      }).setView(PH_CENTER, 6);
 
       // Add base tile layer with noWrap option
       updateTileLayer(L, view);
