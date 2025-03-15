@@ -286,41 +286,47 @@ Respond only with a JSON object containing:
             # Print column names for debugging
             logging.info(f"CSV columns found: {', '.join(df.columns)}")
             
-            # Improved column detection with more variations
-            column_mapping = {
-                'text': ["text", "content", "message", "tweet", "post", "Text", "tweets", "posts"],
-                'timestamp': ["timestamp", "date", "time", "Timestamp", "datetime", "created_at", "posted_at"],
-                'location': ["location", "place", "city", "Location", "region", "area", "province"],
-                'source': ["source", "platform", "Source", "media", "social_media"],
-                'disaster': ["disaster", "type", "Disaster", "disaster_type", "event_type", "emergency"],
-                'sentiment': ["sentiment", "emotion", "feeling", "mood", "Sentiment"],
-                'language': ["language", "lang", "Language", "dialect"]
-            }
-
-            detected_columns = {}
-            
-            # Find all possible columns
-            for col_type, possible_names in column_mapping.items():
-                for col in df.columns:
-                    if col.lower() in [name.lower() for name in possible_names]:
-                        detected_columns[col_type] = col
-                        logging.info(f"Found {col_type} column: {col}")
+            # Find the text column
+            if "text" not in df.columns:
+                possible_columns = ["content", "message", "tweet", "post", "Text"]
+                for col in possible_columns:
+                    if col in df.columns:
+                        df["text"] = df[col]
+                        logging.info(f"Using '{col}' as text column")
                         break
-
-            # Use first column as text if no text column found
-            if 'text' not in detected_columns and len(df.columns) > 0:
-                detected_columns['text'] = df.columns[0]
-                logging.info(f"Using first column '{df.columns[0]}' as text column")
-                df["text"] = df[df.columns[0]]
-
-            # Store column references for later use
-            text_col = detected_columns.get('text')
-            timestamp_col = detected_columns.get('timestamp')
-            location_col = detected_columns.get('location')
-            source_col = detected_columns.get('source')
-            disaster_col = detected_columns.get('disaster')
-            sentiment_col = detected_columns.get('sentiment')
-            language_col = detected_columns.get('language')
+                
+                # Use first column if no text column found
+                if "text" not in df.columns and len(df.columns) > 0:
+                    df["text"] = df[df.columns[0]]
+                    logging.info(f"Using first column '{df.columns[0]}' as text column")
+            
+            # Find location column
+            location_col = None
+            for col in df.columns:
+                if col.lower() in ["location", "place", "city", "Location"]:
+                    location_col = col
+                    logging.info(f"Found location column: {col}")
+                    break
+            
+            # Find source column
+            source_col = None
+            for col in df.columns:
+                if col.lower() in ["source", "platform", "Source"]:
+                    source_col = col
+                    logging.info(f"Found source column: {col}")
+                    break
+            
+            # Find disaster type column
+            disaster_col = None
+            for col in df.columns:
+                if col.lower() in ["disaster", "type", "Disaster"]:
+                    disaster_col = col
+                    logging.info(f"Found disaster column: {col}")
+                    break
+            
+            # Find timestamp column
+            timestamp_col = None
+            for col in df.columns:
                 if col.lower() in ["timestamp", "date", "time", "Timestamp"]:
                     timestamp_col = col
                     logging.info(f"Found timestamp column: {col}")
@@ -332,30 +338,23 @@ Respond only with a JSON object containing:
             
             for i, row in df.head(sample_size).iterrows():
                 try:
-                    # Extract text with improved handling
-                    text = str(row.get(text_col, ""))
+                    # Extract text
+                    text = str(row.get("text", ""))
                     if not text.strip():
                         continue
                     
-                    # Get metadata from all detected columns
+                    # Get metadata from columns
                     timestamp = str(row.get(timestamp_col, datetime.now().isoformat())) if timestamp_col else datetime.now().isoformat()
                     source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
                     
-                    # Extract location with improved handling
+                    # Extract preset location and disaster type from CSV
                     csv_location = str(row.get(location_col, "")) if location_col else None
-                    if csv_location and csv_location.lower() in ["nan", "none", "", "n/a"]:
+                    if csv_location and csv_location.lower() in ["nan", "none", ""]:
                         csv_location = None
                         
-                    # Extract disaster type with improved handling
                     csv_disaster = str(row.get(disaster_col, "")) if disaster_col else None
-                    if csv_disaster and csv_disaster.lower() in ["nan", "none", "", "n/a"]:
+                    if csv_disaster and csv_disaster.lower() in ["nan", "none", ""]:
                         csv_disaster = None
-
-                    # Extract original sentiment if available (but will still be reanalyzed)
-                    original_sentiment = str(row.get(sentiment_col, "")) if sentiment_col else None
-                    
-                    # Extract original language if available (but will still be detected)
-                    original_language = str(row.get(language_col, "")) if language_col else None
                     
                     # Report progress
                     report_progress(i+1, f"Processing record {i+1}/{sample_size}")
