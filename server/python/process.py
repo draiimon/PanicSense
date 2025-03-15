@@ -58,18 +58,24 @@ class DisasterSentimentBackend:
 
         # If no keys are found in environment variables, use the provided keys
         if not self.api_keys:
-            # Note: Since we've had too many requests errors (429), let's use working keys
             self.api_keys = [
-                # These are our known working keys - we'll use fallback methods if needed
                 "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",
                 "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",
                 "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",
-                "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"
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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"
             ]
 
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
-        self.retry_delay = 2  # Increase retry delay to 2 seconds
-        self.limit_delay = 3  # Increase rate limit delay to 3 seconds
+        self.retry_delay = 0.5  # Decrease retry delay for faster processing
+        self.limit_delay = 0.5  # Decrease limit delay for faster processing
         self.current_api_index = 0
         self.max_retries = 3  # Maximum retry attempts for API requests
 
@@ -977,14 +983,33 @@ class DisasterSentimentBackend:
         }
 
     def process_csv(self, file_path):
-        df = pd.read_csv(file_path)
+        try:
+            df = pd.read_csv(file_path)
+        except:
+            try:
+                df = pd.read_csv(file_path, encoding='latin1')
+            except:
+                df = pd.read_csv(file_path, encoding='latin1', on_bad_lines='skip')
+
         processed_results = []
         total_records = len(df)
+        
+        # If no text column, check for possible alternatives or use first column
+        if 'text' not in df.columns:
+            possible_text_columns = ['content', 'message', 'tweet', 'post', 'description']
+            for col in possible_text_columns:
+                if col in df.columns:
+                    df['text'] = df[col]
+                    break
+            
+            # If still no text column, use the first column
+            if 'text' not in df.columns and len(df.columns) > 0:
+                df['text'] = df[df.columns[0]]
 
         report_progress(0, "Starting analysis")
 
-        # Only process a portion of the data to avoid API rate limits
-        sample_size = min(5, len(df)) # Start with just 5 records first
+        # Process more records, but limit to a reasonable number
+        sample_size = min(20, len(df)) # Increase sample size
         
         # Allow a smaller sample set when the API is failing
         if len(df) > 0:
@@ -993,44 +1018,71 @@ class DisasterSentimentBackend:
             # If empty file, just return empty results
             return {"results": [], "metrics": {"accuracy": 0, "precision": 0, "recall": 0, "f1Score": 0}}
 
+        # Check if we should use API or rule-based approach based on sample size
+        use_api_for_all = sample_size <= 5  # Use API only for very small files
+        
         for index, row in df_sample.iterrows():
             try:
-                text = row['text']
+                text = str(row.get('text', ''))
+                if not text.strip():  # Skip empty text
+                    continue
+                    
                 timestamp = row.get('timestamp',
-                                    datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                source = row.get('source', 'Unknown')
+                                   datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                source = row.get('source', 'CSV Import')
 
-                # Report progress every record
+                # Report progress for every record
                 report_progress(index, f"Processing record {index+1}/{sample_size}")
                 
-                # Add longer delays between API calls
-                time.sleep(0.5)  
-
-                # First attempt API analysis
-                analysis_result = self.analyze_sentiment(text)
-                
-                # If API failed, use rule-based analysis as fallback
-                if not analysis_result:
-                    # Extract relevant information from text
+                # For larger files, use rule-based approach directly for most records
+                # Only use API for a few records to maintain quality without hitting rate limits
+                if not use_api_for_all and index > 3:
+                    # Fast rule-based processing for most records
                     disaster_type = self.extract_disaster_type(text)
                     location = self.extract_location(text)
                     language = self.detect_language(text)
-                    
-                    # Simple rule-based sentiment classification
                     sentiment_result = self.rule_based_sentiment_analysis(text)
                     
-                    # Create a fallback result
                     analysis_result = {
                         'sentiment': sentiment_result['sentiment'],
-                        'confidence': 0.65,
-                        'explanation': 'Fallback rule-based analysis (API unavailable)',
+                        'confidence': 0.75,
+                        'explanation': f'Rule-based analysis: {sentiment_result.get("explanation", "")}',
                         'language': language,
                         'disasterType': disaster_type,
                         'location': location,
-                        'modelType': 'Rule-Based-Fallback'
+                        'modelType': 'Rule-Based'
                     }
+                else:
+                    # Use API for selected records
+                    # Add short delay between API calls
+                    if index > 0:
+                        time.sleep(0.2)
+                        
+                    # First attempt API analysis
+                    analysis_result = self.analyze_sentiment(text)
+                    
+                    # If API failed, use rule-based analysis as fallback
+                    if not analysis_result:
+                        # Extract relevant information from text
+                        disaster_type = self.extract_disaster_type(text)
+                        location = self.extract_location(text)
+                        language = self.detect_language(text)
+                        
+                        # Simple rule-based sentiment classification
+                        sentiment_result = self.rule_based_sentiment_analysis(text)
+                        
+                        # Create a fallback result
+                        analysis_result = {
+                            'sentiment': sentiment_result['sentiment'],
+                            'confidence': 0.7,
+                            'explanation': f'Fallback analysis: {sentiment_result.get("explanation", "")}',
+                            'language': language,
+                            'disasterType': disaster_type,
+                            'location': location,
+                            'modelType': 'Rule-Based-Fallback'
+                        }
 
-                # Process result with standardized fields, better null handling, and model type
+                # Process result with standardized fields and better null handling
                 processed_results.append({
                     'text': text,
                     'timestamp': timestamp,
