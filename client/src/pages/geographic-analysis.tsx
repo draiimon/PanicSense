@@ -23,7 +23,7 @@ export default function GeographicAnalysis() {
   const [activeMapType, setActiveMapType] = useState<'disaster' | 'emotion'>('disaster');
   const { sentimentPosts, refreshData } = useDisasterContext();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard'); // Added map view state
+  const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard');
 
   // Complete Philippine region coordinates
   const regionCoordinates = useMemo(() => {
@@ -268,7 +268,7 @@ export default function GeographicAnalysis() {
   };
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="flex flex-col h-[calc(100vh-4rem)] p-4 space-y-4 bg-slate-50">
       {/* Header */}
       <Card className="bg-white shadow-md border-none">
         <CardHeader className="pb-4">
@@ -282,8 +282,8 @@ export default function GeographicAnalysis() {
         </CardHeader>
       </Card>
 
-      {/* Main Content */}
-      <div className="bg-white rounded-lg shadow-md">
+      {/* Main Content - Takes remaining height */}
+      <div className="flex-1 bg-white rounded-lg shadow-md overflow-hidden">
         {/* Controls */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex flex-col sm:flex-row justify-between gap-4">
@@ -341,10 +341,10 @@ export default function GeographicAnalysis() {
           </div>
         </div>
 
-        {/* Map and Legend */}
-        <div className="grid lg:grid-cols-3 gap-6 p-6">
-          {/* Map */}
-          <div className="lg:col-span-2 min-h-[500px]">
+        {/* Map and Legend Container - Fill remaining height */}
+        <div className="grid lg:grid-cols-3 h-[calc(100%-4rem)] overflow-hidden">
+          {/* Map Container */}
+          <div className="lg:col-span-2 relative bg-slate-100">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeMapType}
@@ -352,7 +352,7 @@ export default function GeographicAnalysis() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="h-full"
+                className="absolute inset-0"
               >
                 <SentimentMap
                   regions={regions}
@@ -363,8 +363,8 @@ export default function GeographicAnalysis() {
             </AnimatePresence>
           </div>
 
-          {/* Legend */}
-          <div className="lg:col-span-1">
+          {/* Legend Container */}
+          <div className="lg:col-span-1 p-4 overflow-y-auto border-l border-gray-200">
             <SentimentLegend
               mostAffectedAreas={mostAffectedAreas}
               showRegionSelection={false}
