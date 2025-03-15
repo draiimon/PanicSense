@@ -126,12 +126,13 @@ export default function GeographicAnalysis() {
 
   // Process data for regions and map location mentions
   const locationData = useMemo(() => {
-    const data = new Map<string, {
+    // Use a regular object instead of Map
+    const data: Record<string, {
       count: number;
-      sentiments: Map<string, number>;
-      disasterTypes: Map<string, number>;
+      sentiments: Record<string, number>;
+      disasterTypes: Record<string, number>;
       coordinates: [number, number];
-    }>();
+    }> = {};
 
     // Process posts to populate the map
     sentimentPosts.forEach(post => {
@@ -163,26 +164,27 @@ export default function GeographicAnalysis() {
       // If coordinates not found, use center of Philippines
       const coordinates = regionCoordinates[location as keyof typeof regionCoordinates] || regionCoordinates["Philippines"];
 
-      if (!data.has(location)) {
-        data.set(location, {
+      // Create location data if it doesn't exist yet
+      if (!data[location]) {
+        data[location] = {
           count: 0,
-          sentiments: new Map(),
-          disasterTypes: new Map(),
+          sentiments: {},
+          disasterTypes: {},
           coordinates
-        });
+        };
       }
 
-      const locationData = data.get(location)!;
-      locationData.count++;
+      // Update counts
+      data[location].count++;
 
       // Track sentiments
-      const currentSentimentCount = locationData.sentiments.get(post.sentiment) || 0;
-      locationData.sentiments.set(post.sentiment, currentSentimentCount + 1);
+      const currentSentimentCount = data[location].sentiments[post.sentiment] || 0;
+      data[location].sentiments[post.sentiment] = currentSentimentCount + 1;
 
       // Track disaster types
       if (post.disasterType) {
-        const currentDisasterTypeCount = locationData.disasterTypes.get(post.disasterType) || 0;
-        locationData.disasterTypes.set(post.disasterType, currentDisasterTypeCount + 1);
+        const currentDisasterTypeCount = data[location].disasterTypes[post.disasterType] || 0;
+        data[location].disasterTypes[post.disasterType] = currentDisasterTypeCount + 1;
       }
     });
 
@@ -191,12 +193,13 @@ export default function GeographicAnalysis() {
 
   // Convert location data to regions for map
   const regions = useMemo(() => {
-    return Array.from(locationData.entries()).map(([name, data]) => {
+    return Object.entries(locationData).map(([name, data]) => {
       // Find dominant sentiment
       let maxCount = 0;
       let dominantSentiment = "Neutral";
 
-      data.sentiments.forEach((count, sentiment) => {
+      // Process sentiments
+      Object.entries(data.sentiments).forEach(([sentiment, count]) => {
         if (count > maxCount) {
           maxCount = count;
           dominantSentiment = sentiment;
@@ -207,7 +210,8 @@ export default function GeographicAnalysis() {
       let maxDisasterCount = 0;
       let dominantDisasterType = null;
 
-      data.disasterTypes.forEach((count, disasterType) => {
+      // Process disaster types
+      Object.entries(data.disasterTypes).forEach(([disasterType, count]) => {
         if (count > maxDisasterCount) {
           maxDisasterCount = count;
           dominantDisasterType = disasterType;
@@ -215,7 +219,8 @@ export default function GeographicAnalysis() {
       });
 
       // Calculate intensity based on post count relative to maximum
-      const maxPosts = Math.max(...Array.from(locationData.values()).map(d => d.count), 1);
+      const allCounts = Object.values(locationData).map(d => d.count);
+      const maxPosts = allCounts.length > 0 ? Math.max(...allCounts) : 1;
       const intensity = (data.count / maxPosts) * 100;
 
       return {
