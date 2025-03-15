@@ -372,8 +372,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               language: post.language,
               sentiment: post.sentiment,
               confidence: post.confidence,
-              location: null,
-              disasterType: null,
+              location: post.location || null,
+              disasterType: post.disasterType || null,
               fileId: analyzedFile.id
             })
           )

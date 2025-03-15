@@ -286,51 +286,112 @@ Respond only with a JSON object containing:
             # Print column names for debugging
             logging.info(f"CSV columns found: {', '.join(df.columns)}")
             
-            # Find the text column
-            if "text" not in df.columns:
-                possible_columns = ["content", "message", "tweet", "post", "Text"]
-                for col in possible_columns:
-                    if col in df.columns:
-                        df["text"] = df[col]
-                        logging.info(f"Using '{col}' as text column")
+            # Analyze column headers to find column types
+            column_matches = {
+                "text": ["text", "content", "message", "tweet", "post", "Text"],
+                "location": ["location", "place", "city", "Location"],
+                "source": ["source", "platform", "Source"],
+                "disaster": ["disaster", "type", "Disaster", "disasterType", "disaster_type"],
+                "timestamp": ["timestamp", "date", "time", "Timestamp", "created_at"],
+                "sentiment": ["sentiment", "emotion", "Sentiment", "feeling"],
+                "confidence": ["confidence", "score", "Confidence"],
+                "language": ["language", "lang", "Language"]
+            }
+            
+            # Dictionary to store identified columns
+            identified_columns = {}
+            
+            # First, try to identify columns by exact header match
+            for col_type, possible_names in column_matches.items():
+                for col in df.columns:
+                    if col.lower() in [name.lower() for name in possible_names]:
+                        identified_columns[col_type] = col
+                        logging.info(f"Found {col_type} column: {col}")
                         break
+                        
+            # If no text column found by header name, use the first column
+            if "text" not in identified_columns and len(df.columns) > 0:
+                identified_columns["text"] = df.columns[0]
+                logging.info(f"Using first column '{df.columns[0]}' as text column")
+            
+            # Create a "text" column if it doesn't exist yet
+            if "text" not in df.columns and "text" in identified_columns:
+                df["text"] = df[identified_columns["text"]]
                 
-                # Use first column if no text column found
-                if "text" not in df.columns and len(df.columns) > 0:
-                    df["text"] = df[df.columns[0]]
-                    logging.info(f"Using first column '{df.columns[0]}' as text column")
+            # For columns still not found, try analyzing content to identify them
+            # This will help with CSVs that don't have standard headers
+            sample_rows = min(5, len(df))
             
-            # Find location column
-            location_col = None
-            for col in df.columns:
-                if col.lower() in ["location", "place", "city", "Location"]:
-                    location_col = col
-                    logging.info(f"Found location column: {col}")
-                    break
+            # Only try to identify missing columns from row content
+            for col_type in ["location", "source", "disaster", "timestamp", "sentiment", "language"]:
+                if col_type not in identified_columns:
+                    # Check each column's content to see if it matches expected patterns
+                    for col in df.columns:
+                        # Skip already identified columns
+                        if col in identified_columns.values():
+                            continue
+                            
+                        # Sample values
+                        sample_values = df[col].head(sample_rows).astype(str).tolist()
+                        
+                        # Check if column values match patterns for this type
+                        match_found = False
+                        
+                        if col_type == "location":
+                            # Look for location names
+                            location_indicators = ["city", "province", "region", "street", "manila", "cebu", "davao"]
+                            if any(any(ind in str(val).lower() for ind in location_indicators) for val in sample_values):
+                                identified_columns["location"] = col
+                                match_found = True
+                                
+                        elif col_type == "source":
+                            # Look for social media or source names
+                            source_indicators = ["twitter", "facebook", "instagram", "x", "social media"]
+                            if any(any(ind in str(val).lower() for ind in source_indicators) for val in sample_values):
+                                identified_columns["source"] = col
+                                match_found = True
+                                
+                        elif col_type == "disaster":
+                            # Look for disaster keywords
+                            disaster_indicators = ["flood", "earthquake", "typhoon", "fire", "landslide", "volcano"]
+                            if any(any(ind in str(val).lower() for ind in disaster_indicators) for val in sample_values):
+                                identified_columns["disaster"] = col
+                                match_found = True
+                                
+                        elif col_type == "timestamp":
+                            # Check for date/time patterns
+                            date_patterns = [r'\d{4}-\d{2}-\d{2}', r'\d{2}/\d{2}/\d{4}', r'\d{2}:\d{2}']
+                            if any(any(re.search(pattern, str(val)) for pattern in date_patterns) for val in sample_values):
+                                identified_columns["timestamp"] = col
+                                match_found = True
+                                
+                        elif col_type == "sentiment":
+                            # Look for sentiment keywords
+                            sentiment_indicators = ["positive", "negative", "neutral", "fear", "panic", "anxiety"]
+                            if any(any(ind == str(val).lower() for ind in sentiment_indicators) for val in sample_values):
+                                identified_columns["sentiment"] = col
+                                match_found = True
+                                
+                        elif col_type == "language":
+                            # Look for language codes
+                            language_indicators = ["en", "english", "tl", "tagalog", "fil", "filipino"]
+                            if any(any(ind == str(val).lower() for ind in language_indicators) for val in sample_values):
+                                identified_columns["language"] = col
+                                match_found = True
+                                
+                        if match_found:
+                            logging.info(f"Identified {col_type} column from content: {col}")
+                            break
             
-            # Find source column
-            source_col = None
-            for col in df.columns:
-                if col.lower() in ["source", "platform", "Source"]:
-                    source_col = col
-                    logging.info(f"Found source column: {col}")
-                    break
-            
-            # Find disaster type column
-            disaster_col = None
-            for col in df.columns:
-                if col.lower() in ["disaster", "type", "Disaster"]:
-                    disaster_col = col
-                    logging.info(f"Found disaster column: {col}")
-                    break
-            
-            # Find timestamp column
-            timestamp_col = None
-            for col in df.columns:
-                if col.lower() in ["timestamp", "date", "time", "Timestamp"]:
-                    timestamp_col = col
-                    logging.info(f"Found timestamp column: {col}")
-                    break
+            # Map identified columns to variable names
+            text_col = identified_columns.get("text", df.columns[0] if len(df.columns) > 0 else None)
+            location_col = identified_columns.get("location")
+            source_col = identified_columns.get("source")
+            disaster_col = identified_columns.get("disaster")
+            timestamp_col = identified_columns.get("timestamp")
+            sentiment_col = identified_columns.get("sentiment")
+            confidence_col = identified_columns.get("confidence")
+            language_col = identified_columns.get("language")
             
             # Process records (limit to 50 for demo)
             sample_size = min(50, len(df))
