@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { getSentimentColor, getDisasterTypeColor } from '@/lib/colors';
 import { Button } from '@/components/ui/button';
-import { Globe, Map, Layers } from 'lucide-react';
+import { Globe, ZoomIn, ZoomOut } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 // Philippine map bounds - Tightly focused on the archipelago
@@ -12,7 +12,7 @@ const PH_BOUNDS = {
 };
 
 // Center of Philippines
-const PH_CENTER = [12.8797, 121.7740];
+const PH_CENTER: [number, number] = [12.8797, 121.7740];
 
 interface Region {
   name: string;
@@ -25,15 +25,14 @@ interface Region {
 interface SentimentMapProps {
   regions: Region[];
   onRegionSelect?: (region: Region) => void;
-  colorBy?: 'sentiment' | 'disasterType';
   mapType?: 'disaster' | 'emotion';
   view?: 'standard' | 'satellite';
 }
 
 export function SentimentMap({ 
   regions, 
-  onRegionSelect, 
-  colorBy = 'disasterType',
+  onRegionSelect,
+  mapType = 'disaster',
   view = 'standard' 
 }: SentimentMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -58,23 +57,30 @@ export function SentimentMap({
         ],
         minZoom: 5.5,
         maxZoom: 12,
-        maxBoundsViscosity: 1.0 // Prevents dragging outside bounds
+        maxBoundsViscosity: 1.0, // Prevents dragging outside bounds
+        scrollWheelZoom: true,
+        dragging: true,
+        zoomDelta: 0.5,
+        zoomSnap: 0.5
       }).setView(PH_CENTER, mapZoom);
 
       // Add base tile layer with noWrap option
       updateTileLayer(L, view);
 
-      // Add zoom change handler
-      mapInstanceRef.current.on('zoomend', () => {
-        setMapZoom(mapInstanceRef.current.getZoom());
-      });
+      // Keep map within bounds and prevent white edges
+      mapInstanceRef.current.on('moveend', () => {
+        const bounds = mapInstanceRef.current.getBounds();
+        const newZoom = mapInstanceRef.current.getZoom();
 
-      // Keep map within bounds
-      mapInstanceRef.current.on('drag', () => {
-        mapInstanceRef.current.panInsideBounds([
-          [PH_BOUNDS.southWest[0], PH_BOUNDS.southWest[1]],
-          [PH_BOUNDS.northEast[0], PH_BOUNDS.northEast[1]]
-        ], { animate: false });
+        // Adjust zoom if we're seeing white edges
+        if (bounds.getSouth() < PH_BOUNDS.southWest[0] || 
+            bounds.getNorth() > PH_BOUNDS.northEast[0] ||
+            bounds.getWest() < PH_BOUNDS.southWest[1] ||
+            bounds.getEast() > PH_BOUNDS.northEast[1]) {
+          mapInstanceRef.current.setView(PH_CENTER, newZoom);
+        }
+
+        setMapZoom(newZoom);
       });
     });
 
@@ -103,7 +109,9 @@ export function SentimentMap({
       bounds: [
         [PH_BOUNDS.southWest[0], PH_BOUNDS.southWest[1]],
         [PH_BOUNDS.northEast[0], PH_BOUNDS.northEast[1]]
-      ]
+      ],
+      minZoom: 5.5,
+      maxZoom: 12
     };
 
     // Add new tile layer based on selected view
@@ -137,44 +145,40 @@ export function SentimentMap({
 
       // Add new markers
       regions.forEach(region => {
-        const color = colorBy === 'disasterType' && region.disasterType
+        const color = mapType === 'disaster' && region.disasterType
           ? getDisasterTypeColor(region.disasterType)
           : getSentimentColor(region.sentiment);
 
-        const radius = 10 + (region.intensity / 100) * 40;
+        // Scale radius based on zoom level and intensity
+        const baseRadius = 10 + (region.intensity / 100) * 40;
+        const radius = baseRadius * Math.pow(1.2, mapZoom - 6); // Adjust radius based on zoom
 
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
           fillOpacity: 0.7,
-          radius: radius * 1000,
+          radius: radius * 1000, // Convert to meters
           weight: 2,
         }).addTo(mapInstanceRef.current);
 
-        // Create custom popup
-        let popupContent = `
-          <div style="font-family: system-ui, sans-serif; padding: 8px;">
-            <h3 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 600;">${region.name}</h3>
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${getSentimentColor(region.sentiment)}"></span>
-                <span style="font-size: 14px; color: #4b5563;">Dominant Sentiment: ${region.sentiment}</span>
+        // Create custom popup with improved styling
+        const popupContent = `
+          <div class="p-3 font-sans">
+            <h3 class="text-lg font-semibold text-slate-800 mb-2">${region.name}</h3>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full" style="background-color: ${getSentimentColor(region.sentiment)}"></span>
+                <span class="text-sm text-slate-600">Sentiment: ${region.sentiment}</span>
               </div>
-        `;
-
-        if (region.disasterType) {
-          popupContent += `
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${getDisasterTypeColor(region.disasterType)}"></span>
-                <span style="font-size: 14px; color: #4b5563;">Disaster Type: ${region.disasterType}</span>
-              </div>
-          `;
-        }
-
-        popupContent += `
-              <div style="margin-top: 4px;">
-                <span style="font-size: 14px; color: #4b5563;">Impact Intensity: 
-                  <span style="font-weight: 600;">${region.intensity.toFixed(1)}%</span>
+              ${region.disasterType ? `
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full" style="background-color: ${getDisasterTypeColor(region.disasterType)}"></span>
+                  <span class="text-sm text-slate-600">Disaster: ${region.disasterType}</span>
+                </div>
+              ` : ''}
+              <div class="mt-2 pt-2 border-t border-slate-200">
+                <span class="text-sm font-medium text-slate-700">
+                  Impact Level: ${region.intensity.toFixed(1)}%
                 </span>
               </div>
             </div>
@@ -183,18 +187,30 @@ export function SentimentMap({
 
         circle.bindPopup(popupContent, {
           maxWidth: 300,
-          className: 'custom-popup'
+          className: 'custom-popup',
+          closeButton: false,
+          offset: [0, -10]
         });
 
-        // Enhanced interaction
+        // Enhanced hover interactions
         circle.on('mouseover', () => {
-          circle.setStyle({ weight: 3, fillOpacity: 0.85 });
+          circle.setStyle({ 
+            weight: 3, 
+            fillOpacity: 0.85,
+            radius: radius * 1100 // Slightly larger on hover
+          });
           setHoveredRegion(region);
+          circle.openPopup();
         });
 
         circle.on('mouseout', () => {
-          circle.setStyle({ weight: 2, fillOpacity: 0.7 });
+          circle.setStyle({ 
+            weight: 2, 
+            fillOpacity: 0.7,
+            radius: radius * 1000
+          });
           setHoveredRegion(null);
+          circle.closePopup();
         });
 
         // Handle click event
@@ -207,13 +223,13 @@ export function SentimentMap({
         markersRef.current.push(circle);
       });
 
-      // If no regions, show a message
+      // Show message if no regions
       if (regions.length === 0) {
         const message = L.popup()
           .setLatLng(PH_CENTER)
           .setContent(`
-            <div style="font-family: system-ui, sans-serif; padding: 8px; text-align: center;">
-              <span style="font-size: 14px; color: #4b5563;">No geographic data available for this region</span>
+            <div class="p-4 text-center">
+              <span class="text-sm text-slate-600">No geographic data available</span>
             </div>
           `)
           .openOn(mapInstanceRef.current);
@@ -221,55 +237,52 @@ export function SentimentMap({
         markersRef.current.push(message);
       }
     });
-  }, [regions, onRegionSelect, colorBy]);
+  }, [regions, onRegionSelect, mapType, mapZoom]);
 
   return (
-    <Card className="bg-white border-none shadow-none h-full">
-      <CardContent className="p-0 h-full overflow-hidden relative">
-        {/* Zoom controls */}
-        <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
-          <Button
-            size="icon"
-            variant="secondary"
-            className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
-            onClick={() => mapInstanceRef.current?.zoomIn()}
-          >
-            <span className="text-lg font-medium">+</span>
-          </Button>
-          <Button
-            size="icon"
-            variant="secondary"
-            className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
-            onClick={() => mapInstanceRef.current?.zoomOut()}
-          >
-            <span className="text-lg font-medium">−</span>
-          </Button>
-        </div>
+    <div className="relative h-full w-full">
+      {/* Zoom controls */}
+      <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
+        <Button
+          size="icon"
+          variant="secondary"
+          className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
+          onClick={() => mapInstanceRef.current?.zoomIn()}
+        >
+          <ZoomIn className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="secondary"
+          className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50"
+          onClick={() => mapInstanceRef.current?.zoomOut()}
+        >
+          <ZoomOut className="h-4 w-4" />
+        </Button>
+      </div>
 
-        {/* Map Container */}
-        <div
-          ref={mapRef}
-          className="h-full w-full bg-slate-50"
-          style={{ minHeight: '600px' }}
-        />
+      {/* Map Container */}
+      <div
+        ref={mapRef}
+        className="h-full w-full bg-slate-100"
+      />
 
-        {/* Footer Stats */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 bg-white/80 backdrop-blur-sm border-t border-slate-200">
-          <div className="flex items-center justify-between text-xs text-slate-600">
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-slate-400" />
-              <span>Philippine Region Map</span>
-            </div>
-            <div>
-              {regions.length > 0 ? (
-                <span>Showing {regions.length} affected areas</span>
-              ) : (
-                <span>No impact data available</span>
-              )}
-            </div>
+      {/* Status Bar */}
+      <div className="absolute bottom-0 left-0 right-0 p-2 bg-white/80 backdrop-blur-sm border-t border-slate-200">
+        <div className="flex items-center justify-between text-xs text-slate-600">
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-slate-400" />
+            <span>{hoveredRegion ? hoveredRegion.name : 'Philippine Region Map'}</span>
+          </div>
+          <div>
+            {regions.length > 0 ? (
+              <span>Showing {regions.length} affected areas</span>
+            ) : (
+              <span>No impact data available</span>
+            )}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
