@@ -25,9 +25,14 @@ export default function GeographicImpactAnalysis() {
       "Rizal": [14.6042, 121.3035],
       "Laguna": [14.2691, 121.4113],
       "Bulacan": [14.7969, 120.8787],
-      "Cavite": [14.4791, 120.8970],
+      "Cavite": [14.2829, 120.8686], // Center of Cavite province
       "Pampanga": [15.0794, 120.6200],
-      "Bacoor": [14.4624, 120.9645],  // Accurate coordinates for Bacoor, Cavite
+      "Bacoor": [14.4628, 120.8967], // Fixed Bacoor coordinates
+      "Imus": [14.4297, 120.9367],
+      "Dasmariñas": [14.3294, 120.9367],
+      "General Trias": [14.3833, 120.8833],
+      "Kawit": [14.4351, 120.9019],
+      "Tanza": [14.3953, 120.8508],
 
       // Luzon
       "Luzon": [16.0, 121.0],
