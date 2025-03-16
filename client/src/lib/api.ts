@@ -110,10 +110,10 @@ export async function uploadCSV(
           stage: progress.stage
         });
         
-        // Ensure the processed value is converted to a number
-        const processedNum = parseInt(progress.processed) || 0;
-        // Ensure the total value is converted to a number
-        const totalNum = parseInt(progress.total) || 100;
+        // CRITICAL FIX: Force number conversion with Number() instead of parseInt
+        // parseInt can fail with non-integer strings
+        const processedNum = Number(progress.processed) || 0;
+        const totalNum = Number(progress.total) || 100;
         
         // Create a safe progress object with numerical values
         const safeProgress = {
@@ -124,7 +124,15 @@ export async function uploadCSV(
         };
         
         console.log('Progress being sent to UI:', safeProgress);
+        
+        // CRITICAL DEBUG: Add a direct update with log to catch any issues
+        console.log('DIRECTLY CALLING onProgress with:', safeProgress);
+        
+        // Call the onProgress callback
         onProgress(safeProgress);
+        
+        // Manually check if the DOM would update
+        console.log('After calling onProgress:', safeProgress);
       }
     } catch (error) {
       console.error('Error parsing progress data:', error);

@@ -80,18 +80,38 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           await new Promise(resolve => setTimeout(resolve, 100));
 
           const result = await uploadCSV(file, (progress) => {
-            // Make sure we have valid numbers, using parseInt to convert any string values
-            let processedRecords = parseInt(String(progress.processed)) || 0;
-            let totalRecords = parseInt(String(progress.total)) || lines || 100;
+            // IMPORTANT FIX: Use Number to ensure proper conversion rather than parseInt
+            // This avoids issues with parseInt not handling decimal strings properly
+            let processedRecords = Number(progress.processed) || 0;
+            let totalRecords = Number(progress.total) || lines || 100;
             
-            // Fix specifically for common case: when the backend says we're done, 
+            // Debug logs for root cause analysis
+            console.log('DIRECT RAW VALUES:', {
+              processedFromEvent: progress.processed,
+              totalFromEvent: progress.total,
+              convertedProcessed: processedRecords,
+              convertedTotal: totalRecords
+            });
+            
+            // Fix specifically for common case: when the backend says we're done,
             // ensure the progress shows the final state
-            if (progress.stage === 'Analysis complete!' || processedRecords >= totalRecords) {
+            if (progress.stage?.includes('complete') || processedRecords >= totalRecords) {
               processedRecords = totalRecords;
             }
             
             // Calculate percentage, max 100%
             const percentage = Math.min(Math.round((processedRecords / totalRecords) * 100), 100);
+            
+            // Force the UI update by applying this on the next tick
+            setTimeout(() => {
+              // Call updateUploadProgress directly here for immediate effect
+              updateUploadProgress({
+                processedRecords,
+                totalRecords,
+                percentage,
+                message: progress.stage || 'Processing...'
+              });
+            }, 0);
             
             // Log for debugging - IMPORTANT to know what the UI will display
             console.log('CRITICAL UI PROGRESS DATA:', { 
