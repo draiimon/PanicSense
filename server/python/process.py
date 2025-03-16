@@ -113,44 +113,151 @@ class DisasterSentimentBackend:
         logging.info(f"Loaded {len(self.groq_api_keys)} API keys for rotation")
 
     def extract_disaster_type(self, text):
-        """Extract disaster type from text using keyword matching"""
+        """
+        Enhanced disaster type extraction that analyzes full context of the text
+        instead of simple keyword matching
+        """
+        if not text or len(text.strip()) == 0:
+            return "Not Specified"
+            
         text_lower = text.lower()
 
         # Only use these 6 specific disaster types:
         disaster_types = {
             "Earthquake": [
                 "earthquake", "quake", "tremor", "seismic", "lindol",
-                "magnitude", "aftershock", "shaking"
+                "magnitude", "aftershock", "shaking", "lumindol", 
+                "pagyanig", "paglindol", "ground shaking", "magnitude"
             ],
             "Flood": [
                 "flood", "flooding", "inundation", "baha", "tubig", "binaha",
-                "flash flood", "rising water"
+                "flash flood", "rising water", "bumabaha", "nagbaha",
+                "high water level", "water rising", "overflowing", "pagbaha",
+                "underwater", "submerged", "nabahaan"
             ],
             "Typhoon": [
                 "typhoon", "storm", "cyclone", "hurricane", "bagyo",
-                "super typhoon", "habagat", "ulan", "buhos",
-                "malakas na hangin"
+                "super typhoon", "habagat", "ulan", "buhos", "storm surge",
+                "malakas na hangin", "heavy rain", "signal no", "strong wind", "malakas na ulan",
+                "flood warning", "storm warning", "evacuate due to storm", "matinding ulan"
             ],
             "Fire": [
-                "fire", "blaze", "burning", "sunog", "nasunog", "nagliliyab",
-                "flame", "apoy"
+                "fire", "blaze", "burning", "sunog", "nasusunog", "nasunog", "nagliliyab",
+                "flame", "apoy", "burning building", "burning house", "tulong sunog",
+                "house fire", "fire truck", "fire fighter", "building fire", "fire alarm",
+                "burning", "nagliliyab", "sinusunog", "smoke", "usok"
             ],
             "Volcano": [
                 "volcano", "eruption", "lava", "ash", "bulkan", "ashfall",
-                "magma", "volcanic", "bulkang", "active volcano"
+                "magma", "volcanic", "bulkang", "active volcano", "phivolcs alert",
+                "taal", "mayon", "pinatubo", "volcanic activity", "phivolcs",
+                "volcanic ash", "evacuate volcano", "erupting", "erupted", "abo ng bulkan"
             ],
             "Landslide": [
                 "landslide", "mudslide", "avalanche", "guho", "pagguho",
-                "pagguho ng lupa", "collapsed"
+                "pagguho ng lupa", "collapsed", "erosion", "land collapse",
+                "soil erosion", "rock slide", "debris flow", "mountainside",
+                "nagkaroong ng guho", "rumble", "bangin", "bumagsak na lupa"
             ]
         }
 
+        # First pass: Check for direct keyword matches with scoring
+        scores = {disaster_type: 0 for disaster_type in disaster_types}
+        matched_keywords = {}
+        
         for disaster_type, keywords in disaster_types.items():
-            if any(keyword in text_lower for keyword in keywords):
-                # Return just the disaster type name, no explanation
-                return disaster_type
-
-        return "Not Specified"
+            matched_terms = []
+            for keyword in keywords:
+                if keyword in text_lower:
+                    # Check if it's a full word or part of a word
+                    if (f" {keyword} " in f" {text_lower} " or
+                        text_lower.startswith(f"{keyword} ") or
+                        text_lower.endswith(f" {keyword}") or
+                        text_lower == keyword):
+                        scores[disaster_type] += 2  # Full word match
+                        matched_terms.append(keyword)
+                    else:
+                        scores[disaster_type] += 1  # Partial match
+                        matched_terms.append(keyword)
+            
+            if matched_terms:
+                matched_keywords[disaster_type] = matched_terms
+        
+        # Context analysis for specific disaster scenarios
+        context_indicators = {
+            "Earthquake": [
+                "shaking", "ground moved", "buildings collapsed", "magnitude", "richter scale",
+                "fell down", "trembling", "evacuate building", "underneath rubble", "trapped"
+            ],
+            "Flood": [
+                "water level", "rising water", "underwater", "submerged", "evacuate",
+                "rescue boat", "stranded", "high water", "knee deep", "waist deep"
+            ],
+            "Typhoon": [
+                "strong winds", "heavy rain", "evacuation center", "storm signal", "stranded",
+                "cancelled flights", "damaged roof", "blown away", "flooding due to", "trees fell"
+            ],
+            "Fire": [
+                "smoke", "evacuate building", "trapped inside", "firefighter", "fire truck",
+                "burning", "call 911", "spread to", "emergency", "burning smell"
+            ],
+            "Volcano": [
+                "alert level", "evacuate area", "danger zone", "eruption warning", "exclusion zone",
+                "kilometer radius", "volcanic activity", "ash covered", "masks", "respiratory"
+            ],
+            "Landslide": [
+                "collapsed", "blocked road", "buried", "fell", "slid down", "mountain slope",
+                "after heavy rain", "buried homes", "rescue team", "clearing operation"
+            ]
+        }
+        
+        # Check for contextual indicators
+        for disaster_type, indicators in context_indicators.items():
+            for indicator in indicators:
+                if indicator in text_lower:
+                    scores[disaster_type] += 1.5  # Context indicators have higher weight
+                    if disaster_type not in matched_keywords:
+                        matched_keywords[disaster_type] = []
+                    matched_keywords[disaster_type].append(f"context:{indicator}")
+        
+        # Check for co-occurrence patterns
+        if "water" in text_lower and "rising" in text_lower:
+            scores["Flood"] += 2
+        if "strong" in text_lower and "wind" in text_lower:
+            scores["Typhoon"] += 2
+        if "heavy" in text_lower and "rain" in text_lower:
+            scores["Typhoon"] += 1.5
+        if "building" in text_lower and "collapse" in text_lower:
+            scores["Earthquake"] += 2
+        if "ash" in text_lower and "fall" in text_lower:
+            scores["Volcano"] += 2
+        if "evacuate" in text_lower and "alert" in text_lower:
+            # General emergency context - look for specific type
+            for d_type in ["Volcano", "Fire", "Flood", "Typhoon"]:
+                if any(k in text_lower for k in disaster_types[d_type]):
+                    scores[d_type] += 1
+        
+        # Get the disaster type with the highest score
+        max_score = max(scores.values())
+        
+        # If no significant evidence found
+        if max_score < 1:
+            return "Not Specified"
+            
+        # Get disaster types that tied for highest score
+        top_disasters = [dt for dt, score in scores.items() if score == max_score]
+        
+        if len(top_disasters) == 1:
+            return top_disasters[0]
+        else:
+            # In case of tie, use order of priority for Philippines (typhoon > flood > earthquake > volcano > fire > landslide)
+            priority_order = ["Typhoon", "Flood", "Earthquake", "Volcano", "Fire", "Landslide"]
+            for disaster in priority_order:
+                if disaster in top_disasters:
+                    return disaster
+            
+            # Fallback to first match
+            return top_disasters[0]
 
     def extract_location(self, text):
         """Extract location from text using Philippine location names"""
@@ -854,8 +961,8 @@ Respond ONLY with a JSON object containing:
                         f"Analyzing record {i+1} of {sample_size} ({progress_percentage}% complete)",
                         total_records)
 
-                    # Extract text
-                    text = str(row.get("text", ""))
+                    # Extract text using identified text column
+                    text = str(row.get(text_col, ""))
                     if not text.strip():
                         continue
 
@@ -864,24 +971,29 @@ Respond ONLY with a JSON object containing:
                         row.get(timestamp_col,
                                 datetime.now().isoformat())
                     ) if timestamp_col else datetime.now().isoformat()
-                    source = str(
-                        row.get(source_col,
-                                "CSV Import")) if source_col else "CSV Import"
-
+                    
+                    # Get source - check if it's Panic, Fear/Anxiety, etc. (sentiment accidentally in source column)
+                    source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
+                    sentiment_values = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"]
+                    if source in sentiment_values:
+                        csv_sentiment = source
+                        source = "CSV Import"  # Reset source to default
+                    else:
+                        csv_sentiment = None
+                    
                     # Extract preset location and disaster type from CSV
-                    csv_location = str(row.get(location_col,
-                                               "")) if location_col else None
-                    if csv_location and csv_location.lower() in [
-                            "nan", "none", ""
-                    ]:
+                    csv_location = str(row.get(location_col, "")) if location_col else None
+                    if csv_location and csv_location.lower() in ["nan", "none", ""]:
                         csv_location = None
-
-                    csv_disaster = str(row.get(disaster_col,
-                                               "")) if disaster_col else None
-                    if csv_disaster and csv_disaster.lower() in [
-                            "nan", "none", ""
-                    ]:
+                    
+                    # Extract disaster type - check if it contains the actual text
+                    csv_disaster = str(row.get(disaster_col, "")) if disaster_col else None
+                    if csv_disaster and csv_disaster.lower() in ["nan", "none", ""]:
                         csv_disaster = None
+                    # Check if disaster column contains full text (common error)
+                    if csv_disaster and len(csv_disaster) > 20 and text in csv_disaster:
+                        # The disaster column contains the full text, which is wrong
+                        csv_disaster = None  # Reset and let our analyzer determine it
 
                     # Check if language is specified in the CSV
                     csv_language = str(row.get(language_col,
