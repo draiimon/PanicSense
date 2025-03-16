@@ -755,41 +755,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export cleaned CSV data
-  app.get('/api/export-csv', async (req: Request, res: Response) => {
-    try {
-      const posts = await storage.getSentimentPosts();
-      
-      // Clean and format data
-      const cleanedData = posts.map(post => ({
-        timestamp: new Date(post.timestamp).toISOString(),
-        text: post.text.trim().replace(/[\r\n]+/g, ' '),
-        sentiment: post.sentiment,
-        confidence: post.confidence,
-        location: post.location || '',
-        disasterType: post.disasterType || '',
-        source: post.source
-      }));
-
-      // Convert to CSV
-      const fields = ['timestamp', 'text', 'sentiment', 'confidence', 'location', 'disasterType', 'source'];
-      const csv = [
-        fields.join(','),
-        ...cleanedData.map(row => 
-          fields.map(field => {
-            const value = String(row[field as keyof typeof row] || '');
-            return value.includes(',') ? `"${value}"` : value;
-          }).join(',')
-        )
-      ].join('\n');
-
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=disaster-sentiments.csv');
-      res.send(csv);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to export data" });
-    }
-  });
-
   return httpServer;
 }
