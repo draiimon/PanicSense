@@ -1,51 +1,53 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { SentimentTimeline } from "@/components/timeline/sentiment-timeline";
 import { KeyEvents } from "@/components/timeline/key-events";
-import { format, subDays } from "date-fns";
+import { format, isSameDay, parseISO } from "date-fns";
 
 export default function Timeline() {
   const { disasterEvents, sentimentPosts } = useDisasterContext();
 
   // Process sentiment posts to create timeline data
   const processTimelineData = () => {
-    let dates: string[] = [];
-    
-    // Extract actual dates from sentiment posts
-    if (sentimentPosts.length > 0) {
-      // Extract unique dates from actual data with full year information
-      const uniqueDates = new Set<string>();
-      const dateObjectMap = new Map<string, Date>();
-      
-      sentimentPosts.forEach(post => {
-        const postDateObj = new Date(post.timestamp);
-        const postDateFormatted = format(postDateObj, "yyyy-MM-dd");
-        const displayDate = format(postDateObj, "MMM dd, yyyy");
-        uniqueDates.add(displayDate);
-        dateObjectMap.set(displayDate, postDateObj);
-      });
-      
-      // Convert to array and sort chronologically by actual date timestamps
-      dates = Array.from(uniqueDates).sort((a, b) => {
-        const dateA = dateObjectMap.get(a) || new Date();
-        const dateB = dateObjectMap.get(b) || new Date();
-        return dateA.getTime() - dateB.getTime();
-      });
-    } else {
-      // Fallback to using the last 7 days if no posts
-      dates = Array.from({ length: 7 }, (_, i) => {
-        const date = subDays(new Date(), i);
-        return format(date, "MMM dd, yyyy");
-      }).reverse();
+    // Skip processing if no posts
+    if (!sentimentPosts || sentimentPosts.length === 0) {
+      return {
+        labels: [],
+        datasets: [],
+        rawDates: []
+      };
     }
+    
+    // First, sort posts chronologically
+    const sortedPosts = [...sentimentPosts].sort((a, b) => {
+      return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+    });
+    
+    // Extract all raw dates
+    const rawDates = sortedPosts.map(post => post.timestamp);
+    
+    // Track unique dates to display as labels
+    const uniqueDates = new Map<string, Date>();
+    
+    // Group sentiment posts by date
+    sortedPosts.forEach(post => {
+      const postDate = parseISO(post.timestamp);
+      const displayDate = format(postDate, "MMM dd, yyyy");
+      uniqueDates.set(displayDate, postDate);
+    });
+    
+    // Convert to sorted array of labels
+    const dates = Array.from(uniqueDates.entries())
+      .sort(([_, dateA], [__, dateB]) => dateA.getTime() - dateB.getTime())
+      .map(([label]) => label);
 
     // Initialize datasets for each sentiment
     const sentiments = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"];
     
-    // Define proper type for sentiment counts
+    // Track sentiment counts per date for percentage calculation
     const sentimentCounts: Record<string, Record<string, number>> = {};
 
-    // Initialize counts for each sentiment on each date
+    // Initialize counts
     dates.forEach(date => {
       sentimentCounts[date] = {};
       sentiments.forEach(sentiment => {
@@ -54,10 +56,11 @@ export default function Timeline() {
     });
 
     // Count sentiments for each date
-    sentimentPosts.forEach(post => {
-      const postDate = format(new Date(post.timestamp), "MMM dd, yyyy");
-      if (sentimentCounts[postDate] && sentimentCounts[postDate][post.sentiment] !== undefined) {
-        sentimentCounts[postDate][post.sentiment]++;
+    sortedPosts.forEach(post => {
+      const postDate = format(parseISO(post.timestamp), "MMM dd, yyyy");
+      if (sentimentCounts[postDate] && post.sentiment) {
+        sentimentCounts[postDate][post.sentiment] = 
+          (sentimentCounts[postDate][post.sentiment] || 0) + 1;
       }
     });
 
@@ -79,27 +82,34 @@ export default function Timeline() {
 
     return {
       labels: dates,
-      datasets
+      datasets,
+      rawDates
     };
   };
 
-  const timelineData = processTimelineData();
+  // Calculate timeline data with memoization to avoid recalculation
+  const timelineData = useMemo(() => processTimelineData(), [sentimentPosts]);
+  
+  // Calculate if we need to auto-generate disaster events
+  const shouldGenerateEvents = disasterEvents.length === 0 && sentimentPosts.length > 0;
 
   return (
     <div className="space-y-6">
       {/* Timeline Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Sentiment Timeline</h1>
-        <p className="mt-1 text-sm text-slate-500">Tracking emotion changes over time</p>
+        <p className="mt-1 text-sm text-slate-500">
+          {sentimentPosts.length > 0 
+            ? `Tracking ${sentimentPosts.length} data points across ${timelineData.labels.length} unique dates` 
+            : "No data available yet. Upload a CSV file to begin analysis."}
+        </p>
       </div>
 
       {/* Timeline Chart */}
       <SentimentTimeline 
         data={timelineData}
         title="Sentiment Evolution"
-        description={sentimentPosts.length > 0 ? 
-          `${timelineData.labels.length} date${timelineData.labels.length !== 1 ? 's' : ''} from actual data` : 
-          "Last 7 days"}
+        rawDates={timelineData.rawDates}
       />
 
       {/* Key Events */}
@@ -110,6 +120,7 @@ export default function Timeline() {
         }))}
         title="Key Events"
         description="Major shifts in sentiment patterns"
+        sentimentPosts={shouldGenerateEvents ? sentimentPosts : []}
       />
     </div>
   );
