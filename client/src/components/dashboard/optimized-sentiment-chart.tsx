@@ -247,10 +247,7 @@ export function OptimizedSentimentChart({
                 <Loader2 className="h-10 w-10 absolute inset-0 text-blue-600" />
               </div>
             </div>
-            <div>
-              <p className="font-medium text-slate-800">Processing sentiment data...</p>
-              {/* Removed the second line for conciseness */}
-            </div>
+            
           </div>
         </div>
       )}
