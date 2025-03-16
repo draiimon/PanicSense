@@ -190,49 +190,58 @@ export function SentimentMap({
           ? getDisasterTypeColor(region.disasterType)
           : getSentimentColor(region.sentiment);
 
-        // Scale radius based on zoom level and intensity with even smaller base size
-        const baseRadius = 3 + (region.intensity / 100) * 15; // Even smaller base radius
+        // Scale radius based on zoom level and intensity with smaller base size
+        const baseRadius = 5 + (region.intensity / 100) * 10; // Smaller base radius, but not too small
         const radius = baseRadius * Math.pow(1.2, mapZoom - 6);
         
-        // Create main marker circle - smaller and more subtle
+        // Create main marker circle - keep it visible but small
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
-          fillOpacity: 0.4, // Lower transparency
-          radius: radius * 1000,
-          weight: 1, // Thinner border
-          className: 'main-marker', // Add class for potential CSS animations
+          fillOpacity: 0.6, // Higher opacity to ensure visibility
+          radius: radius * 1000, // Keep proper scale
+          weight: 2, // Slightly thicker border for visibility
+          className: 'main-marker',
         }).addTo(mapInstanceRef.current);
         
-        // Create animated pulse circle
+        // Create animated pulse circle with same initial size as main marker
         const pulseCircle = L.circle(region.coordinates, {
-          color: 'rgba(255,255,255,0.5)',
+          color: 'rgba(255,255,255,0.3)', // Subtle border
           fillColor: color,
-          fillOpacity: 0.2,
-          radius: 100, // Start small
+          fillOpacity: 0.3, // More visible starting opacity
+          radius: radius * 1000, // Start at same size as main marker
           weight: 1,
           className: 'pulse-marker',
         }).addTo(mapInstanceRef.current);
         
-        // Add ping animation
+        // Add ping animation with better, smoother effect
         const animatePulse = () => {
-          let size = radius * 500; // Start smaller than main circle
-          let opacity = 0.4;
+          let size = radius * 1000; // Start at main circle size
+          let opacity = 0.3; 
+          let growing = true;
+          let maxSize = radius * 2500; // Maximum size
+          let growthRate = radius * 80; // Slower growth for smoother animation
           
           const expandPulse = () => {
-            size += radius * 300; // Grow by this amount each frame
-            opacity -= 0.02; // Fade out gradually
-            
-            if (opacity <= 0) {
-              // Reset animation when fully transparent
-              size = radius * 500;
-              opacity = 0.4;
+            if (growing) {
+              // Growing phase
+              size += growthRate;
+              opacity -= 0.006; // Slower fade out for smoother effect
+              
+              if (size >= maxSize) {
+                growing = false;
+              }
+            } else {
+              // Reset phase
+              size = radius * 1000;  // Reset to main marker size
+              opacity = 0.3;  // Reset opacity
+              growing = true;
             }
             
             pulseCircle.setRadius(size);
             pulseCircle.setStyle({ 
-              fillOpacity: opacity, 
-              opacity: opacity * 2 
+              fillOpacity: Math.max(0.01, opacity), // Keep minimum opacity visible
+              opacity: Math.max(0.05, opacity * 1.5) // Keep borders slightly more visible
             });
             
             // Schedule next frame
@@ -285,20 +294,20 @@ export function SentimentMap({
         // Enhanced hover interactions with adjusted values
         circle.on('mouseover', () => {
           circle.setStyle({ 
-            weight: 2.5, 
-            fillOpacity: 0.65
+            weight: 3, // Thicker border on hover 
+            fillOpacity: 0.8 // Higher opacity on hover
           });
-          circle.setRadius(radius * 1050);
+          circle.setRadius(radius * 1050); // Slightly larger on hover
           setHoveredRegion(region);
           circle.openPopup();
         });
 
         circle.on('mouseout', () => {
           circle.setStyle({ 
-            weight: 1.5, 
-            fillOpacity: 0.5
+            weight: 2, // Back to normal border width
+            fillOpacity: 0.6 // Back to normal opacity
           });
-          circle.setRadius(radius * 1000);
+          circle.setRadius(radius * 1000); // Back to normal size
           setHoveredRegion(null);
           circle.closePopup();
         });
