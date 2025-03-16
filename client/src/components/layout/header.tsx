@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   BrainCircuit,
   BarChart2,
@@ -12,14 +12,15 @@ import {
   Activity,
   HelpCircle,
   Globe,
-  Search,
-  Bell,
   User,
+  ChevronDown,
 } from "lucide-react";
+import { useState } from "react";
 
 export function Header() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -73,15 +74,15 @@ export function Header() {
     <motion.header
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="sticky top-0 bg-gradient-to-b from-slate-900 to-slate-800 border-b border-slate-700/50 py-3 px-4 shadow-lg z-50"
+      className="fixed w-full top-0 bg-gradient-to-r from-white/95 via-blue-50/95 to-indigo-50/95 backdrop-blur-sm border-b border-slate-200 shadow-lg z-50"
     >
       <div className="max-w-[2000px] mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          {/* Logo and Title */}
-          <div className="flex items-center space-x-4">
-            <div className="relative w-10 h-10">
+        <div className="flex items-center justify-between px-3 py-3 sm:px-8 sm:py-5">
+          {/* Left side - Logo and Title */}
+          <div className="flex items-center gap-3 sm:gap-5">
+            <div className="relative w-10 h-10 sm:w-12 sm:h-12">
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl"
+                className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-xl shadow-lg"
                 animate={{
                   scale: [1, 1.1, 1],
                   rotate: [0, 5, -5, 0],
@@ -92,121 +93,91 @@ export function Header() {
                   repeatType: "reverse",
                 }}
               />
-              <BrainCircuit className="absolute inset-0 w-full h-full text-white p-2" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <BrainCircuit className="absolute inset-0 w-full h-full text-white p-2 drop-shadow" />
+              </motion.div>
             </div>
             <div>
-              <motion.h1 
+              <motion.h1
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent"
+                className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"
               >
-                PanicSense PH
+                DisasterSense AI
               </motion.h1>
-              <motion.p 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-sm text-slate-400"
-              >
-                Real-time Sentiment Analysis
-              </motion.p>
             </div>
           </div>
 
-          {/* Navigation Menu */}
-          {user && (
-            <div className="relative flex items-center space-x-1 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-              <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-slate-900 to-transparent pointer-events-none" />
-              <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-900 to-transparent pointer-events-none" />
-              {menuItems.map((item, index) => (
+          {/* Center - Navigation Dropdown */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-2 hover:bg-blue-50"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              Navigate
+              <motion.div
+                animate={{ rotate: isDropdownOpen ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown className="w-4 h-4" />
+              </motion.div>
+            </Button>
+
+            <AnimatePresence>
+              {isDropdownOpen && (
                 <motion.div
-                  key={item.path}
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2"
                 >
-                  <Button
-                    variant={location === item.path ? "default" : "ghost"}
-                    className={`
-                      flex items-center space-x-2 whitespace-nowrap transition-all duration-200
-                      ${location === item.path ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-slate-800'}
-                    `}
-                    onClick={() => location !== item.path && window.location.assign(item.path)}
-                  >
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </Button>
+                  {menuItems.map((item) => (
+                    <motion.a
+                      key={item.path}
+                      href={item.path}
+                      className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
+                        location === item.path
+                          ? "bg-blue-50 text-blue-600"
+                          : "text-gray-600 hover:bg-gray-50"
+                      }`}
+                      whileHover={{ x: 5 }}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </motion.a>
+                  ))}
                 </motion.div>
-              ))}
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Right side - Profile */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
+                <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+              </div>
+              <span className="text-xs sm:text-sm font-medium text-slate-700 hidden sm:inline">
+                {user?.name || "User"}
+              </span>
             </div>
-          )}
-
-          {/* User Section */}
-          <div className="flex items-center space-x-4">
-            {user ? (
-              <div className="flex items-center space-x-4">
-                {/* Quick Actions */}
-                <div className="hidden md:flex items-center space-x-2">
-                  <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
-                    <Search className="h-5 w-5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
-                    <Bell className="h-5 w-5" />
-                  </Button>
-                </div>
-
-                {/* User Profile */}
-                <div className="flex items-center space-x-3">
-                  <div className="hidden md:block">
-                    <p className="text-sm font-medium text-slate-200">Mark Andrei</p>
-                    <p className="text-xs text-slate-400">Administrator</p>
-                  </div>
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
-                    <User className="h-4 w-4 text-white" />
-                  </div>
-                </div>
-
-                {/* Logout Button */}
-                <Button 
-                  variant="ghost" 
-                  onClick={handleLogout}
-                  className="border border-slate-700 hover:bg-slate-800 text-slate-300"
-                >
-                  Logout
-                </Button>
-              </div>
-            ) : (
-              <div className="flex space-x-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => window.location.assign("/login")}
-                  className="border border-slate-700 hover:bg-slate-800 text-slate-300"
-                >
-                  Login
-                </Button>
-                <Button 
-                  onClick={() => window.location.assign("/signup")}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Sign up
-                </Button>
-              </div>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 sm:h-9 sm:w-auto rounded-full hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+              onClick={handleLogout}
+            >
+              <span className="hidden sm:inline ml-2">Logout</span>
+            </Button>
           </div>
         </div>
       </div>
-
-      {/* Add custom scrollbar styles */}
-      <style>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </motion.header>
   );
 }
