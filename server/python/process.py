@@ -61,15 +61,33 @@ class DisasterSentimentBackend:
             self.api_keys.append(os.getenv("API_KEY"))
             self.groq_api_keys.append(os.getenv("API_KEY"))
 
-        # Use default keys if none provided
+        # Default keys if none provided
         if not self.api_keys:
-            # Default keys (first 5 only for demonstration)
             self.api_keys = [
                 "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",
                 "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",
                 "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",
                 "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",
                 "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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"
             ]
             self.groq_api_keys = self.api_keys.copy()
 
@@ -215,12 +233,49 @@ class DisasterSentimentBackend:
         prompt = f"""Analyze the sentiment in this disaster-related message (language: {language}):
 "{text}"
 
-You must ONLY classify the sentiment as one of these exact categories:
-- Panic: Extreme fear or terror, immediate distress (e.g., "Help! Earthquake!", "We're trapped!", "Emergency!")
-- Fear/Anxiety: Worry or concern about situation (e.g., "I'm scared it might get worse", "Worried about aftershocks")
-- Disbelief: Shock or inability to process events (e.g., "I can't believe this is happening", "This is unreal")
-- Resilience: Showing strength, hope, or community support (e.g., "We will rebuild", "Helping neighbors evacuate")
-- Neutral: Factual reporting or observations (e.g., "Power is out in Manila", "Roads are closed")
+You must ONLY classify the sentiment as one of these exact categories with these specific rules:
+
+1. Panic: Choose this when the text shows:
+   - People desperately needing immediate help or rescue
+   - Having no food, water, or basic necessities
+   - Trapped or in immediate danger
+   - Using words like "tulong!", "help!", "SOS", or many exclamation points
+   - Expressing desperate situations they don't know how to handle
+
+2. Fear/Anxiety: Choose this when the text shows:
+   - General fear or worry but not immediate danger
+   - Concern about what might happen
+   - Using words like "takot", "natatakot", "scared", "afraid"
+   - Worried about potential worsening of situation
+   - Expressing uncertainty about safety
+
+3. Disbelief: Choose this when the text shows:
+   - Surprise or shock about disaster's impact
+   - Difficulty believing the situation
+   - Using phrases like "hindi ako makapaniwala", "can't believe"
+   - Expressing disbelief about speed or scale of disaster
+   - Shocked reactions to damage or changes
+
+4. Resilience: Choose this when the text shows:
+   - Helping others or community support
+   - Hope and determination
+   - Using words like "kakayanin", "magtulungan", "we will overcome"
+   - Sharing resources or information to help
+   - Expressions of unity and strength
+
+5. Neutral: Choose this when the text:
+   - Simply reports facts or observations
+   - Shares news or updates without emotion
+   - Gives objective information about the situation
+   - Contains mostly technical or weather-related data
+   - Provides status updates without personal reaction
+
+Examples for each category:
+- Panic: "Tulong! Nasa bubong na kami, mataas na tubig!", "No food and water, please help!"
+- Fear/Anxiety: "Natatakot ako baka tumaas pa ang tubig", "Worried about more aftershocks"
+- Disbelief: "Di ko akalaing ganito kabilis!", "Can't believe how strong the earthquake was"
+- Resilience: "Tulungan ang mga kapwa, kakayanin natin to!", "We're helping evacuate neighbors"
+- Neutral: "Road closed due to flooding", "Magnitude 5.2 earthquake reported"
 
 Respond ONLY with a JSON object containing:
 1. sentiment: MUST be one of [Panic, Fear/Anxiety, Disbelief, Resilience, Neutral] - no other values allowed
@@ -228,21 +283,6 @@ Respond ONLY with a JSON object containing:
 3. explanation: brief reason for the classification
 4. disasterType: MUST be one of [Earthquake, Flood, Typhoon, Fire, Volcano, Landslide] or "Not Specified"
 5. location: ONLY return the exact location name if mentioned (a Philippine location), with no explanation
-
-Key sentiment analysis rules:
-- For Filipino/Tagalog text:
-  * "Tulong!", "Help!", "SOS", "Emergency" indicate Panic
-  * "takot", "natatakot", "kabado" indicate Fear/Anxiety
-  * "Hindi ako makapaniwala", "Di ko akalain" indicate Disbelief
-  * "Tulungan", "Magkakaisa tayo", "Kaya natin ito" indicate Resilience
-  * Factual statements without emotion are Neutral
-
-- For English text:
-  * "Help!", "SOS", "Emergency", "Save us" indicate Panic
-  * "scared", "afraid", "worried", "nervous" indicate Fear/Anxiety
-  * "can't believe", "unbelievable", "shocking" indicate Disbelief
-  * "we will overcome", "helping others", "staying strong" indicate Resilience
-  * News-style reports and observations are Neutral
 """
 
         payload = {
