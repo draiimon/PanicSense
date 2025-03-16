@@ -64,7 +64,86 @@ export default function GeographicAnalysis() {
     "Baguio": [16.4023, 120.5960],
     "Zamboanga": [6.9214, 122.0790],
     "Cagayan de Oro": [8.4542, 124.6319],
-    "General Santos": [6.1164, 125.1716]
+    "General Santos": [6.1164, 125.1716],
+    // Additional locations
+    "Makati": [14.5547, 121.0244],
+    "Pasig": [14.5764, 121.0851],
+    "Taguig": [14.5176, 121.0509]
+  };
+
+  // Function to find closest matching location from known regions
+  const findClosestLocation = (input: string): string | null => {
+    if (!input) return null;
+    
+    // Normalize the input
+    const normalizedInput = input.toLowerCase().trim();
+    
+    // First check for exact matches
+    for (const location of Object.keys(regionCoordinates).concat(Object.keys(detectedLocations))) {
+      if (location.toLowerCase() === normalizedInput) {
+        return location;
+      }
+    }
+    
+    // Then check for partial matches (location name contains the input or vice versa)
+    for (const location of Object.keys(regionCoordinates).concat(Object.keys(detectedLocations))) {
+      if (location.toLowerCase().includes(normalizedInput) || 
+          normalizedInput.includes(location.toLowerCase())) {
+        return location;
+      }
+    }
+    
+    // Finally check for typos with simple edit distance (if word is at least 4 chars)
+    if (normalizedInput.length >= 4) {
+      let bestMatch = null;
+      let lowestDistance = Infinity;
+      
+      for (const location of Object.keys(regionCoordinates).concat(Object.keys(detectedLocations))) {
+        // Simple edit distance calculation
+        const distance = calculateEditDistance(normalizedInput, location.toLowerCase());
+        if (distance < lowestDistance && distance <= 2) { // Allow 2 character differences max
+          lowestDistance = distance;
+          bestMatch = location;
+        }
+      }
+      
+      return bestMatch;
+    }
+    
+    return null;
+  };
+  
+  // Simple Levenshtein distance calculation for typo correction
+  const calculateEditDistance = (a: string, b: string): number => {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+  
+    const matrix = [];
+  
+    // Initialize matrix
+    for (let i = 0; i <= b.length; i++) {
+      matrix[i] = [i];
+    }
+    for (let j = 0; j <= a.length; j++) {
+      matrix[0][j] = j;
+    }
+  
+    // Fill matrix
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        if (b.charAt(i - 1) === a.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1, // substitution
+            matrix[i][j - 1] + 1,     // insertion
+            matrix[i - 1][j] + 1      // deletion
+          );
+        }
+      }
+    }
+  
+    return matrix[b.length][a.length];
   };
 
   // Effect for processing new posts and extracting locations
@@ -77,6 +156,14 @@ export default function GeographicAnalysis() {
         const extractedLocations = extractLocations(post.text);
 
         for (const location of extractedLocations) {
+          // Check if we already have this location or a close match
+          const existingLocation = findClosestLocation(location);
+          
+          if (existingLocation) {
+            // We found a close match - no need to geocode
+            continue;
+          }
+          
           if (!newLocations[location] && !detectedLocations[location]) {
             const coordinates = await getCoordinates(location);
             if (coordinates) {
@@ -100,15 +187,19 @@ export default function GeographicAnalysis() {
     };
 
     processNewPosts();
-  }, [sentimentPosts]);
+  }, [sentimentPosts, detectedLocations]);
 
   // Process data for regions and map location mentions
   const locationData = useMemo(() => {
     const data: Record<string, LocationData> = {};
 
-    // Helper function to normalize location names
+    // Helper function to normalize location names with typo correction
     const normalizeLocation = (loc: string): string => {
+      if (!loc) return '';
+      
       const lowerLoc = loc.toLowerCase().trim();
+      
+      // Common abbreviations and alternative names
       if (lowerLoc.includes('manila') && !lowerLoc.includes('metro')) return 'Manila';
       if (lowerLoc.includes('quezon') && lowerLoc.includes('city')) return 'Quezon City';
       if (lowerLoc === 'ncr') return 'Metro Manila';
@@ -116,7 +207,15 @@ export default function GeographicAnalysis() {
       if (lowerLoc === 'qc') return 'Quezon City';
       if (lowerLoc === 'cdo') return 'Cagayan de Oro';
       if (lowerLoc === 'gensan') return 'General Santos';
-
+      
+      // Check for close matches and typos using our typo correction function
+      const correctedLocation = findClosestLocation(loc);
+      if (correctedLocation) {
+        // If we found a match from our known locations, use that instead
+        return correctedLocation;
+      }
+      
+      // Default formatting - capitalize first letter of each word
       return loc.split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
@@ -125,14 +224,17 @@ export default function GeographicAnalysis() {
     // Process posts to populate the map
     for (const post of sentimentPosts) {
       // Get both explicit location and extracted locations from text
-      const locations = new Set<string>();
+      const locations: string[] = [];
       if (post.location) {
-        locations.add(normalizeLocation(post.location));
+        locations.push(normalizeLocation(post.location));
       }
 
       // Add extracted locations
       extractLocations(post.text).forEach(loc => {
-        locations.add(normalizeLocation(loc));
+        const normalizedLoc = normalizeLocation(loc);
+        if (!locations.includes(normalizedLoc)) {
+          locations.push(normalizedLoc);
+        }
       });
 
       for (const location of locations) {
