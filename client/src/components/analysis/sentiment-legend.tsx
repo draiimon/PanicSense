@@ -105,7 +105,7 @@ export function SentimentLegend({
                 <h3 className="text-sm font-medium text-slate-700">Most Affected Areas</h3>
               </div>
               <Badge variant="outline" className="text-xs">
-                Top {mostAffectedAreas.length}
+                Top 10 Areas
               </Badge>
             </div>
             <div className="space-y-2">
