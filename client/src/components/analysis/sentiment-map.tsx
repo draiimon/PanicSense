@@ -167,17 +167,33 @@ export function SentimentMap({
           ? getDisasterTypeColor(region.disasterType)
           : getSentimentColor(region.sentiment);
 
-        // Scale radius based on zoom level and intensity but with smaller base size
-        const baseRadius = 5 + (region.intensity / 100) * 20; // Smaller base radius
+        // Even smaller base radius with water ripple effect
+        const baseRadius = 3 + (region.intensity / 100) * 15; // Smaller base radius
         const radius = baseRadius * Math.pow(1.2, mapZoom - 6);
 
+        // Create main circle (smaller and more transparent)
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
-          fillOpacity: 0.5, // Lower transparency
+          fillOpacity: 0.3, // More transparent
           radius: radius * 1000,
-          weight: 1.5, // Thinner border
+          weight: 1, // Even thinner border
+          className: 'pulse-circle' // Add pulse animation class
         }).addTo(mapInstanceRef.current);
+        
+        // Create outer ripple effect circle
+        const outerRipple = L.circle(region.coordinates, {
+          color,
+          fillColor: 'transparent',
+          fillOpacity: 0,
+          radius: radius * 1500,
+          weight: 0.8,
+          opacity: 0.4,
+          className: 'ripple-circle' // Add ripple animation class
+        }).addTo(mapInstanceRef.current);
+        
+        // Add to markers for cleanup
+        markersRef.current.push(outerRipple);
 
         // Create custom popup with improved styling
         const popupContent = `
@@ -223,8 +239,8 @@ export function SentimentMap({
 
         circle.on('mouseout', () => {
           circle.setStyle({ 
-            weight: 1.5, 
-            fillOpacity: 0.5
+            weight: 1, 
+            fillOpacity: 0.3
           });
           circle.setRadius(radius * 1000);
           setHoveredRegion(null);
