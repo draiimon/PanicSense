@@ -163,41 +163,43 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
   };
 
   return (
-    <div className="relative">
-      <motion.label
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`
-          inline-flex items-center justify-center px-6 py-3
-          bg-gradient-to-r from-blue-600 to-indigo-600
-          hover:from-blue-700 hover:to-indigo-700
-          text-white text-sm font-medium rounded-full
-          cursor-pointer transition-all duration-300
-          shadow-lg hover:shadow-xl transform hover:-translate-y-0.5
-          disabled:opacity-50 disabled:cursor-not-allowed
-          ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
-          ${className}
-        `}
-      >
-        <Upload className="h-5 w-5 mr-2" />
-        {isUploading ? 'Analyzing...' : 'Upload Dataset'}
-        <input 
-          type="file" 
-          className="hidden" 
-          accept=".csv" 
-          onChange={handleFileUpload}
-          disabled={isUploading}
-        />
-      </motion.label>
-
-      {/* Progress Overlay */}
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      {/* Semi-transparent overlay */}
       {isUploading && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+        <div className="absolute inset-0 bg-black bg-opacity-50" />
+      )}
+
+      <div className="relative bg-white rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
+        {/* Upload Button */}
+        <motion.label
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`
+            inline-flex items-center justify-center px-6 py-3
+            bg-gradient-to-r from-blue-600 to-indigo-600
+            hover:from-blue-700 hover:to-indigo-700
+            text-white text-sm font-medium rounded-full
+            cursor-pointer transition-all duration-300
+            shadow-lg hover:shadow-xl transform hover:-translate-y-0.5
+            disabled:opacity-50 disabled:cursor-not-allowed
+            ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
+            ${className}
+          `}
         >
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+          <Upload className="h-5 w-5 mr-2" />
+          {isUploading ? 'Analyzing...' : 'Upload Dataset'}
+          <input 
+            type="file" 
+            className="hidden" 
+            accept=".csv" 
+            onChange={handleFileUpload}
+            disabled={isUploading}
+          />
+        </motion.label>
+
+        {/* Progress Display */}
+        {isUploading && uploadProgress && (
+          <div className="mt-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">
               Processing Dataset
             </h3>
@@ -206,33 +208,39 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
               <div 
                 className="bg-blue-600 h-4 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress?.percentage || 0}%` }}
+                style={{ width: `${uploadProgress.percentage || 0}%` }}
               />
             </div>
 
-            {/* Detailed Progress Stats */}
-            <div className="space-y-2 text-sm text-gray-600">
-              <p className="font-medium text-gray-900">
-                {uploadProgress?.status === 'error' ? 'Error' : 'Status'}: {uploadProgress?.message}
+            {/* Progress Stats */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-gray-900">
+                {uploadProgress.message}
               </p>
 
-              {uploadProgress?.totalRecords > 0 && (
-                <div className="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-lg mt-2">
+              {uploadProgress.totalRecords > 0 && (
+                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                   <div>
-                    <p className="text-gray-500">Processed</p>
-                    <p className="font-medium text-gray-900">{uploadProgress.processedRecords}</p>
+                    <p className="text-sm text-gray-500">Processed Records</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {uploadProgress.processedRecords}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Total Records</p>
-                    <p className="font-medium text-gray-900">{uploadProgress.totalRecords}</p>
+                    <p className="text-sm text-gray-500">Total Records</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {uploadProgress.totalRecords}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Progress</p>
-                    <p className="font-medium text-gray-900">{uploadProgress.percentage}%</p>
+                    <p className="text-sm text-gray-500">Progress</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {uploadProgress.percentage}%
+                    </p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Remaining</p>
-                    <p className="font-medium text-gray-900">
+                    <p className="text-sm text-gray-500">Remaining</p>
+                    <p className="text-lg font-semibold text-gray-900">
                       {uploadProgress.totalRecords - uploadProgress.processedRecords}
                     </p>
                   </div>
@@ -240,8 +248,8 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
               )}
             </div>
           </div>
-        </motion.div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

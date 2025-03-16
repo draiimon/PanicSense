@@ -416,113 +416,6 @@ Respond ONLY with a JSON object containing:
             # Report initial progress
             report_progress(0, f"Starting data analysis. Total records: {total_records}")
 
-            # Analyze column headers to find column types
-            column_matches = {
-                "text": ["text", "content", "message", "tweet", "post", "Text"],
-                "location": ["location", "place", "city", "Location"],
-                "source": ["source", "platform", "Source"],
-                "disaster": ["disaster", "type", "Disaster", "disasterType", "disaster_type"],
-                "timestamp": ["timestamp", "date", "time", "Timestamp", "created_at"],
-                "sentiment": ["sentiment", "emotion", "Sentiment", "feeling"],
-                "confidence": ["confidence", "score", "Confidence"],
-                "language": ["language", "lang", "Language"]
-            }
-
-            # Dictionary to store identified columns
-            identified_columns = {}
-
-            # First, try to identify columns by exact header match
-            for col_type, possible_names in column_matches.items():
-                for col in df.columns:
-                    if col.lower() in [name.lower() for name in possible_names]:
-                        identified_columns[col_type] = col
-                        logging.info(f"Found {col_type} column: {col}")
-                        break
-
-            # If no text column found by header name, use the first column
-            if "text" not in identified_columns and len(df.columns) > 0:
-                identified_columns["text"] = df.columns[0]
-                logging.info(f"Using first column '{df.columns[0]}' as text column")
-
-            # Create a "text" column if it doesn't exist yet
-            if "text" not in df.columns and "text" in identified_columns:
-                df["text"] = df[identified_columns["text"]]
-
-            # For columns still not found, try analyzing content to identify them
-            # This will help with CSVs that don't have standard headers
-            sample_rows = min(5, len(df))
-
-            # Only try to identify missing columns from row content
-            for col_type in ["location", "source", "disaster", "timestamp", "sentiment", "language"]:
-                if col_type not in identified_columns:
-                    # Check each column's content to see if it matches expected patterns
-                    for col in df.columns:
-                        # Skip already identified columns
-                        if col in identified_columns.values():
-                            continue
-
-                        # Sample values
-                        sample_values = df[col].head(sample_rows).astype(str).tolist()
-
-                        # Check if column values match patterns for this type
-                        match_found = False
-
-                        if col_type == "location":
-                            # Look for location names
-                            location_indicators = ["city", "province", "region", "street", "manila", "cebu", "davao"]
-                            if any(any(ind in str(val).lower() for ind in location_indicators) for val in sample_values):
-                                identified_columns["location"] = col
-                                match_found = True
-
-                        elif col_type == "source":
-                            # Look for social media or source names
-                            source_indicators = ["twitter", "facebook", "instagram", "x", "social media"]
-                            if any(any(ind in str(val).lower() for ind in source_indicators) for val in sample_values):
-                                identified_columns["source"] = col
-                                match_found = True
-
-                        elif col_type == "disaster":
-                            # Look for disaster keywords
-                            disaster_indicators = ["flood", "earthquake", "typhoon", "fire", "landslide", "volcano"]
-                            if any(any(ind in str(val).lower() for ind in disaster_indicators) for val in sample_values):
-                                identified_columns["disaster"] = col
-                                match_found = True
-
-                        elif col_type == "timestamp":
-                            # Check for date/time patterns
-                            date_patterns = [r'\d{4}-\d{2}-\d{2}', r'\d{2}/\d{2}/\d{4}', r'\d{2}:\d{2}']
-                            if any(any(re.search(pattern, str(val)) for pattern in date_patterns) for val in sample_values):
-                                identified_columns["timestamp"] = col
-                                match_found = True
-
-                        elif col_type == "sentiment":
-                            # Look for sentiment keywords
-                            sentiment_indicators = ["positive", "negative", "neutral", "fear", "panic", "anxiety", "resilience"]
-                            if any(any(ind in str(val).lower() for ind in sentiment_indicators) for val in sample_values):
-                                identified_columns["sentiment"] = col
-                                match_found = True
-
-                        elif col_type == "language":
-                            # Look for language names - only English and Filipino
-                            language_indicators = ["english", "filipino", "tagalog", "en", "tl", "fil"]
-                            if any(any(ind == str(val).lower() for ind in language_indicators) for val in sample_values):
-                                identified_columns["language"] = col
-                                match_found = True
-
-                        if match_found:
-                            logging.info(f"Identified {col_type} column from content: {col}")
-                            break
-
-            # Map identified columns to variable names
-            text_col = identified_columns.get("text", df.columns[0] if len(df.columns) > 0 else None)
-            location_col = identified_columns.get("location")
-            source_col = identified_columns.get("source")
-            disaster_col = identified_columns.get("disaster")
-            timestamp_col = identified_columns.get("timestamp")
-            sentiment_col = identified_columns.get("sentiment")
-            confidence_col = identified_columns.get("confidence")
-            language_col = identified_columns.get("language")
-
             # Process records
             for i, row in df.iterrows():
                 try:
@@ -543,34 +436,10 @@ Respond ONLY with a JSON object containing:
                     report_progress(progress_percentage, progress_message)
 
                     # Extract text
-                    text = str(row.get("text", ""))
+                    text = str(row[df.columns[0]])  # Always use first column as text
                     if not text.strip():
                         failed_records += 1
                         continue
-
-                    # Get metadata from columns
-                    timestamp = str(row.get(timestamp_col, datetime.now().isoformat())) if timestamp_col else datetime.now().isoformat()
-                    source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
-
-                    # Extract preset location and disaster type from CSV
-                    csv_location = str(row.get(location_col, "")) if location_col else None
-                    if csv_location and csv_location.lower() in ["nan", "none", ""]:
-                        csv_location = None
-
-                    csv_disaster = str(row.get(disaster_col, "")) if disaster_col else None
-                    if csv_disaster and csv_disaster.lower() in ["nan", "none", ""]:
-                        csv_disaster = None
-
-                    # Check if language is specified in the CSV
-                    csv_language = str(row.get(language_col, "")) if language_col else None
-                    if csv_language and csv_language.lower() in ["nan", "none", ""]:
-                        csv_language = None
-                    elif csv_language:
-                        # Simplify language to just English or Filipino
-                        if csv_language.lower() in ["tagalog", "tl", "fil", "filipino"]:
-                            csv_language = "Filipino"
-                        else:
-                            csv_language = "English"
 
                     # Add delay before sentiment analysis for consistency
                     time.sleep(2)  # 2 second delay before each analysis
@@ -584,14 +453,14 @@ Respond ONLY with a JSON object containing:
                     # Construct result and append
                     processed_results.append({
                         "text": text,
-                        "timestamp": timestamp,
-                        "source": source,
-                        "language": csv_language if csv_language else analysis_result.get("language", "English"),
+                        "timestamp": datetime.now().isoformat(),
+                        "source": "CSV Import",
+                        "language": analysis_result.get("language", "English"),
                         "sentiment": analysis_result.get("sentiment", "Neutral"),
                         "confidence": analysis_result.get("confidence", 0.7),
                         "explanation": analysis_result.get("explanation", ""),
-                        "disasterType": csv_disaster if csv_disaster else analysis_result.get("disasterType", "Not Specified"),
-                        "location": csv_location if csv_location else analysis_result.get("location")
+                        "disasterType": analysis_result.get("disasterType", "Not Specified"),
+                        "location": analysis_result.get("location")
                     })
 
                     successful_records += 1
@@ -619,11 +488,6 @@ Respond ONLY with a JSON object containing:
 
             # Log final stats
             logging.info(final_message)
-            loc_count = sum(1 for r in processed_results if r.get("location"))
-            disaster_count = sum(1 for r in processed_results if r.get("disasterType") != "Not Specified")
-            logging.info(f"Records with location: {loc_count}/{len(processed_results)}")
-            logging.info(f"Records with disaster type: {disaster_count}/{len(processed_results)}")
-
             return processed_results
 
         except Exception as e:
