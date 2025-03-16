@@ -103,11 +103,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Hero section (added from changes) */}
-      <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-xl p-6 mb-8">
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">Disaster Sentiment Dashboard</h1>
-        <p className="text-slate-600">Real-time monitoring of disaster-related sentiments and events</p>
-      </div>
 
       <motion.div 
         initial="hidden"
