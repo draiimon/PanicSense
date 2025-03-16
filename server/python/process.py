@@ -587,8 +587,10 @@ Respond ONLY with a JSON object containing:
                         "location": csv_location if csv_location else analysis_result.get("location")
                     })
 
-                    # Add delay between records to avoid rate limits
-                    if i > 0 and i % 3 == 0:
+                                      # Add delay between records to avoid rate limits
+                    if i > 0 and (i + 1) % 3 == 0:
+                        time.sleep(1.5)  # Add delay between records to avoid rate limits
+                     > 0 and i % 3 == 0:
                         time.sleep(1.5)
 
                 except Exception as e:
@@ -627,7 +629,6 @@ Respond ONLY with a JSON object containing:
         return metrics
 
 def main():
-    args = parser.replit_final_file>
     args = parser.parse_args()
 
     try:
@@ -635,38 +636,41 @@ def main():
 
         if args.text:
             # Single text analysis
-            result = backend.analyze_sentiment(args.text)
-            print(json.dumps(result))
-            sys.stdout.flush()
+            try:
+                # Parse the text input as JSON if it's a JSON string
+                if args.text.startswith('{'):
+                    params = json.loads(args.text)
+                    text = params.get('text', '')
+                else:
+                    text = args.text
+
+                result = backend.analyze_sentiment(text)
+                print(json.dumps(result))
+                sys.stdout.flush()
+            except Exception as e:
+                logging.error(f"Error analyzing text: {str(e)}")
+                error_response = {
+                    "error": str(e),
+                    "sentiment": "Neutral",
+                    "confidence": 0.7,
+                    "explanation": "Error during analysis",
+                    "language": "English"
+                }
+                print(json.dumps(error_response))
+                sys.stdout.flush()
+
         elif args.file:
             # Process CSV file
             try:
                 logging.info(f"Processing CSV file: {args.file}")
-
                 processed_results = backend.process_csv(args.file)
 
                 if processed_results and len(processed_results) > 0:
                     # Calculate metrics
                     metrics = backend.calculate_real_metrics(processed_results)
-
-                    # Ensure we have valid data in processed_results
-                    for i, result in enumerate(processed_results):
-                        # Make sure all entries have required fields
-                        if "sentiment" not in result or not result["sentiment"]:
-                            processed_results[i]["sentiment"] = "Neutral"
-                        if "confidence" not in result or not result["confidence"]:
-                            processed_results[i]["confidence"] = 0.7
-                        if "disasterType" not in result or not result["disasterType"]:
-                            processed_results[i]["disasterType"] = "Not Specified"
-
-                    logging.info(f"Successfully processed {len(processed_results)} records from CSV")
-
-                    # Return the results and metrics as a JSON object
                     print(json.dumps({"results": processed_results, "metrics": metrics}))
                     sys.stdout.flush()
                 else:
-                    # If no results were produced, return a warning with empty arrays
-                    logging.warning("No results were produced from CSV processing")
                     print(json.dumps({
                         "results": [],
                         "metrics": {
@@ -678,12 +682,10 @@ def main():
                     }))
                     sys.stdout.flush()
 
-            except Exception as file_error:
-                logging.error(f"Error processing file: {str(file_error)}")
-                # Ensure we always return valid JSON even on error
+            except Exception as e:
+                logging.error(f"Error processing CSV file: {str(e)}")
                 error_response = {
-                    "error": str(file_error),
-                    "type": "file_processing_error",
+                    "error": str(e),
                     "results": [],
                     "metrics": {
                         "accuracy": 0.0,
@@ -694,12 +696,14 @@ def main():
                 }
                 print(json.dumps(error_response))
                 sys.stdout.flush()
+
+if __name__ == "__main__":
+    try:
+        main()
     except Exception as e:
-        logging.error(f"Main processing error: {str(e)}")
-        # Ensure we always return valid JSON even on general error
+        logging.error(f"Fatal error: {str(e)}")
         error_response = {
             "error": str(e),
-            "type": "general_error",
             "results": [],
             "metrics": {
                 "accuracy": 0.0,
@@ -710,6 +714,4 @@ def main():
         }
         print(json.dumps(error_response))
         sys.stdout.flush()
-
-if __name__ == "__main__":
-    main()
+        sys.exit(1)
