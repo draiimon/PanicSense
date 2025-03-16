@@ -288,7 +288,7 @@ export default function Dashboard() {
           className="flex-grow"
         >
           {/* Card Carousel for auto-rotating between Sentiment Distribution and Recent Activity */}
-          <div className="relative mb-6 bg-white/50 backdrop-blur-sm shadow-xl border-none rounded-xl overflow-hidden">
+          <div className="relative mb-6 bg-white shadow-xl border-none rounded-xl overflow-hidden">
             <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
               <div 
                 className="cursor-pointer hover:scale-110 transition-transform"
