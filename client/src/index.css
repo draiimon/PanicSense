@@ -1,3 +1,19 @@
+
+/* Responsive card margins */
+.card-container {
+  @apply mt-6 sm:mt-4;
+}
+
+/* Section spacing for mobile */
+section {
+  @apply mb-6 sm:mb-4;
+}
+
+/* Card header padding adjustments */
+.card-header {
+  @apply p-4 sm:p-6;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
