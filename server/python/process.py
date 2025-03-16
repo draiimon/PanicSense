@@ -15,6 +15,23 @@ try:
     import numpy as np
     from langdetect import detect
     import requests
+    # Make Transformers optional
+    try:
+        from transformers import pipeline
+        import torch
+        TRANSFORMERS_AVAILABLE = True
+        # Initialize Transformers pipeline
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        classifier = pipeline(
+            "zero-shot-classification",
+            model="facebook/bart-large-mnli",
+            device=-1  # Use CPU as default
+        )
+        logging.info(f"Initialized Transformers pipeline on {device}")
+    except ImportError:
+        TRANSFORMERS_AVAILABLE = False
+        classifier = None
+        logging.warning("Transformers not available, will use only Groq API")
 except ImportError as e:
     logging.error(f"Import error: {e}")
     print(f"Error: Required packages not found. Missing package: {e.name}")
@@ -32,19 +49,6 @@ def report_progress(processed: int, stage: str, total: int = None):
     print(f"PROGRESS:{progress_info}", file=sys.stderr)
     sys.stderr.flush()
 
-# Initialize Transformers pipeline
-try:
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    classifier = pipeline(
-        "zero-shot-classification",
-        model="facebook/bart-large-mnli",
-        device=-1  # Use CPU as default
-    )
-    logging.info(f"Initialized Transformers pipeline on {device}")
-except Exception as e:
-    logging.error(f"Failed to initialize Transformers: {e}")
-    classifier = None
-
 class DisasterSentimentBackend:
 
     def __init__(self):
@@ -53,9 +57,9 @@ class DisasterSentimentBackend:
         ]
         self.api_keys = []
         self.groq_api_keys = []
-        self.last_service_used = 'groq'  # Track which service was last used
-        self.groq_failed_time = 0  # Track when Groq last failed
-        self.transformers_failed_time = 0  # Track when Transformers last failed
+        self.last_service_used = 'groq'
+        self.groq_failed_time = 0
+        self.transformers_failed_time = 0
 
         # Load API keys from environment
         i = 1
@@ -756,10 +760,23 @@ class DisasterSentimentBackend:
         current_time = time.time()
 
         # Check if we should wait before retrying previously failed service
-        groq_cooldown = current_time - self.groq_failed_time < 10  # 10 seconds cooldown
+        groq_cooldown = current_time - self.groq_failed_time < 10
         transformers_cooldown = current_time - self.transformers_failed_time < 10
 
-        # Determine which service to try first
+        # If Transformers is not available, always use Groq
+        if not TRANSFORMERS_AVAILABLE:
+            try:
+                result = self._try_groq_analysis(text, language)
+                if result:
+                    return result
+                # If Groq fails, return fallback
+                return self._get_fallback_response(text, language)
+            except Exception as e:
+                logging.error(f"Groq API failed: {e}")
+                self.groq_failed_time = current_time
+                return self._get_fallback_response(text, language)
+
+        # Determine which service to try first when both are available
         try_groq_first = (
             self.last_service_used != 'groq' and not groq_cooldown
         ) or (
@@ -781,8 +798,7 @@ class DisasterSentimentBackend:
             if not transformers_cooldown:
                 result = self.analyze_sentiment_with_transformers(text, language)
                 if result:
-                    self.last_service_used = 'transformers'
-                    return result
+                    self.last_service_used = 'transformers'                    return result
         else:
             # Try Transformers first
             if not transformers_cooldown:
@@ -803,13 +819,18 @@ class DisasterSentimentBackend:
                     self.groq_failed_time = current_time
 
         # If both services fail, return fallback response
+        return self._get_fallback_response(text, language)
+
+    def _get_fallback_response(self, text, language):
+        """Generate a fallback response when both services fail"""
         return {
             "sentiment": "Neutral",
             "confidence": 0.7,
-            "explanation": "Fallback response - both services failed",
+            "explanation": "Fallback response - sentiment analysis services unavailable",
             "disasterType": self.extract_disaster_type(text),
             "location": self.extract_location(text),
-            "language": language
+            "language": language,
+            "source": self.detect_social_media_source(text)
         }
 
     def _try_groq_analysis(self, text, language):
