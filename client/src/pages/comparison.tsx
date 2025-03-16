@@ -195,6 +195,17 @@ export default function Comparison() {
     const postsPerPhase = Math.ceil(totalPosts / 3);
 
     const phases = ['Initial Phase', 'Peak Phase', 'Recovery Phase'];
+    
+    // If there are no posts, return a default value
+    if (totalPosts === 0) {
+      return {
+        labels: phases,
+        values: [0, 0, 0],
+        title: "Sentiment Intensity by Disaster Phase",
+        description: "Intensity of negative emotions (Panic, Fear/Anxiety, Disbelief) during each disaster stage"
+      };
+    }
+
     const values = phases.map((_, index) => {
       const start = index * postsPerPhase;
       const end = Math.min(start + postsPerPhase, totalPosts);
@@ -202,17 +213,17 @@ export default function Comparison() {
 
       // Calculate intensity based on negative sentiments
       const negativeCount = phasePosts.filter(post => 
-        ['Panic', 'Fear/Anxiety', 'Disbelief'].includes(post.sentiment)
+        post.sentiment && ['Panic', 'Fear/Anxiety', 'Disbelief'].includes(post.sentiment)
       ).length;
 
-      return phasePosts.length > 0 ? (negativeCount / phasePosts.length) * 100 : 0;
+      return phasePosts.length > 0 ? Math.round((negativeCount / phasePosts.length) * 100) : 0;
     });
 
     return {
       labels: phases,
       values,
       title: "Sentiment Intensity by Disaster Phase",
-      description: "How emotions evolve throughout disaster lifecycle"
+      description: "Intensity of negative emotions (Panic, Fear/Anxiety, Disbelief) during each disaster stage"
     };
   };
 

@@ -44,7 +44,7 @@ export const sentimentColors = {
 // Disaster type colors as per user specification
 export const disasterTypeColors = {
   'Flood': '#3b82f6',      // Blue
-  'Typhoon': '#6b7280',    // Gray
+  'Typhoon': '#1e3a8a',    // Dark Blue
   'Fire': '#f97316',       // Orange
   'Volcanic Eruptions': '#ef4444',    // Red
   'Earthquake': '#92400e', // Brown
@@ -98,7 +98,7 @@ export function getSentimentBadgeClasses(sentiment: string | null): string {
 /**
  * Get color for disaster type according to user specifications:
  * - Flood: Blue
- * - Typhoon: Gray
+ * - Typhoon: Dark Blue
  * - Fire: Orange
  * - Volcanic Eruptions: Red
  * - Earthquake: Brown
