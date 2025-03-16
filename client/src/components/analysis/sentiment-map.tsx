@@ -43,9 +43,9 @@ export function SentimentMap({
     pulseCircle: any;
     animationRef: { current: number | null };
   }
-  
+
   type MarkerRef = any | MarkerWithAnimation;
-  
+
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<MarkerRef[]>([]);
@@ -193,24 +193,24 @@ export function SentimentMap({
         // Scale radius based on area coverage - match actual geographic area size
         // For Philippine regions, typical coverage is around 0.5-2km for cities/municipalities
         let areaRadius = 0;
-        
+
         // Specific size adjustments based on location name
         if (region.name.includes("Manila") || region.name.includes("Makati") || 
             region.name.includes("Pasig") || region.name.includes("Taguig")) {
-          areaRadius = 0.7; // Small city areas - smaller radius
+          areaRadius = 3; // Small city areas
         } else if (region.name.includes("Cebu") || region.name.includes("Davao") ||
                    region.name.includes("Baguio")) {
-          areaRadius = 1.5; // Medium city areas
+          areaRadius = 6; // Medium city areas
         } else if (region.name.includes("Province") || region.name.includes("Region")) {
-          areaRadius = 10; // Province level - larger area
+          areaRadius = 20; // Province level - larger area
         } else {
-          areaRadius = 0.8; // Default for municipalities
+          areaRadius = 4; // Default for municipalities
         }
-        
+
         // Add subtle variation based on intensity
         const intensityFactor = 1 + (region.intensity / 200); // Subtle intensity impact
         const radius = areaRadius * intensityFactor;
-        
+
         // Create main marker circle - smaller and transparent
         const circle = L.circle(region.coordinates, {
           color,
@@ -220,7 +220,7 @@ export function SentimentMap({
           weight: 1.5, // Thin border
           className: 'main-marker',
         }).addTo(mapInstanceRef.current);
-        
+
         // Create animated pulse circle with same initial size as main marker
         const pulseCircle = L.circle(region.coordinates, {
           color: 'rgba(255,255,255,0.3)', // Subtle border
@@ -230,7 +230,7 @@ export function SentimentMap({
           weight: 1,
           className: 'pulse-marker',
         }).addTo(mapInstanceRef.current);
-        
+
         // Add ping animation with better, smoother effect - MUCH SLOWER
         const animatePulse = () => {
           let size = radius * 1000; // Start at main circle size
@@ -238,13 +238,13 @@ export function SentimentMap({
           let growing = true;
           let maxSize = radius * 3000; // Larger maximum size for more dramatic effect
           let growthRate = radius * 30; // MUCH slower growth rate
-          
+
           const expandPulse = () => {
             if (growing) {
               // Growing phase
               size += growthRate;
               opacity -= 0.006; // Slower fade out for smoother effect
-              
+
               if (size >= maxSize) {
                 growing = false;
               }
@@ -254,25 +254,25 @@ export function SentimentMap({
               opacity = 0.3;  // Reset opacity
               growing = true;
             }
-            
+
             pulseCircle.setRadius(size);
             pulseCircle.setStyle({ 
               fillOpacity: Math.max(0.01, opacity), // Keep minimum opacity visible
               opacity: Math.max(0.05, opacity * 1.5) // Keep borders slightly more visible
             });
-            
+
             // Schedule next frame
             animationRef.current = requestAnimationFrame(expandPulse);
           };
-          
+
           // Start animation
           expandPulse();
         };
-        
+
         // Store animation reference for cleanup
         const animationRef = { current: null as number | null };
         animatePulse();
-        
+
         // Store animation ref for cleanup
         // Store marker with animation data
         markersRef.current.push({ circle, pulseCircle, animationRef });
@@ -321,14 +321,18 @@ export function SentimentMap({
         // Enhanced hover interactions with adjusted values for smaller circles
         circle.on('mouseover', () => {
           circle.setStyle({ 
-            weight: 2, // Slightly thicker border on hover
-            fillOpacity: 0.7, // Higher opacity on hover for visibility
+            weight: 3, // Thicker border on hover
+            fillOpacity: 0.8, // Higher opacity on hover for better visibility
             color: '#FFFFFF' // White outline for better contrast
           });
-          circle.setRadius(radius * 1400); // Bigger expansion on hover for easier selection
+          circle.setRadius(radius * 1500); // Larger expansion on hover for easier selection
           setHoveredRegion(region);
-          // Make popup appear above the point
           circle.openPopup();
+          circle.bringToFront(); // Ensure popup is visible
+          // Keep popup visible during animation
+          if (circle._popup) {
+            circle._popup.setLatLng(circle.getLatLng());
+          }
         });
 
         circle.on('mouseout', () => {
@@ -338,7 +342,7 @@ export function SentimentMap({
             color // Restore original color
           });
           circle.setRadius(radius * 1000); // Back to normal size
-          
+
           // Keep popup open for a moment to allow user to read
           setTimeout(() => {
             if (!circle._map) return; // Check if marker is still on map
