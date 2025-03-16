@@ -2,7 +2,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useDisasterContext } from "@/context/disaster-context";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { FileUploaderButton } from "./file-uploader-button";
-import { Progress } from "@/components/ui/progress";
 
 interface FileUploaderProps {
   onSuccess?: (data: any) => void;
@@ -17,7 +16,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
       {/* Upload Button */}
       <FileUploaderButton onSuccess={onSuccess} className={className} />
 
-      {/* Progress Modal */}
+      {/* Progress Modal - Always rendered but only visible during upload */}
       <AnimatePresence>
         {isUploading && (
           <motion.div
@@ -27,7 +26,6 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
             className="fixed inset-0 flex items-center justify-center z-[9999] bg-black/20 backdrop-blur-sm"
           >
             <div className="bg-white/95 backdrop-blur-lg rounded-xl border border-blue-100 p-6 max-w-md w-full mx-4 shadow-2xl">
-              {/* Status Header */}
               <div className="flex items-center mb-4">
                 {uploadProgress.status === "uploading" && (
                   <Loader2 className="animate-spin h-5 w-5 mr-2 text-blue-600" />
@@ -52,16 +50,25 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
               </div>
 
               {/* Progress Bar */}
-              <Progress 
-                value={uploadProgress.percentage || 0} 
-                className={`h-2 ${
-                  uploadProgress.status === "error"
-                    ? "bg-red-200 [&>div]:bg-red-500"
-                    : uploadProgress.status === "success"
-                      ? "bg-emerald-200 [&>div]:bg-emerald-500"
-                      : "bg-blue-200 [&>div]:bg-blue-500"
-                }`}
-              />
+              <div className="relative">
+                <div className="overflow-hidden h-2.5 text-xs flex rounded-full bg-slate-200/50 backdrop-blur-sm">
+                  <motion.div
+                    className={`
+                      shadow-sm flex flex-col text-center whitespace-nowrap text-white justify-center
+                      ${
+                        uploadProgress.status === "error"
+                          ? "bg-red-500"
+                          : uploadProgress.status === "success"
+                            ? "bg-emerald-500"
+                            : "bg-blue-500"
+                      }
+                    `}
+                    initial={{ width: "0%" }}
+                    animate={{ width: `${uploadProgress.percentage || 0}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+              </div>
 
               {/* Progress Details */}
               {uploadProgress.totalRecords > 0 && (
