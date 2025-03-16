@@ -1,11 +1,10 @@
 import { ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertTriangle, BarChart2, Brain, CheckCircle, MessageSquare, MapPin, Activity } from 'lucide-react';
+import { Cloud, Droplets, Flame, Mountain, AlertTriangle, Wind } from 'lucide-react';
 
 interface StatusCardProps {
   title: string;
   value: string | number;
-  type: "disaster" | "posts" | "location" | "confidence" | "default"; // Changed to use 'type' instead of 'icon'
   trend?: {
     value: string;
     isUpward: boolean | null;
@@ -13,36 +12,39 @@ interface StatusCardProps {
   };
 }
 
-export function StatusCard({ title, value, type = "default", trend }: StatusCardProps) {
+const getIconForDisaster = (title: string) => {
+  const type = title.toLowerCase();
+  if (type.includes('typhoon')) return Wind;
+  if (type.includes('flood')) return Droplets;
+  if (type.includes('fire')) return Flame;
+  if (type.includes('landslide')) return Mountain;
+  if (type.includes('earthquake')) return AlertTriangle;
+  if (type.includes('volcano')) return Mountain;
+  return Cloud;
+};
+
+export function StatusCard({ title, value, trend }: StatusCardProps) {
+  const Icon = getIconForDisaster(title);
+
   const getIconBackground = () => {
-    switch (type) {
-      case "disaster":
+    switch (title.toLowerCase()) {
+      case "typhoon":
         return "bg-red-100 text-red-600";
-      case "posts":
-        return "bg-emerald-100 text-emerald-600";
-      case "location":
-        return "bg-purple-100 text-purple-600";
-      case "confidence":
-        return "bg-blue-100 text-blue-600";
+      case "flood":
+        return "bg-red-100 text-red-600";
+      case "fire":
+        return "bg-red-100 text-red-600";
+      case "landslide":
+        return "bg-red-100 text-red-600";
+      case "earthquake":
+        return "bg-red-100 text-red-600";
+      case "volcano":
+        return "bg-red-100 text-red-600";
       default:
         return "bg-slate-100 text-slate-600";
     }
   };
 
-  const getIcon = () => {
-    switch (type) {
-      case "disaster":
-        return <AlertTriangle className="h-6 w-6" />;
-      case "posts":
-        return <MessageSquare className="h-6 w-6" />;
-      case "location":
-        return <MapPin className="h-6 w-6" />;
-      case "confidence":
-        return <BarChart2 className="h-6 w-6" />;
-      default:
-        return <Activity className="h-6 w-6" />;
-    }
-  };
 
   return (
     <Card className="bg-white/50 backdrop-blur-sm border-none shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -53,7 +55,7 @@ export function StatusCard({ title, value, type = "default", trend }: StatusCard
             <p className="text-2xl font-bold text-slate-800">{value}</p>
           </div>
           <div className={`${getIconBackground()} p-3 rounded-lg`}>
-            {getIcon()}
+            <Icon className="h-6 w-6" />
           </div>
         </div>
 
