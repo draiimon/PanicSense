@@ -100,9 +100,9 @@ class DisasterSentimentBackend:
         # API configuration
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
         self.current_api_index = 0
-        self.retry_delay = 2.0
+        self.retry_delay = 5.0
         self.limit_delay = 5.0
-        self.max_retries = 8
+        self.max_retries = 10
         self.failed_keys = set()
         self.key_success_count = {}
 
@@ -610,7 +610,8 @@ Respond ONLY with a JSON object containing:
                 self.groq_api_keys)
 
             # Add exponential delay after error with jitter
-            delay = self.retry_delay * (2 ** len(self.failed_keys)) + random.uniform(1, 3)
+            delay = self.retry_delay * (2**len(
+                self.failed_keys)) + random.uniform(1, 3)
             time.sleep(delay)
 
             # Fallback to rule-based analysis
@@ -628,7 +629,7 @@ Respond ONLY with a JSON object containing:
         try:
             # Keep track of failed records to retry
             failed_records = []
-            
+
             # Try different CSV reading methods
             try:
                 df = pd.read_csv(file_path)
@@ -830,8 +831,7 @@ Respond ONLY with a JSON object containing:
                     report_progress(
                         progress_percentage,
                         f"Analyzing record {i+1} of {sample_size} ({progress_percentage}% complete)",
-                        total_records
-                    )
+                        total_records)
 
                     # Extract text
                     text = str(row.get("text", ""))
@@ -918,47 +918,77 @@ Respond ONLY with a JSON object containing:
 
             # Retry failed records
             if failed_records:
-                logging.info(f"Retrying {len(failed_records)} failed records...")
+                logging.info(
+                    f"Retrying {len(failed_records)} failed records...")
                 for i, row in failed_records:
                     try:
                         text = str(row.get("text", ""))
                         if not text.strip():
                             continue
 
-                        timestamp = str(row.get(timestamp_col, datetime.now().isoformat())) if timestamp_col else datetime.now().isoformat()
-                        source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
-                        csv_location = str(row.get(location_col, "")) if location_col else None
-                        csv_disaster = str(row.get(disaster_col, "")) if disaster_col else None
-                        csv_language = str(row.get(language_col, "")) if language_col else None
+                        timestamp = str(
+                            row.get(timestamp_col,
+                                    datetime.now().isoformat())
+                        ) if timestamp_col else datetime.now().isoformat()
+                        source = str(row.get(
+                            source_col,
+                            "CSV Import")) if source_col else "CSV Import"
+                        csv_location = str(row.get(
+                            location_col, "")) if location_col else None
+                        csv_disaster = str(row.get(
+                            disaster_col, "")) if disaster_col else None
+                        csv_language = str(row.get(
+                            language_col, "")) if language_col else None
 
-                        if csv_location and csv_location.lower() in ["nan", "none", ""]:
+                        if csv_location and csv_location.lower() in [
+                                "nan", "none", ""
+                        ]:
                             csv_location = None
-                        if csv_disaster and csv_disaster.lower() in ["nan", "none", ""]:
+                        if csv_disaster and csv_disaster.lower() in [
+                                "nan", "none", ""
+                        ]:
                             csv_disaster = None
                         if csv_language:
-                            if csv_language.lower() in ["tagalog", "tl", "fil", "filipino"]:
+                            if csv_language.lower() in [
+                                    "tagalog", "tl", "fil", "filipino"
+                            ]:
                                 csv_language = "Filipino"
                             else:
                                 csv_language = "English"
 
                         analysis_result = self.analyze_sentiment(text)
-                        
+
                         processed_results.append({
-                            "text": text,
-                            "timestamp": timestamp,
-                            "source": source,
-                            "language": csv_language if csv_language else analysis_result.get("language", "English"),
-                            "sentiment": analysis_result.get("sentiment", "Neutral"),
-                            "confidence": analysis_result.get("confidence", 0.7),
-                            "explanation": analysis_result.get("explanation", ""),
-                            "disasterType": csv_disaster if csv_disaster else analysis_result.get("disasterType", "Not Specified"),
-                            "location": csv_location if csv_location else analysis_result.get("location")
+                            "text":
+                            text,
+                            "timestamp":
+                            timestamp,
+                            "source":
+                            source,
+                            "language":
+                            csv_language if csv_language else
+                            analysis_result.get("language", "English"),
+                            "sentiment":
+                            analysis_result.get("sentiment", "Neutral"),
+                            "confidence":
+                            analysis_result.get("confidence", 0.7),
+                            "explanation":
+                            analysis_result.get("explanation", ""),
+                            "disasterType":
+                            csv_disaster
+                            if csv_disaster else analysis_result.get(
+                                "disasterType", "Not Specified"),
+                            "location":
+                            csv_location if csv_location else
+                            analysis_result.get("location")
                         })
-                        
+
                         time.sleep(1.0)  # Wait 1 second between retries
-                        
+
                     except Exception as e:
-                        logging.error(f"Failed to retry record {i} after multiple attempts: {str(e)}")
+                        logging.error(
+                            f"Failed to retry record {i} after multiple attempts: {str(e)}"
+                        )
 
             # Report completion with total records
             report_progress(100, "Analysis complete!", total_records)
