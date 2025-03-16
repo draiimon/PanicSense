@@ -108,16 +108,41 @@ export function SentimentTimeline({
       const ctx = chartRef.current.getContext('2d');
       if (!ctx) return;
 
-      // Format datasets with sentiment-specific colors
+      // Format datasets with more vibrant sentiment-specific colors
       const formattedDatasets = filteredData.datasets.map((dataset, index) => {
-        const sentimentColor = sentimentColors[dataset.label] || chartColors[index % chartColors.length];
+        let color;
+        
+        // Get proper sentiment color
+        switch(dataset.label) {
+          case 'Panic':
+            color = '#ef4444'; // Vibrant red
+            break;
+          case 'Fear/Anxiety':
+            color = '#f97316'; // Vibrant orange
+            break;
+          case 'Disbelief':
+            color = '#8b5cf6'; // Vibrant purple
+            break;
+          case 'Resilience':
+            color = '#10b981'; // Vibrant green
+            break;
+          case 'Neutral':
+            color = '#6b7280'; // Slate gray
+            break;
+          default:
+            color = chartColors[index % chartColors.length];
+        }
         
         return {
           ...dataset,
-          borderColor: sentimentColor,
-          backgroundColor: `${sentimentColor}20`,
+          borderColor: color,
+          backgroundColor: `${color}20`, // 20% opacity
+          borderWidth: 3,
+          pointBackgroundColor: color,
+          pointRadius: 4,
+          pointHoverRadius: 6,
           fill: true,
-          tension: 0.4
+          tension: 0.3 // Smoother lines
         };
       });
 
@@ -131,27 +156,76 @@ export function SentimentTimeline({
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animations: {
+            tension: {
+              duration: 1000,
+              easing: 'linear',
+              from: 0.8,
+              to: 0.3,
+              loop: false
+            }
+          },
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
           scales: {
             y: {
               beginAtZero: true,
               max: 100,
               title: {
                 display: true,
-                text: 'Sentiment Percentage (%)'
+                text: 'Sentiment Percentage (%)',
+                font: {
+                  weight: 'bold'
+                }
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)',
+                borderDash: [5, 5]
+              },
+              ticks: {
+                callback: function(value) {
+                  return value + '%';
+                }
               }
             },
             x: {
               title: {
                 display: true,
-                text: 'Date'
+                text: 'Date',
+                font: {
+                  weight: 'bold'
+                }
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)',
+                display: false
               }
             }
           },
           plugins: {
             legend: {
-              position: 'bottom'
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                boxWidth: 8,
+                boxHeight: 8,
+                padding: 15,
+                font: {
+                  size: 12
+                }
+              }
             },
             tooltip: {
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              titleColor: '#1e293b',
+              bodyColor: '#475569',
+              borderColor: 'rgba(0, 0, 0, 0.1)',
+              borderWidth: 1,
+              padding: 10,
+              boxPadding: 5,
+              usePointStyle: true,
               callbacks: {
                 label: function(context) {
                   let label = context.dataset.label || '';
