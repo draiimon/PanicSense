@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import { deleteAllData, deleteAnalyzedFile } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, FileX } from 'lucide-react';
+import { Loader2, Trash2, FileX, Download } from 'lucide-react';
 
 
 // Language mapping
@@ -62,17 +62,17 @@ export default function RawData() {
       setIsDeleting(false);
     }
   };
-  
+
   const handleDeleteFile = async (fileId: number) => {
     try {
       setDeletingFileId(fileId);
       const result = await deleteAnalyzedFile(fileId);
-      
+
       // If current selected file was deleted, reset to 'all'
       if (selectedFileId === fileId.toString()) {
         setSelectedFileId('all');
       }
-      
+
       toast({
         title: "Success",
         description: result.message,
@@ -149,6 +149,40 @@ export default function RawData() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 mt-4 sm:mt-0">
+          <Button
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/export-csv');
+                if (!response.ok) throw new Error('Failed to download data');
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'disaster-sentiments.csv';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                toast({
+                  title: "Success",
+                  description: "Data exported successfully",
+                  variant: "default"
+                });
+              } catch (error) {
+                toast({
+                  title: "Error",
+                  description: "Failed to export data",
+                  variant: "destructive"
+                });
+              }
+            }}
+            className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Download CSV
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
