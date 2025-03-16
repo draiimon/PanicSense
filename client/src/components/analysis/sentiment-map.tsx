@@ -163,16 +163,16 @@ export function SentimentMap({
           ? getDisasterTypeColor(region.disasterType)
           : getSentimentColor(region.sentiment);
 
-        // Scale radius based on zoom level and intensity
-        const baseRadius = 10 + (region.intensity / 100) * 40;
+        // Scale radius based on zoom level and intensity but with smaller base size
+        const baseRadius = 5 + (region.intensity / 100) * 20; // Smaller base radius
         const radius = baseRadius * Math.pow(1.2, mapZoom - 6);
 
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
-          fillOpacity: 0.7,
+          fillOpacity: 0.5, // Lower transparency
           radius: radius * 1000,
-          weight: 2,
+          weight: 1.5, // Thinner border
         }).addTo(mapInstanceRef.current);
 
         // Create custom popup with improved styling
@@ -206,21 +206,21 @@ export function SentimentMap({
           offset: [0, -10]
         });
 
-        // Enhanced hover interactions
+        // Enhanced hover interactions with adjusted values
         circle.on('mouseover', () => {
           circle.setStyle({ 
-            weight: 3, 
-            fillOpacity: 0.85
+            weight: 2.5, 
+            fillOpacity: 0.65
           });
-          circle.setRadius(radius * 1100);
+          circle.setRadius(radius * 1050);
           setHoveredRegion(region);
           circle.openPopup();
         });
 
         circle.on('mouseout', () => {
           circle.setStyle({ 
-            weight: 2, 
-            fillOpacity: 0.7
+            weight: 1.5, 
+            fillOpacity: 0.5
           });
           circle.setRadius(radius * 1000);
           setHoveredRegion(null);
