@@ -34,106 +34,53 @@ export default function GeographicAnalysis() {
   const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard');
   const [selectedRegionFilter, setSelectedRegionFilter] = useState<string | null>(null);
   const [showMarkers, setShowMarkers] = useState<boolean>(true);
-  const [detectedLocations, setDetectedLocations] = useState<Map<string, [number, number]>>(new Map());
+  const [detectedLocations, setDetectedLocations] = useState<Record<string, [number, number]>>({});
 
   // Complete Philippine region coordinates
-  const regionCoordinates = {
+  const regionCoordinates: Record<string, [number, number]> = {
     // Default coordinates for unknown locations
-    "Unknown": [12.8797, 121.7740] as [number, number],
+    "Unknown": [12.8797, 121.7740],
 
     // Metro Manila and surrounding provinces
-    "Metro Manila": [14.5995, 120.9842] as [number, number],
-    "Manila": [14.5995, 120.9842] as [number, number],
-    "Batangas": [13.7565, 121.0583] as [number, number],
-    "Rizal": [14.6042, 121.3035] as [number, number],
-    "Laguna": [14.2691, 121.4113] as [number, number],
-    "Bulacan": [14.7969, 120.8787] as [number, number],
-    "Cavite": [14.2829, 120.8686] as [number, number],
-    "Pampanga": [15.0794, 120.6200] as [number, number],
-    "Bacoor": [14.4628, 120.8967] as [number, number],
-    "Imus": [14.4297, 120.9367] as [number, number],
-    "Dasmariñas": [14.3294, 120.9367] as [number, number],
-    "General Trias": [14.3833, 120.8833] as [number, number],
-    "Kawit": [14.4351, 120.9019] as [number, number],
-    "Tanza": [14.3953, 120.8508] as [number, number],
+    "Metro Manila": [14.5995, 120.9842],
+    "Manila": [14.5995, 120.9842],
+    "Batangas": [13.7565, 121.0583],
+    "Rizal": [14.6042, 121.3035],
+    "Laguna": [14.2691, 121.4113],
+    "Bulacan": [14.7969, 120.8787],
+    "Cavite": [14.2829, 120.8686],
+    "Pampanga": [15.0794, 120.6200],
 
     // Main regions
-    "Luzon": [16.0, 121.0] as [number, number],
-    "Visayas": [11.0, 124.0] as [number, number],
-    "Mindanao": [7.5, 125.0] as [number, number],
+    "Luzon": [16.0, 121.0],
+    "Visayas": [11.0, 124.0],
+    "Mindanao": [7.5, 125.0],
 
     // Major cities
-    "Cebu": [10.3157, 123.8854] as [number, number],
-    "Davao": [7.0707, 125.6087] as [number, number],
-    "Quezon City": [14.6760, 121.0437] as [number, number],
-    "Tacloban": [11.2543, 125.0000] as [number, number],
-    "Baguio": [16.4023, 120.5960] as [number, number],
-    "Zamboanga": [6.9214, 122.0790] as [number, number],
-    "Cagayan de Oro": [8.4542, 124.6319] as [number, number],
-    "General Santos": [6.1164, 125.1716] as [number, number],
-
-    // Provinces
-    "Ilocos Norte": [18.1647, 120.7116] as [number, number],
-    "Ilocos Sur": [17.5755, 120.3869] as [number, number],
-    "La Union": [16.6159, 120.3209] as [number, number],
-    "Pangasinan": [15.8949, 120.2863] as [number, number],
-    "Cagayan": [17.6132, 121.7270] as [number, number],
-    "Isabela": [16.9754, 121.8107] as [number, number],
-    "Zambales": [15.5082, 120.0691] as [number, number],
-    "Bataan": [14.6417, 120.4818] as [number, number],
-    "Nueva Ecija": [15.5784, 121.0687] as [number, number],
-    "Aurora": [15.9784, 121.6323] as [number, number],
-    "Quezon": [14.0313, 122.1106] as [number, number],
-    "Camarines Norte": [14.1389, 122.7632] as [number, number],
-    "Camarines Sur": [13.6252, 123.1829] as [number, number],
-    "Albay": [13.1775, 123.5280] as [number, number],
-    "Sorsogon": [12.9433, 124.0067] as [number, number],
-    "Catanduanes": [13.7089, 124.2422] as [number, number],
-    "Masbate": [12.3686, 123.6417] as [number, number],
-    "Marinduque": [13.4771, 121.9032] as [number, number],
-    "Mindoro": [13.1024, 120.7651] as [number, number],
-    "Palawan": [9.8349, 118.7384] as [number, number],
-    "Bohol": [9.8500, 124.1435] as [number, number],
-    "Leyte": [10.8731, 124.8811] as [number, number],
-    "Samar": [12.0083, 125.0373] as [number, number],
-    "Iloilo": [10.7202, 122.5621] as [number, number],
-    "Capiz": [11.3889, 122.6277] as [number, number],
-    "Aklan": [11.8166, 122.0942] as [number, number],
-    "Antique": [11.3683, 122.0645] as [number, number],
-    "Negros Occidental": [10.6713, 123.0036] as [number, number],
-    "Negros Oriental": [9.6168, 123.0113] as [number, number],
-    "Zamboanga del Norte": [8.1527, 123.2577] as [number, number],
-    "Zamboanga del Sur": [7.8383, 123.2968] as [number, number],
-    "Lanao del Norte": [8.0730, 124.2873] as [number, number],
-    "Lanao del Sur": [7.8232, 124.4357] as [number, number],
-    "Bukidnon": [8.0515, 125.0985] as [number, number],
-    "Davao del Sur": [6.7656, 125.3284] as [number, number],
-    "Davao del Norte": [7.5619, 125.6549] as [number, number],
-    "Davao Oriental": [7.3172, 126.5420] as [number, number],
-    "South Cotabato": [6.2969, 124.8511] as [number, number],
-    "North Cotabato": [7.1436, 124.8511] as [number, number],
-    "Sultan Kudarat": [6.5069, 124.4169] as [number, number],
-    "Maguindanao": [6.9423, 124.4169] as [number, number],
-    "Agusan del Norte": [8.9456, 125.5319] as [number, number],
-    "Agusan del Sur": [8.1661, 126.0152] as [number, number],
-    "Surigao del Norte": [9.7177, 125.5950] as [number, number],
-    "Surigao del Sur": [8.7512, 126.1378] as [number, number],
+    "Cebu": [10.3157, 123.8854],
+    "Davao": [7.0707, 125.6087],
+    "Quezon City": [14.6760, 121.0437],
+    "Tacloban": [11.2543, 125.0000],
+    "Baguio": [16.4023, 120.5960],
+    "Zamboanga": [6.9214, 122.0790],
+    "Cagayan de Oro": [8.4542, 124.6319],
+    "General Santos": [6.1164, 125.1716]
   };
 
   // Effect for processing new posts and extracting locations
   useEffect(() => {
     const processNewPosts = async () => {
-      const newLocations = new Map<string, [number, number]>();
+      const newLocations: Record<string, [number, number]> = {};
 
       for (const post of sentimentPosts) {
         // Extract locations from post text
         const extractedLocations = extractLocations(post.text);
 
         for (const location of extractedLocations) {
-          if (!newLocations.has(location) && !detectedLocations.has(location)) {
+          if (!newLocations[location] && !detectedLocations[location]) {
             const coordinates = await getCoordinates(location);
             if (coordinates) {
-              newLocations.set(location, coordinates);
+              newLocations[location] = coordinates;
               toast({
                 title: "New Location Detected",
                 description: `Found and pinned: ${location}`,
@@ -144,14 +91,11 @@ export default function GeographicAnalysis() {
         }
       }
 
-      if (newLocations.size > 0) {
-        setDetectedLocations(prev => {
-          const updated = new Map(prev);
-          newLocations.forEach((coords, loc) => {
-            updated.set(loc, coords);
-          });
-          return updated;
-        });
+      if (Object.keys(newLocations).length > 0) {
+        setDetectedLocations(prev => ({
+          ...prev,
+          ...newLocations
+        }));
       }
     };
 
@@ -159,7 +103,7 @@ export default function GeographicAnalysis() {
   }, [sentimentPosts]);
 
   // Process data for regions and map location mentions
-  const locationData = useMemo(async () => {
+  const locationData = useMemo(() => {
     const data: Record<string, LocationData> = {};
 
     // Helper function to normalize location names
@@ -201,25 +145,14 @@ export default function GeographicAnalysis() {
           continue;
         }
 
-        // Get coordinates from predefined list, detected locations, or geocoding service
-        let coordinates = regionCoordinates[location as keyof typeof regionCoordinates];
+        // Get coordinates from predefined list or detected locations
+        let coordinates = regionCoordinates[location] ?? detectedLocations[location];
 
         if (!coordinates) {
-          coordinates = detectedLocations.get(location);
+          // Skip locations we can't pin
+          continue;
         }
 
-        if (!coordinates) {
-          const geocodedCoords = await getCoordinates(location);
-          if (geocodedCoords) {
-            coordinates = geocodedCoords;
-            // Add to detected locations for future use
-            detectedLocations.set(location, geocodedCoords);
-          } else {
-            continue;
-          }
-        }
-
-        // Initialize or update location data
         if (!data[location]) {
           data[location] = {
             count: 0,
@@ -257,18 +190,18 @@ export default function GeographicAnalysis() {
       });
 
       // Find dominant disaster type
-      let maxDisasterCount = 0;
+      let maxTypeCount = 0;
       let dominantDisasterType: string | undefined;
 
-      Object.entries(data.disasterTypes).forEach(([disasterType, count]) => {
-        if (count > maxDisasterCount) {
-          maxDisasterCount = count;
-          dominantDisasterType = disasterType;
+      Object.entries(data.disasterTypes).forEach(([type, count]) => {
+        if (count > maxTypeCount) {
+          maxTypeCount = count;
+          dominantDisasterType = type;
         }
       });
 
       // Calculate intensity based on post count relative to maximum
-      const maxPosts = Math.max(...Object.values(locationData).map(d => d.count));
+      const maxPosts = Math.max(...Object.values(locationData).map(d => d.count), 1);
       const intensity = (data.count / maxPosts) * 100;
 
       return {
