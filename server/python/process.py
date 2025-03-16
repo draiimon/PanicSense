@@ -14,32 +14,29 @@ try:
     import pandas as pd
     import numpy as np
     from langdetect import detect
+    from transformers import pipeline
+    import torch
 except ImportError:
     print(
-        "Error: Required packages not found. Install them using pip install pandas numpy langdetect"
+        "Error: Required packages not found. Install them using pip install pandas numpy langdetect transformers torch"
     )
     sys.exit(1)
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-parser = argparse.ArgumentParser(description='Process disaster sentiment data')
-parser.add_argument('--text', type=str, help='Text to analyze')
-parser.add_argument('--file', type=str, help='CSV file to process')
-
-
-def report_progress(processed: int, stage: str, total: int = None):
-    """Print progress in a format that can be parsed by the Node.js service"""
-    progress_data = {"processed": processed, "stage": stage}
-
-    # If total is provided, include it in the progress report
-    if total is not None:
-        progress_data["total"] = total
-
-    progress_info = json.dumps(progress_data)
-    print(f"PROGRESS:{progress_info}", file=sys.stderr)
-    sys.stderr.flush()  # Ensure output is immediately visible
-
+# Initialize Transformers pipeline
+try:
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    classifier = pipeline(
+        "zero-shot-classification",
+        model="facebook/bart-large-mnli",
+        device=-1  # Use CPU as default
+    )
+    logging.info(f"Initialized Transformers pipeline on {device}")
+except Exception as e:
+    logging.error(f"Failed to initialize Transformers: {e}")
+    classifier = None
 
 class DisasterSentimentBackend:
 
@@ -49,6 +46,9 @@ class DisasterSentimentBackend:
         ]
         self.api_keys = []
         self.groq_api_keys = []
+        self.last_service_used = 'groq'  # Track which service was last used
+        self.groq_failed_time = 0  # Track when Groq last failed
+        self.transformers_failed_time = 0  # Track when Transformers last failed
 
         # Load API keys from environment
         i = 1
@@ -119,7 +119,7 @@ class DisasterSentimentBackend:
         """
         if not text or len(text.strip()) == 0:
             return "Not Specified"
-            
+
         text_lower = text.lower()
 
         # Only use these 6 specific disaster types:
@@ -164,7 +164,7 @@ class DisasterSentimentBackend:
         # First pass: Check for direct keyword matches with scoring
         scores = {disaster_type: 0 for disaster_type in disaster_types}
         matched_keywords = {}
-        
+
         for disaster_type, keywords in disaster_types.items():
             matched_terms = []
             for keyword in keywords:
@@ -243,7 +243,7 @@ class DisasterSentimentBackend:
         # If no significant evidence found
         if max_score < 1:
             return "Not Specified"
-            
+        
         # Get disaster types that tied for highest score
         top_disasters = [dt for dt, score in scores.items() if score == max_score]
         
@@ -676,8 +676,136 @@ class DisasterSentimentBackend:
 
         return result
 
+    def analyze_sentiment_with_transformers(self, text, language):
+        """Use Transformers for sentiment analysis when Groq fails"""
+        try:
+            if not classifier:
+                raise Exception("Transformers pipeline not initialized")
+
+            # Prepare hypothesis templates for better zero-shot classification
+            hypothesis_templates = {
+                "Panic": "This text shows immediate distress, urgency, or desperate need for help.",
+                "Fear/Anxiety": "This text expresses worry, fear, or concern about what might happen.",
+                "Disbelief": "This text shows shock, surprise, or difficulty believing the situation.",
+                "Resilience": "This text shows strength, hope, helping others, or community support.",
+                "Neutral": "This text simply reports facts or observations without emotion."
+            }
+
+            # Create full templates for each sentiment
+            candidate_templates = [
+                f"The text expresses {label}: {desc}" 
+                for label, desc in hypothesis_templates.items()
+            ]
+
+            # Classify sentiment with detailed templates
+            sentiment_result = classifier(
+                text,
+                candidate_labels=self.sentiment_labels,
+                hypothesis_template="This text expresses {}.",
+                multi_label=False
+            )
+
+            # Get the most likely sentiment and its score
+            sentiment = sentiment_result['labels'][0]
+            confidence = sentiment_result['scores'][0]
+
+            # Generate a human-readable explanation based on the sentiment
+            explanation_templates = {
+                "Panic": "Shows urgent need for help or immediate distress",
+                "Fear/Anxiety": "Expresses worry or concern about the situation",
+                "Disbelief": "Shows shock or surprise about the disaster's impact",
+                "Resilience": "Demonstrates community support and determination",
+                "Neutral": "Provides factual information without emotional content"
+            }
+
+            # Extract additional context
+            disaster_type = self.extract_disaster_type(text)
+            location = self.extract_location(text)
+
+            # Build detailed explanation
+            base_explanation = explanation_templates.get(sentiment, "Sentiment detected based on text analysis")
+            if disaster_type != "Not Specified":
+                base_explanation += f" during {disaster_type.lower()} event"
+            if location:
+                base_explanation += f" in {location}"
+
+            # Create structured response
+            return {
+                "sentiment": sentiment,
+                "confidence": confidence,
+                "explanation": base_explanation,
+                "disasterType": disaster_type,
+                "location": location,
+                "language": language,
+                "source": self.detect_social_media_source(text)
+            }
+        except Exception as e:
+            logging.error(f"Transformers analysis failed: {e}")
+            self.transformers_failed_time = time.time()
+            return None
+
     def get_api_sentiment_analysis(self, text, language):
-        """Get sentiment analysis from API with key rotation"""
+        """Get sentiment analysis with alternating fallback between Groq and Transformers"""
+        current_time = time.time()
+
+        # Check if we should wait before retrying previously failed service
+        groq_cooldown = current_time - self.groq_failed_time < 10  # 10 seconds cooldown
+        transformers_cooldown = current_time - self.transformers_failed_time < 10
+
+        # Determine which service to try first
+        try_groq_first = (
+            self.last_service_used != 'groq' and not groq_cooldown
+        ) or (
+            self.last_service_used == 'transformers' and transformers_cooldown
+        )
+
+        if try_groq_first:
+            # Try Groq first
+            try:
+                result = self._try_groq_analysis(text, language)
+                if result:
+                    self.last_service_used = 'groq'
+                    return result
+            except Exception as e:
+                logging.error(f"Groq API failed: {e}")
+                self.groq_failed_time = current_time
+
+            # If Groq fails, try Transformers
+            if not transformers_cooldown:
+                result = self.analyze_sentiment_with_transformers(text, language)
+                if result:
+                    self.last_service_used = 'transformers'
+                    return result
+        else:
+            # Try Transformers first
+            if not transformers_cooldown:
+                result = self.analyze_sentiment_with_transformers(text, language)
+                if result:
+                    self.last_service_used = 'transformers'
+                    return result
+
+            # If Transformers fails or is in cooldown, try Groq
+            if not groq_cooldown:
+                try:
+                    result = self._try_groq_analysis(text, language)
+                    if result:
+                        self.last_service_used = 'groq'
+                        return result
+                except Exception as e:
+                    logging.error(f"Groq API failed: {e}")
+                    self.groq_failed_time = current_time
+
+        # If both services fail, return fallback response
+        return {
+            "sentiment": "Neutral",
+            "confidence": 0.7,
+            "explanation": "Fallback response - both services failed",
+            "disasterType": self.extract_disaster_type(text),
+            "location": self.extract_location(text),
+            "language": language
+        }
+
+    def _try_groq_analysis(self, text, language):
         headers = {"Content-Type": "application/json"}
 
         prompt = f"""Analyze the sentiment in this disaster-related message (language: {language}):
@@ -710,8 +838,7 @@ You must ONLY classify the sentiment as one of these exact categories with these
    - Helping others or community support
    - Hope and determination
    - Using words like "kakayanin", "magtulungan", "we will overcome"
-   - Sharing resources or information to help
-   - Expressions of unity and strength
+   - Sharing resources or information to help   - Expressions of unity and strength
 
 5. Neutral: Choose this when the text:
    - Simply reports facts or observations
@@ -831,7 +958,7 @@ Respond ONLY with a JSON object containing:
 
             return result
 
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             logging.error(f"API request failed: {str(e)}")
 
             # Mark the current key as failed and try a different key
@@ -853,6 +980,9 @@ Respond ONLY with a JSON object containing:
                 "location": self.extract_location(text),
                 "language": language
             }
+        except Exception as e:
+            logging.error(f"Unexpected error during Groq API call: {e}")
+            return None
 
     def process_csv(self, file_path):
         """Process a CSV file with sentiment analysis"""
@@ -1293,6 +1423,11 @@ Respond ONLY with a JSON object containing:
         return metrics
 
 
+def report_progress(percentage, message, total_records):
+    """Report progress to the console"""
+    logging.info(f"{percentage}% - {message} (Total records: {total_records})")
+
+
 def main():
     try:
         args = parser.parse_args()
@@ -1384,4 +1519,7 @@ def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Disaster Sentiment Analyzer")
+    parser.add_argument("-t", "--text", help="Text to analyze")
+    parser.add_argument("-f", "--file", help="CSV file to process")
     main()
