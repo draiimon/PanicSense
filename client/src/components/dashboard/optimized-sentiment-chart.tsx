@@ -31,7 +31,7 @@ export function OptimizedSentimentChart({
 }: SentimentChartProps) {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
-  
+
   // Check if the data is empty (all values are 0)
   const isEmpty = useMemo(() => {
     return !isLoading && data.values.every(val => val === 0);
@@ -237,12 +237,19 @@ export function OptimizedSentimentChart({
           <div className="absolute inset-0 bg-white/50 backdrop-blur-sm"></div>
           <div className="bg-white rounded-xl p-5 shadow-sm flex items-center gap-4 z-10">
             <div className="relative h-10 w-10 flex-shrink-0">
-              <Loader2 className="h-10 w-10 absolute inset-0 text-blue-600/20" />
-              <Loader2 className="h-10 w-10 absolute inset-0 text-blue-600 animate-spin" />
+              <div 
+                className="animate-spin cursor-pointer h-10 w-10 absolute inset-0"
+                onClick={(e) => {
+                  const el = e.currentTarget;
+                  el.style.animationPlayState = el.style.animationPlayState === 'paused' ? 'running' : 'paused';
+                }}
+              >
+                <Loader2 className="h-10 w-10 absolute inset-0 text-blue-600" />
+              </div>
             </div>
             <div>
               <p className="font-medium text-slate-800">Processing sentiment data...</p>
-              <p className="text-xs text-slate-500">Analyzing emotional responses</p>
+              {/* Removed the second line for conciseness */}
             </div>
           </div>
         </div>
@@ -299,8 +306,8 @@ export function OptimizedSentimentChart({
             className="h-full relative"
           >
             <canvas ref={chartRef}></canvas>
-            
-            
+
+
           </motion.div>
         )}
       </AnimatePresence>
