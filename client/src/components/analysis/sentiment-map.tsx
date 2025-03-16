@@ -28,7 +28,6 @@ interface SentimentMapProps {
   mapType?: 'disaster' | 'emotion';
   view?: 'standard' | 'satellite';
   showMarkers?: boolean;
-  selectedArea?: { name: string; coordinates?: [number, number] } | null;
 }
 
 export function SentimentMap({ 
@@ -36,8 +35,7 @@ export function SentimentMap({
   onRegionSelect,
   mapType = 'disaster',
   view = 'standard',
-  showMarkers = true,
-  selectedArea = null
+  showMarkers = true
 }: SentimentMapProps) {
   // Define our marker types
   interface MarkerWithAnimation {
@@ -272,7 +270,7 @@ export function SentimentMap({
         circle.on('mouseover', (e) => {
           isHovered = true;
           clearTimeout(hoverTimeout);
-
+          
           circle.setStyle({ 
             weight: 3,
             fillOpacity: 0.8,
@@ -292,7 +290,7 @@ export function SentimentMap({
         });
 
         let isDragging = false;
-
+        
         circle.on('mousedown', () => {
           isDragging = true;
           circle.setStyle({ cursor: 'grabbing' });
