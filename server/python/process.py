@@ -404,15 +404,17 @@ Respond ONLY with a JSON object containing:
                     df = pd.read_csv(file_path, encoding="latin1", on_bad_lines="skip")
                     logging.info("Read CSV with latin1 encoding and skipping bad lines")
 
-            # Initialize results
+            # Initialize results and counters
             processed_results = []
             total_records = len(df)
+            successful_records = 0
+            failed_records = 0
 
-            # Print column names for debugging
-            logging.info(f"CSV columns found: {', '.join(df.columns)}")
+            # Print initial stats
+            logging.info(f"Total records to process: {total_records}")
 
             # Report initial progress
-            report_progress(0, "Starting data analysis")
+            report_progress(0, f"Starting data analysis. Total records: {total_records}")
 
             # Analyze column headers to find column types
             column_matches = {
@@ -521,26 +523,25 @@ Respond ONLY with a JSON object containing:
             confidence_col = identified_columns.get("confidence")
             language_col = identified_columns.get("language")
 
-            # Process records (limit to 50 for demo)
-            sample_size = min(50, len(df))
-
-            # Report column identification progress
-            report_progress(5, "Identified data columns")
-
-            for i, row in df.head(sample_size).iterrows():
+            # Process records
+            for i, row in df.iterrows():
                 try:
-                    # Calculate percentage progress (0-100)
-                    progress_percentage = int((i / sample_size) * 90) + 5  # Starts at 5%, goes to 95%
+                    # Calculate progress
+                    progress_percentage = int((i / total_records) * 100)
+                    remaining = total_records - i
 
-                    # Report progress with percentage
+                    # Report detailed progress
                     report_progress(
                         progress_percentage,
-                        f"Analyzing record {i+1} of {sample_size} ({progress_percentage}% complete)"
+                        f"Processing record {i+1}/{total_records} ({progress_percentage}% complete). "
+                        f"Successful: {successful_records}, Failed: {failed_records}, "
+                        f"Remaining: {remaining}"
                     )
 
                     # Extract text
                     text = str(row.get("text", ""))
                     if not text.strip():
+                        failed_records += 1
                         continue
 
                     # Get metadata from columns
@@ -570,7 +571,7 @@ Respond ONLY with a JSON object containing:
                     # Analyze sentiment
                     analysis_result = self.analyze_sentiment(text)
 
-                    # Construct standardized result
+                    # Construct result and append
                     processed_results.append({
                         "text": text,
                         "timestamp": timestamp,
@@ -583,17 +584,26 @@ Respond ONLY with a JSON object containing:
                         "location": csv_location if csv_location else analysis_result.get("location")
                     })
 
+                    successful_records += 1
+
                     # Add delay between records to avoid rate limits
                     if i > 0 and i % 3 == 0:
                         time.sleep(1.5)
 
                 except Exception as e:
+                    failed_records += 1
                     logging.error(f"Error processing row {i}: {str(e)}")
 
-            # Report completion
-            report_progress(100, "Analysis complete!")
+            # Report final stats
+            final_message = (
+                f"Analysis complete! "
+                f"Processed {total_records} records. "
+                f"Success: {successful_records}, Failed: {failed_records}"
+            )
+            report_progress(100, final_message)
 
-            # Log stats
+            # Log final stats
+            logging.info(final_message)
             loc_count = sum(1 for r in processed_results if r.get("location"))
             disaster_count = sum(1 for r in processed_results if r.get("disasterType") != "Not Specified")
             logging.info(f"Records with location: {loc_count}/{len(processed_results)}")
