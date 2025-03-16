@@ -46,6 +46,8 @@ export default function GeographicAnalysis() {
     "Manila": [14.5995, 120.9842],
     "Batangas": [13.7565, 121.0583],
     "Rizal": [14.6042, 121.3035],
+    "Taytay": [14.5762, 121.1324],
+    "Taytay Rizal": [14.5762, 121.1324],
     "Laguna": [14.2691, 121.4113],
     "Bulacan": [14.7969, 120.8787],
     "Cavite": [14.2829, 120.8686],
