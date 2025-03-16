@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Loader2, Upload, Database, BarChart3, Globe2, ArrowUpRight, RefreshCw } from "lucide-react";
 import { CardCarousel } from "@/components/dashboard/card-carousel";
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -242,10 +243,12 @@ export default function Dashboard() {
                     </div>
                     <CardTitle className="text-lg font-semibold text-slate-800">Affected Areas</CardTitle>
                   </div>
-                  <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                    View All
-                    <ArrowUpRight className="h-3 w-3" />
-                  </Button>
+                  <Link href="/geographic-analysis">
+                    <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                      View All
+                      <ArrowUpRight className="h-3 w-3" />
+                    </Button>
+                  </Link>
                 </div>
                 <CardDescription className="text-slate-500 mt-1">
                   Recent disaster impact by location
@@ -298,10 +301,12 @@ export default function Dashboard() {
                       </div>
                       <h3 className="text-lg font-semibold text-slate-800">Sentiment Distribution</h3>
                     </div>
-                    <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                      Full Analysis
-                      <ArrowUpRight className="h-3 w-3" />
-                    </Button>
+                    <Link href="/emotion-analysis">
+                      <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                        Full Analysis
+                        <ArrowUpRight className="h-3 w-3" />
+                      </Button>
+                    </Link>
                   </div>
                   <p className="text-sm text-slate-500 mt-1">
                     Emotional response breakdown across disaster events
@@ -327,10 +332,12 @@ export default function Dashboard() {
                       </div>
                       <h3 className="text-lg font-semibold text-slate-800">Recent Activity</h3>
                     </div>
-                    <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                      View All
-                      <ArrowUpRight className="h-3 w-3" />
-                    </Button>
+                    <Link href="/raw-data">
+                      <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                        View All
+                        <ArrowUpRight className="h-3 w-3" />
+                      </Button>
+                    </Link>
                   </div>
                   <p className="text-sm text-slate-500 mt-1">
                     Latest analyzed posts and sentiment data
