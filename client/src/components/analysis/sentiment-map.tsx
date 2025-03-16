@@ -267,13 +267,14 @@ export function SentimentMap({
           circle.setStyle({ 
             weight: 3,
             fillOpacity: 0.8,
-            color: '#FFFFFF'
+            color: '#FFFFFF',
+            cursor: 'grab'
           });
 
-          // Pin popup exactly to mouse position
+          // Show popup at circle center initially
           const popup = circle.getPopup();
           if (popup) {
-            popup.setLatLng(e.latlng);
+            popup.setLatLng(circle.getLatLng());
             popup.openOn(mapInstanceRef.current);
           }
 
@@ -281,14 +282,26 @@ export function SentimentMap({
           setHoveredRegion(region);
         });
 
+        let isDragging = false;
+        
+        circle.on('mousedown', () => {
+          isDragging = true;
+          circle.setStyle({ cursor: 'grabbing' });
+        });
+
         circle.on('mousemove', (e) => {
-          if (isHovered) {
-            // Keep popup open and update its position
+          if (isHovered && isDragging) {
+            // Update popup position while dragging
             const popup = circle.getPopup();
             if (popup) {
               popup.setLatLng(e.latlng);
             }
           }
+        });
+
+        circle.on('mouseup', () => {
+          isDragging = false;
+          circle.setStyle({ cursor: 'grab' });
         });
 
         circle.on('mouseout', () => {
