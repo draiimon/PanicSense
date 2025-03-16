@@ -52,6 +52,10 @@ export default function GeographicAnalysis() {
     "Imus": [14.4301, 120.9387],
     "Imus Cavite": [14.4301, 120.9387],
     "Imus, Cavite": [14.4301, 120.9387],
+    "Bacoor": [14.4624, 120.9645],
+    "Bacoor Cavite": [14.4624, 120.9645],
+    "Bacoor, Cavite": [14.4624, 120.9645],
+    "bacoor cavite": [14.4624, 120.9645],
     "Laguna": [14.2691, 121.4113],
     "Bulacan": [14.7969, 120.8787],
     "Cavite": [14.2829, 120.8686],
@@ -205,7 +209,8 @@ export default function GeographicAnalysis() {
     'Parañaque', 'Caloocan', 'Metro Manila', 'Monumento', 'San Juan', 
     'Las Piñas', 'Muntinlupa', 'Valenzuela', 'Navotas', 'Malabon', 
     'Tacloban', 'General Santos', 'Cagayan de Oro', 'Zamboanga', 
-    'Angeles', 'Bacolod', 'Cabanatuan', 'Imus', 'Imus Cavite', 'Imus, Cavite'
+    'Angeles', 'Bacolod', 'Cabanatuan', 'Imus', 'Imus Cavite', 'Imus, Cavite',
+    'Bacoor', 'Bacoor Cavite', 'Bacoor, Cavite', 'bacoor cavite'
   ];
 
   const locationData = useMemo(() => {
