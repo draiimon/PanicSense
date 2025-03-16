@@ -17,25 +17,37 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
       <FileUploaderButton onSuccess={onSuccess} className={className} />
 
       {/* Global Progress Indicator */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isUploading && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 flex items-center justify-center z-[9999]"
           >
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
               className="absolute inset-0 bg-black/20 backdrop-blur-sm"
             />
+
+            {/* Content */}
             <motion.div
-              initial={{ y: 20 }}
-              animate={{ y: 0 }}
-              exit={{ y: 20 }}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ 
+                duration: 0.2,
+                scale: {
+                  type: "spring",
+                  damping: 25,
+                  stiffness: 400
+                }
+              }}
               className="relative bg-white/95 backdrop-blur-lg rounded-xl border border-blue-100 p-6 max-w-md w-full mx-4 shadow-2xl"
             >
               <div className="flex items-center mb-4">
@@ -76,16 +88,23 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
                     `}
                     initial={{ width: "0%" }}
                     animate={{ width: `${uploadProgress.percentage}%` }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ 
+                      duration: 0.3,
+                      ease: "easeInOut"
+                    }}
                   />
                 </div>
               </div>
 
               {uploadProgress.totalRecords > 0 && (
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ 
+                    duration: 0.2,
+                    delay: 0.1
+                  }}
                   className="mt-4 flex flex-col items-center justify-center"
                 >
                   <div className="text-4xl font-bold text-blue-700 mb-2 tracking-tight tabular-nums">
