@@ -1,11 +1,11 @@
 import { ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertTriangle, BarChart2, Brain, CheckCircle } from 'lucide-react';
+import { AlertTriangle, BarChart2, Brain, CheckCircle, MessageSquare, MapPin, Activity } from 'lucide-react';
 
 interface StatusCardProps {
   title: string;
   value: string | number;
-  icon: "alert-triangle" | "bar-chart" | "brain" | "check-circle";
+  type: "disaster" | "posts" | "location" | "confidence" | "default"; // Changed to use 'type' instead of 'icon'
   trend?: {
     value: string;
     isUpward: boolean | null;
@@ -13,34 +13,34 @@ interface StatusCardProps {
   };
 }
 
-export function StatusCard({ title, value, icon, trend }: StatusCardProps) {
-  const getIcon = () => {
-    switch (icon) {
-      case "alert-triangle":
-        return <AlertTriangle className="w-5 h-5 text-white" />;
-      case "bar-chart":
-        return <BarChart2 className="w-5 h-5 text-white" />;
-      case "brain":
-        return <Brain className="w-5 h-5 text-white" />;
-      case "check-circle":
-        return <CheckCircle className="w-5 h-5 text-white" />;
+export function StatusCard({ title, value, type = "default", trend }: StatusCardProps) {
+  const getIconBackground = () => {
+    switch (type) {
+      case "disaster":
+        return "bg-red-100 text-red-600";
+      case "posts":
+        return "bg-emerald-100 text-emerald-600";
+      case "location":
+        return "bg-purple-100 text-purple-600";
+      case "confidence":
+        return "bg-blue-100 text-blue-600";
       default:
-        return null; // Handle cases where icon is not one of the defined types.
+        return "bg-slate-100 text-slate-600";
     }
   };
 
-  const getIconBackground = () => {
-    switch (icon) {
-      case "alert-triangle":
-        return "bg-red-500";
-      case "bar-chart":
-        return "bg-blue-500";
-      case "brain":
-        return "bg-purple-500";
-      case "check-circle":
-        return "bg-green-500";
+  const getIcon = () => {
+    switch (type) {
+      case "disaster":
+        return <AlertTriangle className="h-6 w-6" />;
+      case "posts":
+        return <MessageSquare className="h-6 w-6" />;
+      case "location":
+        return <MapPin className="h-6 w-6" />;
+      case "confidence":
+        return <BarChart2 className="h-6 w-6" />;
       default:
-        return "bg-gray-300"; // Default background if icon is invalid.
+        return <Activity className="h-6 w-6" />;
     }
   };
 
