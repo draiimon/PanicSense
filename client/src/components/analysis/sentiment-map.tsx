@@ -35,8 +35,21 @@ export function SentimentMap({
   onRegionSelect,
   mapType = 'disaster',
   view = 'standard',
-  showMarkers = true
+  showMarkers = true,
+  selectedArea = null
 }: SentimentMapProps) {
+
+  const zoomToLocation = useCallback((coordinates: [number, number]) => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView(coordinates, 16); // Higher zoom level for more detail
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedArea?.coordinates) {
+      zoomToLocation(selectedArea.coordinates);
+    }
+  }, [selectedArea, zoomToLocation]);
   // Define our marker types
   interface MarkerWithAnimation {
     circle: any;
