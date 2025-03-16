@@ -75,8 +75,8 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
                   animate={{ opacity: 1 }}
                   className="mt-4 flex flex-col items-center justify-center"
                 >
-                  {/* Counter in larger format */}
-                  <div className="text-3xl font-bold text-blue-700 mb-2">
+                  {/* Counter in larger format with better visibility */}
+                  <div className="text-4xl font-bold text-blue-700 mb-2 tracking-tight tabular-nums">
                     {uploadProgress.processedRecords}/{uploadProgress.totalRecords}
                   </div>
                   

@@ -106,20 +106,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const sendProgress = () => {
       const progress = uploadProgressMap.get(sessionId);
       if (progress) {
-        const now = Date.now();
-        if (now - progress.timestamp >= 30) { // Faster updates for smoother progress
-          res.write(`data: ${JSON.stringify({
-            processed: progress.processed,
-            total: progress.total || 100, // Provide a default total if not available
-            stage: progress.stage || "Processing...",
-            error: progress.error
-          })}\n\n`);
-          progress.timestamp = now;
-        }
+        // Always convert to numbers to ensure consistent handling
+        const processedNum = Number(progress.processed);
+        const totalNum = Number(progress.total || 100);
+        
+        // Create a safe progress object with numerical values
+        const safeProgress = {
+          processed: isNaN(processedNum) ? 0 : processedNum,
+          total: isNaN(totalNum) ? 100 : totalNum,
+          stage: progress.stage || "Processing...",
+          error: progress.error
+        };
+        
+        // Send to browser
+        res.write(`data: ${JSON.stringify(safeProgress)}\n\n`);
+        progress.timestamp = Date.now();
       }
     };
 
-    const progressInterval = setInterval(sendProgress, 30);
+    // Send progress immediately and then set interval
+    sendProgress();
+    const progressInterval = setInterval(sendProgress, 100); // More frequent updates
 
     req.on('close', () => {
       clearInterval(progressInterval);
