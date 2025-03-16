@@ -14,9 +14,7 @@ interface FileUploaderButtonProps {
 export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonProps) {
   const { toast } = useToast();
   const { 
-    isUploading, 
     setIsUploading,
-    uploadProgress,
     updateUploadProgress,
     resetUploadProgress
   } = useDisasterContext();
@@ -48,22 +46,21 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       return;
     }
 
-    setIsUploading(true);
-
     try {
+      // Read file content to get line count
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
           const text = e.target?.result as string;
           const lines = text.split('\n').length - 1;
 
-          // Validate minimum content
-          if (lines < 2) {
-            throw new Error('CSV file appears to be empty or malformed. Please check the file content.');
-          }
+          console.log('Starting file upload, total lines:', lines);
 
-          // Initialize progress with 0 records processed
-          updateUploadProgress({ 
+          // Start upload process
+          setIsUploading(true);
+
+          // Initialize progress at 0
+          updateUploadProgress({
             totalRecords: lines,
             processedRecords: 0,
             message: 'Starting analysis...',
@@ -71,33 +68,33 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             percentage: 0
           });
 
-          // Small delay to ensure initial state is shown
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // Wait briefly to ensure initial state is shown
+          await new Promise(resolve => setTimeout(resolve, 200));
 
           const result = await uploadCSV(file, (progress) => {
-            let currentRecord = 0;
+            // Debug log
+            console.log('Progress update received:', progress);
 
-            // Extract current record number from stage message
+            let currentRecord = 0;
             const recordMatch = progress.stage?.match(/record (\d+) of (\d+)/i);
 
             if (recordMatch) {
               currentRecord = parseInt(recordMatch[1]);
-            } else if (progress.stage?.includes('complete')) {
-              currentRecord = lines;
-            } else {
-              // If no explicit record number, use processed percentage
-              const percentMatch = progress.stage?.match(/(\d+)%/);
-              if (percentMatch) {
-                const percent = parseInt(percentMatch[1]);
-                currentRecord = Math.floor((percent / 100) * lines);
-              }
+            } else if (progress.processed) {
+              currentRecord = Number(progress.processed);
             }
 
-            // Ensure values are within valid range
+            // Ensure the count stays within bounds
             currentRecord = Math.max(0, Math.min(currentRecord, lines));
 
-            // Calculate percentage
-            const percentage = Math.round((currentRecord / lines) * 100);
+            const percentage = Math.floor((currentRecord / lines) * 100);
+
+            console.log('Updating progress:', {
+              currentRecord,
+              lines,
+              percentage,
+              stage: progress.stage
+            });
 
             // Update progress state
             updateUploadProgress({
@@ -105,7 +102,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
               totalRecords: lines,
               percentage,
               message: progress.stage || `Processing record ${currentRecord} of ${lines}`,
-              status: progress.error ? 'error' : 'uploading'
+              status: 'uploading'
             });
 
             if (progress.error) {
@@ -113,42 +110,39 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             }
           });
 
-          if (!result || !result.file || !result.posts) {
-            throw new Error('Invalid response from server');
-          }
+          // Handle successful upload
+          if (result?.file && result?.posts) {
+            updateUploadProgress({
+              status: 'success',
+              message: 'Analysis Complete!',
+              percentage: 100,
+              processedRecords: lines,
+              totalRecords: lines
+            });
 
-          // Show completion state
-          updateUploadProgress({
-            status: 'success',
-            message: 'Analysis Complete!',
-            percentage: 100,
-            processedRecords: lines,
-            totalRecords: lines
-          });
+            toast({
+              title: 'Upload Complete',
+              description: `Successfully analyzed ${result.posts.length} posts`,
+              duration: 5000,
+            });
 
-          toast({
-            title: 'Analysis Complete',
-            description: `Successfully analyzed ${result.posts.length} posts with sentiment data`,
-            duration: 5000,
-          });
+            // Refresh data
+            queryClient.invalidateQueries({ queryKey: ['/api/sentiment-posts'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/analyzed-files'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/disaster-events'] });
 
-          // Invalidate queries to refresh data
-          queryClient.invalidateQueries({ queryKey: ['/api/sentiment-posts'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/analyzed-files'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/disaster-events'] });
+            if (onSuccess) {
+              onSuccess(result);
+            }
 
-          if (onSuccess) {
-            onSuccess(result);
-          }
-
-          // Reset states after delays
-          progressTimeout.current = setTimeout(() => {
-            resetUploadProgress();
-            setTimeout(() => {
-              setIsUploading(false);
+            // Keep success state visible briefly before resetting
+            progressTimeout.current = setTimeout(() => {
+              resetUploadProgress();
+              setTimeout(() => {
+                setIsUploading(false);
+              }, 2000);
             }, 3000);
-          }, 7000);
-
+          }
         } catch (error) {
           handleError(error);
         }
@@ -167,7 +161,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
   };
 
   const handleError = (error: unknown) => {
-    console.error('File upload error:', error);
+    console.error('Upload error:', error);
 
     updateUploadProgress({
       status: 'error',
@@ -178,24 +172,23 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     });
 
     toast({
-      title: 'Analysis Failed',
-      description: error instanceof Error ? error.message : 'An unexpected error occurred during analysis',
+      title: 'Upload Failed',
+      description: error instanceof Error ? error.message : 'An unexpected error occurred',
       variant: 'destructive',
-      duration: 7000,
+      duration: 5000,
     });
 
+    // Keep error state visible briefly before resetting
     progressTimeout.current = setTimeout(() => {
       resetUploadProgress();
       setTimeout(() => {
         setIsUploading(false);
-      }, 5000);
-    }, 5000);
+      }, 2000);
+    }, 3000);
   };
 
   return (
     <motion.label
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
       className={`
         inline-flex items-center justify-center px-6 py-3
         bg-gradient-to-r from-blue-600 to-indigo-600
@@ -203,19 +196,16 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         text-white text-sm font-medium rounded-full
         cursor-pointer transition-all duration-300
         shadow-lg hover:shadow-xl transform hover:-translate-y-0.5
-        disabled:opacity-50 disabled:cursor-not-allowed
-        ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
         ${className}
       `}
     >
       <Upload className="h-5 w-5 mr-2" />
-      {isUploading ? 'Analyzing...' : 'Upload Dataset'}
+      Upload Dataset
       <input 
         type="file" 
         className="hidden" 
         accept=".csv" 
         onChange={handleFileUpload}
-        disabled={isUploading}
       />
     </motion.label>
   );
