@@ -48,7 +48,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       return;
     }
 
-    // Start upload process
     setIsUploading(true);
     updateUploadProgress({
       status: 'uploading',
@@ -76,29 +75,27 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           });
 
           const result = await uploadCSV(file, (progress) => {
-            if (progress.error) {
-              throw new Error(progress.error);
-            }
-
             const processedRecords = progress.processed || 0;
-            const totalRecords = lines;
+            const totalRecords = lines || 100;
             const percentage = Math.min(Math.round((processedRecords / totalRecords) * 100), 100);
 
-            // Update progress state
             updateUploadProgress({
-              status: 'uploading',
               processedRecords,
               totalRecords,
               percentage,
-              message: progress.stage || `Processing records... ${processedRecords}/${totalRecords}`
+              message: progress.stage || `Processing records... ${processedRecords}/${totalRecords}`,
+              status: progress.error ? 'error' : 'uploading'
             });
+
+            if (progress.error) {
+              throw new Error(progress.error);
+            }
           });
 
           if (!result || !result.file || !result.posts) {
             throw new Error('Invalid response from server');
           }
 
-          // Update progress to success
           updateUploadProgress({
             status: 'success',
             message: 'Analysis Complete!',
@@ -123,7 +120,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           // Reset upload state after delay
           progressTimeout.current = setTimeout(() => {
             resetUploadProgress();
-            setIsUploading(false);
           }, 2000);
 
         } catch (error) {
@@ -138,6 +134,14 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       reader.readAsText(file);
     } catch (error) {
       handleError(error);
+    } finally {
+      // Reset file input
+      event.target.value = '';
+
+      // Ensure uploading state is eventually reset
+      setTimeout(() => {
+        setIsUploading(false);
+      }, 3000);
     }
   };
 
@@ -157,7 +161,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       duration: 7000,
     });
 
-    // Reset states after error
     progressTimeout.current = setTimeout(() => {
       resetUploadProgress();
       setIsUploading(false);

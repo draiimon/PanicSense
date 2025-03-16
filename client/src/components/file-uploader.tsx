@@ -16,7 +16,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
       {/* Upload Button */}
       <FileUploaderButton onSuccess={onSuccess} className={className} />
 
-      {/* Progress Modal - Always rendered but only visible during upload */}
+      {/* Global Progress Indicator - Always rendered from the same place */}
       <AnimatePresence>
         {isUploading && (
           <motion.div
@@ -45,11 +45,10 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
                         : "text-blue-800"
                   }`}
                 >
-                  {uploadProgress.message || "Processing..."}
+                  {uploadProgress.message}
                 </span>
               </div>
 
-              {/* Progress Bar */}
               <div className="relative">
                 <div className="overflow-hidden h-2.5 text-xs flex rounded-full bg-slate-200/50 backdrop-blur-sm">
                   <motion.div
@@ -63,14 +62,13 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
                             : "bg-blue-500"
                       }
                     `}
-                    initial={{ width: "0%" }}
-                    animate={{ width: `${uploadProgress.percentage || 0}%` }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${uploadProgress.percentage}%` }}
                     transition={{ duration: 0.3 }}
                   />
                 </div>
               </div>
 
-              {/* Progress Details */}
               {uploadProgress.totalRecords > 0 && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -78,11 +76,11 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
                   className="mt-2 text-xs text-slate-600 flex justify-between items-center"
                 >
                   <span>
-                    Processing: {uploadProgress.processedRecords || 0} of{" "}
+                    Processing: {uploadProgress.processedRecords} of{" "}
                     {uploadProgress.totalRecords}
                   </span>
                   <span className="font-semibold">
-                    {uploadProgress.percentage || 0}%
+                    {uploadProgress.percentage}%
                   </span>
                 </motion.div>
               )}
