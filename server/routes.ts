@@ -109,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Always convert to numbers to ensure consistent handling
         const processedNum = Number(progress.processed);
         const totalNum = Number(progress.total || 100);
-        
+
         // Create a safe progress object with numerical values
         const safeProgress = {
           processed: isNaN(processedNum) ? 0 : processedNum,
@@ -117,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           stage: progress.stage || "Processing...",
           error: progress.error
         };
-        
+
         // Send to browser
         res.write(`data: ${JSON.stringify(safeProgress)}\n\n`);
         progress.timestamp = Date.now();
@@ -384,12 +384,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           progress.processed = processed;
           progress.stage = stage;
           progress.timestamp = Date.now();
-          
+
           // Update total if provided
           if (total !== undefined) {
             progress.total = total;
           }
-          
+
           // Set error if provided
           if (error) {
             progress.error = error;
@@ -434,7 +434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stage: `Starting analysis of ${totalRecords} records...`,
         timestamp: Date.now()
       });
-      
+
       // Send initial progress to connected clients
       if (sessionId) {
         broadcastUpdate({
@@ -725,7 +725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Delete analyzed file endpoint (deletes the file and all associated sentiment posts)
   app.delete('/api/analyzed-files/:id', async (req: Request, res: Response) => {
     try {
@@ -733,7 +733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid file ID" });
       }
-      
+
       // Check if file exists
       const file = await storage.getAnalyzedFile(id);
       if (!file) {
@@ -752,6 +752,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to delete analyzed file",
         details: error instanceof Error ? error.message : String(error)
       });
+    }
+  });
+
+  // Add CSV export endpoint with formatted columns
+  app.get('/api/export-csv', async (req: Request, res: Response) => {
+    try {
+      const posts = await storage.getSentimentPosts();
+
+      // Create CSV header
+      const csvHeader = 'Text,Timestamp,Source,Location,Disaster,Sentiment,Confidence,Language\n';
+
+      // Format each post as CSV row
+      const csvRows = posts.map(post => {
+        const row = [
+          `"${post.text.replace(/"/g, '""')}"`,
+          post.timestamp,
+          post.source || '',
+          post.location || '',
+          post.disasterType || '',
+          post.sentiment,
+          post.confidence,
+          post.language
+        ];
+        return row.join(',');
+      }).join('\n');
+
+      const csv = csvHeader + csvRows;
+
+      // Set headers for CSV download
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=disaster-sentiments.csv');
+
+      res.send(csv);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to export CSV" });
     }
   });
 
