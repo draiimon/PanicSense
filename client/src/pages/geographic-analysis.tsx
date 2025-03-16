@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { SentimentMap } from "@/components/analysis/sentiment-map";
 import { SentimentLegend } from "@/components/analysis/sentiment-legend";
@@ -8,6 +8,8 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getCoordinates, extractLocations } from "@/lib/geocoding";
+import { toast } from "@/hooks/use-toast";
 
 // Define types for the component
 interface Region {
@@ -32,6 +34,7 @@ export default function GeographicAnalysis() {
   const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard');
   const [selectedRegionFilter, setSelectedRegionFilter] = useState<string | null>(null);
   const [showMarkers, setShowMarkers] = useState<boolean>(true);
+  const [detectedLocations, setDetectedLocations] = useState<Map<string, [number, number]>>(new Map());
 
   // Complete Philippine region coordinates
   const regionCoordinates = {
@@ -117,14 +120,51 @@ export default function GeographicAnalysis() {
     "Surigao del Sur": [8.7512, 126.1378] as [number, number],
   };
 
+  // Effect for processing new posts and extracting locations
+  useEffect(() => {
+    const processNewPosts = async () => {
+      const newLocations = new Map<string, [number, number]>();
+
+      for (const post of sentimentPosts) {
+        // Extract locations from post text
+        const extractedLocations = extractLocations(post.text);
+
+        for (const location of extractedLocations) {
+          if (!newLocations.has(location) && !detectedLocations.has(location)) {
+            const coordinates = await getCoordinates(location);
+            if (coordinates) {
+              newLocations.set(location, coordinates);
+              toast({
+                title: "New Location Detected",
+                description: `Found and pinned: ${location}`,
+                variant: "default",
+              });
+            }
+          }
+        }
+      }
+
+      if (newLocations.size > 0) {
+        setDetectedLocations(prev => {
+          const updated = new Map(prev);
+          newLocations.forEach((coords, loc) => {
+            updated.set(loc, coords);
+          });
+          return updated;
+        });
+      }
+    };
+
+    processNewPosts();
+  }, [sentimentPosts]);
+
   // Process data for regions and map location mentions
-  const locationData = useMemo(() => {
+  const locationData = useMemo(async () => {
     const data: Record<string, LocationData> = {};
 
     // Helper function to normalize location names
     const normalizeLocation = (loc: string): string => {
       const lowerLoc = loc.toLowerCase().trim();
-      // Handle different variations of location names
       if (lowerLoc.includes('manila') && !lowerLoc.includes('metro')) return 'Manila';
       if (lowerLoc.includes('quezon') && lowerLoc.includes('city')) return 'Quezon City';
       if (lowerLoc === 'ncr') return 'Metro Manila';
@@ -132,54 +172,75 @@ export default function GeographicAnalysis() {
       if (lowerLoc === 'qc') return 'Quezon City';
       if (lowerLoc === 'cdo') return 'Cagayan de Oro';
       if (lowerLoc === 'gensan') return 'General Santos';
-      if (lowerLoc === 'mindoro occidental') return 'Mindoro';
-      if (lowerLoc === 'mindoro oriental') return 'Mindoro';
 
-      // Return capitalized version of the location
       return loc.split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
     };
 
     // Process posts to populate the map
-    sentimentPosts.forEach(post => {
-      if (!post.location) return;
-
-      let location = normalizeLocation(post.location);
-
-      // Skip generic mentions
-      if (
-        location.toLowerCase() === 'not specified' ||
-        location.toLowerCase() === 'not mentioned' ||
-        location.toLowerCase() === 'none'
-      ) {
-        return;
+    for (const post of sentimentPosts) {
+      // Get both explicit location and extracted locations from text
+      const locations = new Set<string>();
+      if (post.location) {
+        locations.add(normalizeLocation(post.location));
       }
 
-      // Get coordinates or use default if not found
-      const coordinates = regionCoordinates[location as keyof typeof regionCoordinates] || regionCoordinates["Unknown"];
+      // Add extracted locations
+      extractLocations(post.text).forEach(loc => {
+        locations.add(normalizeLocation(loc));
+      });
 
-      // Initialize location data if it doesn't exist
-      if (!data[location]) {
-        data[location] = {
-          count: 0,
-          sentiments: {},
-          disasterTypes: {},
-          coordinates
-        };
+      for (const location of locations) {
+        // Skip generic mentions
+        if (
+          location.toLowerCase() === 'not specified' ||
+          location.toLowerCase() === 'not mentioned' ||
+          location.toLowerCase() === 'none'
+        ) {
+          continue;
+        }
+
+        // Get coordinates from predefined list, detected locations, or geocoding service
+        let coordinates = regionCoordinates[location as keyof typeof regionCoordinates];
+
+        if (!coordinates) {
+          coordinates = detectedLocations.get(location);
+        }
+
+        if (!coordinates) {
+          const geocodedCoords = await getCoordinates(location);
+          if (geocodedCoords) {
+            coordinates = geocodedCoords;
+            // Add to detected locations for future use
+            detectedLocations.set(location, geocodedCoords);
+          } else {
+            continue;
+          }
+        }
+
+        // Initialize or update location data
+        if (!data[location]) {
+          data[location] = {
+            count: 0,
+            sentiments: {},
+            disasterTypes: {},
+            coordinates
+          };
+        }
+
+        // Update counts
+        data[location].count++;
+        data[location].sentiments[post.sentiment] = (data[location].sentiments[post.sentiment] || 0) + 1;
+
+        if (post.disasterType) {
+          data[location].disasterTypes[post.disasterType] = (data[location].disasterTypes[post.disasterType] || 0) + 1;
+        }
       }
-
-      // Update counts
-      data[location].count++;
-      data[location].sentiments[post.sentiment] = (data[location].sentiments[post.sentiment] || 0) + 1;
-
-      if (post.disasterType) {
-        data[location].disasterTypes[post.disasterType] = (data[location].disasterTypes[post.disasterType] || 0) + 1;
-      }
-    });
+    }
 
     return data;
-  }, [sentimentPosts]);
+  }, [sentimentPosts, detectedLocations]);
 
   // Convert location data to regions for map
   const regions = useMemo((): Region[] => {
