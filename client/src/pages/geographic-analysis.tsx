@@ -49,6 +49,9 @@ export default function GeographicAnalysis() {
     "Taytay": [14.5762, 121.1324],
     "Taytay Rizal": [14.5762, 121.1324],
     "Taytay, Rizal": [14.5762, 121.1324],
+    "Angono": [14.5409, 121.1533],
+    "Angono Rizal": [14.5409, 121.1533],
+    "angono rizal": [14.5409, 121.1533],
     "Imus": [14.4301, 120.9387],
     "Imus Cavite": [14.4301, 120.9387],
     "Imus, Cavite": [14.4301, 120.9387],
@@ -56,6 +59,7 @@ export default function GeographicAnalysis() {
     "Bacoor Cavite": [14.4624, 120.9645],
     "Bacoor, Cavite": [14.4624, 120.9645],
     "bacoor cavite": [14.4624, 120.9645],
+    "csavite": [14.2829, 120.8686], // Special case for typo
     "Laguna": [14.2691, 121.4113],
     "Bulacan": [14.7969, 120.8787],
     "Cavite": [14.2829, 120.8686],
@@ -197,69 +201,68 @@ export default function GeographicAnalysis() {
     // This makes the Geographic Analysis view consistent with the Dashboard view.
   }, []);
 
-  // Process data for regions and map location mentions
-  // List of Philippine locations to detect in text - expanded with exact format variations
-  const philippineLocations = [
-    'Manila', 'Quezon City', 'Cebu', 'Davao', 'Mindanao', 'Luzon',
-    'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
-    'Batangas', 'Zambales', 'Pampanga', 'Bicol', 'Leyte', 'Samar',
-    'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna', 
-    'Rizal', 'Taytay', 'Taytay Rizal', 'Taytay, Rizal', 'Nueva Ecija', 'Benguet', 'Albay', 
-    'Marikina', 'Pasig', 'Makati', 'Mandaluyong', 'Pasay', 'Taguig', 
-    'Parañaque', 'Caloocan', 'Metro Manila', 'Monumento', 'San Juan', 
-    'Las Piñas', 'Muntinlupa', 'Valenzuela', 'Navotas', 'Malabon', 
-    'Tacloban', 'General Santos', 'Cagayan de Oro', 'Zamboanga', 
-    'Angeles', 'Bacolod', 'Cabanatuan', 'Imus', 'Imus Cavite', 'Imus, Cavite',
-    'Bacoor', 'Bacoor Cavite', 'Bacoor, Cavite', 'bacoor cavite'
-  ];
+  // We no longer need this list since we're only using the exact location names from posts
+  // This ensures consistency with the Dashboard Recent Affected Areas
 
   const locationData = useMemo(() => {
-    const data: Record<string, LocationData> = {};
-
+    // Create a Map to match exactly what affected-areas-card.tsx is doing
+    const locationMap = new Map<string, { 
+      count: number,
+      sentiment: Map<string, number>,
+      disasterType: Map<string, number>,
+      coordinates: [number, number]
+    }>();
+    
     // Process posts to populate the map with the exact location names
     for (const post of sentimentPosts) {
-      // We will ONLY use the exact location from post.location if available
-      // This matches the dashboard behavior
-      if (post.location) {
-        const location = post.location.trim();
-        
-        // Skip generic mentions
-        if (
-          location.toLowerCase() === 'not specified' ||
-          location.toLowerCase() === 'not mentioned' ||
-          location.toLowerCase() === 'none' ||
-          location.toLowerCase().includes('unspecified') ||
-          location.toLowerCase().includes('not mentioned')
-        ) {
-          continue;
-        }
-        
-        // Get coordinates from predefined list or detected locations
-        let coordinates = regionCoordinates[location] ?? detectedLocations[location];
-        
-        if (!coordinates) {
-          // Skip locations we can't pin
-          continue;
-        }
-        
-        if (!data[location]) {
-          data[location] = {
-            count: 0,
-            sentiments: {},
-            disasterTypes: {},
-            coordinates
-          };
-        }
-        
-        // Update counts
-        data[location].count++;
-        data[location].sentiments[post.sentiment] = (data[location].sentiments[post.sentiment] || 0) + 1;
-        
-        if (post.disasterType) {
-          data[location].disasterTypes[post.disasterType] = (data[location].disasterTypes[post.disasterType] || 0) + 1;
-        }
+      if (!post.location) continue;
+      
+      const location = post.location; // Exact match - no trim or other processing
+      
+      // Get coordinates from predefined list or detected locations
+      let coordinates = regionCoordinates[location] ?? detectedLocations[location];
+      if (!coordinates) continue; // Skip locations we can't pin
+      
+      if (!locationMap.has(location)) {
+        locationMap.set(location, {
+          count: 0,
+          sentiment: new Map<string, number>(),
+          disasterType: new Map<string, number>(),
+          coordinates
+        });
+      }
+      
+      // Update counts exactly like affected-areas-card.tsx
+      const locationData = locationMap.get(location)!;
+      locationData.count++;
+      
+      // Track sentiments
+      const currentSentimentCount = locationData.sentiment.get(post.sentiment) || 0;
+      locationData.sentiment.set(post.sentiment, currentSentimentCount + 1);
+      
+      // Track disaster types
+      if (post.disasterType) {
+        const currentTypeCount = locationData.disasterType.get(post.disasterType) || 0;
+        locationData.disasterType.set(post.disasterType, currentTypeCount + 1);
       }
     }
+    
+    // Convert the Map to our required format
+    const data: Record<string, LocationData> = {};
+    
+    locationMap.forEach((mapData: { 
+      count: number, 
+      sentiment: Map<string, number>, 
+      disasterType: Map<string, number>, 
+      coordinates: [number, number] 
+    }, name: string) => {
+      data[name] = {
+        count: mapData.count,
+        sentiments: Object.fromEntries(mapData.sentiment),
+        disasterTypes: Object.fromEntries(mapData.disasterType),
+        coordinates: mapData.coordinates
+      };
+    });
 
     return data;
   }, [sentimentPosts, detectedLocations]);
