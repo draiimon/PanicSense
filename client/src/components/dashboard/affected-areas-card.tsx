@@ -3,7 +3,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { getSentimentBadgeClasses } from "@/lib/colors";
 import { getDisasterTypeColor } from "@/lib/colors";
-import { MapPin, AlertTriangle, TrendingUp, MapPinned, Flame, CloudRain, Laptop, ArrowUp } from "lucide-react";
+import { 
+  MapPin, 
+  AlertTriangle, 
+  TrendingUp, 
+  MapPinned, 
+  Flame, 
+  Droplets, 
+  Wind, 
+  Mountain 
+} from "lucide-react";
 import { SentimentPost } from "@/lib/api";
 
 interface AffectedAreaProps {
@@ -24,13 +33,16 @@ function getDisasterIcon(type: string | null) {
   
   switch (type.toLowerCase()) {
     case 'flood':
-      return <CloudRain className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+      return <Droplets className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
     case 'fire':
       return <Flame className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
     case 'typhoon':
-      return <CloudRain className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+      return <Wind className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
     case 'earthquake':
-      return <ArrowUp className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+      return <Mountain className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+    case 'volcanic eruption':
+    case 'volcano':
+      return <AlertTriangle className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
     case 'landslide':
       return <MapPinned className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
     default:

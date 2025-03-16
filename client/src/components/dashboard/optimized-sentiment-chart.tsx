@@ -80,7 +80,7 @@ export function OptimizedSentimentChart({
             font: { 
               family: "'Inter', sans-serif",
               size: 12,
-              weight: '500'
+              weight: 500
             },
             padding: 20,
             usePointStyle: true,
@@ -97,7 +97,7 @@ export function OptimizedSentimentChart({
           titleFont: { 
             family: "'Inter', sans-serif",
             size: 13,
-            weight: '600' 
+            weight: 600
           },
           bodyFont: { 
             family: "'Inter', sans-serif",
@@ -129,7 +129,7 @@ export function OptimizedSentimentChart({
             font: { 
               family: "'Inter', sans-serif",
               size: 11,
-              weight: '500'
+              weight: 500
             },
             color: '#64748b',
             padding: 8,
@@ -149,7 +149,7 @@ export function OptimizedSentimentChart({
             font: { 
               family: "'Inter', sans-serif",
               size: 11,
-              weight: '500'
+              weight: 500
             },
             color: '#64748b',
             padding: 8,
@@ -258,7 +258,7 @@ export function OptimizedSentimentChart({
             className="flex flex-col items-center justify-center p-6 text-center"
           >
             <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
-              <BrainCircuit className="h-8 w-8 text-blue-400" />
+              <PieChart className="h-8 w-8 text-blue-400" />
             </div>
             <h3 className="text-lg font-semibold text-slate-700 mb-2">No Sentiment Data</h3>
             <p className="text-sm text-slate-500 max-w-[250px] mb-4">
