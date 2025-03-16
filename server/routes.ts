@@ -369,7 +369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update file upload endpoint with better progress tracking
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
     let sessionId = '';
-    let updateProgress = (processed: number, stage: string, error?: string) => {
+    let updateProgress: (processed: number, stage: string, total?: number | undefined, error?: string | undefined) => void = (processed, stage, total, error) => {
       if (sessionId) {
         const progress = uploadProgressMap.get(sessionId);
         if (progress) {
@@ -377,7 +377,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           progress.processed = processed;
           progress.stage = stage;
           progress.timestamp = Date.now();
-          progress.error = error;
+          
+          // Update total if provided
+          if (total !== undefined) {
+            progress.total = total;
+          }
+          
+          // Set error if provided
+          if (error) {
+            progress.error = error;
+          }
 
           console.log(`Progress update: ${processed}/${progress.total || 'unknown'} - ${stage}`);
 
@@ -487,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Final progress update
       if (sessionId && updateProgress) {
-        updateProgress(totalRecords, 'Analysis complete');
+        updateProgress(totalRecords, 'Analysis complete', totalRecords);
       }
 
       // After successful processing, broadcast the new data
@@ -508,8 +517,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing CSV:", error);
 
-      // Now use updateProgress
-      updateProgress(0, 'Error', error instanceof Error ? error.message : String(error));
+      // Now use updateProgress with error message as the last parameter
+      updateProgress(0, 'Error', undefined, error instanceof Error ? error.message : String(error));
 
       res.status(500).json({ 
         error: "Failed to process CSV file",
