@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Cloud, Droplets, Flame, Mountain, AlertTriangle, Wind } from 'lucide-react';
+import { Cloud, Droplets, Flame, Mountain, AlertTriangle, Wind, Waves } from 'lucide-react';
+import { getDisasterTypeColor } from '@/lib/colors';
 
 interface StatusCardProps {
   title: string;
@@ -14,35 +15,27 @@ interface StatusCardProps {
 
 const getIconForDisaster = (title: string) => {
   const type = title.toLowerCase();
-  if (type.includes('typhoon')) return Wind;
+  if (type.includes('typhoon') || type.includes('storm')) return Wind;
   if (type.includes('flood')) return Droplets;
   if (type.includes('fire')) return Flame;
   if (type.includes('landslide')) return Mountain;
   if (type.includes('earthquake')) return AlertTriangle;
-  if (type.includes('volcano')) return Mountain;
+  if (type.includes('volcano') || type.includes('eruption')) return Flame;
+  if (type.includes('tsunami')) return Waves;
   return Cloud;
 };
 
 export function StatusCard({ title, value, trend }: StatusCardProps) {
   const Icon = getIconForDisaster(title);
+  const color = getDisasterTypeColor(title);
 
   const getIconBackground = () => {
-    switch (title.toLowerCase()) {
-      case "typhoon":
-        return "bg-red-100 text-red-600";
-      case "flood":
-        return "bg-red-100 text-red-600";
-      case "fire":
-        return "bg-red-100 text-red-600";
-      case "landslide":
-        return "bg-red-100 text-red-600";
-      case "earthquake":
-        return "bg-red-100 text-red-600";
-      case "volcano":
-        return "bg-red-100 text-red-600";
-      default:
-        return "bg-slate-100 text-slate-600";
-    }
+    const baseColor = color.replace('#', '');
+    // Create lighter version for background
+    return {
+      background: `#${baseColor}15`,
+      color: color
+    };
   };
 
 
@@ -54,7 +47,10 @@ export function StatusCard({ title, value, trend }: StatusCardProps) {
             <p className="text-sm font-medium text-slate-500">{title}</p>
             <p className="text-2xl font-bold text-slate-800">{value}</p>
           </div>
-          <div className={`${getIconBackground()} p-3 rounded-lg`}>
+          <div 
+            className="p-3 rounded-lg" 
+            style={getIconBackground()}
+          >
             <Icon className="h-6 w-6" />
           </div>
         </div>
