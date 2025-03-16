@@ -45,7 +45,7 @@ export function CardCarousel({
     }, interval);
     
     return () => clearInterval(timer);
-  }, [autoRotate, isPaused, interval, activeIndex, totalSlides]);
+  }, [autoRotate, isPaused, interval, totalSlides]);
   
   if (totalSlides === 0) return null;
   if (totalSlides === 1) return <>{children[0]}</>;
