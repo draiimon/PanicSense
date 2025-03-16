@@ -17,9 +17,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
-import { deleteAllData } from "@/lib/api";
+import { deleteAllData, deleteAnalyzedFile } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2 } from 'lucide-react'; // Assuming these icons are needed
+import { Loader2, Trash2, FileX } from 'lucide-react';
 
 
 // Language mapping
@@ -39,6 +39,7 @@ export default function RawData() {
   } = useDisasterContext();
   const [selectedFileId, setSelectedFileId] = useState<string>("all");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingFileId, setDeletingFileId] = useState<number | null>(null);
 
   const handleDeleteAllData = async () => {
     try {
@@ -59,6 +60,34 @@ export default function RawData() {
       });
     } finally {
       setIsDeleting(false);
+    }
+  };
+  
+  const handleDeleteFile = async (fileId: number) => {
+    try {
+      setDeletingFileId(fileId);
+      const result = await deleteAnalyzedFile(fileId);
+      
+      // If current selected file was deleted, reset to 'all'
+      if (selectedFileId === fileId.toString()) {
+        setSelectedFileId('all');
+      }
+      
+      toast({
+        title: "Success",
+        description: result.message,
+        variant: "default",
+      });
+      // Refresh the data
+      refreshData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete file. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingFileId(null);
     }
   };
 
@@ -183,12 +212,49 @@ export default function RawData() {
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All datasets" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="min-w-[350px]">
                   <SelectItem value="all">All datasets</SelectItem>
                   {analyzedFiles.map((file) => (
-                    <SelectItem key={file.id} value={file.id.toString()}>
-                      {file.originalName} ({file.recordCount} records)
-                    </SelectItem>
+                    <div key={file.id} className="flex justify-between items-center">
+                      <SelectItem value={file.id.toString()} className="flex-grow">
+                        {file.originalName} ({file.recordCount} records)
+                      </SelectItem>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={(e) => e.stopPropagation()}
+                            disabled={deletingFileId === file.id}
+                          >
+                            {deletingFileId === file.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <FileX className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this file?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will delete the file "{file.originalName}" and all sentiment posts associated with it.
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteFile(file.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   ))}
                 </SelectContent>
               </Select>

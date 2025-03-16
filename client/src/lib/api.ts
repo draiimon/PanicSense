@@ -177,6 +177,15 @@ export async function deleteSentimentPost(id: number): Promise<{
   return response.json();
 }
 
+// Delete Specific Analyzed File (CSV) and its posts
+export async function deleteAnalyzedFile(id: number): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const response = await apiRequest('DELETE', `/api/analyzed-files/${id}`);
+  return response.json();
+}
+
 // Delete All Data
 export async function deleteAllData(): Promise<{
   success: boolean;

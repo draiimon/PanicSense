@@ -725,6 +725,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Delete analyzed file endpoint (deletes the file and all associated sentiment posts)
+  app.delete('/api/analyzed-files/:id', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid file ID" });
+      }
+      
+      // Check if file exists
+      const file = await storage.getAnalyzedFile(id);
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+
+      // Delete the file and all associated sentiment posts
+      await storage.deleteAnalyzedFile(id);
+
+      res.json({ 
+        success: true, 
+        message: `Deleted file "${file.originalName}" and all its associated sentiment posts`
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Failed to delete analyzed file",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   return httpServer;
 }
