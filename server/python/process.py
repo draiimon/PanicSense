@@ -15,28 +15,28 @@ try:
     import numpy as np
     from langdetect import detect
 except ImportError:
-    print("Error: Required packages not found. Install them using pip install pandas numpy langdetect")
+    print(
+        "Error: Required packages not found. Install them using pip install pandas numpy langdetect"
+    )
     sys.exit(1)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 parser = argparse.ArgumentParser(description='Process disaster sentiment data')
 parser.add_argument('--text', type=str, help='Text to analyze')
 parser.add_argument('--file', type=str, help='CSV file to process')
 
+
 def report_progress(processed: int, stage: str):
     """Print progress in a format that can be parsed by the Node.js service"""
-    progress_info = json.dumps({
-        "processed": processed,
-        "stage": stage
-    })
+    progress_info = json.dumps({"processed": processed, "stage": stage})
     print(f"PROGRESS:{progress_info}", file=sys.stderr)
     sys.stderr.flush()
 
+
 class DisasterSentimentBackend:
+
     def __init__(self):
         self.sentiment_labels = [
             'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'
@@ -94,9 +94,9 @@ class DisasterSentimentBackend:
         # API configuration
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
         self.current_api_index = 0
-        self.retry_delay = 1.0
+        self.retry_delay = 2.0
         self.limit_delay = 5.0
-        self.max_retries = 3
+        self.max_retries = 8
         self.failed_keys = set()
         self.key_success_count = {}
 
@@ -112,12 +112,31 @@ class DisasterSentimentBackend:
 
         # Only use these 6 specific disaster types:
         disaster_types = {
-            "Earthquake": ["earthquake", "quake", "tremor", "seismic", "lindol", "magnitude", "aftershock", "shaking"],
-            "Flood": ["flood", "flooding", "inundation", "baha", "tubig", "binaha", "flash flood", "rising water"],
-            "Typhoon": ["typhoon", "storm", "cyclone", "hurricane", "bagyo", "super typhoon", "habagat", "ulan", "buhos", "malakas na hangin"],
-            "Fire": ["fire", "blaze", "burning", "sunog", "nasunog", "nagliliyab", "flame", "apoy"],
-            "Volcano": ["volcano", "eruption", "lava", "ash", "bulkan", "ashfall", "magma", "volcanic", "bulkang", "active volcano"],
-            "Landslide": ["landslide", "mudslide", "avalanche", "guho", "pagguho", "pagguho ng lupa", "collapsed"]
+            "Earthquake": [
+                "earthquake", "quake", "tremor", "seismic", "lindol",
+                "magnitude", "aftershock", "shaking"
+            ],
+            "Flood": [
+                "flood", "flooding", "inundation", "baha", "tubig", "binaha",
+                "flash flood", "rising water"
+            ],
+            "Typhoon": [
+                "typhoon", "storm", "cyclone", "hurricane", "bagyo",
+                "super typhoon", "habagat", "ulan", "buhos",
+                "malakas na hangin"
+            ],
+            "Fire": [
+                "fire", "blaze", "burning", "sunog", "nasunog", "nagliliyab",
+                "flame", "apoy"
+            ],
+            "Volcano": [
+                "volcano", "eruption", "lava", "ash", "bulkan", "ashfall",
+                "magma", "volcanic", "bulkang", "active volcano"
+            ],
+            "Landslide": [
+                "landslide", "mudslide", "avalanche", "guho", "pagguho",
+                "pagguho ng lupa", "collapsed"
+            ]
         }
 
         for disaster_type, keywords in disaster_types.items():
@@ -134,61 +153,254 @@ class DisasterSentimentBackend:
         # STRICT list of Philippine locations - ONLY these are valid
         ph_locations = [
             # ALL REGIONS
-            "NCR", "CAR", "Ilocos Region", "Cagayan Valley", "Central Luzon",
-            "CALABARZON", "MIMAROPA", "Bicol Region", "Western Visayas",
-            "Central Visayas", "Eastern Visayas", "Zamboanga Peninsula",
-            "Northern Mindanao", "Davao Region", "SOCCSKSARGEN", "Caraga", "BARMM",
+            "NCR",
+            "CAR",
+            "Ilocos Region",
+            "Cagayan Valley",
+            "Central Luzon",
+            "CALABARZON",
+            "MIMAROPA",
+            "Bicol Region",
+            "Western Visayas",
+            "Central Visayas",
+            "Eastern Visayas",
+            "Zamboanga Peninsula",
+            "Northern Mindanao",
+            "Davao Region",
+            "SOCCSKSARGEN",
+            "Caraga",
+            "BARMM",
 
             # ALL PROVINCES
-            "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay",
-            "Antique", "Apayao", "Aurora", "Basilan", "Bataan", "Batanes",
-            "Batangas", "Benguet", "Biliran", "Bohol", "Bukidnon", "Bulacan",
-            "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz",
-            "Catanduanes", "Cavite", "Cebu", "Compostela Valley", "Cotabato",
-            "Davao de Oro", "Davao del Norte", "Davao del Sur", "Davao Occidental",
-            "Davao Oriental", "Dinagat Islands", "Eastern Samar", "Guimaras",
-            "Ifugao", "Ilocos Norte", "Ilocos Sur", "Iloilo", "Isabela", "Kalinga",
-            "La Union", "Laguna", "Lanao del Norte", "Lanao del Sur", "Leyte",
-            "Maguindanao", "Marinduque", "Masbate", "Misamis Occidental",
-            "Misamis Oriental", "Mountain Province", "Negros Occidental",
-            "Negros Oriental", "Northern Samar", "Nueva Ecija", "Nueva Vizcaya",
-            "Occidental Mindoro", "Oriental Mindoro", "Palawan", "Pampanga",
-            "Pangasinan", "Quezon", "Quirino", "Rizal", "Romblon", "Samar",
-            "Sarangani", "Siquijor", "Sorsogon", "South Cotabato", "Southern Leyte",
-            "Sultan Kudarat", "Sulu", "Surigao del Norte", "Surigao del Sur",
-            "Tarlac", "Tawi-Tawi", "Zambales", "Zamboanga del Norte",
-            "Zamboanga del Sur", "Zamboanga Sibugay",
+            "Abra",
+            "Agusan del Norte",
+            "Agusan del Sur",
+            "Aklan",
+            "Albay",
+            "Antique",
+            "Apayao",
+            "Aurora",
+            "Basilan",
+            "Bataan",
+            "Batanes",
+            "Batangas",
+            "Benguet",
+            "Biliran",
+            "Bohol",
+            "Bukidnon",
+            "Bulacan",
+            "Cagayan",
+            "Camarines Norte",
+            "Camarines Sur",
+            "Camiguin",
+            "Capiz",
+            "Catanduanes",
+            "Cavite",
+            "Cebu",
+            "Compostela Valley",
+            "Cotabato",
+            "Davao de Oro",
+            "Davao del Norte",
+            "Davao del Sur",
+            "Davao Occidental",
+            "Davao Oriental",
+            "Dinagat Islands",
+            "Eastern Samar",
+            "Guimaras",
+            "Ifugao",
+            "Ilocos Norte",
+            "Ilocos Sur",
+            "Iloilo",
+            "Isabela",
+            "Kalinga",
+            "La Union",
+            "Laguna",
+            "Lanao del Norte",
+            "Lanao del Sur",
+            "Leyte",
+            "Maguindanao",
+            "Marinduque",
+            "Masbate",
+            "Misamis Occidental",
+            "Misamis Oriental",
+            "Mountain Province",
+            "Negros Occidental",
+            "Negros Oriental",
+            "Northern Samar",
+            "Nueva Ecija",
+            "Nueva Vizcaya",
+            "Occidental Mindoro",
+            "Oriental Mindoro",
+            "Palawan",
+            "Pampanga",
+            "Pangasinan",
+            "Quezon",
+            "Quirino",
+            "Rizal",
+            "Romblon",
+            "Samar",
+            "Sarangani",
+            "Siquijor",
+            "Sorsogon",
+            "South Cotabato",
+            "Southern Leyte",
+            "Sultan Kudarat",
+            "Sulu",
+            "Surigao del Norte",
+            "Surigao del Sur",
+            "Tarlac",
+            "Tawi-Tawi",
+            "Zambales",
+            "Zamboanga del Norte",
+            "Zamboanga del Sur",
+            "Zamboanga Sibugay",
 
             # ALL CITIES
-            "Alaminos", "Angeles", "Antipolo", "Bacolod", "Bacoor", "Bago",
-            "Baguio", "Bais", "Balanga", "Batac", "Batangas City", "Bayawan",
-            "Baybay", "Bayugan", "Biñan", "Bislig", "Bogo", "Borongan", "Butuan",
-            "Cabadbaran", "Cabanatuan", "Cabuyao", "Cadiz", "Cagayan de Oro",
-            "Calamba", "Calapan", "Calbayog", "Caloocan", "Candon", "Canlaon",
-            "Carcar", "Catbalogan", "Cauayan", "Cavite City", "Cebu City",
-            "Cotabato City", "Dagupan", "Danao", "Dapitan", "Davao City",
-            "Digos", "Dipolog", "Dumaguete", "El Salvador", "Escalante",
-            "Gapan", "General Santos", "General Trias", "Gingoog", "Guihulngan",
-            "Himamaylan", "Ilagan", "Iligan", "Iloilo City", "Imus", "Iriga",
-            "Isabela City", "Kabankalan", "Kidapawan", "Koronadal", "La Carlota",
-            "Lamitan", "Laoag", "Lapu-Lapu", "Las Piñas", "Legazpi", "Ligao",
-            "Lipa", "Lucena", "Maasin", "Mabalacat", "Makati", "Malabon",
-            "Malaybalay", "Malolos", "Mandaluyong", "Mandaue", "Manila",
-            "Marawi", "Marikina", "Masbate City", "Mati", "Meycauayan",
-            "Muñoz", "Muntinlupa", "Naga", "Navotas", "Olongapo", "Ormoc",
-            "Oroquieta", "Ozamiz", "Pagadian", "Palayan", "Panabo", "Parañaque",
-            "Pasay", "Pasig", "Passi", "Puerto Princesa", "Quezon City",
-            "Roxas", "Sagay", "Samal", "San Carlos", "San Fernando",
-            "San Jose", "San Jose del Monte", "San Juan", "San Pablo",
-            "San Pedro", "Santa Rosa", "Santiago", "Silay", "Sipalay",
-            "Sorsogon City", "Surigao", "Tabaco", "Tabuk", "Tacloban",
-            "Tacurong", "Tagaytay", "Tagbilaran", "Taguig", "Tagum",
-            "Talisay", "Tanauan", "Tandag", "Tangub", "Tanjay", "Tarlac City",
-            "Tayabas", "Toledo", "Trece Martires", "Tuguegarao", "Urdaneta",
-            "Valencia", "Valenzuela", "Victorias", "Vigan", "Zamboanga City",
+            "Alaminos",
+            "Angeles",
+            "Antipolo",
+            "Bacolod",
+            "Bacoor",
+            "Bago",
+            "Baguio",
+            "Bais",
+            "Balanga",
+            "Batac",
+            "Batangas City",
+            "Bayawan",
+            "Baybay",
+            "Bayugan",
+            "Biñan",
+            "Bislig",
+            "Bogo",
+            "Borongan",
+            "Butuan",
+            "Cabadbaran",
+            "Cabanatuan",
+            "Cabuyao",
+            "Cadiz",
+            "Cagayan de Oro",
+            "Calamba",
+            "Calapan",
+            "Calbayog",
+            "Caloocan",
+            "Candon",
+            "Canlaon",
+            "Carcar",
+            "Catbalogan",
+            "Cauayan",
+            "Cavite City",
+            "Cebu City",
+            "Cotabato City",
+            "Dagupan",
+            "Danao",
+            "Dapitan",
+            "Davao City",
+            "Digos",
+            "Dipolog",
+            "Dumaguete",
+            "El Salvador",
+            "Escalante",
+            "Gapan",
+            "General Santos",
+            "General Trias",
+            "Gingoog",
+            "Guihulngan",
+            "Himamaylan",
+            "Ilagan",
+            "Iligan",
+            "Iloilo City",
+            "Imus",
+            "Iriga",
+            "Isabela City",
+            "Kabankalan",
+            "Kidapawan",
+            "Koronadal",
+            "La Carlota",
+            "Lamitan",
+            "Laoag",
+            "Lapu-Lapu",
+            "Las Piñas",
+            "Legazpi",
+            "Ligao",
+            "Lipa",
+            "Lucena",
+            "Maasin",
+            "Mabalacat",
+            "Makati",
+            "Malabon",
+            "Malaybalay",
+            "Malolos",
+            "Mandaluyong",
+            "Mandaue",
+            "Manila",
+            "Marawi",
+            "Marikina",
+            "Masbate City",
+            "Mati",
+            "Meycauayan",
+            "Muñoz",
+            "Muntinlupa",
+            "Naga",
+            "Navotas",
+            "Olongapo",
+            "Ormoc",
+            "Oroquieta",
+            "Ozamiz",
+            "Pagadian",
+            "Palayan",
+            "Panabo",
+            "Parañaque",
+            "Pasay",
+            "Pasig",
+            "Passi",
+            "Puerto Princesa",
+            "Quezon City",
+            "Roxas",
+            "Sagay",
+            "Samal",
+            "San Carlos",
+            "San Fernando",
+            "San Jose",
+            "San Jose del Monte",
+            "San Juan",
+            "San Pablo",
+            "San Pedro",
+            "Santa Rosa",
+            "Santiago",
+            "Silay",
+            "Sipalay",
+            "Sorsogon City",
+            "Surigao",
+            "Tabaco",
+            "Tabuk",
+            "Tacloban",
+            "Tacurong",
+            "Tagaytay",
+            "Tagbilaran",
+            "Taguig",
+            "Tagum",
+            "Talisay",
+            "Tanauan",
+            "Tandag",
+            "Tangub",
+            "Tanjay",
+            "Tarlac City",
+            "Tayabas",
+            "Toledo",
+            "Trece Martires",
+            "Tuguegarao",
+            "Urdaneta",
+            "Valencia",
+            "Valenzuela",
+            "Victorias",
+            "Vigan",
+            "Zamboanga City",
 
             # COMMON AREAS
-            "Luzon", "Visayas", "Mindanao"
+            "Luzon",
+            "Visayas",
+            "Mindanao"
         ]
 
         # Make text case-insensitive but preserve original location names
@@ -230,9 +442,7 @@ class DisasterSentimentBackend:
 
     def get_api_sentiment_analysis(self, text, language):
         """Get sentiment analysis from API with key rotation"""
-        headers = {
-            "Content-Type": "application/json"
-        }
+        headers = {"Content-Type": "application/json"}
 
         prompt = f"""Analyze the sentiment in this disaster-related message (language: {language}):
 "{text}"
@@ -290,13 +500,21 @@ Respond ONLY with a JSON object containing:
 """
 
         payload = {
-            "model": "llama3-70b-8192",
-            "messages": [
-                {"role": "system", "content": "You are a strict disaster sentiment analyzer that only uses 5 specific sentiment categories."},
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.1,
-            "max_tokens": 500
+            "model":
+            "llama3-70b-8192",
+            "messages": [{
+                "role":
+                "system",
+                "content":
+                "You are a strict disaster sentiment analyzer that only uses 5 specific sentiment categories."
+            }, {
+                "role": "user",
+                "content": prompt
+            }],
+            "temperature":
+            0.1,
+            "max_tokens":
+            500
         }
 
         # Try to use the API with retries and key rotation
@@ -305,22 +523,24 @@ Respond ONLY with a JSON object containing:
             api_key = self.groq_api_keys[self.current_api_index]
             headers["Authorization"] = f"Bearer {api_key}"
 
-            logging.info(f"Attempting API request with key {self.current_api_index + 1}/{len(self.groq_api_keys)}")
+            logging.info(
+                f"Attempting API request with key {self.current_api_index + 1}/{len(self.groq_api_keys)}"
+            )
 
             # Make the API request
             import requests
-            response = requests.post(
-                self.api_url,
-                headers=headers,
-                json=payload,
-                timeout=30
-            )
+            response = requests.post(self.api_url,
+                                     headers=headers,
+                                     json=payload,
+                                     timeout=30)
 
             response.raise_for_status()
 
             # Track successful key usage
             self.key_success_count[self.current_api_index] += 1
-            logging.info(f"Successfully used API key {self.current_api_index + 1} (successes: {self.key_success_count[self.current_api_index]})")
+            logging.info(
+                f"Successfully used API key {self.current_api_index + 1} (successes: {self.key_success_count[self.current_api_index]})"
+            )
 
             # Parse the response
             api_response = response.json()
@@ -338,7 +558,8 @@ Respond ONLY with a JSON object containing:
                     result = {
                         "sentiment": "Neutral",
                         "confidence": 0.7,
-                        "explanation": "Determined by fallback rule-based analysis",
+                        "explanation":
+                        "Determined by fallback rule-based analysis",
                         "disasterType": self.extract_disaster_type(text),
                         "location": self.extract_location(text),
                         "language": language
@@ -369,7 +590,8 @@ Respond ONLY with a JSON object containing:
                 result["language"] = language
 
             # Rotate to next key for next request
-            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+            self.current_api_index = (self.current_api_index + 1) % len(
+                self.groq_api_keys)
 
             return result
 
@@ -378,7 +600,8 @@ Respond ONLY with a JSON object containing:
 
             # Mark the current key as failed and try a different key
             self.failed_keys.add(self.current_api_index)
-            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+            self.current_api_index = (self.current_api_index + 1) % len(
+                self.groq_api_keys)
 
             # Add delay after error
             time.sleep(self.retry_delay)
@@ -405,8 +628,11 @@ Respond ONLY with a JSON object containing:
                     df = pd.read_csv(file_path, encoding="latin1")
                     logging.info("Successfully read CSV with latin1 encoding")
                 except Exception as e2:
-                    df = pd.read_csv(file_path, encoding="latin1", on_bad_lines="skip")
-                    logging.info("Read CSV with latin1 encoding and skipping bad lines")
+                    df = pd.read_csv(file_path,
+                                     encoding="latin1",
+                                     on_bad_lines="skip")
+                    logging.info(
+                        "Read CSV with latin1 encoding and skipping bad lines")
 
             # Initialize results
             processed_results = []
@@ -420,11 +646,16 @@ Respond ONLY with a JSON object containing:
 
             # Analyze column headers to find column types
             column_matches = {
-                "text": ["text", "content", "message", "tweet", "post", "Text"],
+                "text":
+                ["text", "content", "message", "tweet", "post", "Text"],
                 "location": ["location", "place", "city", "Location"],
                 "source": ["source", "platform", "Source"],
-                "disaster": ["disaster", "type", "Disaster", "disasterType", "disaster_type"],
-                "timestamp": ["timestamp", "date", "time", "Timestamp", "created_at"],
+                "disaster": [
+                    "disaster", "type", "Disaster", "disasterType",
+                    "disaster_type"
+                ],
+                "timestamp":
+                ["timestamp", "date", "time", "Timestamp", "created_at"],
                 "sentiment": ["sentiment", "emotion", "Sentiment", "feeling"],
                 "confidence": ["confidence", "score", "Confidence"],
                 "language": ["language", "lang", "Language"]
@@ -436,7 +667,9 @@ Respond ONLY with a JSON object containing:
             # First, try to identify columns by exact header match
             for col_type, possible_names in column_matches.items():
                 for col in df.columns:
-                    if col.lower() in [name.lower() for name in possible_names]:
+                    if col.lower() in [
+                            name.lower() for name in possible_names
+                    ]:
                         identified_columns[col_type] = col
                         logging.info(f"Found {col_type} column: {col}")
                         break
@@ -444,7 +677,8 @@ Respond ONLY with a JSON object containing:
             # If no text column found by header name, use the first column
             if "text" not in identified_columns and len(df.columns) > 0:
                 identified_columns["text"] = df.columns[0]
-                logging.info(f"Using first column '{df.columns[0]}' as text column")
+                logging.info(
+                    f"Using first column '{df.columns[0]}' as text column")
 
             # Create a "text" column if it doesn't exist yet
             if "text" not in df.columns and "text" in identified_columns:
@@ -455,7 +689,10 @@ Respond ONLY with a JSON object containing:
             sample_rows = min(5, len(df))
 
             # Only try to identify missing columns from row content
-            for col_type in ["location", "source", "disaster", "timestamp", "sentiment", "language"]:
+            for col_type in [
+                    "location", "source", "disaster", "timestamp", "sentiment",
+                    "language"
+            ]:
                 if col_type not in identified_columns:
                     # Check each column's content to see if it matches expected patterns
                     for col in df.columns:
@@ -464,59 +701,100 @@ Respond ONLY with a JSON object containing:
                             continue
 
                         # Sample values
-                        sample_values = df[col].head(sample_rows).astype(str).tolist()
+                        sample_values = df[col].head(sample_rows).astype(
+                            str).tolist()
 
                         # Check if column values match patterns for this type
                         match_found = False
 
                         if col_type == "location":
                             # Look for location names
-                            location_indicators = ["city", "province", "region", "street", "manila", "cebu", "davao"]
-                            if any(any(ind in str(val).lower() for ind in location_indicators) for val in sample_values):
+                            location_indicators = [
+                                "city", "province", "region", "street",
+                                "manila", "cebu", "davao"
+                            ]
+                            if any(
+                                    any(ind in str(val).lower()
+                                        for ind in location_indicators)
+                                    for val in sample_values):
                                 identified_columns["location"] = col
                                 match_found = True
 
                         elif col_type == "source":
                             # Look for social media or source names
-                            source_indicators = ["twitter", "facebook", "instagram", "x", "social media"]
-                            if any(any(ind in str(val).lower() for ind in source_indicators) for val in sample_values):
+                            source_indicators = [
+                                "twitter", "facebook", "instagram", "x",
+                                "social media"
+                            ]
+                            if any(
+                                    any(ind in str(val).lower()
+                                        for ind in source_indicators)
+                                    for val in sample_values):
                                 identified_columns["source"] = col
                                 match_found = True
 
                         elif col_type == "disaster":
                             # Look for disaster keywords
-                            disaster_indicators = ["flood", "earthquake", "typhoon", "fire", "landslide", "volcanic erruption"]
-                            if any(any(ind in str(val).lower() for ind in disaster_indicators) for val in sample_values):
+                            disaster_indicators = [
+                                "flood", "earthquake", "typhoon", "fire",
+                                "landslide", "volcanic erruption"
+                            ]
+                            if any(
+                                    any(ind in str(val).lower()
+                                        for ind in disaster_indicators)
+                                    for val in sample_values):
                                 identified_columns["disaster"] = col
                                 match_found = True
 
                         elif col_type == "timestamp":
                             # Check for date/time patterns
-                            date_patterns = [r'\d{4}-\d{2}-\d{2}', r'\d{2}/\d{2}/\d{4}', r'\d{2}:\d{2}']
-                            if any(any(re.search(pattern, str(val)) for pattern in date_patterns) for val in sample_values):
+                            date_patterns = [
+                                r'\d{4}-\d{2}-\d{2}', r'\d{2}/\d{2}/\d{4}',
+                                r'\d{2}:\d{2}'
+                            ]
+                            if any(
+                                    any(
+                                        re.search(pattern, str(val))
+                                        for pattern in date_patterns)
+                                    for val in sample_values):
                                 identified_columns["timestamp"] = col
                                 match_found = True
 
                         elif col_type == "sentiment":
                             # Look for sentiment keywords
-                            sentiment_indicators = ["positive", "negative", "neutral", "fear", "panic", "anxiety", "resilience"]
-                            if any(any(ind in str(val).lower() for ind in sentiment_indicators) for val in sample_values):
+                            sentiment_indicators = [
+                                "positive", "negative", "neutral", "fear",
+                                "panic", "anxiety", "resilience"
+                            ]
+                            if any(
+                                    any(ind in str(val).lower()
+                                        for ind in sentiment_indicators)
+                                    for val in sample_values):
                                 identified_columns["sentiment"] = col
                                 match_found = True
 
                         elif col_type == "language":
                             # Look for language names - only English and Filipino
-                            language_indicators = ["english", "filipino", "tagalog", "en", "tl", "fil"]
-                            if any(any(ind == str(val).lower() for ind in language_indicators) for val in sample_values):
+                            language_indicators = [
+                                "english", "filipino", "tagalog", "en", "tl",
+                                "fil"
+                            ]
+                            if any(
+                                    any(ind == str(val).lower()
+                                        for ind in language_indicators)
+                                    for val in sample_values):
                                 identified_columns["language"] = col
                                 match_found = True
 
                         if match_found:
-                            logging.info(f"Identified {col_type} column from content: {col}")
+                            logging.info(
+                                f"Identified {col_type} column from content: {col}"
+                            )
                             break
 
             # Map identified columns to variable names
-            text_col = identified_columns.get("text", df.columns[0] if len(df.columns) > 0 else None)
+            text_col = identified_columns.get(
+                "text", df.columns[0] if len(df.columns) > 0 else None)
             location_col = identified_columns.get("location")
             source_col = identified_columns.get("source")
             disaster_col = identified_columns.get("disaster")
@@ -534,7 +812,9 @@ Respond ONLY with a JSON object containing:
             for i, row in df.head(sample_size).iterrows():
                 try:
                     # Calculate percentage progress (0-100)
-                    progress_percentage = int((i / sample_size) * 90) + 5  # Starts at 5%, goes to 95%
+                    progress_percentage = int(
+                        (i / sample_size) *
+                        90) + 5  # Starts at 5%, goes to 95%
 
                     # Report progress with percentage
                     report_progress(
@@ -548,25 +828,41 @@ Respond ONLY with a JSON object containing:
                         continue
 
                     # Get metadata from columns
-                    timestamp = str(row.get(timestamp_col, datetime.now().isoformat())) if timestamp_col else datetime.now().isoformat()
-                    source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
+                    timestamp = str(
+                        row.get(timestamp_col,
+                                datetime.now().isoformat())
+                    ) if timestamp_col else datetime.now().isoformat()
+                    source = str(
+                        row.get(source_col,
+                                "CSV Import")) if source_col else "CSV Import"
 
                     # Extract preset location and disaster type from CSV
-                    csv_location = str(row.get(location_col, "")) if location_col else None
-                    if csv_location and csv_location.lower() in ["nan", "none", ""]:
+                    csv_location = str(row.get(location_col,
+                                               "")) if location_col else None
+                    if csv_location and csv_location.lower() in [
+                            "nan", "none", ""
+                    ]:
                         csv_location = None
 
-                    csv_disaster = str(row.get(disaster_col, "")) if disaster_col else None
-                    if csv_disaster and csv_disaster.lower() in ["nan", "none", ""]:
+                    csv_disaster = str(row.get(disaster_col,
+                                               "")) if disaster_col else None
+                    if csv_disaster and csv_disaster.lower() in [
+                            "nan", "none", ""
+                    ]:
                         csv_disaster = None
 
                     # Check if language is specified in the CSV
-                    csv_language = str(row.get(language_col, "")) if language_col else None
-                    if csv_language and csv_language.lower() in ["nan", "none", ""]:
+                    csv_language = str(row.get(language_col,
+                                               "")) if language_col else None
+                    if csv_language and csv_language.lower() in [
+                            "nan", "none", ""
+                    ]:
                         csv_language = None
                     elif csv_language:
                         # Simplify language to just English or Filipino
-                        if csv_language.lower() in ["tagalog", "tl", "fil", "filipino"]:
+                        if csv_language.lower() in [
+                                "tagalog", "tl", "fil", "filipino"
+                        ]:
                             csv_language = "Filipino"
                         else:
                             csv_language = "English"
@@ -576,15 +872,27 @@ Respond ONLY with a JSON object containing:
 
                     # Construct standardized result
                     processed_results.append({
-                        "text": text,
-                        "timestamp": timestamp,
-                        "source": source,
-                        "language": csv_language if csv_language else analysis_result.get("language", "English"),
-                        "sentiment": analysis_result.get("sentiment", "Neutral"),
-                        "confidence": analysis_result.get("confidence", 0.7),
-                        "explanation": analysis_result.get("explanation", ""),
-                        "disasterType": csv_disaster if csv_disaster else analysis_result.get("disasterType", "Not Specified"),
-                        "location": csv_location if csv_location else analysis_result.get("location")
+                        "text":
+                        text,
+                        "timestamp":
+                        timestamp,
+                        "source":
+                        source,
+                        "language":
+                        csv_language if csv_language else analysis_result.get(
+                            "language", "English"),
+                        "sentiment":
+                        analysis_result.get("sentiment", "Neutral"),
+                        "confidence":
+                        analysis_result.get("confidence", 0.7),
+                        "explanation":
+                        analysis_result.get("explanation", ""),
+                        "disasterType":
+                        csv_disaster if csv_disaster else analysis_result.get(
+                            "disasterType", "Not Specified"),
+                        "location":
+                        csv_location
+                        if csv_location else analysis_result.get("location")
                     })
 
                     # Add delay between records to avoid rate limits
@@ -599,9 +907,13 @@ Respond ONLY with a JSON object containing:
 
             # Log stats
             loc_count = sum(1 for r in processed_results if r.get("location"))
-            disaster_count = sum(1 for r in processed_results if r.get("disasterType") != "Not Specified")
-            logging.info(f"Records with location: {loc_count}/{len(processed_results)}")
-            logging.info(f"Records with disaster type: {disaster_count}/{len(processed_results)}")
+            disaster_count = sum(1 for r in processed_results
+                                 if r.get("disasterType") != "Not Specified")
+            logging.info(
+                f"Records with location: {loc_count}/{len(processed_results)}")
+            logging.info(
+                f"Records with disaster type: {disaster_count}/{len(processed_results)}"
+            )
 
             return processed_results
 
@@ -614,7 +926,8 @@ Respond ONLY with a JSON object containing:
         logging.info("Generating metrics from sentiment analysis")
 
         # Calculate average confidence
-        avg_confidence = sum(r.get("confidence", 0.7) for r in results) / max(1, len(results))
+        avg_confidence = sum(r.get("confidence", 0.7)
+                             for r in results) / max(1, len(results))
 
         # Generate metrics
         metrics = {
@@ -625,6 +938,7 @@ Respond ONLY with a JSON object containing:
         }
 
         return metrics
+
 
 def main():
     try:
@@ -665,18 +979,23 @@ def main():
                 if processed_results and len(processed_results) > 0:
                     # Calculate metrics
                     metrics = backend.calculate_real_metrics(processed_results)
-                    print(json.dumps({"results": processed_results, "metrics": metrics}))
+                    print(
+                        json.dumps({
+                            "results": processed_results,
+                            "metrics": metrics
+                        }))
                     sys.stdout.flush()
                 else:
-                    print(json.dumps({
-                        "results": [],
-                        "metrics": {
-                            "accuracy": 0.0,
-                            "precision": 0.0,
-                            "recall": 0.0,
-                            "f1Score": 0.0
-                        }
-                    }))
+                    print(
+                        json.dumps({
+                            "results": [],
+                            "metrics": {
+                                "accuracy": 0.0,
+                                "precision": 0.0,
+                                "recall": 0.0,
+                                "f1Score": 0.0
+                            }
+                        }))
                     sys.stdout.flush()
 
             except Exception as e:
@@ -709,6 +1028,7 @@ def main():
         print(json.dumps(error_response))
         sys.stdout.flush()
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
