@@ -46,7 +46,7 @@ export class PythonService {
   public async processCSV(
     fileBuffer: Buffer, 
     originalFilename: string,
-    onProgress?: (processed: number, stage: string) => void
+    onProgress?: (processed: number, stage: string, total?: number) => void
   ): Promise<{
     data: ProcessCSVResult,
     storedFilename: string,
@@ -119,7 +119,7 @@ export class PythonService {
   private runPythonScript(
     filePath: string = '', 
     textToAnalyze: string = '',
-    onProgress?: (processed: number, stage: string) => void
+    onProgress?: (processed: number, stage: string, total?: number) => void
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       const args = [this.scriptPath];
@@ -149,7 +149,7 @@ export class PythonService {
           if (now - lastProgressUpdate >= 100) { // Update every 100ms max
             try {
               const progressData = JSON.parse(dataStr.split('PROGRESS:')[1]);
-              onProgress(progressData.processed, progressData.stage);
+              onProgress(progressData.processed, progressData.stage, progressData.total);
               lastProgressUpdate = now;
             } catch (e) {
               // Log but don't fail on progress parsing errors

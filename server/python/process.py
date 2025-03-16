@@ -822,10 +822,11 @@ Respond ONLY with a JSON object containing:
                         (i / sample_size) *
                         90) + 5  # Starts at 5%, goes to 95%
 
-                    # Report progress with percentage
+                    # Report progress with percentage and totals
                     report_progress(
                         progress_percentage,
-                        f"Analyzing record {i+1} of {sample_size} ({progress_percentage}% complete)"
+                        f"Analyzing record {i+1} of {sample_size} ({progress_percentage}% complete)",
+                        total_records
                     )
 
                     # Extract text
@@ -908,8 +909,8 @@ Respond ONLY with a JSON object containing:
                 except Exception as e:
                     logging.error(f"Error processing row {i}: {str(e)}")
 
-            # Report completion
-            report_progress(100, "Analysis complete!")
+            # Report completion with total records
+            report_progress(100, "Analysis complete!", total_records)
 
             # Log stats
             loc_count = sum(1 for r in processed_results if r.get("location"))
