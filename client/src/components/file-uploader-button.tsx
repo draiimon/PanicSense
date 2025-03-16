@@ -51,7 +51,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     setIsUploading(true);
     updateUploadProgress({
       status: 'uploading',
-      message: 'Counting total records...',
+      message: 'Preparing file for analysis...',
       percentage: 0,
       processedRecords: 0,
       totalRecords: 0
@@ -62,7 +62,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       reader.onload = async (e) => {
         try {
           const text = e.target?.result as string;
-          const lines = text.split('\n').filter(line => line.trim()).length;
+          const lines = text.split('\n').length - 1;
 
           // Validate minimum content
           if (lines < 2) {
@@ -70,29 +70,25 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           }
 
           updateUploadProgress({ 
-            totalRecords: lines - 1, // Subtract header row
-            message: 'Starting sentiment analysis...',
-            percentage: 5
+            totalRecords: lines,
+            message: 'Starting analysis...' 
           });
 
           const result = await uploadCSV(file, (progress) => {
-            // Handle progress updates
-            if (progress.processed !== undefined) {
-              const processedRecords = progress.processed;
-              const totalRecords = lines - 1; // Subtract header row
-              const percentage = Math.min(Math.round((processedRecords / totalRecords) * 90) + 5, 95);
+            const processedRecords = progress.processed || 0;
+            const totalRecords = lines || 100;
+            const percentage = Math.min(Math.round((processedRecords / totalRecords) * 100), 100);
 
-              updateUploadProgress({
-                processedRecords,
-                totalRecords,
-                percentage,
-                message: progress.stage || `Analyzing records: ${processedRecords}/${totalRecords} (${percentage}%)`,
-                status: progress.error ? 'error' : 'uploading'
-              });
+            updateUploadProgress({
+              processedRecords,
+              totalRecords,
+              percentage,
+              message: progress.stage || `Processing records... ${processedRecords}/${totalRecords}`,
+              status: progress.error ? 'error' : 'uploading'
+            });
 
-              if (progress.error) {
-                throw new Error(progress.error);
-              }
+            if (progress.error) {
+              throw new Error(progress.error);
             }
           });
 
@@ -102,15 +98,13 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
           updateUploadProgress({
             status: 'success',
-            message: `Successfully analyzed ${result.posts.length} records!`,
-            percentage: 100,
-            processedRecords: result.posts.length,
-            totalRecords: lines - 1
+            message: 'Analysis Complete!',
+            percentage: 100
           });
 
           toast({
             title: 'Analysis Complete',
-            description: `Successfully analyzed ${result.posts.length} records with sentiment data`,
+            description: `Successfully analyzed ${result.posts.length} posts with sentiment data`,
             duration: 5000,
           });
 
@@ -157,9 +151,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     updateUploadProgress({
       status: 'error',
       message: error instanceof Error ? error.message : 'Upload failed',
-      percentage: 0,
-      processedRecords: 0,
-      totalRecords: 0
+      percentage: 0
     });
 
     toast({
@@ -192,13 +184,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       `}
     >
       <Upload className="h-5 w-5 mr-2" />
-      {isUploading ? (
-        <span>
-          Analyzing... {uploadProgress.processedRecords}/{uploadProgress.totalRecords}
-        </span>
-      ) : (
-        'Upload Dataset'
-      )}
+      {isUploading ? 'Analyzing...' : 'Upload Dataset'}
       <input 
         type="file" 
         className="hidden" 

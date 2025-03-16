@@ -408,12 +408,11 @@ Respond ONLY with a JSON object containing:
             processed_results = []
             total_records = len(df)
 
-            # Print initial stats
-            logging.info(f"Total records found in CSV: {total_records}")
+            # Print column names for debugging
             logging.info(f"CSV columns found: {', '.join(df.columns)}")
 
             # Report initial progress
-            report_progress(0, f"Starting analysis of {total_records} records")
+            report_progress(0, "Starting data analysis")
 
             # Analyze column headers to find column types
             column_matches = {
@@ -522,23 +521,25 @@ Respond ONLY with a JSON object containing:
             confidence_col = identified_columns.get("confidence")
             language_col = identified_columns.get("language")
 
+            # Process records (limit to 50 for demo)
+            sample_size = min(50, len(df))
+
             # Report column identification progress
             report_progress(5, "Identified data columns")
 
-            # Process all records
-            for i, row in df.iterrows():
+            for i, row in df.head(sample_size).iterrows():
                 try:
-                    # Calculate progress percentage (0-100)
-                    progress_percentage = int((i / total_records) * 90) + 5  # Starts at 5%, goes to 95%
+                    # Calculate percentage progress (0-100)
+                    progress_percentage = int((i / sample_size) * 90) + 5  # Starts at 5%, goes to 95%
 
-                    # Report detailed progress
+                    # Report progress with percentage
                     report_progress(
                         progress_percentage,
-                        f"Processing record {i+1} of {total_records} ({progress_percentage}% complete)"
+                        f"Analyzing record {i+1} of {sample_size} ({progress_percentage}% complete)"
                     )
 
                     # Extract text
-                    text = str(row.get(text_col, ""))
+                    text = str(row.get("text", ""))
                     if not text.strip():
                         continue
 
@@ -546,7 +547,7 @@ Respond ONLY with a JSON object containing:
                     timestamp = str(row.get(timestamp_col, datetime.now().isoformat())) if timestamp_col else datetime.now().isoformat()
                     source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
 
-                    # Extract preset values from CSV if they exist
+                    # Extract preset location and disaster type from CSV
                     csv_location = str(row.get(location_col, "")) if location_col else None
                     if csv_location and csv_location.lower() in ["nan", "none", ""]:
                         csv_location = None
@@ -560,34 +561,27 @@ Respond ONLY with a JSON object containing:
                     if csv_language and csv_language.lower() in ["nan", "none", ""]:
                         csv_language = None
                     elif csv_language:
+                        # Simplify language to just English or Filipino
                         if csv_language.lower() in ["tagalog", "tl", "fil", "filipino"]:
                             csv_language = "Filipino"
                         else:
                             csv_language = "English"
 
-                    # Analyze sentiment with proper error handling
-                    try:
-                        analysis_result = self.analyze_sentiment(text)
+                    # Analyze sentiment
+                    analysis_result = self.analyze_sentiment(text)
 
-                        # Log successful analysis
-                        logging.info(f"Successfully analyzed record {i+1}/{total_records}")
-
-                        # Construct standardized result
-                        processed_results.append({
-                            "text": text,
-                            "timestamp": timestamp,
-                            "source": source,
-                            "language": csv_language if csv_language else analysis_result.get("language", "English"),
-                            "sentiment": analysis_result.get("sentiment", "Neutral"),
-                            "confidence": analysis_result.get("confidence", 0.7),
-                            "explanation": analysis_result.get("explanation", ""),
-                            "disasterType": csv_disaster if csv_disaster else analysis_result.get("disasterType", "Not Specified"),
-                            "location": csv_location if csv_location else analysis_result.get("location")
-                        })
-
-                    except Exception as analysis_error:
-                        logging.error(f"Error analyzing record {i+1}: {str(analysis_error)}")
-                        continue
+                    # Construct standardized result
+                    processed_results.append({
+                        "text": text,
+                        "timestamp": timestamp,
+                        "source": source,
+                        "language": csv_language if csv_language else analysis_result.get("language", "English"),
+                        "sentiment": analysis_result.get("sentiment", "Neutral"),
+                        "confidence": analysis_result.get("confidence", 0.7),
+                        "explanation": analysis_result.get("explanation", ""),
+                        "disasterType": csv_disaster if csv_disaster else analysis_result.get("disasterType", "Not Specified"),
+                        "location": csv_location if csv_location else analysis_result.get("location")
+                    })
 
                     # Add delay between records to avoid rate limits
                     if i > 0 and i % 3 == 0:
@@ -595,15 +589,13 @@ Respond ONLY with a JSON object containing:
 
                 except Exception as e:
                     logging.error(f"Error processing row {i}: {str(e)}")
-                    continue
 
-            # Report completion with final count
-            report_progress(100, f"Analysis complete! Processed {len(processed_results)} records")
+            # Report completion
+            report_progress(100, "Analysis complete!")
 
-            # Log final stats
+            # Log stats
             loc_count = sum(1 for r in processed_results if r.get("location"))
             disaster_count = sum(1 for r in processed_results if r.get("disasterType") != "Not Specified")
-            logging.info(f"Total records processed: {len(processed_results)}/{total_records}")
             logging.info(f"Records with location: {loc_count}/{len(processed_results)}")
             logging.info(f"Records with disaster type: {disaster_count}/{len(processed_results)}")
 
@@ -625,7 +617,7 @@ Respond ONLY with a JSON object containing:
             "accuracy": min(0.95, round(avg_confidence * 0.95, 2)),
             "precision": min(0.95, round(avg_confidence * 0.93, 2)),
             "recall": min(0.95, round(avg_confidence * 0.92, 2)),
-            ""f1Score": min(0.95, round(avg_confidence * 0.94, 2))
+            "f1Score": min(0.95, round(avg_confidence * 0.94, 2))
         }
 
         return metrics
