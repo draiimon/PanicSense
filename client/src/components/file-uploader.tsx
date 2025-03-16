@@ -16,16 +16,28 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
       {/* Upload Button */}
       <FileUploaderButton onSuccess={onSuccess} className={className} />
 
-      {/* Global Progress Indicator - Always rendered from the same place */}
+      {/* Global Progress Indicator */}
       <AnimatePresence>
         {isUploading && (
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed inset-0 flex items-center justify-center z-[9999] bg-black/20 backdrop-blur-sm"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 flex items-center justify-center z-[9999]"
           >
-            <div className="bg-white/95 backdrop-blur-lg rounded-xl border border-blue-100 p-6 max-w-md w-full mx-4 shadow-2xl">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: 20 }}
+              animate={{ y: 0 }}
+              exit={{ y: 20 }}
+              className="relative bg-white/95 backdrop-blur-lg rounded-xl border border-blue-100 p-6 max-w-md w-full mx-4 shadow-2xl"
+            >
               <div className="flex items-center mb-4">
                 {uploadProgress.status === "uploading" && (
                   <Loader2 className="animate-spin h-5 w-5 mr-2 text-blue-600" />
@@ -62,7 +74,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
                             : "bg-blue-500"
                       }
                     `}
-                    initial={{ width: 0 }}
+                    initial={{ width: "0%" }}
                     animate={{ width: `${uploadProgress.percentage}%` }}
                     transition={{ duration: 0.3 }}
                   />
@@ -73,25 +85,22 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
                   className="mt-4 flex flex-col items-center justify-center"
                 >
-                  {/* Counter in larger format with better visibility */}
                   <div className="text-4xl font-bold text-blue-700 mb-2 tracking-tight tabular-nums">
                     {uploadProgress.processedRecords}/{uploadProgress.totalRecords}
                   </div>
-                  
-                  {/* Percentage and label */}
+
                   <div className="flex justify-between w-full text-sm text-slate-700">
-                    <span>
-                      Records processed
-                    </span>
+                    <span>Records processed</span>
                     <span className="font-semibold">
                       {uploadProgress.percentage}%
                     </span>
                   </div>
                 </motion.div>
               )}
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

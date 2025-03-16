@@ -69,7 +69,7 @@ export default function About() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
           className="w-full max-w-6xl mx-auto"
         >
           <h2 className="text-4xl font-bold text-center mb-12 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
@@ -80,22 +80,24 @@ export default function About() {
               opts={{
                 align: "start",
                 loop: true,
+                autoplay: true,
+                delay: 5000,
               }}
               className="w-full"
             >
               <CarouselContent>
                 {founders.map((founder, index) => (
-                  <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3 pl-4">
+                  <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className="group relative bg-white/5 backdrop-blur-xl p-6 h-full border-0 hover:bg-white/10 transition-all duration-300"
+                      className="group relative bg-white/5 backdrop-blur-xl p-6 rounded-xl h-full border-0 hover:bg-white/10 transition-all duration-300"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
                       <div className="relative">
-                        <div className="aspect-square bg-gradient-to-br from-blue-600/20 to-purple-600/20 flex items-center justify-center mb-4">
-                          <img src={founder.image} alt={founder.name} className="w-full h-full object-cover"/>
+                        <div className="aspect-square bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-xl flex items-center justify-center mb-4 overflow-hidden">
+                          <img src={founder.image} alt={founder.name} className="w-full h-full object-cover rounded-xl"/>
                         </div>
                         <h3 className="text-xl font-bold text-blue-300 mb-2">{founder.name}</h3>
                         <p className="text-blue-200 mb-3">{founder.role}</p>
@@ -106,10 +108,10 @@ export default function About() {
                 ))}
               </CarouselContent>
               <div className="absolute -left-12 top-1/2 -translate-y-1/2 z-10">
-                <CarouselPrevious className="bg-white/10 border-0 text-white hover:bg-white/20" />
+                <CarouselPrevious className="bg-white/10 hover:bg-white/20 border-0 text-white rounded-full" />
               </div>
               <div className="absolute -right-12 top-1/2 -translate-y-1/2 z-10">
-                <CarouselNext className="bg-white/10 border-0 text-white hover:bg-white/20" />
+                <CarouselNext className="bg-white/10 hover:bg-white/20 border-0 text-white rounded-full" />
               </div>
             </Carousel>
           </div>
