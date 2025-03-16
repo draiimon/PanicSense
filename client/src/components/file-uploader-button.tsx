@@ -73,26 +73,34 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           updateUploadProgress({ 
             totalRecords: lines,
             processedRecords: 0,
-            message: 'Starting analysis...' 
+            message: 'Starting analysis...',
+            status: 'uploading',
+            percentage: 0
           });
 
-          // Wait a moment for UI to update
-          await new Promise(resolve => setTimeout(resolve, 100));
-
           const result = await uploadCSV(file, (progress) => {
-            // Ensure we have numeric values for processed and total
-            const processedRecords = Number(progress.processed) || 0;
+            // Extract the current record number from the stage message if available
+            let currentRecord = 0;
+            const recordMatch = progress.stage?.match(/record (\d+) of (\d+)/i);
+
+            if (recordMatch) {
+              currentRecord = parseInt(recordMatch[1]);
+            } else {
+              // Fallback to the processed value if no match
+              currentRecord = Number(progress.processed) || 0;
+            }
+
             const totalRecords = Number(progress.total) || lines;
 
-            // Ensure percentage calculation is accurate
-            const percentage = Math.min(Math.round((processedRecords / totalRecords) * 100), 100);
+            // Calculate percentage based on the current record
+            const percentage = Math.min(Math.round((currentRecord / totalRecords) * 100), 100);
 
-            // Update progress immediately
+            // Update progress with the extracted record number
             updateUploadProgress({
-              processedRecords,
+              processedRecords: currentRecord,
               totalRecords,
               percentage,
-              message: progress.stage || `Processing records... ${processedRecords}/${totalRecords}`,
+              message: progress.stage || `Processing record ${currentRecord} of ${totalRecords}`,
               status: progress.error ? 'error' : 'uploading'
             });
 
@@ -105,17 +113,13 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             throw new Error('Invalid response from server');
           }
 
-          // Get the final count values
-          const finalTotalRecords = lines || uploadProgress.totalRecords;
-          const finalProcessedRecords = finalTotalRecords; // When complete, processed = total
-          
+          // Show completion state
           updateUploadProgress({
             status: 'success',
             message: 'Analysis Complete!',
             percentage: 100,
-            // Make sure the counts show the final state (all records processed)
-            processedRecords: finalProcessedRecords,
-            totalRecords: finalTotalRecords
+            processedRecords: lines,
+            totalRecords: lines
           });
 
           toast({
@@ -133,10 +137,9 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             onSuccess(result);
           }
 
-          // Reset upload state after a much longer delay to ensure progress is visible
+          // Reset upload state after a delay
           progressTimeout.current = setTimeout(() => {
             resetUploadProgress();
-            // Only reset the isUploading state after the progress UI has been visible for a while
             setTimeout(() => {
               setIsUploading(false);
             }, 3000);
@@ -157,9 +160,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     } finally {
       // Reset file input
       event.target.value = '';
-      
-      // We'll let the success or error handlers manage the isUploading state
-      // Don't reset it here as it could interrupt the loading UI
     }
   };
 
@@ -169,7 +169,9 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     updateUploadProgress({
       status: 'error',
       message: error instanceof Error ? error.message : 'Upload failed',
-      percentage: 0
+      percentage: 0,
+      processedRecords: 0,
+      totalRecords: 0
     });
 
     toast({
@@ -181,7 +183,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
     progressTimeout.current = setTimeout(() => {
       resetUploadProgress();
-      // Keep the error visible for longer
       setTimeout(() => {
         setIsUploading(false);
       }, 5000);
