@@ -130,8 +130,8 @@ export default function Dashboard() {
                 <span>{totalPosts} Data Points</span>
               </div>
               <div className="flex items-center text-xs bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white">
-                <BrainCircuit className="h-3.5 w-3.5 mr-1.5" />
-                <span>AI-powered Analysis</span>
+                <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                <span>Sentiment Analysis</span>
               </div>
               <div className="flex items-center text-xs bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white">
                 <Globe2 className="h-3.5 w-3.5 mr-1.5" />
@@ -251,7 +251,7 @@ export default function Dashboard() {
                 </CardDescription>
               </CardHeader>
               
-              <div className="h-[500px] overflow-y-auto custom-scrollbar">
+              <div>
                 <AffectedAreasCard 
                   sentimentPosts={filteredPosts} 
                   isLoading={isLoadingSentimentPosts}

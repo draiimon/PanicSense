@@ -8,7 +8,6 @@ import {
   BarChart, 
   LineChart, 
   BarChart3, 
-  BrainCircuit,
   Info
 } from "lucide-react";
 

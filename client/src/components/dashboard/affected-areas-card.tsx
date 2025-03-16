@@ -29,7 +29,7 @@ interface AffectedArea {
 
 // Get disaster type icon based on type
 function getDisasterIcon(type: string | null) {
-  if (!type) return <AlertTriangle className="h-4 w-4 text-gray-500" />;
+  if (!type) return <MapPin className="h-4 w-4 text-gray-500" />;
   
   switch (type.toLowerCase()) {
     case 'flood':
@@ -39,14 +39,14 @@ function getDisasterIcon(type: string | null) {
     case 'typhoon':
       return <Wind className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
     case 'earthquake':
-      return <Mountain className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+      return <MapPinned className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
     case 'volcanic eruption':
     case 'volcano':
-      return <AlertTriangle className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+      return <Mountain className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
     case 'landslide':
-      return <MapPinned className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+      return <Mountain className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
     default:
-      return <AlertTriangle className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+      return <MapPin className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
   }
 }
 
@@ -121,7 +121,7 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
         };
       })
       .sort((a, b) => b.impactLevel - a.impactLevel)
-      .slice(0, 15); // Show more areas
+      .slice(0, 5); // Show only 5 areas to avoid scrolling
 
     setAffectedAreas(sortedAreas);
   }, [sentimentPosts]);
@@ -131,7 +131,7 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
       <AnimatePresence>
         <div className="space-y-4">
           {affectedAreas.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-[400px] py-8">
+            <div className="flex flex-col items-center justify-center h-[300px] py-8">
               <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
                 <MapPin className="h-7 w-7 text-blue-400" />
               </div>
