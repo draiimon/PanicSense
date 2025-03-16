@@ -409,12 +409,33 @@ class DisasterSentimentBackend:
             "Mindanao"
         ]
 
-        # Make text case-insensitive but preserve original location names
+        # Make text case-insensitive and normalize locations
         text_lower = text.lower()
+        
+        # Location name standardization mappings
+        location_standards = {
+            'imus': 'Imus, Cavite',
+            'bacoor': 'Bacoor, Cavite',
+            'dasma': 'Dasmariñas, Cavite',
+            'dasmarinas': 'Dasmariñas, Cavite',
+            'cavit': 'Cavite',
+            'kavit': 'Cavite',
+            'qc': 'Quezon City',
+            'maynila': 'Manila',
+            'ncr': 'Metro Manila',
+            'mm': 'Metro Manila',
+            'cdo': 'Cagayan de Oro',
+            'gensan': 'General Santos'
+        }
+        
+        # First check for specific location normalizations
+        for raw_loc, standard_loc in location_standards.items():
+            if raw_loc in text_lower:
+                return standard_loc
+                
+        # Then check standard locations
         for location in ph_locations:
-            # Check if the location appears in the text (case-insensitive)
             if location.lower() in text_lower:
-                # Return ONLY the location name exactly as it appears in our list
                 return location
 
         # If no valid Philippine location is found, return None
