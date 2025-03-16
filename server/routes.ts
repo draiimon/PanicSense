@@ -354,11 +354,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const file = await storage.getAnalyzedFile(id);
-      
+
       if (!file) {
         return res.status(404).json({ error: "Analyzed file not found" });
       }
-      
+
       res.json(file);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch analyzed file" });
@@ -485,10 +485,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error processing CSV:", error);
-      
+
       // Now use updateProgress
       updateProgress(0, 'Error', error instanceof Error ? error.message : String(error));
-      
+
       res.status(500).json({ 
         error: "Failed to process CSV file",
         details: error instanceof Error ? error.message : String(error)
@@ -506,16 +506,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/analyze-text', async (req: Request, res: Response) => {
     try {
       const { text, texts, source = 'Manual Input' } = req.body;
-      
+
       // Check if we have either a single text or an array of texts
       if (!text && (!texts || !Array.isArray(texts) || texts.length === 0)) {
         return res.status(400).json({ error: "No text provided. Send either 'text' or 'texts' array in the request body" });
       }
-      
+
       // Process single text
       if (text) {
         const result = await pythonService.analyzeSentiment(text);
-        
+
         // Check if this is a disaster-related post before saving
         // We consider text disaster-related if:
         // 1. It has a specific disaster type that's not "NONE"
@@ -526,9 +526,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (result.location && result.sentiment !== "Neutral") ||
           ["Panic", "Fear/Anxiety"].includes(result.sentiment)
         );
-        
+
         let sentimentPost;
-        
+
         // Only save to database if it's disaster-related
         if (isDisasterRelated) {
           sentimentPost = await storage.createSentimentPost(
@@ -545,7 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               fileId: null
             })
           );
-          
+
           return res.json({ 
             post: sentimentPost, 
             saved: true,
@@ -566,7 +566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             explanation: result.explanation,
             fileId: null
           };
-          
+
           return res.json({ 
             post: sentimentPost, 
             saved: false,
@@ -574,18 +574,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       // Process multiple texts
       const processResults = await Promise.all(texts.map(async (textItem: string) => {
         const result = await pythonService.analyzeSentiment(textItem);
-        
+
         // Check if this is a disaster-related post
         const isDisasterRelated = (
           (result.disasterType && result.disasterType !== "NONE" && result.disasterType !== "Not Specified") ||
           (result.location && result.sentiment !== "Neutral") ||
           ["Panic", "Fear/Anxiety"].includes(result.sentiment)
         );
-        
+
         if (isDisasterRelated) {
           // Only save disaster-related content
           const post = await storage.createSentimentPost(
@@ -623,17 +623,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }
       }));
-      
+
       // Extract just the saved posts for disaster event generation
       const savedPosts = processResults
         .filter(item => item.saved)
         .map(item => item.post);
-      
+
       // Generate disaster events from the saved posts if we have at least 3
       if (savedPosts.length >= 3) {
         await generateDisasterEvents(savedPosts);
       }
-      
+
       res.json({
         results: processResults,
         savedCount: savedPosts.length,
@@ -653,7 +653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Delete all data
       await storage.deleteAllData();
-      
+
       res.json({ 
         success: true, 
         message: "All data has been deleted successfully"
@@ -665,7 +665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Delete specific sentiment post endpoint
   app.delete('/api/sentiment-posts/:id', async (req: Request, res: Response) => {
     try {
@@ -673,9 +673,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid post ID" });
       }
-      
+
       await storage.deleteSentimentPost(id);
-      
+
       res.json({ 
         success: true, 
         message: `Sentiment post with ID ${id} has been deleted successfully`
