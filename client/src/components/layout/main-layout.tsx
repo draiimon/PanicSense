@@ -48,15 +48,15 @@ export function MainLayout({ children }: MainLayoutProps) {
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="fixed w-full top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm z-50"
+        className="fixed w-full top-0 bg-gradient-to-r from-white/95 via-blue-50/95 to-indigo-50/95 backdrop-blur-sm border-b border-slate-200 shadow-lg z-50"
       >
         <div className="max-w-[2000px] mx-auto">
-          <div className="flex items-center justify-between px-3 py-2 sm:px-6 sm:py-4">
+          <div className="flex items-center justify-between px-3 py-3 sm:px-8 sm:py-5">
             {/* Left side - Logo and Title */}
-            <div className="flex items-center gap-2 sm:gap-4">
-              <div className="relative w-8 h-8 sm:w-10 sm:h-10">
+            <div className="flex items-center gap-3 sm:gap-5">
+              <div className="relative w-10 h-10 sm:w-12 sm:h-12">
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl"
+                  className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-xl shadow-lg"
                   animate={{
                     scale: [1, 1.1, 1],
                     rotate: [0, 5, -5, 0],
@@ -67,15 +67,31 @@ export function MainLayout({ children }: MainLayoutProps) {
                     repeatType: "reverse",
                   }}
                 />
-                <BrainCircuit className="absolute inset-0 w-full h-full text-white p-2" />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <BrainCircuit className="absolute inset-0 w-full h-full text-white p-2 drop-shadow" />
+                </motion.div>
               </div>
               <div>
-                <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                <motion.h1 
+                  className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent drop-shadow-sm"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
                   PanicSense PH
-                </h1>
-                <p className="text-xs sm:text-sm text-slate-500">
-                  Real-time Analysis
-                </p>
+                </motion.h1>
+                <motion.p 
+                  className="text-sm sm:text-base text-slate-600 font-medium"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  Real-time Disaster Analysis
+                </motion.p>
               </div>
             </div>
 
