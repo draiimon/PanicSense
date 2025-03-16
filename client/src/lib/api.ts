@@ -98,9 +98,21 @@ export async function uploadCSV(
   const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
 
   eventSource.onmessage = (event) => {
-    const progress = JSON.parse(event.data);
-    if (onProgress) {
-      onProgress(progress);
+    try {
+      const progress = JSON.parse(event.data);
+      console.log('Progress event received:', progress);
+      
+      if (onProgress) {
+        // Always ensure total is sent with the progress
+        if (progress.processed !== undefined && progress.total === undefined) {
+          // If no total is provided but we have processed count, use a default
+          progress.total = 100;
+        }
+        
+        onProgress(progress);
+      }
+    } catch (error) {
+      console.error('Error parsing progress data:', error);
     }
   };
 

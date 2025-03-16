@@ -124,10 +124,10 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             onSuccess(result);
           }
 
-          // Reset upload state after delay
+          // Reset upload state after a longer delay to ensure progress is visible
           progressTimeout.current = setTimeout(() => {
             resetUploadProgress();
-          }, 2000);
+          }, 5000);
 
         } catch (error) {
           handleError(error);

@@ -373,16 +373,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (sessionId) {
         const progress = uploadProgressMap.get(sessionId);
         if (progress) {
+          // Update the progress tracking object
           progress.processed = processed;
           progress.stage = stage;
           progress.timestamp = Date.now();
           progress.error = error;
 
-          // Broadcast progress to all connected clients
+          console.log(`Progress update: ${processed}/${progress.total || 'unknown'} - ${stage}`);
+
+          // Broadcast progress to all connected clients with complete information
           broadcastUpdate({
             type: 'upload_progress',
             sessionId,
-            progress
+            progress: {
+              processed: progress.processed,
+              total: progress.total,
+              stage: progress.stage,
+              error: progress.error
+            }
           });
         }
       }
@@ -403,13 +411,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileContent = fileBuffer.toString('utf-8');
       const totalRecords = fileContent.split('\n').length - 1;
 
-      // Initialize progress tracking
+      // Initialize progress tracking with meaningful data
       uploadProgressMap.set(sessionId, {
         processed: 0,
         total: totalRecords,
-        stage: 'Starting analysis',
+        stage: `Starting analysis of ${totalRecords} records...`,
         timestamp: Date.now()
       });
+      
+      // Send initial progress to connected clients
+      if (sessionId) {
+        broadcastUpdate({
+          type: 'upload_progress',
+          sessionId,
+          progress: {
+            processed: 0,
+            total: totalRecords,
+            stage: `Starting analysis of ${totalRecords} records...`
+          }
+        });
+      }
 
 
       const { data, storedFilename, recordCount } = await pythonService.processCSV(

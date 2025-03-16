@@ -28,11 +28,17 @@ parser.add_argument('--text', type=str, help='Text to analyze')
 parser.add_argument('--file', type=str, help='CSV file to process')
 
 
-def report_progress(processed: int, stage: str):
+def report_progress(processed: int, stage: str, total: int = None):
     """Print progress in a format that can be parsed by the Node.js service"""
-    progress_info = json.dumps({"processed": processed, "stage": stage})
+    progress_data = {"processed": processed, "stage": stage}
+    
+    # If total is provided, include it in the progress report
+    if total is not None:
+        progress_data["total"] = total
+        
+    progress_info = json.dumps(progress_data)
     print(f"PROGRESS:{progress_info}", file=sys.stderr)
-    sys.stderr.flush()
+    sys.stderr.flush()  # Ensure output is immediately visible
 
 
 class DisasterSentimentBackend:
@@ -641,8 +647,8 @@ Respond ONLY with a JSON object containing:
             # Print column names for debugging
             logging.info(f"CSV columns found: {', '.join(df.columns)}")
 
-            # Report initial progress
-            report_progress(0, "Starting data analysis")
+            # Report initial progress with total records
+            report_progress(0, "Starting data analysis", total_records)
 
             # Analyze column headers to find column types
             column_matches = {
@@ -807,7 +813,7 @@ Respond ONLY with a JSON object containing:
             sample_size = min(50, len(df))
 
             # Report column identification progress
-            report_progress(5, "Identified data columns")
+            report_progress(5, "Identified data columns", total_records)
 
             for i, row in df.head(sample_size).iterrows():
                 try:
