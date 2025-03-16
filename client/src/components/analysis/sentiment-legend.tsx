@@ -98,7 +98,7 @@ export function SentimentLegend({
 
         {/* Affected Areas section without separate scrolling */}
         {mostAffectedAreas && mostAffectedAreas.length > 0 && (
-          <div className="bg-slate-50 p-3 rounded-lg">
+          <div className="bg-slate-50 p-3 rounded-lg max-h-[600px] overflow-y-auto"> {/* Modified line */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-red-500" />

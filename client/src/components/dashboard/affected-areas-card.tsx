@@ -34,12 +34,12 @@ export function AffectedAreasCard({ sentimentPosts }: AffectedAreaProps) {
       sentiment: Map<string, number>,
       disasterType: Map<string, number>
     }>();
-    
+
     sentimentPosts.forEach(post => {
       if (!post.location) return;
-      
+
       const location = post.location;
-      
+
       if (!locationCount.has(location)) {
         locationCount.set(location, {
           count: 0,
@@ -47,46 +47,46 @@ export function AffectedAreasCard({ sentimentPosts }: AffectedAreaProps) {
           disasterType: new Map()
         });
       }
-      
+
       const locationData = locationCount.get(location)!;
       locationData.count++;
-      
+
       // Track sentiments
       const currentSentimentCount = locationData.sentiment.get(post.sentiment) || 0;
       locationData.sentiment.set(post.sentiment, currentSentimentCount + 1);
-      
+
       // Track disaster types
       if (post.disasterType) {
         const currentTypeCount = locationData.disasterType.get(post.disasterType) || 0;
         locationData.disasterType.set(post.disasterType, currentTypeCount + 1);
       }
     });
-    
+
     // Convert to array and sort by count
     const sortedAreas = Array.from(locationCount.entries())
       .map(([name, data]) => {
         // Get dominant sentiment
         let maxSentimentCount = 0;
         let dominantSentiment = "Neutral";
-        
+
         data.sentiment.forEach((count, sentiment) => {
           if (count > maxSentimentCount) {
             maxSentimentCount = count;
             dominantSentiment = sentiment;
           }
         });
-        
+
         // Get dominant disaster type
         let maxTypeCount = 0;
         let dominantType: string | null = null;
-        
+
         data.disasterType.forEach((count, type) => {
           if (count > maxTypeCount) {
             maxTypeCount = count;
             dominantType = type;
           }
         });
-        
+
         return {
           name,
           sentiment: dominantSentiment,
@@ -95,13 +95,13 @@ export function AffectedAreasCard({ sentimentPosts }: AffectedAreaProps) {
         };
       })
       .sort((a, b) => b.impactLevel - a.impactLevel)
-      .slice(0, 5);
-      
+      .slice(0, 10); // Modified to show top 10
+
     setAffectedAreas(sortedAreas);
   }, [sentimentPosts]);
 
   return (
-    <Card className="bg-white/50 backdrop-blur-sm border-none h-full">
+    <Card className="bg-white/50 backdrop-blur-sm border-none h-[800px] overflow-y-auto"> {/* Modified card height */}
       <CardHeader>
         <div className="flex items-center gap-2">
           <MapPin className="text-red-500 h-5 w-5" />
@@ -149,7 +149,7 @@ export function AffectedAreasCard({ sentimentPosts }: AffectedAreaProps) {
                           >
                             {area.sentiment}
                           </Badge>
-                          
+
                           {area.disasterType && (
                             <Badge
                               style={{
@@ -163,7 +163,7 @@ export function AffectedAreasCard({ sentimentPosts }: AffectedAreaProps) {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-1">
                       <TrendingUp className="h-3 w-3 text-amber-500" />
                       <span className="text-xs font-medium text-amber-600">

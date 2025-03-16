@@ -339,7 +339,7 @@ export default function GeographicAnalysis() {
   const mostAffectedAreas = useMemo(() => {
     return regions
       .sort((a, b) => b.intensity - a.intensity)
-      .slice(0, 5)
+      .slice(0, 10)
       .map(region => ({
         name: region.name,
         sentiment: region.sentiment,
