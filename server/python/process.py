@@ -31,11 +31,11 @@ parser.add_argument('--file', type=str, help='CSV file to process')
 def report_progress(processed: int, stage: str, total: int = None):
     """Print progress in a format that can be parsed by the Node.js service"""
     progress_data = {"processed": processed, "stage": stage}
-    
+
     # If total is provided, include it in the progress report
     if total is not None:
         progress_data["total"] = total
-        
+
     progress_info = json.dumps(progress_data)
     print(f"PROGRESS:{progress_info}", file=sys.stderr)
     sys.stderr.flush()  # Ensure output is immediately visible
@@ -609,8 +609,9 @@ Respond ONLY with a JSON object containing:
             self.current_api_index = (self.current_api_index + 1) % len(
                 self.groq_api_keys)
 
-            # Add delay after error
-            time.sleep(self.retry_delay)
+            # Add exponential delay after error with jitter
+            delay = self.retry_delay * (2 ** len(self.failed_keys)) + random.uniform(1, 3)
+            time.sleep(delay)
 
             # Fallback to rule-based analysis
             return {
