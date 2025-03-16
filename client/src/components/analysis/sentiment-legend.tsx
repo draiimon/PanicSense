@@ -15,7 +15,6 @@ interface SentimentLegendProps {
 export function SentimentLegend({ 
   mostAffectedAreas = [],
   showRegionSelection = true 
-onAreaClick?: (area: { name: string; coordinates?: [number, number] }) => void;
 }: SentimentLegendProps) {
   // Sentiment indicators
   const sentiments = [
@@ -106,13 +105,11 @@ onAreaClick?: (area: { name: string; coordinates?: [number, number] }) => void;
                 Top {mostAffectedAreas.length}
               </Badge>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {mostAffectedAreas.map((area, index) => (
                 <div 
                   key={index}
-                  onClick={() => onAreaClick?.(area)}
-                  className="bg-white p-2 rounded-md border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
-                  title="Click to zoom to location"
+                  className="bg-white p-2 rounded-md border border-slate-200"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-slate-800 truncate max-w-[70%]">
