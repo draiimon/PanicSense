@@ -318,30 +318,56 @@ export function SentimentMap({
           autoPanPadding: [20, 20] // Padding for auto-pan
         });
 
-        // Make popup always visible on hover, separate from animation
-        circle.bindPopup(popupContent, {
-          offset: [0, -10],
-          className: 'custom-popup',
-          closeButton: false,
-        });
+        let isSelected = false;
+
+        // Enhanced hover effects with persistent popup
+        let isHovered = false;
+        let hoverTimeout: NodeJS.Timeout;
 
         circle.on('mouseover', () => {
+          isHovered = true;
+          clearTimeout(hoverTimeout);
+          
           circle.setStyle({ 
             weight: 3,
-            fillOpacity: 0.7
+            fillOpacity: 0.7,
+            color: '#FFFFFF'
           });
           circle.openPopup();
+          circle.bringToFront();
           setHoveredRegion(region);
+
+          // Update popup position for better visibility
+          const popup = circle.getPopup();
+          if (popup) {
+            popup.setLatLng(circle.getLatLng());
+          }
+        });
+
+        circle.on('mousemove', (e) => {
+          if (isHovered) {
+            // Keep popup open and update its position
+            const popup = circle.getPopup();
+            if (popup) {
+              popup.setLatLng(e.latlng);
+            }
+          }
         });
 
         circle.on('mouseout', () => {
-          circle.setStyle({ 
-            weight: 2,
-            fillOpacity: 0.5,
-            color
-          });
-          circle.closePopup();
-          setHoveredRegion(null);
+          isHovered = false;
+          // Add delay before closing popup
+          hoverTimeout = setTimeout(() => {
+            if (!isHovered) {
+              circle.setStyle({ 
+                weight: 2,
+                fillOpacity: 0.5,
+                color
+              });
+              circle.closePopup();
+              setHoveredRegion(null);
+            }
+          }, 100); // Small delay to prevent flickering
         });
 
         circle.on('click', () => {
