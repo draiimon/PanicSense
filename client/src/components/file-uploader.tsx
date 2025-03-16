@@ -76,7 +76,7 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
                   className="mt-4 flex flex-col items-center justify-center"
                 >
                   {/* Counter in larger format */}
-                  <div className="text-2xl font-bold text-blue-700 mb-2">
+                  <div className="text-3xl font-bold text-blue-700 mb-2">
                     {uploadProgress.processedRecords}/{uploadProgress.totalRecords}
                   </div>
                   

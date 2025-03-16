@@ -69,16 +69,30 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             throw new Error('CSV file appears to be empty or malformed. Please check the file content.');
           }
 
+          // Set initial progress with line count
           updateUploadProgress({ 
             totalRecords: lines,
+            processedRecords: 0,
             message: 'Starting analysis...' 
           });
 
+          // Wait a moment for UI to update
+          await new Promise(resolve => setTimeout(resolve, 100));
+
           const result = await uploadCSV(file, (progress) => {
-            const processedRecords = progress.processed || 0;
-            const totalRecords = progress.total || lines || 100;
+            // Make sure we have valid numbers
+            let processedRecords = progress.processed || 0;
+            let totalRecords = progress.total || lines || 100;
+            
+            // When analysis is complete, set processed to match total
+            if (progress.stage === 'Analysis complete!') {
+              processedRecords = totalRecords;
+            }
+            
+            // Calculate percentage, max 100%
             const percentage = Math.min(Math.round((processedRecords / totalRecords) * 100), 100);
             
+            // Log for debugging
             console.log('Upload progress:', { 
               processed: processedRecords, 
               total: totalRecords, 
@@ -86,6 +100,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
               stage: progress.stage 
             });
 
+            // Update UI
             updateUploadProgress({
               processedRecords,
               totalRecords,
@@ -103,10 +118,17 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             throw new Error('Invalid response from server');
           }
 
+          // Get the final count values
+          const finalTotalRecords = lines || uploadProgress.totalRecords;
+          const finalProcessedRecords = finalTotalRecords; // When complete, processed = total
+          
           updateUploadProgress({
             status: 'success',
             message: 'Analysis Complete!',
-            percentage: 100
+            percentage: 100,
+            // Make sure the counts show the final state (all records processed)
+            processedRecords: finalProcessedRecords,
+            totalRecords: finalTotalRecords
           });
 
           toast({
