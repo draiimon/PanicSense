@@ -130,11 +130,10 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
     setAffectedAreas(sortedAreas);
   }, [sentimentPosts]);
 
-  // Slot machine effect
+  // Slot machine effect with hover pause
   useEffect(() => {
     if (affectedAreas.length === 0) return;
     
-    // Start auto-scrolling like a slot machine
     const startSlotRolling = () => {
       if (!containerRef.current) return;
       
@@ -142,21 +141,21 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
       const scrollHeight = container.scrollHeight;
       const clientHeight = container.clientHeight;
       
-      // Stop if there's not enough content to scroll
-      if (scrollHeight <= clientHeight) {
-        return;
-      }
+      if (scrollHeight <= clientHeight) return;
       
-      let currentPosition = 0;
-      const scrollSpeed = 0.5; // pixels per frame
+      let currentPosition = container.scrollTop;
+      const scrollSpeed = 0.5;
       let animationId: number | null = null;
+      let isPaused = false;
       
       const scroll = () => {
-        if (!containerRef.current) return;
+        if (!containerRef.current || isPaused) {
+          animationId = requestAnimationFrame(scroll);
+          return;
+        }
         
         currentPosition += scrollSpeed;
         
-        // Reset when we reach the end
         if (currentPosition >= scrollHeight - clientHeight) {
           currentPosition = 0;
         }
@@ -165,20 +164,39 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
         animationId = requestAnimationFrame(scroll);
       };
       
+      // Add hover and interaction handlers
+      const handleMouseEnter = () => {
+        isPaused = true;
+      };
+      
+      const handleMouseLeave = () => {
+        isPaused = false;
+        currentPosition = container.scrollTop;
+      };
+      
+      const handleScroll = () => {
+        if (!isPaused) {
+          currentPosition = container.scrollTop;
+        }
+      };
+      
+      container.addEventListener('mouseenter', handleMouseEnter);
+      container.addEventListener('mouseleave', handleMouseLeave);
+      container.addEventListener('scroll', handleScroll);
+      
       animationId = requestAnimationFrame(scroll);
       
-      // Return cleanup function
       return () => {
         if (animationId) {
           cancelAnimationFrame(animationId);
         }
+        container.removeEventListener('mouseenter', handleMouseEnter);
+        container.removeEventListener('mouseleave', handleMouseLeave);
+        container.removeEventListener('scroll', handleScroll);
       };
     };
     
-    // Start the animation and get the cleanup function
     const cleanup = startSlotRolling();
-    
-    // Return the cleanup function to useEffect
     return cleanup;
   }, [affectedAreas]);
 
