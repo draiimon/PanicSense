@@ -73,15 +73,22 @@ export function FileUploader({ onSuccess, className }: FileUploaderProps) {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="mt-2 text-xs text-slate-600 flex justify-between items-center"
+                  className="mt-4 flex flex-col items-center justify-center"
                 >
-                  <span>
-                    Processing: {uploadProgress.processedRecords} of{" "}
-                    {uploadProgress.totalRecords}
-                  </span>
-                  <span className="font-semibold">
-                    {uploadProgress.percentage}%
-                  </span>
+                  {/* Counter in larger format */}
+                  <div className="text-2xl font-bold text-blue-700 mb-2">
+                    {uploadProgress.processedRecords}/{uploadProgress.totalRecords}
+                  </div>
+                  
+                  {/* Percentage and label */}
+                  <div className="flex justify-between w-full text-sm text-slate-700">
+                    <span>
+                      Records processed
+                    </span>
+                    <span className="font-semibold">
+                      {uploadProgress.percentage}%
+                    </span>
+                  </div>
                 </motion.div>
               )}
             </div>
