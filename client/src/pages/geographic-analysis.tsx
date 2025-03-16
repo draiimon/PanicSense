@@ -65,10 +65,43 @@ export default function GeographicAnalysis() {
     "Zamboanga": [6.9214, 122.0790],
     "Cagayan de Oro": [8.4542, 124.6319],
     "General Santos": [6.1164, 125.1716],
-    // Additional locations
+    
+    // Metro Manila cities
     "Makati": [14.5547, 121.0244],
     "Pasig": [14.5764, 121.0851],
-    "Taguig": [14.5176, 121.0509]
+    "Taguig": [14.5176, 121.0509],
+    "Marikina": [14.6507, 121.1029],
+    "Mandaluyong": [14.5794, 121.0359],
+    "Pasay": [14.5378, 121.0014],
+    "Parañaque": [14.4793, 121.0198],
+    "Caloocan": [14.6499, 120.9809],
+    "Muntinlupa": [14.4081, 121.0415],
+    "San Juan": [14.6019, 121.0355],
+    "Las Piñas": [14.4453, 120.9833],
+    "Valenzuela": [14.7011, 120.9830],
+    "Navotas": [14.6688, 120.9427],
+    "Malabon": [14.6681, 120.9574],
+    "Pateros": [14.5446, 121.0685],
+    
+    // Other major cities and locations
+    "Angeles": [15.1450, 120.5887],
+    "Bacolod": [10.6713, 122.9511],
+    "Iloilo": [10.7202, 122.5621],
+    "Monumento": [14.6543, 120.9834],
+    "Cabanatuan": [15.4886, 120.9691],
+    "Boracay": [11.9804, 121.9189],
+    "Palawan": [9.8349, 118.7384],
+    "Bohol": [9.8500, 124.1435],
+    "Leyte": [11.0105, 124.6514],
+    "Samar": [11.5750, 124.9749],
+    "Pangasinan": [15.8949, 120.2863],
+    "Tarlac": [15.4755, 120.5963],
+    "Cagayan": [17.6132, 121.7270],
+    "Bicol": [13.4213, 123.4136],
+    "Nueva Ecija": [15.5784, 120.9716],
+    "Benguet": [16.4023, 120.5960],
+    "Albay": [13.1776, 123.5280],
+    "Zambales": [15.5082, 120.0697]
   };
 
   // Function to find closest matching location from known regions
@@ -190,6 +223,19 @@ export default function GeographicAnalysis() {
   }, [sentimentPosts, detectedLocations]);
 
   // Process data for regions and map location mentions
+  // List of Philippine locations to detect in text - expanded with more locations
+  const philippineLocations = [
+    'Manila', 'Quezon City', 'Cebu', 'Davao', 'Mindanao', 'Luzon',
+    'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
+    'Batangas', 'Zambales', 'Pampanga', 'Bicol', 'Leyte', 'Samar',
+    'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna', 
+    'Rizal', 'Nueva Ecija', 'Benguet', 'Albay', 'Marikina', 'Pasig',
+    'Makati', 'Mandaluyong', 'Pasay', 'Taguig', 'Parañaque', 'Caloocan',
+    'Metro Manila', 'Monumento', 'San Juan', 'Las Piñas', 'Muntinlupa',
+    'Valenzuela', 'Navotas', 'Malabon', 'Tacloban', 'General Santos',
+    'Cagayan de Oro', 'Zamboanga', 'Angeles', 'Bacolod', 'Cabanatuan'
+  ];
+
   const locationData = useMemo(() => {
     const data: Record<string, LocationData> = {};
 
@@ -221,28 +267,44 @@ export default function GeographicAnalysis() {
         .join(' ');
     };
 
-    // Process posts to populate the map
+    // Process posts to populate the map with enhanced location detection
     for (const post of sentimentPosts) {
-      // Get both explicit location and extracted locations from text
+      // Get both explicit locations and try to detect from text
       const locations: string[] = [];
+      
+      // 1. Add explicit location from post.location if available
       if (post.location) {
         locations.push(normalizeLocation(post.location));
       }
 
-      // Add extracted locations
+      // 2. Add AI extracted locations (from post.text NLP analysis)
       extractLocations(post.text).forEach(loc => {
         const normalizedLoc = normalizeLocation(loc);
         if (!locations.includes(normalizedLoc)) {
           locations.push(normalizedLoc);
         }
       });
+      
+      // 3. Add locations from direct text matching (like dashboard)
+      const postText = post.text.toLowerCase();
+      for (const location of philippineLocations) {
+        if (postText.includes(location.toLowerCase())) {
+          const normalizedLoc = normalizeLocation(location);
+          if (!locations.includes(normalizedLoc)) {
+            locations.push(normalizedLoc);
+          }
+        }
+      }
 
+      // Process each detected location
       for (const location of locations) {
         // Skip generic mentions
         if (
           location.toLowerCase() === 'not specified' ||
           location.toLowerCase() === 'not mentioned' ||
-          location.toLowerCase() === 'none'
+          location.toLowerCase() === 'none' ||
+          location.toLowerCase().includes('unspecified') ||
+          location.toLowerCase().includes('not mentioned')
         ) {
           continue;
         }
