@@ -50,7 +50,7 @@ export function SentimentMap({
     import('leaflet').then((L) => {
       if (!mapRef.current) return;
 
-      // Initialize map with exact Philippines bounds
+      // Initialize map with exact Philippines bounds and improved zoom
       mapInstanceRef.current = L.map(mapRef.current, {
         zoomControl: false,
         attributionControl: false,
@@ -58,13 +58,16 @@ export function SentimentMap({
           [0, 110],
           [25, 130]
         ],
-        minZoom: 5.2,
-        maxZoom: 12,
-        maxBoundsViscosity: 1.0,
+        minZoom: 5,      // Lower minimum zoom
+        maxZoom: 18,     // Higher maximum zoom
+        maxBoundsViscosity: 0.8, // Slightly less strict bounds
         scrollWheelZoom: true,
         dragging: true,
-        zoomDelta: 0.25,
+        zoomDelta: 0.5,  // Larger zoom steps
         zoomSnap: 0.25,
+        doubleClickZoom: true, // Enable double-click zoom
+        touchZoom: true, // Better mobile touch zoom
+        bounceAtZoomLimits: true // Bounce effect at zoom limits
       }).fitBounds([
         [4.566667, 116.928406],
         [21.120611, 126.604393]
@@ -108,15 +111,16 @@ export function SentimentMap({
       }
     });
 
-    // Common tile layer options
+    // Common tile layer options with improved zoom
     const tileOptions = {
       noWrap: true,
       bounds: [
         [PH_BOUNDS.southWest[0], PH_BOUNDS.southWest[1]],
         [PH_BOUNDS.northEast[0], PH_BOUNDS.northEast[1]]
       ],
-      minZoom: 5.5,
-      maxZoom: 12
+      minZoom: 5,
+      maxZoom: 18, // Higher maximum zoom level
+      detectRetina: true // Better resolution on high-DPI screens
     };
 
     // Add new tile layer based on selected view
@@ -262,7 +266,8 @@ export function SentimentMap({
           size="icon"
           variant="secondary"
           className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50 border border-slate-200"
-          onClick={() => mapInstanceRef.current?.zoomIn()}
+          onClick={() => mapInstanceRef.current?.zoomIn(2)} // Zoom in with larger steps
+          title="Zoom In"
         >
           <ZoomIn className="h-4 w-4" />
         </Button>
@@ -270,9 +275,22 @@ export function SentimentMap({
           size="icon"
           variant="secondary"
           className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50 border border-slate-200"
-          onClick={() => mapInstanceRef.current?.zoomOut()}
+          onClick={() => mapInstanceRef.current?.zoomOut(1)} // Zoom out
+          title="Zoom Out"
         >
           <ZoomOut className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="secondary"
+          className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50 border border-slate-200"
+          onClick={() => mapInstanceRef.current?.fitBounds([
+            [4.566667, 116.928406],
+            [21.120611, 126.604393]
+          ])} // Reset to default view
+          title="Fit Philippines"
+        >
+          <Globe className="h-4 w-4" />
         </Button>
       </div>
 
