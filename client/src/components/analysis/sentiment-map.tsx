@@ -318,56 +318,30 @@ export function SentimentMap({
           autoPanPadding: [20, 20] // Padding for auto-pan
         });
 
-        let isSelected = false;
-
-        // Enhanced hover effects with persistent popup
-        let isHovered = false;
-        let hoverTimeout: NodeJS.Timeout;
-
-        circle.on('mouseover', () => {
-          isHovered = true;
-          clearTimeout(hoverTimeout);
-          
-          circle.setStyle({ 
-            weight: 3,
-            fillOpacity: 0.7,
-            color: '#FFFFFF'
-          });
-          circle.openPopup();
-          circle.bringToFront();
-          setHoveredRegion(region);
-
-          // Update popup position for better visibility
-          const popup = circle.getPopup();
-          if (popup) {
-            popup.setLatLng(circle.getLatLng());
-          }
+        // Make popup always visible on hover, separate from animation
+        circle.bindPopup(popupContent, {
+          offset: [0, -10],
+          className: 'custom-popup',
+          closeButton: false,
         });
 
-        circle.on('mousemove', (e) => {
-          if (isHovered) {
-            // Keep popup open and update its position
-            const popup = circle.getPopup();
-            if (popup) {
-              popup.setLatLng(e.latlng);
-            }
-          }
+        circle.on('mouseover', () => {
+          circle.setStyle({ 
+            weight: 3,
+            fillOpacity: 0.7
+          });
+          circle.openPopup();
+          setHoveredRegion(region);
         });
 
         circle.on('mouseout', () => {
-          isHovered = false;
-          // Add delay before closing popup
-          hoverTimeout = setTimeout(() => {
-            if (!isHovered) {
-              circle.setStyle({ 
-                weight: 2,
-                fillOpacity: 0.5,
-                color
-              });
-              circle.closePopup();
-              setHoveredRegion(null);
-            }
-          }, 100); // Small delay to prevent flickering
+          circle.setStyle({ 
+            weight: 2,
+            fillOpacity: 0.5,
+            color
+          });
+          circle.closePopup();
+          setHoveredRegion(null);
         });
 
         circle.on('click', () => {
