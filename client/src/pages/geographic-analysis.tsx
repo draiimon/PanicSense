@@ -48,6 +48,10 @@ export default function GeographicAnalysis() {
     "Rizal": [14.6042, 121.3035],
     "Taytay": [14.5762, 121.1324],
     "Taytay Rizal": [14.5762, 121.1324],
+    "Taytay, Rizal": [14.5762, 121.1324],
+    "Imus": [14.4301, 120.9387],
+    "Imus Cavite": [14.4301, 120.9387],
+    "Imus, Cavite": [14.4301, 120.9387],
     "Laguna": [14.2691, 121.4113],
     "Bulacan": [14.7969, 120.8787],
     "Cavite": [14.2829, 120.8686],
@@ -242,34 +246,10 @@ export default function GeographicAnalysis() {
   const locationData = useMemo(() => {
     const data: Record<string, LocationData> = {};
 
-    // Helper function to normalize location names with typo correction
-    const normalizeLocation = (loc: string): string => {
+    // Function to use exact location names without normalization
+    const useExactLocation = (loc: string): string => {
       if (!loc) return '';
-      
-      const lowerLoc = loc.toLowerCase().trim();
-      
-      // Common abbreviations and alternative names
-      if (lowerLoc.includes('manila') && !lowerLoc.includes('metro')) return 'Manila';
-      if (lowerLoc.includes('quezon') && lowerLoc.includes('city')) return 'Quezon City';
-      if (lowerLoc === 'ncr') return 'Metro Manila';
-      if (lowerLoc === 'mm') return 'Metro Manila';
-      if (lowerLoc === 'qc') return 'Quezon City';
-      if (lowerLoc === 'cdo') return 'Cagayan de Oro';
-      if (lowerLoc === 'gensan') return 'General Santos';
-      // Handle Taytay Rizal special case
-      if (lowerLoc.includes('taytay') && lowerLoc.includes('rizal')) return 'Taytay Rizal';
-      
-      // Check for close matches and typos using our typo correction function
-      const correctedLocation = findClosestLocation(loc);
-      if (correctedLocation) {
-        // If we found a match from our known locations, use that instead
-        return correctedLocation;
-      }
-      
-      // Default formatting - capitalize first letter of each word
-      return loc.split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
+      return loc.trim();
     };
 
     // Process posts to populate the map with enhanced location detection
@@ -279,14 +259,14 @@ export default function GeographicAnalysis() {
       
       // 1. Add explicit location from post.location if available
       if (post.location) {
-        locations.push(normalizeLocation(post.location));
+        locations.push(useExactLocation(post.location));
       }
 
       // 2. Add AI extracted locations (from post.text NLP analysis)
       extractLocations(post.text).forEach(loc => {
-        const normalizedLoc = normalizeLocation(loc);
-        if (!locations.includes(normalizedLoc)) {
-          locations.push(normalizedLoc);
+        const exactLoc = useExactLocation(loc);
+        if (!locations.includes(exactLoc)) {
+          locations.push(exactLoc);
         }
       });
       
@@ -294,9 +274,9 @@ export default function GeographicAnalysis() {
       const postText = post.text.toLowerCase();
       for (const location of philippineLocations) {
         if (postText.includes(location.toLowerCase())) {
-          const normalizedLoc = normalizeLocation(location);
-          if (!locations.includes(normalizedLoc)) {
-            locations.push(normalizedLoc);
+          const exactLoc = useExactLocation(location);
+          if (!locations.includes(exactLoc)) {
+            locations.push(exactLoc);
           }
         }
       }
