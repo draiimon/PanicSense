@@ -321,27 +321,37 @@ export function SentimentMap({
         // Enhanced hover interactions with adjusted values for smaller circles
         circle.on('mouseover', () => {
           circle.setStyle({ 
-            weight: 3, // Thicker border on hover
-            fillOpacity: 0.8, // Higher opacity on hover for better visibility
-            color: '#FFFFFF' // White outline for better contrast
+            weight: 3.5,
+            fillOpacity: 0.85,
+            color: '#FFFFFF'
           });
-          circle.setRadius(radius * 1500); // Larger expansion on hover for easier selection
+          const newRadius = radius * 2000; // Even larger for better visibility
+          circle.setRadius(newRadius);
           setHoveredRegion(region);
-          circle.openPopup();
-          circle.bringToFront(); // Ensure popup is visible
-          // Keep popup visible during animation
-          if (circle._popup) {
-            circle._popup.setLatLng(circle.getLatLng());
-          }
+          
+          // Ensure popup stays visible during animation
+          setTimeout(() => {
+            circle.openPopup();
+            circle.bringToFront();
+          }, 50);
+
+          // Update popup position continuously during animation
+          const updatePopup = () => {
+            if (circle._popup && circle._popup.isOpen()) {
+              circle._popup.setLatLng(circle.getLatLng());
+            }
+          };
+          circle.on('radius', updatePopup);
         });
 
         circle.on('mouseout', () => {
           circle.setStyle({ 
-            weight: 1.5, // Back to normal border width
-            fillOpacity: 0.4, // Back to normal opacity
-            color // Restore original color
+            weight: 2,
+            fillOpacity: 0.5,
+            color
           });
-          circle.setRadius(radius * 1000); // Back to normal size
+          circle.setRadius(radius * 1200);
+          circle.off('radius');
 
           // Keep popup open for a moment to allow user to read
           setTimeout(() => {
