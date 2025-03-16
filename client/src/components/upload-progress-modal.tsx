@@ -6,6 +6,11 @@ import { createPortal } from "react-dom";
 export function UploadProgressModal() {
   const { isUploading, uploadProgress } = useDisasterContext();
 
+  // Calculate the actual percentage
+  const percentage = uploadProgress.totalRecords > 0 
+    ? Math.round((uploadProgress.processedRecords / uploadProgress.totalRecords) * 100)
+    : uploadProgress.percentage;
+
   return createPortal(
     <AnimatePresence mode="wait">
       {isUploading && (
@@ -77,7 +82,7 @@ export function UploadProgressModal() {
                     }
                   `}
                   initial={{ width: "0%" }}
-                  animate={{ width: `${uploadProgress.percentage}%` }}
+                  animate={{ width: `${percentage}%` }}
                   transition={{ 
                     duration: 0.3,
                     ease: "easeInOut"
@@ -104,7 +109,7 @@ export function UploadProgressModal() {
                 <div className="flex justify-between w-full text-sm text-slate-700">
                   <span>Records processed</span>
                   <span className="font-semibold">
-                    {uploadProgress.percentage}%
+                    {percentage}%
                   </span>
                 </div>
               </motion.div>

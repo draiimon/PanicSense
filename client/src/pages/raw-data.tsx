@@ -178,7 +178,7 @@ export default function RawData() {
                 });
               }
             }}
-            className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
           >
             <Download className="h-5 w-5 mr-2" />
             Download CSV
@@ -255,9 +255,9 @@ export default function RawData() {
                       </SelectItem>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={(e) => e.stopPropagation()}
                             disabled={deletingFileId === file.id}

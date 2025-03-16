@@ -80,51 +80,17 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           await new Promise(resolve => setTimeout(resolve, 100));
 
           const result = await uploadCSV(file, (progress) => {
-            // IMPORTANT FIX: Use Number to ensure proper conversion rather than parseInt
-            // This avoids issues with parseInt not handling decimal strings properly
-            let processedRecords = Number(progress.processed) || 0;
-            let totalRecords = Number(progress.total) || lines || 100;
-            
-            // Debug logs for root cause analysis
-            console.log('DIRECT RAW VALUES:', {
-              processedFromEvent: progress.processed,
-              totalFromEvent: progress.total,
-              convertedProcessed: processedRecords,
-              convertedTotal: totalRecords
-            });
-            
-            // Fix specifically for common case: when the backend says we're done,
-            // ensure the progress shows the final state
-            if (progress.stage?.includes('complete') || processedRecords >= totalRecords) {
-              processedRecords = totalRecords;
-            }
-            
-            // Calculate percentage, max 100%
-            const percentage = Math.min(Math.round((processedRecords / totalRecords) * 100), 100);
-            
-            // Force the UI update by applying this on the next tick
-            setTimeout(() => {
-              // Call updateUploadProgress directly here for immediate effect
-              updateUploadProgress({
-                processedRecords,
-                totalRecords,
-                percentage,
-                message: progress.stage || 'Processing...'
-              });
-            }, 0);
-            
-            // Log for debugging - IMPORTANT to know what the UI will display
-            console.log('CRITICAL UI PROGRESS DATA:', { 
-              processedRecords, 
-              totalRecords, 
-              percentage, 
-              stage: progress.stage
-            });
+            // Ensure we have numeric values for processed and total
+            const processedRecords = Number(progress.processed) || 0;
+            const totalRecords = Number(progress.total) || lines;
 
-            // Update UI with the processed values
+            // Ensure percentage calculation is accurate
+            const percentage = Math.min(Math.round((processedRecords / totalRecords) * 100), 100);
+
+            // Update progress immediately
             updateUploadProgress({
-              processedRecords, // This has been properly parsed as a number
-              totalRecords,    // This has been properly parsed as a number
+              processedRecords,
+              totalRecords,
               percentage,
               message: progress.stage || `Processing records... ${processedRecords}/${totalRecords}`,
               status: progress.error ? 'error' : 'uploading'
