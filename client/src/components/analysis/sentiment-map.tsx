@@ -190,17 +190,17 @@ export function SentimentMap({
           ? getDisasterTypeColor(region.disasterType)
           : getSentimentColor(region.sentiment);
 
-        // Scale radius based on zoom level and intensity with smaller base size
-        const baseRadius = 5 + (region.intensity / 100) * 10; // Smaller base radius, but not too small
+        // Scale radius based on zoom level and intensity, but keeping a good minimum size
+        const baseRadius = 8 + (region.intensity / 100) * 12; // Larger base radius for better visibility
         const radius = baseRadius * Math.pow(1.2, mapZoom - 6);
         
-        // Create main marker circle - keep it visible but small
+        // Create main marker circle - more visible but still compact
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
-          fillOpacity: 0.6, // Higher opacity to ensure visibility
+          fillOpacity: 0.7, // Higher opacity for better visibility
           radius: radius * 1000, // Keep proper scale
-          weight: 2, // Slightly thicker border for visibility
+          weight: 2.5, // Thicker border for better visibility
           className: 'main-marker',
         }).addTo(mapInstanceRef.current);
         
@@ -214,13 +214,13 @@ export function SentimentMap({
           className: 'pulse-marker',
         }).addTo(mapInstanceRef.current);
         
-        // Add ping animation with better, smoother effect
+        // Add ping animation with better, smoother effect - MUCH SLOWER
         const animatePulse = () => {
           let size = radius * 1000; // Start at main circle size
           let opacity = 0.3; 
           let growing = true;
-          let maxSize = radius * 2500; // Maximum size
-          let growthRate = radius * 80; // Slower growth for smoother animation
+          let maxSize = radius * 3000; // Larger maximum size for more dramatic effect
+          let growthRate = radius * 30; // MUCH slower growth rate
           
           const expandPulse = () => {
             if (growing) {
@@ -260,25 +260,33 @@ export function SentimentMap({
         // Store marker with animation data
         markersRef.current.push({ circle, pulseCircle, animationRef });
 
-        // Create custom popup with improved styling
+        // Create custom popup with better styling and layout
         const popupContent = `
-          <div class="p-3 font-sans">
-            <h3 class="text-lg font-semibold text-slate-800 mb-2">${region.name}</h3>
-            <div class="space-y-2">
+          <div class="p-4 font-sans shadow-sm rounded-lg" style="min-width: 200px">
+            <h3 class="text-lg font-bold text-slate-800 mb-3 border-b pb-2" style="color: ${color}">${region.name}</h3>
+            <div class="space-y-3">
               <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full" style="background-color: ${getSentimentColor(region.sentiment)}"></span>
-                <span class="text-sm text-slate-600">Sentiment: ${region.sentiment}</span>
+                <span class="w-4 h-4 rounded-full flex-shrink-0" style="background-color: ${getSentimentColor(region.sentiment)}"></span>
+                <span class="text-sm font-medium text-slate-700">
+                  <strong>Sentiment:</strong> ${region.sentiment}
+                </span>
               </div>
               ${region.disasterType ? `
                 <div class="flex items-center gap-2">
-                  <span class="w-3 h-3 rounded-full" style="background-color: ${getDisasterTypeColor(region.disasterType)}"></span>
-                  <span class="text-sm text-slate-600">Disaster: ${region.disasterType}</span>
+                  <span class="w-4 h-4 rounded-full flex-shrink-0" style="background-color: ${getDisasterTypeColor(region.disasterType)}"></span>
+                  <span class="text-sm font-medium text-slate-700">
+                    <strong>Disaster:</strong> ${region.disasterType}
+                  </span>
                 </div>
               ` : ''}
-              <div class="mt-2 pt-2 border-t border-slate-200">
-                <span class="text-sm font-medium text-slate-700">
-                  Impact Level: ${region.intensity.toFixed(1)}%
-                </span>
+              <div class="mt-3 pt-2 border-t border-slate-200">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-medium text-slate-700">Impact Level:</span>
+                  <span class="text-sm font-bold" style="color: ${color}">${region.intensity.toFixed(1)}%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2 mt-1 overflow-hidden">
+                  <div class="h-full rounded-full" style="background-color: ${color}; width: ${region.intensity}%"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -288,24 +296,29 @@ export function SentimentMap({
           maxWidth: 300,
           className: 'custom-popup',
           closeButton: false,
-          offset: [0, -10]
+          offset: [0, -15], // Greater offset to position better
+          autoPan: true, // Auto-pan to make popup visible
+          autoPanPadding: [20, 20] // Padding for auto-pan
         });
 
-        // Enhanced hover interactions with adjusted values
+        // Enhanced hover interactions with adjusted values - fix popup visibility
         circle.on('mouseover', () => {
           circle.setStyle({ 
-            weight: 3, // Thicker border on hover 
-            fillOpacity: 0.8 // Higher opacity on hover
+            weight: 3.5, // Even thicker border on hover 
+            fillOpacity: 0.9, // Much higher opacity on hover for visibility
+            color: '#FFFFFF' // White outline for better contrast
           });
-          circle.setRadius(radius * 1050); // Slightly larger on hover
+          circle.setRadius(radius * 1100); // Larger on hover for better selection
           setHoveredRegion(region);
+          // Make popup appear above the point
           circle.openPopup();
         });
 
         circle.on('mouseout', () => {
           circle.setStyle({ 
-            weight: 2, // Back to normal border width
-            fillOpacity: 0.6 // Back to normal opacity
+            weight: 2.5, // Back to normal border width
+            fillOpacity: 0.7, // Back to normal opacity
+            color // Restore original color
           });
           circle.setRadius(radius * 1000); // Back to normal size
           setHoveredRegion(null);
