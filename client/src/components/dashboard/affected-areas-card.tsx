@@ -138,25 +138,15 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
       if (!containerRef.current) return;
       
       const container = containerRef.current;
-      const scrollHeight = container.scrollHeight / 3;
+      const scrollHeight = container.scrollHeight;
       const clientHeight = container.clientHeight;
       
       if (scrollHeight <= clientHeight) return;
       
-      let currentPosition = 0;
+      let currentPosition = container.scrollTop;
       const scrollSpeed = 0.5;
       let animationId: number | null = null;
       let isPaused = false;
-
-      const resetScroll = () => {
-        if (currentPosition >= scrollHeight * 2) {
-          currentPosition = scrollHeight;
-          container.scrollTop = currentPosition;
-        } else if (currentPosition <= 0) {
-          currentPosition = scrollHeight;
-          container.scrollTop = currentPosition;
-        }
-      };
       
       const scroll = () => {
         if (!containerRef.current || isPaused) {
@@ -166,7 +156,10 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
         
         currentPosition += scrollSpeed;
         
-        resetScroll();
+        if (currentPosition >= scrollHeight - clientHeight) {
+          currentPosition = 0;
+        }
+        
         containerRef.current.scrollTop = currentPosition;
         animationId = requestAnimationFrame(scroll);
       };
@@ -210,12 +203,12 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
   return (
     <div 
       ref={containerRef}
-      className="h-full overflow-auto scrollbar-hide relative"
+      className="h-full overflow-auto scrollbar-hide"
       style={{ maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent 100%)' }}
     >
       <AnimatePresence>
         <div className="space-y-4 p-4">
-          {[...affectedAreas, ...affectedAreas, ...affectedAreas].map((area, index) => (
+          {affectedAreas.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-[350px] py-8">
               <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
                 <MapPin className="h-7 w-7 text-blue-400" />
