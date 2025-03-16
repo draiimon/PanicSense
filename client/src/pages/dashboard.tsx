@@ -288,10 +288,7 @@ export default function Dashboard() {
           {/* Card Carousel for auto-rotating between Sentiment Distribution and Recent Activity */}
           <div className="relative mb-6 bg-white shadow-xl border-none rounded-xl overflow-hidden">
             <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-              <span className="text-xs text-blue-600 font-medium flex items-center">
-                <RefreshCw className="h-3 w-3 mr-1 animate-spin-slow" />
-                Auto-rotating
-              </span>
+              <RefreshCw className="h-3 w-3 text-blue-600 animate-spin-slow" />
             </div>
             
             <CardCarousel 
