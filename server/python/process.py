@@ -14,16 +14,23 @@ try:
     import pandas as pd
     import numpy as np
     from langdetect import detect
-    from transformers import pipeline
-    import torch
-except ImportError:
-    print(
-        "Error: Required packages not found. Install them using pip install pandas numpy langdetect transformers torch"
-    )
+    import requests
+except ImportError as e:
+    logging.error(f"Import error: {e}")
+    print(f"Error: Required packages not found. Missing package: {e.name}")
     sys.exit(1)
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
+
+def report_progress(processed: int, stage: str, total: int = None):
+    """Print progress in a format that can be parsed by the Node.js service"""
+    progress_data = {"processed": processed, "stage": stage}
+    if total is not None:
+        progress_data["total"] = total
+    progress_info = json.dumps(progress_data)
+    print(f"PROGRESS:{progress_info}", file=sys.stderr)
+    sys.stderr.flush()
 
 # Initialize Transformers pipeline
 try:
@@ -891,7 +898,6 @@ Respond ONLY with a JSON object containing:
             )
 
             # Make the API request
-            import requests
             response = requests.post(self.api_url,
                                      headers=headers,
                                      json=payload,
@@ -1399,7 +1405,6 @@ Respond ONLY with a JSON object containing:
             )
 
             return processed_results
-
         except Exception as e:
             logging.error(f"CSV processing error: {str(e)}")
             return []
@@ -1421,11 +1426,6 @@ Respond ONLY with a JSON object containing:
         }
 
         return metrics
-
-
-def report_progress(percentage, message, total_records):
-    """Report progress to the console"""
-    logging.info(f"{percentage}% - {message} (Total records: {total_records})")
 
 
 def main():
