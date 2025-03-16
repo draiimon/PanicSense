@@ -215,17 +215,36 @@ export default function GeographicAnalysis() {
     });
   }, [locationData]);
 
-  // Calculate most affected areas
+  // Get affected areas from sentiment posts for consistency
   const mostAffectedAreas = useMemo(() => {
-    return regions
-      .sort((a, b) => b.intensity - a.intensity)
-      .slice(0, 5)
-      .map(region => ({
-        name: region.name,
-        sentiment: region.sentiment,
-        disasterType: region.disasterType
-      }));
-  }, [regions]);
+    const locationCounts = new Map();
+    
+    sentimentPosts.forEach(post => {
+      if (!post.location) return;
+      
+      if (!locationCounts.has(post.location)) {
+        locationCounts.set(post.location, {
+          count: 0,
+          sentiment: post.sentiment,
+          disasterType: post.disasterType
+        });
+      }
+      
+      const data = locationCounts.get(post.location);
+      data.count++;
+      locationCounts.set(post.location, data);
+    });
+
+    return Array.from(locationCounts.entries())
+      .map(([name, data]) => ({
+        name,
+        sentiment: data.sentiment,
+        disasterType: data.disasterType,
+        count: data.count
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [sentimentPosts]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
