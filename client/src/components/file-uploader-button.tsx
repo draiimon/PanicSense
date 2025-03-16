@@ -19,6 +19,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     resetUploadProgress
   } = useDisasterContext();
   const progressTimeout = useRef<NodeJS.Timeout>();
+  const lastProgress = useRef<number>(0);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -54,7 +55,10 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           const text = e.target?.result as string;
           const lines = text.split('\n').length - 1;
 
-          console.log('Starting file upload, total lines:', lines);
+          console.log('Starting file upload with', lines, 'records');
+
+          // Reset progress tracking
+          lastProgress.current = 0;
 
           // Start upload process
           setIsUploading(true);
@@ -69,41 +73,69 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           });
 
           // Wait briefly to ensure initial state is shown
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise(resolve => setTimeout(resolve, 100));
 
           const result = await uploadCSV(file, (progress) => {
-            // Debug log
-            console.log('Progress update received:', progress);
+            // Log raw progress data for debugging
+            console.log('Raw progress update:', {
+              stage: progress.stage,
+              processed: progress.processed,
+              total: progress.total,
+              currentProgress: lastProgress.current
+            });
 
+            // Extract current record number
             let currentRecord = 0;
-            const recordMatch = progress.stage?.match(/record (\d+) of (\d+)/i);
 
+            // Try to get record number from stage message
+            const recordMatch = progress.stage?.match(/record (\d+) of (\d+)/i);
             if (recordMatch) {
               currentRecord = parseInt(recordMatch[1]);
             } else if (progress.processed) {
               currentRecord = Number(progress.processed);
             }
 
-            // Ensure the count stays within bounds
-            currentRecord = Math.max(0, Math.min(currentRecord, lines));
+            // If there's a big jump, animate through intermediate values
+            if (currentRecord - lastProgress.current > 1) {
+              console.log('Detected progress jump:', {
+                from: lastProgress.current,
+                to: currentRecord
+              });
 
-            const percentage = Math.floor((currentRecord / lines) * 100);
+              // Update in smaller increments
+              const step = Math.max(1, Math.floor((currentRecord - lastProgress.current) / 5));
+              let animatedRecord = lastProgress.current;
 
-            console.log('Updating progress:', {
-              currentRecord,
-              lines,
-              percentage,
-              stage: progress.stage
-            });
+              const animateProgress = () => {
+                animatedRecord = Math.min(currentRecord, animatedRecord + step);
 
-            // Update progress state
-            updateUploadProgress({
-              processedRecords: currentRecord,
-              totalRecords: lines,
-              percentage,
-              message: progress.stage || `Processing record ${currentRecord} of ${lines}`,
-              status: 'uploading'
-            });
+                updateUploadProgress({
+                  processedRecords: animatedRecord,
+                  totalRecords: lines,
+                  percentage: Math.floor((animatedRecord / lines) * 100),
+                  message: `Processing record ${animatedRecord} of ${lines}`,
+                  status: 'uploading'
+                });
+
+                if (animatedRecord < currentRecord) {
+                  setTimeout(animateProgress, 100);
+                }
+              };
+
+              animateProgress();
+            } else {
+              // Normal single increment update
+              updateUploadProgress({
+                processedRecords: currentRecord,
+                totalRecords: lines,
+                percentage: Math.floor((currentRecord / lines) * 100),
+                message: progress.stage || `Processing record ${currentRecord} of ${lines}`,
+                status: 'uploading'
+              });
+            }
+
+            // Store current progress for next update
+            lastProgress.current = currentRecord;
 
             if (progress.error) {
               throw new Error(progress.error);
@@ -135,7 +167,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
               onSuccess(result);
             }
 
-            // Keep success state visible briefly before resetting
+            // Reset states after delays
             progressTimeout.current = setTimeout(() => {
               resetUploadProgress();
               setTimeout(() => {
