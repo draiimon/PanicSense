@@ -215,6 +215,11 @@ export default function GeographicImpactAnalysis() {
           </h3>
           <SentimentLegend 
             mostAffectedAreas={mostAffectedAreas}
+            onAreaClick={(coordinates) => {
+              if (coordinates) {
+                mapRef.current?.zoomToLocation(coordinates);
+              }
+            }}
           />
         </div>
       </div>

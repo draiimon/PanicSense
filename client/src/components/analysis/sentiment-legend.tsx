@@ -38,13 +38,6 @@ export function SentimentLegend({
     { name: 'Landslide', color: '#78350f' }
   ];
 
-  const handleDownload = () => {
-    // Placeholder:  This function needs to be implemented to handle the download.
-    // It should fetch cleaned data from the server and trigger a download.
-    console.log("Download button clicked. Download functionality not yet implemented.");
-  };
-
-
   return (
     <Card className="bg-white shadow-md border-none h-full flex flex-col">
       <CardHeader className="p-4 border-b border-gray-200">
@@ -111,13 +104,9 @@ export function SentimentLegend({
                 <Globe className="h-4 w-4 text-red-500" />
                 <h3 className="text-sm font-medium text-slate-700">Most Affected Areas</h3>
               </div>
-              <button
-                onClick={handleDownload}
-                className="px-3 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                title="Download cleaned dataset"
-              >
-                Download Data
-              </button>
+              <Badge variant="outline" className="text-xs">
+                Top {mostAffectedAreas.length}
+              </Badge>
             </div>
             <div className="space-y-2">
               {mostAffectedAreas.map((area, index) => (
