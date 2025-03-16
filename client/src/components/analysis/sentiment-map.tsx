@@ -37,9 +37,18 @@ export function SentimentMap({
   view = 'standard',
   showMarkers = true
 }: SentimentMapProps) {
+  // Define our marker types
+  interface MarkerWithAnimation {
+    circle: any;
+    pulseCircle: any;
+    animationRef: { current: number | null };
+  }
+  
+  type MarkerRef = any | MarkerWithAnimation;
+  
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
+  const markersRef = useRef<MarkerRef[]>([]);
   const [mapZoom, setMapZoom] = useState(6);
   const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
   const popupRef = useRef<any>(null);
@@ -149,9 +158,23 @@ export function SentimentMap({
 
     const L = await import('leaflet');
 
-    // Clear previous markers and popup
+    // Clear previous markers, animations, and popup
     markersRef.current.forEach(marker => {
-      if (marker) marker.remove();
+      if (typeof marker === 'object' && marker !== null) {
+        // If marker is our complex object with animation
+        if ('circle' in marker && 'pulseCircle' in marker && 'animationRef' in marker) {
+          // Cancel animation frame if exists
+          if (marker.animationRef && marker.animationRef.current) {
+            cancelAnimationFrame(marker.animationRef.current);
+          }
+          // Remove circles from map
+          if (marker.circle) marker.circle.remove();
+          if (marker.pulseCircle) marker.pulseCircle.remove();
+        } else {
+          // Simple marker
+          marker.remove();
+        }
+      }
     });
     markersRef.current = [];
 
@@ -167,17 +190,66 @@ export function SentimentMap({
           ? getDisasterTypeColor(region.disasterType)
           : getSentimentColor(region.sentiment);
 
-        // Scale radius based on zoom level and intensity but with smaller base size
-        const baseRadius = 5 + (region.intensity / 100) * 20; // Smaller base radius
+        // Scale radius based on zoom level and intensity with even smaller base size
+        const baseRadius = 3 + (region.intensity / 100) * 15; // Even smaller base radius
         const radius = baseRadius * Math.pow(1.2, mapZoom - 6);
-
+        
+        // Create main marker circle - smaller and more subtle
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
-          fillOpacity: 0.5, // Lower transparency
+          fillOpacity: 0.4, // Lower transparency
           radius: radius * 1000,
-          weight: 1.5, // Thinner border
+          weight: 1, // Thinner border
+          className: 'main-marker', // Add class for potential CSS animations
         }).addTo(mapInstanceRef.current);
+        
+        // Create animated pulse circle
+        const pulseCircle = L.circle(region.coordinates, {
+          color: 'rgba(255,255,255,0.5)',
+          fillColor: color,
+          fillOpacity: 0.2,
+          radius: 100, // Start small
+          weight: 1,
+          className: 'pulse-marker',
+        }).addTo(mapInstanceRef.current);
+        
+        // Add ping animation
+        const animatePulse = () => {
+          let size = radius * 500; // Start smaller than main circle
+          let opacity = 0.4;
+          
+          const expandPulse = () => {
+            size += radius * 300; // Grow by this amount each frame
+            opacity -= 0.02; // Fade out gradually
+            
+            if (opacity <= 0) {
+              // Reset animation when fully transparent
+              size = radius * 500;
+              opacity = 0.4;
+            }
+            
+            pulseCircle.setRadius(size);
+            pulseCircle.setStyle({ 
+              fillOpacity: opacity, 
+              opacity: opacity * 2 
+            });
+            
+            // Schedule next frame
+            animationRef.current = requestAnimationFrame(expandPulse);
+          };
+          
+          // Start animation
+          expandPulse();
+        };
+        
+        // Store animation reference for cleanup
+        const animationRef = { current: null as number | null };
+        animatePulse();
+        
+        // Store animation ref for cleanup
+        // Store marker with animation data
+        markersRef.current.push({ circle, pulseCircle, animationRef });
 
         // Create custom popup with improved styling
         const popupContent = `
@@ -236,8 +308,6 @@ export function SentimentMap({
             onRegionSelect(region);
           }
         });
-
-        markersRef.current.push(circle);
       });
     } else {
       // Show message when markers are hidden
