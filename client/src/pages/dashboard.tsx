@@ -94,7 +94,8 @@ export default function Dashboard() {
 
   const sentimentData = {
     labels: ['Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'],
-    values: [0, 0, 0, 0, 0]
+    values: [0, 0, 0, 0, 0],
+    showTotal: false
   };
 
   // Count sentiments from filtered posts
