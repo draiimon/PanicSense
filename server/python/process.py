@@ -548,6 +548,102 @@ class DisasterSentimentBackend:
         # If no valid Philippine location is found, return None
         return None
 
+    def detect_social_media_source(self, text):
+        """
+        Detect social media platform from text content
+        Returns the identified platform or "Unknown" if no match
+        """
+        text_lower = text.lower()
+        
+        # Dictionary of social media platforms and their identifiers/patterns
+        social_media_patterns = {
+            "Facebook": [
+                r"fb\.", r"facebook", r"fb post", r"posted on fb", 
+                r"facebook\.com", r"messenger", r"@fb", r"fb livestream",
+                r"fb live", r"facebook status", r"facebook update"
+            ],
+            "Twitter": [
+                r"tweet", r"twitter", r"tweeted", r"twitter\.com", r"@twitter", 
+                r"tw post", r"on twitter", r"retweet", r"twitter thread", r"x.com"
+            ],
+            "Instagram": [
+                r"instagram", r"ig", r"insta", r"instagram\.com", r"ig post",
+                r"instagram story", r"ig story", r"instagram reel"
+            ],
+            "TikTok": [
+                r"tiktok", r"tiktok\.com", r"tiktok video", r"tiktok live", 
+                r"tt video", r"tiktok post"
+            ],
+            "YouTube": [
+                r"youtube", r"yt", r"youtube\.com", r"youtu\.be", r"youtube video",
+                r"yt video", r"youtube live", r"yt live", r"youtube stream"
+            ],
+            "Telegram": [
+                r"telegram", r"tg", r"telegram\.org", r"telegram channel", 
+                r"telegram group", r"telegram message"
+            ],
+            "Viber": [
+                r"viber", r"viber message", r"viber group", r"viber community"
+            ],
+            "WeChat": [
+                r"wechat", r"weixin", r"wechat message"
+            ],
+            "Line": [
+                r"line app", r"line message", r"line chat"
+            ],
+            "SMS": [
+                r"sms", r"text message", r"texted", r"text msg", r"mobile message"
+            ],
+            "WhatsApp": [
+                r"whatsapp", r"wa message", r"whatsapp group", r"whatsapp\.com"
+            ],
+            "Email": [
+                r"email", r"e-mail", r"gmail", r"yahoo mail", r"outlook"
+            ],
+            "Reddit": [
+                r"reddit", r"subreddit", r"r/", r"reddit post", r"reddit\.com"
+            ],
+            "News": [
+                r"news", r"article", r"reported by", r"news report", r"journalist",
+                r"newspaper", r"media report", r"news flash", r"media advisory"
+            ]
+        }
+        
+        # Check for matches in the text
+        for platform, patterns in social_media_patterns.items():
+            for pattern in patterns:
+                if re.search(f"\\b{pattern}\\b", text_lower):
+                    return platform
+        
+        # Extract additional source indicators
+        source_indicators = [
+            (r"posted by @(\w+)", "Twitter"),
+            (r"from @(\w+)", "Twitter"),
+            (r"fb\.com/(\w+)", "Facebook"),
+            (r"shared via (\w+)", None),  # Will extract platform name
+            (r"sent from (\w+)", None),   # Will extract platform name
+            (r"forwarded from (\w+)", None) # Will extract platform name
+        ]
+        
+        for pattern, platform in source_indicators:
+            match = re.search(pattern, text_lower)
+            if match:
+                if platform:
+                    return platform
+                else:
+                    # Extract the platform from the matched group
+                    extracted = match.group(1).strip()
+                    # Check if it's a known platform
+                    for known_platform in social_media_patterns.keys():
+                        if known_platform.lower() in extracted.lower():
+                            return known_platform
+                    # Return the extracted text if it looks like a platform name
+                    if len(extracted) > 2 and extracted.isalpha():
+                        return extracted.capitalize()
+        
+        # Default if no platform identified
+        return "Unknown Social Media"
+
     def analyze_sentiment(self, text):
         """Analyze sentiment in text"""
         # Detect language, but only use English or Filipino
@@ -571,6 +667,12 @@ class DisasterSentimentBackend:
 
         if "location" not in result or not result["location"]:
             result["location"] = self.extract_location(text)
+            
+        # Add social media source detection
+        if "source" not in result or not result["source"] or result["source"] == "CSV Import":
+            detected_source = self.detect_social_media_source(text)
+            if detected_source != "Unknown Social Media":
+                result["source"] = detected_source
 
         return result
 
@@ -975,11 +1077,19 @@ Respond ONLY with a JSON object containing:
                     # Get source - check if it's Panic, Fear/Anxiety, etc. (sentiment accidentally in source column)
                     source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
                     sentiment_values = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"]
+                    
+                    # Check if source is actually a sentiment value
                     if source in sentiment_values:
                         csv_sentiment = source
                         source = "CSV Import"  # Reset source to default
                     else:
                         csv_sentiment = None
+                    
+                    # Detect social media platform from text content if source is just "CSV Import"
+                    if source == "CSV Import" or not source.strip():
+                        detected_source = self.detect_social_media_source(text)
+                        if detected_source != "Unknown Social Media":
+                            source = detected_source
                     
                     # Extract preset location and disaster type from CSV
                     csv_location = str(row.get(location_col, "")) if location_col else None
@@ -1068,11 +1178,19 @@ Respond ONLY with a JSON object containing:
                         # Get source with same logic as before
                         source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
                         sentiment_values = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"]
+                        
+                        # Check if source is actually a sentiment value
                         if source in sentiment_values:
                             csv_sentiment = source
                             source = "CSV Import"  # Reset source to default
                         else:
                             csv_sentiment = None
+                        
+                        # Detect social media platform from text content if source is just "CSV Import"
+                        if source == "CSV Import" or not source.strip():
+                            detected_source = self.detect_social_media_source(text)
+                            if detected_source != "Unknown Social Media":
+                                source = detected_source
                             
                         csv_location = str(row.get(
                             location_col, "")) if location_col else None
