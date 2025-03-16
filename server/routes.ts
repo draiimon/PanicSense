@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import multer from "multer";
 import { pythonService } from "./python-service";
+import { uploadImage, deleteImage } from "./storage/image-storage";
 import { insertSentimentPostSchema, insertAnalyzedFileSchema } from "@shared/schema";
 import { EventEmitter } from 'events';
 
@@ -146,6 +147,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Create new user
+
+  // Handle image uploads
+  app.post('/api/upload-image', upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const url = await uploadImage(req.file.buffer, req.file.originalname);
+      res.json({ url });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to upload image" });
+    }
+  });
+
+  // Delete image
+  app.delete('/api/delete-image/:key', async (req: Request, res: Response) => {
+    try {
+      await deleteImage(req.params.key);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete image" });
+    }
+  });
+
       const user = await storage.createUser({
         username,
         password,
