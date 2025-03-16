@@ -129,10 +129,11 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  // Reset upload progress
+  // Reset upload progress, but keep isUploading separate
   const resetUploadProgress = () => {
     setUploadProgress(initialUploadProgress);
-    setIsUploading(false);
+    // Don't automatically set isUploading to false here
+    // This allows us to control when the entire upload UI disappears
   };
 
   // Refresh function for fetching all data

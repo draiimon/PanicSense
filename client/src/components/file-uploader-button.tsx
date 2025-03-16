@@ -124,10 +124,14 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             onSuccess(result);
           }
 
-          // Reset upload state after a longer delay to ensure progress is visible
+          // Reset upload state after a much longer delay to ensure progress is visible
           progressTimeout.current = setTimeout(() => {
             resetUploadProgress();
-          }, 5000);
+            // Only reset the isUploading state after the progress UI has been visible for a while
+            setTimeout(() => {
+              setIsUploading(false);
+            }, 3000);
+          }, 7000);
 
         } catch (error) {
           handleError(error);
@@ -144,11 +148,9 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     } finally {
       // Reset file input
       event.target.value = '';
-
-      // Ensure uploading state is eventually reset
-      setTimeout(() => {
-        setIsUploading(false);
-      }, 3000);
+      
+      // We'll let the success or error handlers manage the isUploading state
+      // Don't reset it here as it could interrupt the loading UI
     }
   };
 
@@ -170,8 +172,11 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
     progressTimeout.current = setTimeout(() => {
       resetUploadProgress();
-      setIsUploading(false);
-    }, 2000);
+      // Keep the error visible for longer
+      setTimeout(() => {
+        setIsUploading(false);
+      }, 5000);
+    }, 5000);
   };
 
   return (
