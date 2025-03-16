@@ -138,15 +138,25 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
       if (!containerRef.current) return;
       
       const container = containerRef.current;
-      const scrollHeight = container.scrollHeight;
+      const scrollHeight = container.scrollHeight / 3;
       const clientHeight = container.clientHeight;
       
       if (scrollHeight <= clientHeight) return;
       
-      let currentPosition = container.scrollTop;
+      let currentPosition = 0;
       const scrollSpeed = 0.5;
       let animationId: number | null = null;
       let isPaused = false;
+
+      const resetScroll = () => {
+        if (currentPosition >= scrollHeight * 2) {
+          currentPosition = scrollHeight;
+          container.scrollTop = currentPosition;
+        } else if (currentPosition <= 0) {
+          currentPosition = scrollHeight;
+          container.scrollTop = currentPosition;
+        }
+      };
       
       const scroll = () => {
         if (!containerRef.current || isPaused) {
@@ -156,10 +166,7 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
         
         currentPosition += scrollSpeed;
         
-        if (currentPosition >= scrollHeight - clientHeight) {
-          currentPosition = 0;
-        }
-        
+        resetScroll();
         containerRef.current.scrollTop = currentPosition;
         animationId = requestAnimationFrame(scroll);
       };
@@ -203,12 +210,12 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
   return (
     <div 
       ref={containerRef}
-      className="h-full overflow-auto scrollbar-hide"
+      className="h-full overflow-auto scrollbar-hide relative"
       style={{ maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent 100%)' }}
     >
       <AnimatePresence>
         <div className="space-y-4 p-4">
-          {affectedAreas.length === 0 ? (
+          {[...affectedAreas, ...affectedAreas, ...affectedAreas].map((area, index) => (
             <div className="flex flex-col items-center justify-center h-[350px] py-8">
               <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
                 <MapPin className="h-7 w-7 text-blue-400" />
