@@ -13,19 +13,19 @@ export default function About() {
     {
       name: "Mark Andrei R. Castillo",
       role: "Core System Architecture & Machine Learning",
-      image: "/drei.jpg",
+      image: "/attached_assets/drei.jpg",
       description: "Leads the development of our advanced ML pipelines and system architecture"
     },
     {
       name: "Ivahnn B. Garcia",
       role: "Frontend Development & User Experience",
-      image: "/van.jpg",
+      image: "/attached_assets/van.jpg",
       description: "Creates intuitive and responsive user interfaces for seamless interaction"
     },
     {
       name: "Julia Daphne Ngan-Gatdula",
       role: "Data Resources & Information Engineering",
-      image: "/julia.jpg",
+      image: "/attached_assets/julia.jpg",
       description: "Manages data infrastructure and information processing systems"
     }
   ];
