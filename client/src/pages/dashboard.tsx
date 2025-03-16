@@ -34,30 +34,12 @@ function LoadingOverlay({ message }: { message: string }) {
 export default function Dashboard() {
   const { 
     sentimentPosts = [],
-    disasterEvents = [],
     activeDiastersCount = 0,
     analyzedPostsCount = 0,
     dominantSentiment = 'N/A',
     modelConfidence = 0,
     isLoadingSentimentPosts = false
   } = useDisasterContext();
-
-  // Calculate stats (added from changes)
-  const totalPosts = sentimentPosts.length;
-  const activeDisasters = disasterEvents.filter(event => 
-    new Date(event.timestamp) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  ).length;
-
-  // Get most affected area (added from changes)
-  const locationCounts = sentimentPosts.reduce((acc, post) => {
-    if (post.location) {
-      acc[post.location] = (acc[post.location] || 0) + 1;
-    }
-    return acc;
-  }, {});
-  const mostAffectedArea = Object.entries(locationCounts)
-    .sort(([,a], [,b]) => b - a)[0]?.[0] || 'N/A';
-
 
   // Filter posts from last week
   const lastWeekPosts = sentimentPosts.filter(post => {
@@ -103,12 +85,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Hero section (added from changes) */}
-      <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-xl p-6 mb-8">
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">Disaster Sentiment Dashboard</h1>
-        <p className="text-slate-600">Real-time monitoring of disaster-related sentiments and events</p>
-      </div>
-
       <motion.div 
         initial="hidden"
         animate="visible"
@@ -135,7 +111,7 @@ export default function Dashboard() {
         </Card>
       </motion.div>
 
-      {/* Stats Grid (modified from changes) */}
+      {/* Status Cards */}
       <motion.div 
         initial="hidden"
         animate="visible"
@@ -144,7 +120,7 @@ export default function Dashboard() {
       >
         <StatusCard 
           title="Active Disasters"
-          value={activeDisasters.toString()}
+          value={activeDiastersCount.toString()}
           icon="alert-triangle"
           trend={{
             value: "+2",
@@ -187,7 +163,6 @@ export default function Dashboard() {
           isLoading={isLoadingSentimentPosts}
         />
       </motion.div>
-
 
       <motion.div 
         initial="hidden"
