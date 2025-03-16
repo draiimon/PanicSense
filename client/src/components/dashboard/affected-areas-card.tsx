@@ -1,20 +1,14 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription 
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getSentimentBadgeClasses } from "@/lib/colors";
 import { getDisasterTypeColor } from "@/lib/colors";
-import { MapPin, AlertTriangle, TrendingUp } from "lucide-react";
+import { MapPin, AlertTriangle, TrendingUp, MapPinned, Flame, CloudRain, Laptop, ArrowUp } from "lucide-react";
 import { SentimentPost } from "@/lib/api";
 
 interface AffectedAreaProps {
   sentimentPosts: SentimentPost[];
+  isLoading?: boolean;
 }
 
 interface AffectedArea {
@@ -24,7 +18,27 @@ interface AffectedArea {
   impactLevel: number;
 }
 
-export function AffectedAreasCard({ sentimentPosts }: AffectedAreaProps) {
+// Get disaster type icon based on type
+function getDisasterIcon(type: string | null) {
+  if (!type) return <AlertTriangle className="h-4 w-4 text-gray-500" />;
+  
+  switch (type.toLowerCase()) {
+    case 'flood':
+      return <CloudRain className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+    case 'fire':
+      return <Flame className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+    case 'typhoon':
+      return <CloudRain className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+    case 'earthquake':
+      return <ArrowUp className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+    case 'landslide':
+      return <MapPinned className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+    default:
+      return <AlertTriangle className="h-4 w-4" style={{ color: getDisasterTypeColor(type) }} />;
+  }
+}
+
+export function AffectedAreasCard({ sentimentPosts, isLoading = false }: AffectedAreaProps) {
   const [affectedAreas, setAffectedAreas] = useState<AffectedArea[]>([]);
 
   useEffect(() => {
@@ -95,88 +109,98 @@ export function AffectedAreasCard({ sentimentPosts }: AffectedAreaProps) {
         };
       })
       .sort((a, b) => b.impactLevel - a.impactLevel)
-      .slice(0, 10); // Modified to show top 10
+      .slice(0, 15); // Show more areas
 
     setAffectedAreas(sortedAreas);
   }, [sentimentPosts]);
 
   return (
-    <Card className="bg-white/50 backdrop-blur-sm border-none h-[800px] overflow-y-auto"> {/* Modified card height */}
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <MapPin className="text-red-500 h-5 w-5" />
-          <CardTitle className="text-lg font-semibold">Recent Affected Areas</CardTitle>
-        </div>
-        <CardDescription>Locations with recent disaster mentions</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <AnimatePresence>
-          <div className="space-y-4">
-            {affectedAreas.length === 0 ? (
-              <p className="text-center text-sm text-slate-500">No affected areas detected</p>
-            ) : (
-              affectedAreas.map((area, index) => (
-                <motion.div
-                  key={area.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ 
-                    opacity: 1, 
-                    y: 0, 
-                    transition: { 
-                      delay: index * 0.1,
-                      duration: 0.5 
-                    } 
-                  }}
-                  className="rounded-lg p-3 bg-white border border-gray-100 shadow-sm"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-2">
-                      <div className="mt-0.5">
-                        <AlertTriangle 
-                          className="h-4 w-4" 
-                          style={{ 
-                            color: area.disasterType ? 
-                              getDisasterTypeColor(area.disasterType) : 
-                              "#6b7280" 
-                          }} 
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">{area.name}</h3>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          <Badge 
-                            className={getSentimentBadgeClasses(area.sentiment)}
-                          >
-                            {area.sentiment}
-                          </Badge>
-
-                          {area.disasterType && (
-                            <Badge
-                              style={{
-                                backgroundColor: getDisasterTypeColor(area.disasterType),
-                                color: 'white'
-                              }}
-                            >
-                              {area.disasterType}
-                            </Badge>
-                          )}
+    <div className="p-4">
+      <AnimatePresence>
+        <div className="space-y-4">
+          {affectedAreas.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-[400px] py-8">
+              <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+                <MapPin className="h-7 w-7 text-blue-400" />
+              </div>
+              <p className="text-center text-base text-slate-500 mb-2">No affected areas detected</p>
+              <p className="text-center text-sm text-slate-400">Upload data to see disaster impact by location</p>
+            </div>
+          ) : (
+            affectedAreas.map((area, index) => (
+              <motion.div
+                key={area.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ 
+                  opacity: 1, 
+                  y: 0, 
+                  transition: { 
+                    delay: index * 0.05,
+                    duration: 0.4 
+                  } 
+                }}
+                className="rounded-xl p-4 bg-white border border-blue-50 shadow-sm hover:shadow-md hover:border-blue-100 transition-all"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex gap-3">
+                    <div className="p-2 rounded-lg bg-blue-50 flex-shrink-0">
+                      {getDisasterIcon(area.disasterType)}
+                    </div>
+                    <div>
+                      <div className="flex items-center">
+                        <h3 className="font-semibold text-gray-900 text-base">{area.name}</h3>
+                        <div className="flex items-center ml-2 gap-0.5">
+                          <TrendingUp className="h-3 w-3 text-amber-500" />
+                          <span className="text-xs font-medium text-amber-600">
+                            {area.impactLevel}
+                          </span>
                         </div>
                       </div>
-                    </div>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        <Badge 
+                          className={`${getSentimentBadgeClasses(area.sentiment)} px-2.5 py-0.5 rounded-full text-xs font-medium`}
+                        >
+                          {area.sentiment}
+                        </Badge>
 
-                    <div className="flex items-center space-x-1">
-                      <TrendingUp className="h-3 w-3 text-amber-500" />
-                      <span className="text-xs font-medium text-amber-600">
-                        {area.impactLevel} {area.impactLevel === 1 ? 'mention' : 'mentions'}
-                      </span>
+                        {area.disasterType && (
+                          <Badge
+                            className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+                            style={{
+                              backgroundColor: getDisasterTypeColor(area.disasterType),
+                              color: 'white'
+                            }}
+                          >
+                            {area.disasterType}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </motion.div>
-              ))
-            )}
-          </div>
-        </AnimatePresence>
-      </CardContent>
-    </Card>
+                </div>
+                
+                {/* Impact meter */}
+                <div className="mt-3">
+                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, (area.impactLevel / 10) * 100)}%` }}
+                      transition={{ duration: 0.5, delay: 0.2 + (index * 0.05) }}
+                      className="h-full rounded-full"
+                      style={{ 
+                        backgroundColor: area.disasterType ? 
+                          getDisasterTypeColor(area.disasterType) : 
+                          getSentimentBadgeClasses(area.sentiment).includes('red') ? 
+                            '#ef4444' : '#3b82f6'
+                      }}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            ))
+          )}
+        </div>
+      </AnimatePresence>
+    </div>
   );
 }

@@ -1,95 +1,124 @@
 import { ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Cloud, Droplets, Flame, Mountain, AlertTriangle, Wind, Waves } from 'lucide-react';
+import { 
+  Cloud, 
+  Droplets, 
+  Flame, 
+  Mountain, 
+  AlertTriangle, 
+  Wind, 
+  Waves, 
+  BarChart, 
+  BrainCircuit, 
+  CheckCircle,
+  ArrowUp,
+  ArrowDown,
+  Zap,
+  Loader2
+} from 'lucide-react';
 import { getDisasterTypeColor } from '@/lib/colors';
 
-interface StatusCardProps {
+export interface StatusCardProps {
   title: string;
   value: string | number;
+  icon?: string;
   trend?: {
     value: string;
     isUpward: boolean | null;
     label: string;
   };
+  isLoading?: boolean;
 }
 
-const getIconForDisaster = (title: string) => {
-  const type = title.toLowerCase();
-  if (type.includes('typhoon') || type.includes('storm')) return Wind;
-  if (type.includes('flood')) return Droplets;
-  if (type.includes('fire')) return Flame;
-  if (type.includes('landslide')) return Mountain;
-  if (type.includes('earthquake')) return AlertTriangle;
-  if (type.includes('volcano') || type.includes('eruption')) return Flame;
-  if (type.includes('tsunami')) return Waves;
-  return Cloud;
+const getIconComponent = (iconName: string) => {
+  switch (iconName) {
+    case 'alert-triangle': return AlertTriangle;
+    case 'bar-chart': return BarChart;
+    case 'brain': return BrainCircuit;
+    case 'check-circle': return CheckCircle;
+    case 'typhoon': case 'storm': return Wind;
+    case 'flood': return Droplets;
+    case 'fire': return Flame;
+    case 'landslide': return Mountain;
+    case 'earthquake': return AlertTriangle;
+    case 'volcano': case 'eruption': return Flame;
+    case 'tsunami': return Waves;
+    default: return Cloud;
+  }
 };
 
-export function StatusCard({ title, value, trend }: StatusCardProps) {
-  const Icon = getIconForDisaster(title);
-  const color = getDisasterTypeColor(title);
-
-  const getIconBackground = () => {
-    const baseColor = color.replace('#', '');
-    // Create lighter version for background
-    return {
-      background: `#${baseColor}15`,
-      color: color
-    };
-  };
-
+export function StatusCard({ title, value, icon, trend, isLoading = false }: StatusCardProps) {
+  // Determine icon based on title if not provided
+  let IconComponent;
+  let iconColor = '';
+  
+  if (icon) {
+    IconComponent = getIconComponent(icon);
+    
+    // Set colors based on icon/title
+    if (icon === 'alert-triangle') iconColor = '#f43f5e';
+    else if (icon === 'bar-chart') iconColor = '#3b82f6';
+    else if (icon === 'brain') iconColor = '#8b5cf6';
+    else if (icon === 'check-circle') iconColor = '#10b981';
+    else iconColor = getDisasterTypeColor(title);
+  } else {
+    IconComponent = getIconComponent(title.toLowerCase());
+    iconColor = getDisasterTypeColor(title);
+  }
 
   return (
-    <Card className="bg-white/50 backdrop-blur-sm border-none shadow-sm hover:shadow-md transition-shadow duration-200">
+    <Card className="bg-white shadow-lg border-none rounded-xl overflow-hidden hover:shadow-xl transition-shadow duration-300">
       <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-slate-500">{title}</p>
-            <p className="text-2xl font-bold text-slate-800">{value}</p>
+        {isLoading ? (
+          <div className="flex flex-col space-y-4 animate-pulse">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className="h-3 w-20 bg-slate-200 rounded"></div>
+                <div className="h-6 w-16 bg-slate-200 rounded"></div>
+              </div>
+              <div className="h-12 w-12 rounded-lg bg-slate-200"></div>
+            </div>
+            <div className="h-3 w-32 bg-slate-200 rounded mt-2"></div>
           </div>
-          <div 
-            className="p-3 rounded-lg" 
-            style={getIconBackground()}
-          >
-            <Icon className="h-6 w-6" />
-          </div>
-        </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium text-slate-500">{title}</p>
+                <p className="text-3xl font-bold text-slate-800 tracking-tight">{value}</p>
+              </div>
+              <div 
+                className="p-3 rounded-xl"
+                style={{
+                  background: `${iconColor}15`,
+                }}
+              >
+                <IconComponent className="h-6 w-6" style={{ color: iconColor }} />
+              </div>
+            </div>
 
-        {trend && (
-          <div className="mt-4 flex items-center">
-            <span className={`text-xs font-medium flex items-center ${
-              trend.isUpward === null 
-                ? 'text-slate-500' 
-                : trend.isUpward 
-                  ? 'text-green-500' 
-                  : 'text-red-500'
-            }`}>
-              {trend.isUpward !== null && (
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className="h-3 w-3 mr-1" 
-                  viewBox="0 0 20 20" 
-                  fill="currentColor"
-                >
-                  {trend.isUpward ? (
-                    <path 
-                      fillRule="evenodd" 
-                      d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" 
-                      clipRule="evenodd" 
-                    />
-                  ) : (
-                    <path 
-                      fillRule="evenodd" 
-                      d="M14.707 12.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l2.293-2.293a1 1 0 011.414 0z" 
-                      clipRule="evenodd" 
-                    />
+            {trend && (
+              <div className="mt-4 flex items-center">
+                <div className={`flex items-center gap-1 text-xs font-medium ${
+                  trend.isUpward === null 
+                    ? 'text-slate-500' 
+                    : trend.isUpward 
+                      ? 'text-emerald-500' 
+                      : 'text-rose-500'
+                }`}>
+                  {trend.isUpward !== null && (
+                    trend.isUpward ? (
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    )
                   )}
-                </svg>
-              )}
-              {trend.value}
-            </span>
-            <span className="ml-2 text-xs text-slate-400">{trend.label}</span>
-          </div>
+                  <span>{trend.value}</span>
+                </div>
+                <span className="ml-2 text-xs text-slate-400">{trend.label}</span>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

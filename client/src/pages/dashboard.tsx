@@ -5,8 +5,9 @@ import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
 import { AffectedAreasCard } from "@/components/dashboard/affected-areas-card";
 import { FileUploader } from "@/components/file-uploader";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react"; 
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Loader2, Upload, Database, BarChart3, BrainCircuit, Globe2, ArrowUpRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -48,8 +49,8 @@ export default function Dashboard() {
     new Date(event.timestamp) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   ).length;
 
-  // Get most affected area (added from changes)
-  const locationCounts = sentimentPosts.reduce((acc, post) => {
+  // Get most affected area (with proper typing)
+  const locationCounts = sentimentPosts.reduce<Record<string, number>>((acc, post) => {
     if (post.location) {
       acc[post.location] = (acc[post.location] || 0) + 1;
     }
@@ -102,40 +103,78 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="space-y-8">
-
-      <motion.div 
-        initial="hidden"
-        animate="visible"
-        variants={fadeInUp}
+    <div className="space-y-8 pb-10">
+      {/* Beautiful hero section with animated gradient and prominent upload button */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7 }}
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 shadow-xl"
       >
-        <Card className="bg-white/50 backdrop-blur-sm border-none shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
-            <div>
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Disaster Response Dashboard
-              </CardTitle>
-              <p className="text-sm text-slate-500 mt-1">Real-time sentiment monitoring and analysis</p>
+        <div className="absolute inset-0 bg-grid-white/10 bg-[size:20px_20px] opacity-20"></div>
+        <div className="absolute h-40 w-40 rounded-full bg-blue-400 filter blur-3xl opacity-30 -top-20 -left-20 animate-pulse"></div>
+        <div className="absolute h-40 w-40 rounded-full bg-indigo-400 filter blur-3xl opacity-30 -bottom-20 -right-20 animate-pulse"></div>
+        
+        <div className="relative px-6 py-12 sm:px-12 sm:py-16 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="md:max-w-[60%]">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
+              Disaster Response Dashboard
+            </h1>
+            <p className="text-blue-100 text-base sm:text-lg mb-6 max-w-xl">
+              Real-time sentiment monitoring and geospatial analysis for disaster response in the Philippines
+            </p>
+            
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center text-xs bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white">
+                <Database className="h-3.5 w-3.5 mr-1.5" />
+                <span>{totalPosts} Data Points</span>
+              </div>
+              <div className="flex items-center text-xs bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white">
+                <BrainCircuit className="h-3.5 w-3.5 mr-1.5" />
+                <span>AI-powered Analysis</span>
+              </div>
+              <div className="flex items-center text-xs bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white">
+                <Globe2 className="h-3.5 w-3.5 mr-1.5" />
+                <span>Geographic Mapping</span>
+              </div>
             </div>
-            {/* File uploader with loading state */}
-            <div className="relative">
-              <FileUploader className="mt-0" />
-              {isLoadingSentimentPosts && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-lg rounded-lg">
-                  <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+          </div>
+          
+          {/* Prominent upload button with hover effect */}
+          <div className="flex-shrink-0 relative min-w-[240px]">
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              className="bg-white rounded-xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="flex items-center mb-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Upload className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <h3 className="ml-3 font-semibold text-gray-800">Upload Data</h3>
                 </div>
-              )}
-            </div>
-          </CardHeader>
-        </Card>
+                <p className="text-sm text-gray-600 mb-4">
+                  Upload CSV files for instant sentiment analysis and disaster monitoring
+                </p>
+                <FileUploader className="w-full justify-center mt-2 !shadow-none hover:!bg-blue-700" />
+              </div>
+            </motion.div>
+            {isLoadingSentimentPosts && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-lg rounded-lg">
+                <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+              </div>
+            )}
+          </div>
+        </div>
       </motion.div>
 
-      {/* Stats Grid (modified from changes) */}
+      {/* Stats Grid with improved styling */}
       <motion.div 
         initial="hidden"
         animate="visible"
         variants={fadeInUp}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
       >
         <StatusCard 
           title="Active Disasters"
@@ -183,67 +222,117 @@ export default function Dashboard() {
         />
       </motion.div>
 
-
-      <motion.div 
-        initial="hidden"
-        animate="visible"
-        variants={fadeInUp}
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-      >
-        <div className="lg:col-span-1">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="relative"
-          >
-            <AffectedAreasCard 
-              sentimentPosts={filteredPosts} 
-              isLoading={isLoadingSentimentPosts}
-            />
-            {isLoadingSentimentPosts && (
-              <LoadingOverlay message="Updating affected areas..." />
-            )}
-          </motion.div>
-        </div>
-
-        <div className="lg:col-span-2">
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="grid grid-cols-1 gap-6 h-full"
-          >
-            <Card className="bg-white/50 backdrop-blur-sm border-none relative">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">Sentiment Distribution</CardTitle>
+      {/* Flexbox layout for main content with improved proportions */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Left column */}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-full lg:w-[450px] flex-shrink-0"
+        >
+          <div className="sticky top-6">
+            <Card className="bg-white shadow-xl border-none overflow-hidden rounded-xl relative">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100/50 pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-blue-500/10">
+                      <Globe2 className="text-blue-600 h-5 w-5" />
+                    </div>
+                    <CardTitle className="text-lg font-semibold text-slate-800">Affected Areas</CardTitle>
+                  </div>
+                  <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                    View All
+                    <ArrowUpRight className="h-3 w-3" />
+                  </Button>
+                </div>
+                <CardDescription className="text-slate-500 mt-1">
+                  Recent disaster impact by location
+                </CardDescription>
               </CardHeader>
-              <CardContent>
+              
+              <div className="h-[500px] overflow-y-auto custom-scrollbar">
+                <AffectedAreasCard 
+                  sentimentPosts={filteredPosts} 
+                  isLoading={isLoadingSentimentPosts}
+                />
+              </div>
+              
+              {isLoadingSentimentPosts && (
+                <LoadingOverlay message="Updating affected areas..." />
+              )}
+            </Card>
+          </div>
+        </motion.div>
+
+        {/* Right column - takes remaining space */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="flex-grow space-y-6"
+        >
+          {/* Sentiment Distribution Card */}
+          <Card className="bg-white shadow-xl border-none rounded-xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100/50 pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-blue-500/10">
+                    <BarChart3 className="text-blue-600 h-5 w-5" />
+                  </div>
+                  <CardTitle className="text-lg font-semibold text-slate-800">Sentiment Distribution</CardTitle>
+                </div>
+                <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                  Full Analysis
+                  <ArrowUpRight className="h-3 w-3" />
+                </Button>
+              </div>
+              <CardDescription className="text-slate-500 mt-1">
+                Emotional response breakdown across disaster events
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="h-[300px]">
                 <OptimizedSentimentChart 
                   data={sentimentData}
                   isLoading={isLoadingSentimentPosts}
                 />
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="bg-white/50 backdrop-blur-sm border-none relative">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">Recent Posts</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RecentPostsTable 
-                  posts={filteredPosts} 
-                  limit={5}
-                  isLoading={isLoadingSentimentPosts}
-                />
-                {isLoadingSentimentPosts && (
-                  <LoadingOverlay message="Loading recent posts..." />
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </motion.div>
+          {/* Recent Posts Card */}
+          <Card className="bg-white shadow-xl border-none rounded-xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100/50 pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-blue-500/10">
+                    <Database className="text-blue-600 h-5 w-5" />
+                  </div>
+                  <CardTitle className="text-lg font-semibold text-slate-800">Recent Activity</CardTitle>
+                </div>
+                <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                  View All
+                  <ArrowUpRight className="h-3 w-3" />
+                </Button>
+              </div>
+              <CardDescription className="text-slate-500 mt-1">
+                Latest analyzed posts and sentiment data
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <RecentPostsTable 
+                posts={filteredPosts} 
+                limit={5}
+                isLoading={isLoadingSentimentPosts}
+              />
+              {isLoadingSentimentPosts && (
+                <LoadingOverlay message="Loading recent posts..." />
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
 }
