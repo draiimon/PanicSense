@@ -10,11 +10,12 @@ export const RippleContainer = ({
   children: React.ReactNode;
 }) => {
   return (
-    <div className={cn("relative overflow-visible", className)}>
+    <div className={cn("relative", className)}>
       {children}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 animate-ripple-slow rounded-full bg-white/5" />
-        <div className="absolute inset-0 animate-ripple-slow animation-delay-1000 rounded-full bg-white/5" />
+      <div className="absolute inset-0 z-10 pointer-events-none">
+        <div className="absolute inset-0 animate-ripple-slow rounded-full bg-blue-500/20" />
+        <div className="absolute inset-0 animate-ripple-slow animation-delay-1000 rounded-full bg-blue-500/20" />
+        <div className="absolute inset-0 animate-ripple-slow animation-delay-2000 rounded-full bg-blue-500/20" />
       </div>
     </div>
   );
