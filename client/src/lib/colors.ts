@@ -32,24 +32,24 @@ export const sentimentColors = {
     badgeText: '#10b981',
   },
   'Neutral': {
-    background: '#64748b',
+    background: '#6b7280',
     light: '#f9fafb',
     border: '#f3f4f6',
-    text: '#475569',
+    text: '#4b5563',
     badgeBg: '#f3f4f6',
-    badgeText: '#64748b',
+    badgeText: '#6b7280',
   }
 };
 
 // Disaster type colors as per user specification
 export const disasterTypeColors = {
   'Flood': '#3b82f6',      // Blue
-  'Typhoon': '#64748b',    // Steel Blue (instead of Gray)
+  'Typhoon': '#6b7280',    // Gray
   'Fire': '#f97316',       // Orange
   'Volcanic Eruptions': '#ef4444',    // Red
-  'Earthquake': '#b45309', // Amber (instead of Brown)
-  'Landslide': '#a16207',  // Amber-yellow (instead of Dark Brown)
-  'Default': '#64748b'     // Neutral color for other disaster types
+  'Earthquake': '#92400e', // Brown
+  'Landslide': '#78350f',  // Dark Brown
+  'Default': '#6b7280'     // Neutral color for other disaster types
 };
 
 export const chartColors = [
@@ -57,11 +57,11 @@ export const chartColors = [
   '#f97316', // Fear/Anxiety - Orange
   '#8b5cf6', // Disbelief - Purple
   '#10b981', // Resilience - Green
-  '#64748b'  // Neutral - Steel Blue
+  '#6b7280'  // Neutral - Gray
 ];
 
 export function getSentimentColor(sentiment: string | null): string {
-  if (!sentiment) return '#64748b'; // Default color for null
+  if (!sentiment) return '#6b7280'; // Default gray for null
 
   switch (sentiment) {
     case 'Panic':
@@ -74,7 +74,7 @@ export function getSentimentColor(sentiment: string | null): string {
       return '#10b981';
     case 'Neutral':
     default:
-      return '#64748b';
+      return '#6b7280';
   }
 }
 

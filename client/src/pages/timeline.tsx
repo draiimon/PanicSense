@@ -90,8 +90,8 @@ export default function Timeline() {
   // Calculate timeline data with memoization to avoid recalculation
   const timelineData = useMemo(() => processTimelineData(), [sentimentPosts]);
   
-  // No auto-generation of events
-  const shouldGenerateEvents = false;
+  // Calculate if we need to auto-generate disaster events
+  const shouldGenerateEvents = disasterEvents.length === 0 && sentimentPosts.length > 0;
 
   return (
     <div className="space-y-6">
