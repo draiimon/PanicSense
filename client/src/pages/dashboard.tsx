@@ -6,10 +6,11 @@ import { AffectedAreasCard } from "@/components/dashboard/affected-areas-card";
 import { FileUploader } from "@/components/file-uploader";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Upload, Database, BarChart3, Globe2, ArrowUpRight, RefreshCw } from "lucide-react";
+import { Loader2, Upload, Database, BarChart3, Globe2, ArrowUpRight, RefreshCw, AlertTriangle, Clock } from "lucide-react";
 import { CardCarousel } from "@/components/dashboard/card-carousel";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { KeyEvents } from "@/components/timeline/key-events";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -299,10 +300,6 @@ export default function Dashboard() {
                       </div>
                       <h3 className="text-lg font-semibold text-slate-800">Sentiment Distribution</h3>
                     </div>
-                    <a href="/emotion-analysis" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex items-center px-3 py-1.5">
-                      Full Analysis
-                      <ArrowUpRight className="h-3 w-3 ml-1" />
-                    </a>
                   </div>
                   <p className="text-sm text-slate-500 mt-1">
                     Emotional response breakdown across disaster events

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { getSentimentBadgeClasses } from "@/lib/colors";
@@ -14,6 +14,7 @@ import {
   Mountain 
 } from "lucide-react";
 import { SentimentPost } from "@/lib/api";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AffectedAreaProps {
   sentimentPosts: SentimentPost[];
@@ -52,6 +53,9 @@ function getDisasterIcon(type: string | null) {
 
 export function AffectedAreasCard({ sentimentPosts, isLoading = false }: AffectedAreaProps) {
   const [affectedAreas, setAffectedAreas] = useState<AffectedArea[]>([]);
+  const [isSlotRolling, setIsSlotRolling] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Extract and count location mentions
@@ -126,8 +130,62 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
     setAffectedAreas(sortedAreas);
   }, [sentimentPosts]);
 
+  // Slot machine effect
+  useEffect(() => {
+    if (affectedAreas.length === 0) return;
+    
+    // Start auto-scrolling like a slot machine
+    const startSlotRolling = () => {
+      if (!containerRef.current || isSlotRolling) return;
+      
+      setIsSlotRolling(true);
+      
+      const container = containerRef.current;
+      const scrollHeight = container.scrollHeight;
+      const clientHeight = container.clientHeight;
+      
+      // Stop if there's not enough content to scroll
+      if (scrollHeight <= clientHeight) {
+        setIsSlotRolling(false);
+        return;
+      }
+      
+      let currentPosition = 0;
+      const scrollSpeed = 0.5; // pixels per frame
+      
+      const scroll = () => {
+        if (!containerRef.current) return;
+        
+        currentPosition += scrollSpeed;
+        
+        // Reset when we reach the end
+        if (currentPosition >= scrollHeight - clientHeight) {
+          currentPosition = 0;
+        }
+        
+        containerRef.current.scrollTop = currentPosition;
+        
+        if (isSlotRolling) {
+          requestAnimationFrame(scroll);
+        }
+      };
+      
+      requestAnimationFrame(scroll);
+    };
+    
+    startSlotRolling();
+    
+    return () => {
+      setIsSlotRolling(false);
+    };
+  }, [affectedAreas, isSlotRolling]);
+
   return (
-    <div className="h-full overflow-auto">
+    <div 
+      ref={containerRef}
+      className="h-full overflow-auto scrollbar-hide"
+      style={{ maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent 100%)' }}
+    >
       <AnimatePresence>
         <div className="space-y-4 p-4">
           {affectedAreas.length === 0 ? (
@@ -139,9 +197,10 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
               <p className="text-center text-sm text-slate-400">Upload data to see disaster impact by location</p>
             </div>
           ) : (
-            affectedAreas.map((area, index) => (
+            // Add duplicated items for infinite scrolling effect
+            [...affectedAreas, ...affectedAreas, ...affectedAreas].map((area, index) => (
               <motion.div
-                key={area.name}
+                key={`${area.name}-${index}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ 
                   opacity: 1, 
