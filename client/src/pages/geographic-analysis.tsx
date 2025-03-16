@@ -205,13 +205,8 @@ export default function GeographicAnalysis() {
   // This ensures consistency with the Dashboard Recent Affected Areas
 
   const locationData = useMemo(() => {
-    // Create a Map to match exactly what affected-areas-card.tsx is doing
-    const locationMap = new Map<string, { 
-      count: number,
-      sentiment: Map<string, number>,
-      disasterType: Map<string, number>,
-      coordinates: [number, number]
-    }>();
+    // Create a data structure to track location data
+    const data: Record<string, LocationData> = {};
     
     // Process posts to populate the map with the exact location names
     for (const post of sentimentPosts) {
@@ -223,46 +218,28 @@ export default function GeographicAnalysis() {
       let coordinates = regionCoordinates[location] ?? detectedLocations[location];
       if (!coordinates) continue; // Skip locations we can't pin
       
-      if (!locationMap.has(location)) {
-        locationMap.set(location, {
+      if (!data[location]) {
+        data[location] = {
           count: 0,
-          sentiment: new Map<string, number>(),
-          disasterType: new Map<string, number>(),
+          sentiments: {},
+          disasterTypes: {},
           coordinates
-        });
+        };
       }
       
-      // Update counts exactly like affected-areas-card.tsx
-      const locationData = locationMap.get(location)!;
-      locationData.count++;
+      // Update counts
+      data[location].count++;
       
       // Track sentiments
-      const currentSentimentCount = locationData.sentiment.get(post.sentiment) || 0;
-      locationData.sentiment.set(post.sentiment, currentSentimentCount + 1);
+      data[location].sentiments[post.sentiment] = 
+        (data[location].sentiments[post.sentiment] || 0) + 1;
       
       // Track disaster types
       if (post.disasterType) {
-        const currentTypeCount = locationData.disasterType.get(post.disasterType) || 0;
-        locationData.disasterType.set(post.disasterType, currentTypeCount + 1);
+        data[location].disasterTypes[post.disasterType] = 
+          (data[location].disasterTypes[post.disasterType] || 0) + 1;
       }
     }
-    
-    // Convert the Map to our required format
-    const data: Record<string, LocationData> = {};
-    
-    locationMap.forEach((mapData: { 
-      count: number, 
-      sentiment: Map<string, number>, 
-      disasterType: Map<string, number>, 
-      coordinates: [number, number] 
-    }, name: string) => {
-      data[name] = {
-        count: mapData.count,
-        sentiments: Object.fromEntries(mapData.sentiment),
-        disasterTypes: Object.fromEntries(mapData.disasterType),
-        coordinates: mapData.coordinates
-      };
-    });
 
     return data;
   }, [sentimentPosts, detectedLocations]);
