@@ -35,17 +35,8 @@ export function SentimentMap({
   onRegionSelect,
   mapType = 'disaster',
   view = 'standard',
-  showMarkers = true,
-  ref
-}: SentimentMapProps & { ref?: any }) {
-  // Expose map functions
-  useImperativeHandle(ref, () => ({
-    zoomToLocation: (coordinates: [number, number]) => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.setView(coordinates, 18);
-      }
-    }
-  }));
+  showMarkers = true
+}: SentimentMapProps) {
   // Define our marker types
   interface MarkerWithAnimation {
     circle: any;
