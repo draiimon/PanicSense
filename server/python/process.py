@@ -404,17 +404,15 @@ Respond ONLY with a JSON object containing:
                     df = pd.read_csv(file_path, encoding="latin1", on_bad_lines="skip")
                     logging.info("Read CSV with latin1 encoding and skipping bad lines")
 
-            # Initialize results and counters
+            # Initialize results
             processed_results = []
             total_records = len(df)
-            successful_records = 0
-            failed_records = 0
 
-            # Print initial stats
-            logging.info(f"Total records to process: {total_records}")
+            # Print column names for debugging
+            logging.info(f"CSV columns found: {', '.join(df.columns)}")
 
             # Report initial progress
-            report_progress(0, f"Starting data analysis. Total records: {total_records}")
+            report_progress(0, "Starting data analysis")
 
             # Analyze column headers to find column types
             column_matches = {
@@ -523,29 +521,26 @@ Respond ONLY with a JSON object containing:
             confidence_col = identified_columns.get("confidence")
             language_col = identified_columns.get("language")
 
-            # Process records
-            for i, row in df.iterrows():
-                try:
-                    # Calculate progress
-                    progress_percentage = int((i / total_records) * 100)
-                    remaining = total_records - i
+            # Process records (limit to 50 for demo)
+            sample_size = min(50, len(df))
 
-                    # Report detailed progress with bigger message
-                    progress_message = (
-                        f"=== PROCESSING STATUS ===\n"
-                        f"Current: Record {i+1} of {total_records}\n"
-                        f"Progress: {progress_percentage}% complete\n"
-                        f"Successful: {successful_records}\n"
-                        f"Failed: {failed_records}\n"
-                        f"Remaining: {remaining}\n"
-                        f"======================="
+            # Report column identification progress
+            report_progress(5, "Identified data columns")
+
+            for i, row in df.head(sample_size).iterrows():
+                try:
+                    # Calculate percentage progress (0-100)
+                    progress_percentage = int((i / sample_size) * 90) + 5  # Starts at 5%, goes to 95%
+
+                    # Report progress with percentage
+                    report_progress(
+                        progress_percentage,
+                        f"Analyzing record {i+1} of {sample_size} ({progress_percentage}% complete)"
                     )
-                    report_progress(progress_percentage, progress_message)
 
                     # Extract text
                     text = str(row.get("text", ""))
                     if not text.strip():
-                        failed_records += 1
                         continue
 
                     # Get metadata from columns
@@ -572,16 +567,10 @@ Respond ONLY with a JSON object containing:
                         else:
                             csv_language = "English"
 
-                    # Add delay before sentiment analysis for consistency
-                    time.sleep(2)  # 2 second delay before each analysis
-
                     # Analyze sentiment
                     analysis_result = self.analyze_sentiment(text)
 
-                    # Add delay after successful analysis
-                    time.sleep(1)  # 1 second delay after analysis
-
-                    # Construct result and append
+                    # Construct standardized result
                     processed_results.append({
                         "text": text,
                         "timestamp": timestamp,
@@ -594,31 +583,17 @@ Respond ONLY with a JSON object containing:
                         "location": csv_location if csv_location else analysis_result.get("location")
                     })
 
-                    successful_records += 1
-
-                    # Add longer delay between records for large files
-                    if total_records > 10:  # If processing many records
-                        time.sleep(3)  # Add 3 second delay between records
-                    else:
-                        time.sleep(1.5)  # Normal delay for small files
+                    # Add delay between records to avoid rate limits
+                    if i > 0 and i % 3 == 0:
+                        time.sleep(1.5)
 
                 except Exception as e:
-                    failed_records += 1
                     logging.error(f"Error processing row {i}: {str(e)}")
-                    time.sleep(1)  # Add delay even on error to maintain consistency
 
-            # Report final stats with detailed formatting
-            final_message = (
-                f"====== ANALYSIS COMPLETE ======\n"
-                f"Total Records: {total_records}\n"
-                f"Successfully Processed: {successful_records}\n"
-                f"Failed Records: {failed_records}\n"
-                f"==========================="
-            )
-            report_progress(100, final_message)
+            # Report completion
+            report_progress(100, "Analysis complete!")
 
-            # Log final stats
-            logging.info(final_message)
+            # Log stats
             loc_count = sum(1 for r in processed_results if r.get("location"))
             disaster_count = sum(1 for r in processed_results if r.get("disasterType") != "Not Specified")
             logging.info(f"Records with location: {loc_count}/{len(processed_results)}")
