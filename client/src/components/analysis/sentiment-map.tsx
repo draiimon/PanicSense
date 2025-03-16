@@ -185,16 +185,16 @@ export function SentimentMap({
         let areaRadius = 0;
 
         // Specific size adjustments based on location name
-        if (region.name.includes("Manila") || region.name.includes("Makati") || 
-            region.name.includes("Pasig") || region.name.includes("Taguig")) {
-          areaRadius = 3; // Small city areas
-        } else if (region.name.includes("Cebu") || region.name.includes("Davao") ||
-                   region.name.includes("Baguio")) {
-          areaRadius = 6; // Medium city areas
-        } else if (region.name.includes("Province") || region.name.includes("Region")) {
-          areaRadius = 20; // Province level - larger area
+        if (region.name.includes("Province") || region.name.includes("Region")) {
+          areaRadius = 10; // Province level
+        } else if (region.name.includes("City")) {
+          areaRadius = 2; // City level
+        } else if (region.name.includes("Municipality") || region.name.includes("Town")) {
+          areaRadius = 1.5; // Municipality level
+        } else if (region.name.includes("Barangay") || region.name.includes("Street") || region.name.includes("Village")) {
+          areaRadius = 0.8; // Specific location level
         } else {
-          areaRadius = 4; // Default for municipalities
+          areaRadius = 1; // Default for other specific places
         }
 
         // Add subtle variation based on intensity
