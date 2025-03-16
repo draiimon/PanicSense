@@ -33,9 +33,12 @@ export default function GeographicAnalysis() {
   const [selectedRegionFilter, setSelectedRegionFilter] = useState<string | null>(null);
   const [showMarkers, setShowMarkers] = useState<boolean>(true);
 
-  // Philippine region coordinates
+  // Complete Philippine region coordinates
   const regionCoordinates = {
-    "Philippines": [12.8797, 121.7740] as [number, number],
+    // Default coordinates for unknown locations
+    "Unknown": [12.8797, 121.7740] as [number, number],
+
+    // Metro Manila and surrounding provinces
     "Metro Manila": [14.5995, 120.9842] as [number, number],
     "Manila": [14.5995, 120.9842] as [number, number],
     "Batangas": [13.7565, 121.0583] as [number, number],
@@ -50,23 +53,29 @@ export default function GeographicAnalysis() {
     "General Trias": [14.3833, 120.8833] as [number, number],
     "Kawit": [14.4351, 120.9019] as [number, number],
     "Tanza": [14.3953, 120.8508] as [number, number],
+
+    // Main regions
     "Luzon": [16.0, 121.0] as [number, number],
+    "Visayas": [11.0, 124.0] as [number, number],
+    "Mindanao": [7.5, 125.0] as [number, number],
+
+    // Major cities
+    "Cebu": [10.3157, 123.8854] as [number, number],
+    "Davao": [7.0707, 125.6087] as [number, number],
+    "Quezon City": [14.6760, 121.0437] as [number, number],
+    "Tacloban": [11.2543, 125.0000] as [number, number],
+    "Baguio": [16.4023, 120.5960] as [number, number],
+    "Zamboanga": [6.9214, 122.0790] as [number, number],
+    "Cagayan de Oro": [8.4542, 124.6319] as [number, number],
+    "General Santos": [6.1164, 125.1716] as [number, number],
+
+    // Provinces
     "Ilocos Norte": [18.1647, 120.7116] as [number, number],
     "Ilocos Sur": [17.5755, 120.3869] as [number, number],
     "La Union": [16.6159, 120.3209] as [number, number],
     "Pangasinan": [15.8949, 120.2863] as [number, number],
     "Cagayan": [17.6132, 121.7270] as [number, number],
     "Isabela": [16.9754, 121.8107] as [number, number],
-    "Quirino": [16.4907, 121.5434] as [number, number],
-    "Nueva Vizcaya": [16.3301, 121.1710] as [number, number],
-    "Batanes": [20.4487, 121.9702] as [number, number],
-    "Apayao": [17.9811, 121.1333] as [number, number],
-    "Kalinga": [17.4766, 121.3629] as [number, number],
-    "Abra": [17.5951, 120.7983] as [number, number],
-    "Mountain Province": [17.0417, 121.1087] as [number, number],
-    "Ifugao": [16.8303, 121.1710] as [number, number],
-    "Benguet": [16.4023, 120.5960] as [number, number],
-    "Tarlac": [15.4755, 120.5960] as [number, number],
     "Zambales": [15.5082, 120.0691] as [number, number],
     "Bataan": [14.6417, 120.4818] as [number, number],
     "Nueva Ecija": [15.5784, 121.0687] as [number, number],
@@ -79,94 +88,76 @@ export default function GeographicAnalysis() {
     "Catanduanes": [13.7089, 124.2422] as [number, number],
     "Masbate": [12.3686, 123.6417] as [number, number],
     "Marinduque": [13.4771, 121.9032] as [number, number],
-    "Occidental Mindoro": [13.1024, 120.7651] as [number, number],
-    "Oriental Mindoro": [13.0565, 121.4069] as [number, number],
-    "Romblon": [12.5778, 122.2695] as [number, number],
+    "Mindoro": [13.1024, 120.7651] as [number, number],
     "Palawan": [9.8349, 118.7384] as [number, number],
-    "Visayas": [11.0, 124.0] as [number, number],
-    "Cebu": [10.3157, 123.8854] as [number, number],
     "Bohol": [9.8500, 124.1435] as [number, number],
-    "Negros Oriental": [9.6168, 123.0113] as [number, number],
-    "Negros Occidental": [10.6713, 123.0036] as [number, number],
+    "Leyte": [10.8731, 124.8811] as [number, number],
+    "Samar": [12.0083, 125.0373] as [number, number],
     "Iloilo": [10.7202, 122.5621] as [number, number],
     "Capiz": [11.3889, 122.6277] as [number, number],
     "Aklan": [11.8166, 122.0942] as [number, number],
     "Antique": [11.3683, 122.0645] as [number, number],
-    "Guimaras": [10.5982, 122.6277] as [number, number],
-    "Leyte": [10.8731, 124.8811] as [number, number],
-    "Southern Leyte": [10.3365, 125.1717] as [number, number],
-    "Biliran": [11.5836, 124.4651] as [number, number],
-    "Samar": [12.0083, 125.0373] as [number, number],
-    "Eastern Samar": [11.6508, 125.4082] as [number, number],
-    "Northern Samar": [12.4700, 124.6451] as [number, number],
-    "Siquijor": [9.1985, 123.5950] as [number, number],
-    "Tacloban": [11.2543, 125.0000] as [number, number],
-    "Mindanao": [7.5, 125.0] as [number, number],
-    "Davao": [7.0707, 125.6087] as [number, number],
+    "Negros Occidental": [10.6713, 123.0036] as [number, number],
+    "Negros Oriental": [9.6168, 123.0113] as [number, number],
+    "Zamboanga del Norte": [8.1527, 123.2577] as [number, number],
+    "Zamboanga del Sur": [7.8383, 123.2968] as [number, number],
+    "Lanao del Norte": [8.0730, 124.2873] as [number, number],
+    "Lanao del Sur": [7.8232, 124.4357] as [number, number],
+    "Bukidnon": [8.0515, 125.0985] as [number, number],
     "Davao del Sur": [6.7656, 125.3284] as [number, number],
     "Davao del Norte": [7.5619, 125.6549] as [number, number],
     "Davao Oriental": [7.3172, 126.5420] as [number, number],
-    "Davao Occidental": [6.1055, 125.6083] as [number, number],
-    "Davao de Oro": [7.3172, 126.1748] as [number, number],
-    "Zamboanga del Norte": [8.1527, 123.2577] as [number, number],
-    "Zamboanga del Sur": [7.8383, 123.2968] as [number, number],
-    "Zamboanga Sibugay": [7.5222, 122.8198] as [number, number],
-    "Misamis Occidental": [8.3375, 123.7071] as [number, number],
-    "Misamis Oriental": [8.5046, 124.6220] as [number, number],
-    "Bukidnon": [8.0515, 125.0985] as [number, number],
-    "Lanao del Norte": [8.0730, 124.2873] as [number, number],
-    "Lanao del Sur": [7.8232, 124.4357] as [number, number],
-    "North Cotabato": [7.1436, 124.8511] as [number, number],
     "South Cotabato": [6.2969, 124.8511] as [number, number],
+    "North Cotabato": [7.1436, 124.8511] as [number, number],
     "Sultan Kudarat": [6.5069, 124.4169] as [number, number],
-    "Sarangani": [5.9630, 125.1990] as [number, number],
+    "Maguindanao": [6.9423, 124.4169] as [number, number],
     "Agusan del Norte": [8.9456, 125.5319] as [number, number],
     "Agusan del Sur": [8.1661, 126.0152] as [number, number],
     "Surigao del Norte": [9.7177, 125.5950] as [number, number],
     "Surigao del Sur": [8.7512, 126.1378] as [number, number],
-    "Dinagat Islands": [10.1280, 125.6083] as [number, number],
-    "Maguindanao": [6.9423, 124.4169] as [number, number],
-    "Basilan": [6.4221, 121.9690] as [number, number],
-    "Sulu": [6.0474, 121.0024] as [number, number],
-    "Tawi-Tawi": [5.1339, 119.9357] as [number, number],
-    "Cagayan de Oro": [8.4542, 124.6319] as [number, number],
-    "General Santos": [6.1164, 125.1716] as [number, number]
   };
 
   // Process data for regions and map location mentions
   const locationData = useMemo(() => {
     const data: Record<string, LocationData> = {};
 
+    // Helper function to normalize location names
+    const normalizeLocation = (loc: string): string => {
+      const lowerLoc = loc.toLowerCase().trim();
+      // Handle different variations of location names
+      if (lowerLoc.includes('manila') && !lowerLoc.includes('metro')) return 'Manila';
+      if (lowerLoc.includes('quezon') && lowerLoc.includes('city')) return 'Quezon City';
+      if (lowerLoc === 'ncr') return 'Metro Manila';
+      if (lowerLoc === 'mm') return 'Metro Manila';
+      if (lowerLoc === 'qc') return 'Quezon City';
+      if (lowerLoc === 'cdo') return 'Cagayan de Oro';
+      if (lowerLoc === 'gensan') return 'General Santos';
+      if (lowerLoc === 'mindoro occidental') return 'Mindoro';
+      if (lowerLoc === 'mindoro oriental') return 'Mindoro';
+
+      // Return capitalized version of the location
+      return loc.split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    };
+
     // Process posts to populate the map
     sentimentPosts.forEach(post => {
       if (!post.location) return;
 
-      let location = post.location;
-      const lowerLocation = location.toLowerCase().trim();
+      let location = normalizeLocation(post.location);
 
-      // Skip "not specified" and generic Philippines mentions
+      // Skip generic mentions
       if (
-        lowerLocation === 'not specified' ||
-        lowerLocation === 'philippines' ||
-        lowerLocation === 'pilipinas' ||
-        lowerLocation === 'pinas'
+        location.toLowerCase() === 'not specified' ||
+        location.toLowerCase() === 'not mentioned' ||
+        location.toLowerCase() === 'none'
       ) {
         return;
       }
 
-      // Handle Manila specifically
-      if (lowerLocation.includes('manila') && !lowerLocation.includes('metro')) {
-        location = 'Manila';
-      }
-
-      // Handle main island groups if mentioned
-      if (lowerLocation.includes('luzon')) location = 'Luzon';
-      if (lowerLocation.includes('visayas')) location = 'Visayas';
-      if (lowerLocation.includes('mindanao')) location = 'Mindanao';
-
-      // If coordinates not found, skip this location
-      const coordinates = regionCoordinates[location as keyof typeof regionCoordinates];
-      if (!coordinates) return;
+      // Get coordinates or use default if not found
+      const coordinates = regionCoordinates[location as keyof typeof regionCoordinates] || regionCoordinates["Unknown"];
 
       // Initialize location data if it doesn't exist
       if (!data[location]) {
@@ -180,11 +171,8 @@ export default function GeographicAnalysis() {
 
       // Update counts
       data[location].count++;
-
-      // Track sentiments
       data[location].sentiments[post.sentiment] = (data[location].sentiments[post.sentiment] || 0) + 1;
 
-      // Track disaster types
       if (post.disasterType) {
         data[location].disasterTypes[post.disasterType] = (data[location].disasterTypes[post.disasterType] || 0) + 1;
       }
