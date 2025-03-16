@@ -3,6 +3,19 @@ import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
 
+// Animated number component for smooth transitions
+const AnimatedNumber = ({ value }: { value: number }) => (
+  <motion.span
+    key={value}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    transition={{ duration: 0.2 }}
+  >
+    {value}
+  </motion.span>
+);
+
 export function UploadProgressModal() {
   const { isUploading, uploadProgress } = useDisasterContext();
 
@@ -102,14 +115,23 @@ export function UploadProgressModal() {
                 }}
                 className="mt-4 flex flex-col items-center justify-center"
               >
-                <div className="text-4xl font-bold text-blue-700 mb-2 tracking-tight tabular-nums">
-                  {uploadProgress.processedRecords}/{uploadProgress.totalRecords}
+                <div className="text-4xl font-bold text-blue-700 mb-2 tracking-tight tabular-nums flex items-center gap-1">
+                  <AnimatePresence mode="wait">
+                    <AnimatedNumber value={uploadProgress.processedRecords} />
+                  </AnimatePresence>
+                  <span>/</span>
+                  <AnimatePresence mode="wait">
+                    <AnimatedNumber value={uploadProgress.totalRecords} />
+                  </AnimatePresence>
                 </div>
 
                 <div className="flex justify-between w-full text-sm text-slate-700">
                   <span>Records processed</span>
-                  <span className="font-semibold">
-                    {percentage}%
+                  <span className="font-semibold tabular-nums">
+                    <AnimatePresence mode="wait">
+                      <AnimatedNumber value={percentage} />
+                    </AnimatePresence>
+                    %
                   </span>
                 </div>
               </motion.div>

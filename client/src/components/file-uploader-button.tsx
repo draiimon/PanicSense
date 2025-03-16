@@ -28,7 +28,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
     const file = files[0];
 
-    // More strict file validation
+    // Validate file format
     if (!file.name.toLowerCase().endsWith('.csv')) {
       toast({
         title: 'Invalid File Format',
@@ -49,13 +49,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     }
 
     setIsUploading(true);
-    updateUploadProgress({
-      status: 'uploading',
-      message: 'Preparing file for analysis...',
-      percentage: 0,
-      processedRecords: 0,
-      totalRecords: 0
-    });
 
     try {
       const reader = new FileReader();
@@ -69,7 +62,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             throw new Error('CSV file appears to be empty or malformed. Please check the file content.');
           }
 
-          // Set initial progress with line count
+          // Initialize progress with 0 records processed
           updateUploadProgress({ 
             totalRecords: lines,
             processedRecords: 0,
@@ -78,29 +71,40 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             percentage: 0
           });
 
+          // Small delay to ensure initial state is shown
+          await new Promise(resolve => setTimeout(resolve, 100));
+
           const result = await uploadCSV(file, (progress) => {
-            // Extract the current record number from the stage message if available
             let currentRecord = 0;
+
+            // Extract current record number from stage message
             const recordMatch = progress.stage?.match(/record (\d+) of (\d+)/i);
 
             if (recordMatch) {
               currentRecord = parseInt(recordMatch[1]);
+            } else if (progress.stage?.includes('complete')) {
+              currentRecord = lines;
             } else {
-              // Fallback to the processed value if no match
-              currentRecord = Number(progress.processed) || 0;
+              // If no explicit record number, use processed percentage
+              const percentMatch = progress.stage?.match(/(\d+)%/);
+              if (percentMatch) {
+                const percent = parseInt(percentMatch[1]);
+                currentRecord = Math.floor((percent / 100) * lines);
+              }
             }
 
-            const totalRecords = Number(progress.total) || lines;
+            // Ensure values are within valid range
+            currentRecord = Math.max(0, Math.min(currentRecord, lines));
 
-            // Calculate percentage based on the current record
-            const percentage = Math.min(Math.round((currentRecord / totalRecords) * 100), 100);
+            // Calculate percentage
+            const percentage = Math.round((currentRecord / lines) * 100);
 
-            // Update progress with the extracted record number
+            // Update progress state
             updateUploadProgress({
               processedRecords: currentRecord,
-              totalRecords,
+              totalRecords: lines,
               percentage,
-              message: progress.stage || `Processing record ${currentRecord} of ${totalRecords}`,
+              message: progress.stage || `Processing record ${currentRecord} of ${lines}`,
               status: progress.error ? 'error' : 'uploading'
             });
 
@@ -137,7 +141,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             onSuccess(result);
           }
 
-          // Reset upload state after a delay
+          // Reset states after delays
           progressTimeout.current = setTimeout(() => {
             resetUploadProgress();
             setTimeout(() => {
@@ -158,7 +162,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     } catch (error) {
       handleError(error);
     } finally {
-      // Reset file input
       event.target.value = '';
     }
   };
