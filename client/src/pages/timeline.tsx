@@ -29,11 +29,11 @@ export default function Timeline() {
     // Track unique dates to display as labels
     const uniqueDates = new Map<string, Date>();
     
-    // Group sentiment posts by date
-    sortedPosts.forEach(post => {
-      const postDate = parseISO(post.timestamp);
-      const displayDate = format(postDate, "MMM dd, yyyy");
-      uniqueDates.set(displayDate, postDate);
+    // Group sentiment posts by date and include disaster events
+    [...sortedPosts, ...disasterEvents].forEach(item => {
+      const itemDate = parseISO(item.timestamp);
+      const displayDate = format(itemDate, "MMM dd, yyyy");
+      uniqueDates.set(displayDate, itemDate);
     });
     
     // Convert to sorted array of labels
