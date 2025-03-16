@@ -25,6 +25,7 @@ export interface IStorage {
   createManySentimentPosts(posts: InsertSentimentPost[]): Promise<SentimentPost[]>;
   deleteSentimentPost(id: number): Promise<void>;
   deleteAllSentimentPosts(): Promise<void>;
+  deleteSentimentPostsByFileId(fileId: number): Promise<void>;
 
   // Disaster Events
   getDisasterEvents(): Promise<DisasterEvent[]>;
@@ -35,6 +36,7 @@ export interface IStorage {
   getAnalyzedFiles(): Promise<AnalyzedFile[]>;
   getAnalyzedFile(id: number): Promise<AnalyzedFile | undefined>;
   createAnalyzedFile(file: InsertAnalyzedFile): Promise<AnalyzedFile>;
+  deleteAnalyzedFile(id: number): Promise<void>;
   deleteAllAnalyzedFiles(): Promise<void>;
   
   // Delete All Data
@@ -127,6 +129,11 @@ export class DatabaseStorage implements IStorage {
     await db.delete(sentimentPosts)
       .where(eq(sentimentPosts.id, id));
   }
+  
+  async deleteSentimentPostsByFileId(fileId: number): Promise<void> {
+    await db.delete(sentimentPosts)
+      .where(eq(sentimentPosts.fileId, fileId));
+  }
 
   // Disaster Events
   async getDisasterEvents(): Promise<DisasterEvent[]> {
@@ -157,6 +164,15 @@ export class DatabaseStorage implements IStorage {
       .values(file)
       .returning();
     return result;
+  }
+  
+  async deleteAnalyzedFile(id: number): Promise<void> {
+    // First delete all sentiment posts associated with this file
+    await this.deleteSentimentPostsByFileId(id);
+    
+    // Then delete the analyzed file
+    await db.delete(analyzedFiles)
+      .where(eq(analyzedFiles.id, id));
   }
   
   // Delete functions
