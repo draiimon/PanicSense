@@ -51,7 +51,14 @@ export function SentimentMap({
   const markersRef = useRef<MarkerRef[]>([]);
   const [mapZoom, setMapZoom] = useState(6);
   const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
+  const [selectedSentiment, setSelectedSentiment] = useState<string | null>(null);
   const popupRef = useRef<any>(null);
+
+  const zoomToLocation = (coordinates: [number, number]) => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView(coordinates, 15);
+    }
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined' || !mapRef.current || mapInstanceRef.current) return;
@@ -321,6 +328,7 @@ export function SentimentMap({
         });
 
         circle.on('click', () => {
+          zoomToLocation(region.coordinates);
           if (onRegionSelect) {
             onRegionSelect(region);
           }

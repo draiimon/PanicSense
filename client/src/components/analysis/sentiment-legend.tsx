@@ -59,7 +59,11 @@ export function SentimentLegend({
           </div>
           <div className="grid grid-cols-2 gap-2">
             {sentiments.map((sentiment) => (
-              <div key={sentiment.name} className="flex items-center gap-2">
+              <div 
+                key={sentiment.name} 
+                className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded"
+                onClick={() => onSentimentClick?.(sentiment.name)}
+              >
                 <div 
                   className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: sentiment.color }}
