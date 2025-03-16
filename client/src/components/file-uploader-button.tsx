@@ -19,37 +19,9 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     resetUploadProgress
   } = useDisasterContext();
   const progressTimeout = useRef<NodeJS.Timeout>();
-  const animationFrame = useRef<number>();
-  const currentProgress = useRef<number>(0);
+  const currentCount = useRef<number>(0);
 
-  const animateToValue = (
-    startValue: number,
-    endValue: number,
-    duration: number,
-    onUpdate: (value: number) => void,
-    onComplete?: () => void
-  ) => {
-    const startTime = performance.now();
-
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Ease out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.round(startValue + (endValue - startValue) * eased);
-
-      onUpdate(current);
-
-      if (progress < 1) {
-        animationFrame.current = requestAnimationFrame(animate);
-      } else {
-        if (onComplete) onComplete();
-      }
-    };
-
-    animationFrame.current = requestAnimationFrame(animate);
-  };
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -85,15 +57,15 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           const text = e.target?.result as string;
           const lines = text.split('\n').length - 1;
 
-          console.log('Starting file upload with', lines, 'records');
+          console.log('Starting upload with', lines, 'records');
 
-          // Reset progress tracking
-          currentProgress.current = 0;
+          // Reset current count
+          currentCount.current = 0;
 
           // Start upload process
           setIsUploading(true);
 
-          // Initialize progress at 0
+          // Initialize at 0
           updateUploadProgress({
             totalRecords: lines,
             processedRecords: 0,
@@ -102,63 +74,44 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             percentage: 0
           });
 
-          // Wait briefly to ensure initial state is shown
-          await new Promise(resolve => setTimeout(resolve, 300));
+          // Ensure initial state is visible
+          await sleep(500);
 
-          const result = await uploadCSV(file, (progress) => {
-            // Log raw progress data for debugging
-            console.log('Raw progress update:', {
-              stage: progress.stage,
-              processed: progress.processed,
-              total: progress.total,
-              currentProgress: currentProgress.current
-            });
-
-            // Extract target record number
-            let targetRecord = 0;
+          const result = await uploadCSV(file, async (progress) => {
+            // Extract record number from progress
+            let nextRecord = 0;
             const recordMatch = progress.stage?.match(/record (\d+) of (\d+)/i);
+
             if (recordMatch) {
-              targetRecord = parseInt(recordMatch[1]);
+              nextRecord = parseInt(recordMatch[1]);
             } else if (progress.processed) {
-              targetRecord = Number(progress.processed);
+              nextRecord = Number(progress.processed);
             }
 
-            // Ensure target is valid
-            targetRecord = Math.max(0, Math.min(targetRecord, lines));
+            // Ensure we're moving forward
+            if (nextRecord > currentCount.current) {
+              // Increment one by one with delays
+              for (let i = currentCount.current + 1; i <= nextRecord; i++) {
+                await sleep(200); // Force delay between updates
 
-            // Only animate if we're moving forward
-            if (targetRecord > currentProgress.current) {
-              // Calculate how many steps to show
-              const stepsToShow = Math.min(5, targetRecord - currentProgress.current);
-              const stepSize = Math.ceil((targetRecord - currentProgress.current) / stepsToShow);
-
-              // Cancel any existing animation
-              if (animationFrame.current) {
-                cancelAnimationFrame(animationFrame.current);
+                currentCount.current = i;
+                updateUploadProgress({
+                  processedRecords: i,
+                  totalRecords: lines,
+                  percentage: Math.floor((i / lines) * 100),
+                  message: `Processing record ${i} of ${lines}`,
+                  status: 'uploading'
+                });
               }
+            }
 
-              // Animate through intermediate values
-              animateToValue(
-                currentProgress.current,
-                targetRecord,
-                stepsToShow * 200, // 200ms per step
-                (value) => {
-                  currentProgress.current = value;
-                  updateUploadProgress({
-                    processedRecords: value,
-                    totalRecords: lines,
-                    percentage: Math.floor((value / lines) * 100),
-                    message: `Processing record ${value} of ${lines}`,
-                    status: 'uploading'
-                  });
-                }
-              );
+            if (progress.error) {
+              throw new Error(progress.error);
             }
           });
 
-          // Handle successful upload
           if (result?.file && result?.posts) {
-            // Ensure we show 100% completion
+            // Show completion state
             updateUploadProgress({
               status: 'success',
               message: 'Analysis Complete!',
@@ -209,11 +162,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
   const handleError = (error: unknown) => {
     console.error('Upload error:', error);
-
-    // Cancel any ongoing animation
-    if (animationFrame.current) {
-      cancelAnimationFrame(animationFrame.current);
-    }
 
     updateUploadProgress({
       status: 'error',
