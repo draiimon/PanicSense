@@ -43,7 +43,7 @@ export function Header() {
     >
       <div className="max-w-[2000px] mx-auto">
         <div className="flex items-center justify-between px-3 py-3 sm:px-8 sm:py-5">
-          {/* Logo and Title */}
+          {/* Left side - Logo */}
           <div className="flex items-center gap-3 sm:gap-5">
             <div className="relative w-10 h-10 sm:w-12 sm:h-12">
               <motion.div
@@ -78,6 +78,7 @@ export function Header() {
             </div>
           </div>
 
+
           {/* Center - Navigation Dropdown */}
           <div className="relative flex-1 flex justify-center">
             <Button
@@ -86,13 +87,7 @@ export function Header() {
               className="flex items-center gap-2 hover:bg-blue-50"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             >
-              Navigate
-              <motion.div
-                animate={{ rotate: isDropdownOpen ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ChevronDown className="w-4 h-4" />
-              </motion.div>
+              <ChevronDown className="w-6 h-6" /> {/* Changed icon */}
             </Button>
 
             <AnimatePresence>
