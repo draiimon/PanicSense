@@ -196,10 +196,39 @@ export default function GeographicAnalysis() {
 
   // Effect for processing new posts and extracting locations
   useEffect(() => {
-    // We no longer do any location normalization because we exclusively use
-    // the exact location names that are assigned by the AI.
-    // This makes the Geographic Analysis view consistent with the Dashboard view.
-  }, []);
+    // Dynamically lookup any locations that aren't in our predefined list
+    async function fetchMissingCoordinates() {
+      const missingLocations = sentimentPosts
+        .filter(post => post.location && !regionCoordinates[post.location] && !detectedLocations[post.location])
+        .map(post => post.location as string);
+      
+      // Get unique locations
+      const uniqueLocations = [...new Set(missingLocations)];
+      
+      // Fetch coordinates for each missing location
+      const newDetectedLocations: Record<string, [number, number]> = {...detectedLocations};
+      let hasNewLocations = false;
+      
+      for (const location of uniqueLocations) {
+        try {
+          const coordinates = await getCoordinates(location);
+          if (coordinates) {
+            console.log(`Found coordinates for "${location}": [${coordinates[0]}, ${coordinates[1]}]`);
+            newDetectedLocations[location] = coordinates;
+            hasNewLocations = true;
+          }
+        } catch (error) {
+          console.error(`Failed to get coordinates for ${location}:`, error);
+        }
+      }
+      
+      if (hasNewLocations) {
+        setDetectedLocations(newDetectedLocations);
+      }
+    }
+    
+    fetchMissingCoordinates();
+  }, [sentimentPosts, regionCoordinates]);
 
   // We no longer need this list since we're only using the exact location names from posts
   // This ensures consistency with the Dashboard Recent Affected Areas
