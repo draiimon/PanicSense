@@ -6,14 +6,14 @@ import {
   BrainCircuit,
   BarChart2,
   Clock,
-  Layers,
-  Database,
-  ChartPie,
-  Activity,
-  HelpCircle,
   Globe,
   User,
   ChevronDown,
+  Activity,
+  HelpCircle,
+  Database,
+  ChartPie,
+  Layers,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -27,47 +27,12 @@ export function Header() {
     window.location.assign("/login");
   };
 
-  const menuItems = [
-    {
-      path: "/dashboard",
-      label: "Dashboard",
-      icon: <BarChart2 className="w-4 h-4" />,
-    },
-    {
-      path: "/emotion-analysis",
-      label: "Geographic Analysis",
-      icon: <Globe className="w-4 h-4" />,
-    },
-    {
-      path: "/timeline",
-      label: "Timeline",
-      icon: <Clock className="w-4 h-4" />,
-    },
-    {
-      path: "/comparison",
-      label: "Comparison",
-      icon: <Layers className="w-4 h-4" />,
-    },
-    {
-      path: "/raw-data",
-      label: "Raw Data",
-      icon: <Database className="w-4 h-4" />,
-    },
-    {
-      path: "/evaluation",
-      label: "Evaluation",
-      icon: <ChartPie className="w-4 h-4" />,
-    },
-    {
-      path: "/real-time",
-      label: "Real-time",
-      icon: <Activity className="w-4 h-4" />,
-    },
-    {
-      path: "/about",
-      label: "About",
-      icon: <HelpCircle className="w-4 h-4" />,
-    },
+  const navigationItems = [
+    { path: "/dashboard", icon: BarChart2, label: "Dashboard" },
+    { path: "/analyze", icon: BrainCircuit, label: "Analyze Sentiments" },
+    { path: "/history", icon: Clock, label: "History" },
+    { path: "/explore", icon: Globe, label: "Explore" },
+    { path: "/help", icon: HelpCircle, label: "Help" },
   ];
 
   return (
@@ -78,7 +43,7 @@ export function Header() {
     >
       <div className="max-w-[2000px] mx-auto">
         <div className="flex items-center justify-between px-3 py-3 sm:px-8 sm:py-5">
-          {/* Left side - Logo and Title */}
+          {/* Logo and Title */}
           <div className="flex items-center gap-3 sm:gap-5">
             <div className="relative w-10 h-10 sm:w-12 sm:h-12">
               <motion.div
@@ -103,17 +68,18 @@ export function Header() {
             </div>
             <div>
               <motion.h1
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600"
               >
-                DisasterSense AI
+                Sentiment Analysis
               </motion.h1>
+              <p className="text-xs sm:text-sm text-slate-500">Disaster Response</p>
             </div>
           </div>
 
           {/* Center - Navigation Dropdown */}
-          <div className="relative">
+          <div className="relative flex-1 flex justify-center">
             <Button
               variant="ghost"
               size="sm"
@@ -131,28 +97,30 @@ export function Header() {
 
             <AnimatePresence>
               {isDropdownOpen && (
-                <motion.div
+                <motion.nav
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2"
+                  className="absolute top-full mt-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden w-48"
                 >
-                  {menuItems.map((item) => (
-                    <motion.a
-                      key={item.path}
-                      href={item.path}
-                      className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-                        location === item.path
-                          ? "bg-blue-50 text-blue-600"
-                          : "text-gray-600 hover:bg-gray-50"
-                      }`}
-                      whileHover={{ x: 5 }}
-                    >
-                      {item.icon}
-                      {item.label}
-                    </motion.a>
-                  ))}
-                </motion.div>
+                  <div className="p-2">
+                    {navigationItems.map((item) => (
+                      <a
+                        key={item.path}
+                        href={item.path}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                          location === item.path
+                            ? "bg-blue-50 text-blue-600"
+                            : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {item.label}
+                      </a>
+                    ))}
+                  </div>
+                </motion.nav>
               )}
             </AnimatePresence>
           </div>
