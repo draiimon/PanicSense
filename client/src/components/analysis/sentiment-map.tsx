@@ -56,7 +56,7 @@ export function SentimentMap({
 
   const zoomToLocation = (coordinates: [number, number]) => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView(coordinates, 15);
+      mapInstanceRef.current.setView(coordinates, 18); // Maximum zoom level for detailed view
     }
   };
 

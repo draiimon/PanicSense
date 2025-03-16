@@ -14,8 +14,11 @@ interface SentimentLegendProps {
 
 export function SentimentLegend({ 
   mostAffectedAreas = [],
-  showRegionSelection = true 
-}: SentimentLegendProps) {
+  showRegionSelection = true,
+  onAreaClick
+}: SentimentLegendProps & {
+  onAreaClick?: (coordinates: [number, number]) => void;
+}) {
   // Sentiment indicators
   const sentiments = [
     { name: 'Panic', color: '#ef4444' },
@@ -109,7 +112,9 @@ export function SentimentLegend({
               {mostAffectedAreas.map((area, index) => (
                 <div 
                   key={index}
-                  className="bg-white p-2 rounded-md border border-slate-200"
+                  onClick={() => area.coordinates && onAreaClick?.(area.coordinates)}
+                  className="bg-white p-2 rounded-md border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer active:bg-slate-100"
+                  title="Click to zoom to location"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-slate-800 truncate max-w-[70%]">
