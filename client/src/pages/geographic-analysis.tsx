@@ -110,43 +110,44 @@ export default function GeographicAnalysis() {
     "Zambales": [15.5082, 120.0697]
   };
 
-  // Function to find closest matching location from known regions
-  const findClosestLocation = (input: string): string | null => {
+  // Function to find exact location match or closest match if needed
+  const findExactLocation = (input: string): string | null => {
     if (!input) return null;
     
-    // Normalize the input
-    const normalizedInput = input.toLowerCase().trim();
+    const trimmedInput = input.trim();
     
-    // First check for exact matches
+    // First check for exact matches (preserving case)
     for (const location of Object.keys(regionCoordinates).concat(Object.keys(detectedLocations))) {
-      if (location.toLowerCase() === normalizedInput) {
+      if (location === trimmedInput) {
+        return location; // Return exact match
+      }
+    }
+    
+    // For case-insensitive matches, preserve the original casing in our reference data
+    for (const location of Object.keys(regionCoordinates).concat(Object.keys(detectedLocations))) {
+      if (location.toLowerCase() === trimmedInput.toLowerCase()) {
+        return location; // Return the original casing from our reference data
+      }
+    }
+    
+    // If there's no exact match, try to find if it's a known location with comma format
+    // Example: if we know "Taytay Rizal" but input is "Taytay, Rizal" or vice versa
+    const commaRemoved = trimmedInput.replace(/,/g, '');
+    for (const location of Object.keys(regionCoordinates).concat(Object.keys(detectedLocations))) {
+      const locationNoComma = location.replace(/,/g, '');
+      if (locationNoComma.toLowerCase() === commaRemoved.toLowerCase()) {
         return location;
       }
     }
     
-    // Then check for partial matches (location name contains the input or vice versa)
-    for (const location of Object.keys(regionCoordinates).concat(Object.keys(detectedLocations))) {
-      if (location.toLowerCase().includes(normalizedInput) || 
-          normalizedInput.includes(location.toLowerCase())) {
-        return location;
-      }
-    }
-    
-    // Finally check for typos with simple edit distance (if word is at least 4 chars)
-    if (normalizedInput.length >= 4) {
-      let bestMatch = null;
-      let lowestDistance = Infinity;
-      
+    // Only do partial matching if absolutely necessary
+    if (trimmedInput.length >= 4) {
       for (const location of Object.keys(regionCoordinates).concat(Object.keys(detectedLocations))) {
-        // Simple edit distance calculation
-        const distance = calculateEditDistance(normalizedInput, location.toLowerCase());
-        if (distance < lowestDistance && distance <= 2) { // Allow 2 character differences max
-          lowestDistance = distance;
-          bestMatch = location;
+        if (location.toLowerCase().includes(trimmedInput.toLowerCase()) || 
+            trimmedInput.toLowerCase().includes(location.toLowerCase())) {
+          return location;
         }
       }
-      
-      return bestMatch;
     }
     
     return null;
@@ -187,102 +188,36 @@ export default function GeographicAnalysis() {
 
   // Effect for processing new posts and extracting locations
   useEffect(() => {
-    const processNewPosts = async () => {
-      const newLocations: Record<string, [number, number]> = {};
-
-      for (const post of sentimentPosts) {
-        // Extract locations from post text
-        const extractedLocations = extractLocations(post.text);
-
-        for (const location of extractedLocations) {
-          // Check if we already have this location or a close match
-          const existingLocation = findClosestLocation(location);
-          
-          if (existingLocation) {
-            // We found a close match - no need to geocode
-            continue;
-          }
-          
-          if (!newLocations[location] && !detectedLocations[location]) {
-            const coordinates = await getCoordinates(location);
-            if (coordinates) {
-              newLocations[location] = coordinates;
-              toast({
-                title: "New Location Detected",
-                description: `Found and pinned: ${location}`,
-                variant: "default",
-              });
-            }
-          }
-        }
-      }
-
-      if (Object.keys(newLocations).length > 0) {
-        setDetectedLocations(prev => ({
-          ...prev,
-          ...newLocations
-        }));
-      }
-    };
-
-    processNewPosts();
-  }, [sentimentPosts, detectedLocations]);
+    // We no longer do any location normalization because we exclusively use
+    // the exact location names that are assigned by the AI.
+    // This makes the Geographic Analysis view consistent with the Dashboard view.
+  }, []);
 
   // Process data for regions and map location mentions
-  // List of Philippine locations to detect in text - expanded with more locations
+  // List of Philippine locations to detect in text - expanded with exact format variations
   const philippineLocations = [
     'Manila', 'Quezon City', 'Cebu', 'Davao', 'Mindanao', 'Luzon',
     'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
     'Batangas', 'Zambales', 'Pampanga', 'Bicol', 'Leyte', 'Samar',
     'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna', 
-    'Rizal', 'Taytay', 'Taytay Rizal', 'Nueva Ecija', 'Benguet', 'Albay', 
+    'Rizal', 'Taytay', 'Taytay Rizal', 'Taytay, Rizal', 'Nueva Ecija', 'Benguet', 'Albay', 
     'Marikina', 'Pasig', 'Makati', 'Mandaluyong', 'Pasay', 'Taguig', 
     'Parañaque', 'Caloocan', 'Metro Manila', 'Monumento', 'San Juan', 
     'Las Piñas', 'Muntinlupa', 'Valenzuela', 'Navotas', 'Malabon', 
     'Tacloban', 'General Santos', 'Cagayan de Oro', 'Zamboanga', 
-    'Angeles', 'Bacolod', 'Cabanatuan'
+    'Angeles', 'Bacolod', 'Cabanatuan', 'Imus', 'Imus Cavite', 'Imus, Cavite'
   ];
 
   const locationData = useMemo(() => {
     const data: Record<string, LocationData> = {};
 
-    // Function to use exact location names without normalization
-    const useExactLocation = (loc: string): string => {
-      if (!loc) return '';
-      return loc.trim();
-    };
-
-    // Process posts to populate the map with enhanced location detection
+    // Process posts to populate the map with the exact location names
     for (const post of sentimentPosts) {
-      // Get both explicit locations and try to detect from text
-      const locations: string[] = [];
-      
-      // 1. Add explicit location from post.location if available
+      // We will ONLY use the exact location from post.location if available
+      // This matches the dashboard behavior
       if (post.location) {
-        locations.push(useExactLocation(post.location));
-      }
-
-      // 2. Add AI extracted locations (from post.text NLP analysis)
-      extractLocations(post.text).forEach(loc => {
-        const exactLoc = useExactLocation(loc);
-        if (!locations.includes(exactLoc)) {
-          locations.push(exactLoc);
-        }
-      });
-      
-      // 3. Add locations from direct text matching (like dashboard)
-      const postText = post.text.toLowerCase();
-      for (const location of philippineLocations) {
-        if (postText.includes(location.toLowerCase())) {
-          const exactLoc = useExactLocation(location);
-          if (!locations.includes(exactLoc)) {
-            locations.push(exactLoc);
-          }
-        }
-      }
-
-      // Process each detected location
-      for (const location of locations) {
+        const location = post.location.trim();
+        
         // Skip generic mentions
         if (
           location.toLowerCase() === 'not specified' ||
@@ -293,15 +228,15 @@ export default function GeographicAnalysis() {
         ) {
           continue;
         }
-
+        
         // Get coordinates from predefined list or detected locations
         let coordinates = regionCoordinates[location] ?? detectedLocations[location];
-
+        
         if (!coordinates) {
           // Skip locations we can't pin
           continue;
         }
-
+        
         if (!data[location]) {
           data[location] = {
             count: 0,
@@ -310,11 +245,11 @@ export default function GeographicAnalysis() {
             coordinates
           };
         }
-
+        
         // Update counts
         data[location].count++;
         data[location].sentiments[post.sentiment] = (data[location].sentiments[post.sentiment] || 0) + 1;
-
+        
         if (post.disasterType) {
           data[location].disasterTypes[post.disasterType] = (data[location].disasterTypes[post.disasterType] || 0) + 1;
         }
