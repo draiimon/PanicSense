@@ -80,30 +80,31 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           await new Promise(resolve => setTimeout(resolve, 100));
 
           const result = await uploadCSV(file, (progress) => {
-            // Make sure we have valid numbers
-            let processedRecords = progress.processed || 0;
-            let totalRecords = progress.total || lines || 100;
+            // Make sure we have valid numbers, using parseInt to convert any string values
+            let processedRecords = parseInt(String(progress.processed)) || 0;
+            let totalRecords = parseInt(String(progress.total)) || lines || 100;
             
-            // When analysis is complete, set processed to match total
-            if (progress.stage === 'Analysis complete!') {
+            // Fix specifically for common case: when the backend says we're done, 
+            // ensure the progress shows the final state
+            if (progress.stage === 'Analysis complete!' || processedRecords >= totalRecords) {
               processedRecords = totalRecords;
             }
             
             // Calculate percentage, max 100%
             const percentage = Math.min(Math.round((processedRecords / totalRecords) * 100), 100);
             
-            // Log for debugging
-            console.log('Upload progress:', { 
-              processed: processedRecords, 
-              total: totalRecords, 
+            // Log for debugging - IMPORTANT to know what the UI will display
+            console.log('CRITICAL UI PROGRESS DATA:', { 
+              processedRecords, 
+              totalRecords, 
               percentage, 
-              stage: progress.stage 
+              stage: progress.stage
             });
 
-            // Update UI
+            // Update UI with the processed values
             updateUploadProgress({
-              processedRecords,
-              totalRecords,
+              processedRecords, // This has been properly parsed as a number
+              totalRecords,    // This has been properly parsed as a number
               percentage,
               message: progress.stage || `Processing records... ${processedRecords}/${totalRecords}`,
               status: progress.error ? 'error' : 'uploading'

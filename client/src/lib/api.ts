@@ -103,13 +103,28 @@ export async function uploadCSV(
       console.log('Progress event received:', progress);
       
       if (onProgress) {
-        // Always ensure total is sent with the progress
-        if (progress.processed !== undefined && progress.total === undefined) {
-          // If no total is provided but we have processed count, use a default
-          progress.total = 100;
-        }
+        // Direct console log to see exactly what we're getting
+        console.log('DEBUG PROGRESS VALUES:', {
+          processed: progress.processed,
+          total: progress.total,
+          stage: progress.stage
+        });
         
-        onProgress(progress);
+        // Ensure the processed value is converted to a number
+        const processedNum = parseInt(progress.processed) || 0;
+        // Ensure the total value is converted to a number
+        const totalNum = parseInt(progress.total) || 100;
+        
+        // Create a safe progress object with numerical values
+        const safeProgress = {
+          processed: processedNum,
+          total: totalNum,
+          stage: progress.stage || 'Processing...',
+          error: progress.error
+        };
+        
+        console.log('Progress being sent to UI:', safeProgress);
+        onProgress(safeProgress);
       }
     } catch (error) {
       console.error('Error parsing progress data:', error);
