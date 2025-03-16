@@ -1055,7 +1055,8 @@ Respond ONLY with a JSON object containing:
                     f"Retrying {len(failed_records)} failed records...")
                 for i, row in failed_records:
                     try:
-                        text = str(row.get("text", ""))
+                        # Use the proper identified text column instead of hardcoded "text"
+                        text = str(row.get(text_col, ""))
                         if not text.strip():
                             continue
 
@@ -1063,9 +1064,16 @@ Respond ONLY with a JSON object containing:
                             row.get(timestamp_col,
                                     datetime.now().isoformat())
                         ) if timestamp_col else datetime.now().isoformat()
-                        source = str(row.get(
-                            source_col,
-                            "CSV Import")) if source_col else "CSV Import"
+                        
+                        # Get source with same logic as before
+                        source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
+                        sentiment_values = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"]
+                        if source in sentiment_values:
+                            csv_sentiment = source
+                            source = "CSV Import"  # Reset source to default
+                        else:
+                            csv_sentiment = None
+                            
                         csv_location = str(row.get(
                             location_col, "")) if location_col else None
                         csv_disaster = str(row.get(
@@ -1077,10 +1085,16 @@ Respond ONLY with a JSON object containing:
                                 "nan", "none", ""
                         ]:
                             csv_location = None
+                            
                         if csv_disaster and csv_disaster.lower() in [
                                 "nan", "none", ""
                         ]:
                             csv_disaster = None
+                        # Check if disaster column contains full text (common error)
+                        if csv_disaster and len(csv_disaster) > 20 and text in csv_disaster:
+                            # The disaster column contains the full text, which is wrong
+                            csv_disaster = None  # Reset and let our analyzer determine it
+                            
                         if csv_language:
                             if csv_language.lower() in [
                                     "tagalog", "tl", "fil", "filipino"
