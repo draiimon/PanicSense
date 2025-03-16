@@ -190,17 +190,17 @@ export function SentimentMap({
           ? getDisasterTypeColor(region.disasterType)
           : getSentimentColor(region.sentiment);
 
-        // Scale radius based on zoom level and intensity, but keeping a good minimum size
-        const baseRadius = 8 + (region.intensity / 100) * 12; // Larger base radius for better visibility
+        // Scale radius based on zoom level and intensity - MUCH SMALLER now
+        const baseRadius = 3 + (region.intensity / 100) * 5; // MUCH smaller radius
         const radius = baseRadius * Math.pow(1.2, mapZoom - 6);
         
-        // Create main marker circle - more visible but still compact
+        // Create main marker circle - smaller and transparent
         const circle = L.circle(region.coordinates, {
           color,
           fillColor: color,
-          fillOpacity: 0.7, // Higher opacity for better visibility
-          radius: radius * 1000, // Keep proper scale
-          weight: 2.5, // Thicker border for better visibility
+          fillOpacity: 0.4, // Transparency but still visible
+          radius: radius * 1000, // Smaller scale
+          weight: 1.5, // Thin border
           className: 'main-marker',
         }).addTo(mapInstanceRef.current);
         
@@ -301,14 +301,14 @@ export function SentimentMap({
           autoPanPadding: [20, 20] // Padding for auto-pan
         });
 
-        // Enhanced hover interactions with adjusted values - fix popup visibility
+        // Enhanced hover interactions with adjusted values for smaller circles
         circle.on('mouseover', () => {
           circle.setStyle({ 
-            weight: 3.5, // Even thicker border on hover 
-            fillOpacity: 0.9, // Much higher opacity on hover for visibility
+            weight: 2, // Slightly thicker border on hover
+            fillOpacity: 0.7, // Higher opacity on hover for visibility
             color: '#FFFFFF' // White outline for better contrast
           });
-          circle.setRadius(radius * 1100); // Larger on hover for better selection
+          circle.setRadius(radius * 1400); // Bigger expansion on hover for easier selection
           setHoveredRegion(region);
           // Make popup appear above the point
           circle.openPopup();
@@ -316,8 +316,8 @@ export function SentimentMap({
 
         circle.on('mouseout', () => {
           circle.setStyle({ 
-            weight: 2.5, // Back to normal border width
-            fillOpacity: 0.7, // Back to normal opacity
+            weight: 1.5, // Back to normal border width
+            fillOpacity: 0.4, // Back to normal opacity
             color // Restore original color
           });
           circle.setRadius(radius * 1000); // Back to normal size
