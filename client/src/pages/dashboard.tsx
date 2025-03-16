@@ -41,6 +41,25 @@ export default function Dashboard() {
     isLoadingSentimentPosts = false
   } = useDisasterContext();
 
+  // Filter posts from last week
+  const lastWeekPosts = sentimentPosts.filter(post => {
+    const postDate = new Date(post.timestamp);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return postDate >= weekAgo;
+  });
+
+  // Recalculate dominant sentiment from last week's posts
+  const lastWeekDominantSentiment = (() => {
+    if (lastWeekPosts.length === 0) return 'N/A';
+    const sentimentCounts: Record<string, number> = {};
+    lastWeekPosts.forEach(post => {
+      sentimentCounts[post.sentiment] = (sentimentCounts[post.sentiment] || 0) + 1;
+    });
+    return Object.entries(sentimentCounts)
+      .reduce((a, b) => a[1] > b[1] ? a : b)[0];
+  })();
+
   // Filter out "Not specified" and generic "Philippines" locations
   const filteredPosts = sentimentPosts.filter(post => {
     const location = post.location?.toLowerCase();
