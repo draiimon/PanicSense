@@ -40,6 +40,11 @@ export function CardCarousel({
   useEffect(() => {
     if (!autoRotate || isPaused || totalSlides <= 1) return;
     
+    const carouselElement = document.querySelector('.card-carousel');
+    const shouldAutoRotate = carouselElement?.getAttribute('data-auto-rotate') !== 'false';
+    
+    if (!shouldAutoRotate) return;
+    
     const timer = setInterval(() => {
       goToNext();
     }, interval);

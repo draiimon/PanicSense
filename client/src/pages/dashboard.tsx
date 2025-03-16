@@ -293,7 +293,13 @@ export default function Dashboard() {
                 onClick={(e) => {
                   const icon = e.currentTarget.querySelector('.rotate-icon');
                   if (icon) {
-                    icon.style.animationPlayState = icon.style.animationPlayState === 'paused' ? 'running' : 'paused';
+                    const newState = icon.style.animationPlayState === 'paused' ? 'running' : 'paused';
+                    icon.style.animationPlayState = newState;
+                    // Find and update carousel's auto-rotate state
+                    const carousel = e.currentTarget.closest('.relative')?.querySelector('.card-carousel');
+                    if (carousel) {
+                      carousel.setAttribute('data-auto-rotate', newState === 'running' ? 'true' : 'false');
+                    }
                   }
                 }}
               >
@@ -302,6 +308,7 @@ export default function Dashboard() {
             </div>
             
             <CardCarousel 
+              className="card-carousel" 
               autoRotate={true}
               interval={10000}
               showControls={true}
