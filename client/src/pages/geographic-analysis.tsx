@@ -109,7 +109,6 @@ export default function GeographicAnalysis() {
     // Helper function to normalize location names
     const normalizeLocation = (loc: string): string => {
       const lowerLoc = loc.toLowerCase().trim();
-      if (lowerLoc.includes('imus') && (lowerLoc.includes('kavit') || lowerLoc.includes('cavit'))) return 'Imus, Cavite';
       if (lowerLoc.includes('manila') && !lowerLoc.includes('metro')) return 'Manila';
       if (lowerLoc.includes('quezon') && lowerLoc.includes('city')) return 'Quezon City';
       if (lowerLoc === 'ncr') return 'Metro Manila';
