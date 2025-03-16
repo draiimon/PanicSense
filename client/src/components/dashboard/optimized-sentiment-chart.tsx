@@ -300,17 +300,7 @@ export function OptimizedSentimentChart({
           >
             <canvas ref={chartRef}></canvas>
             
-            {/* Center content for doughnut chart */}
-            {type === 'doughnut' && processedData.values.length > 0 && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-slate-800">
-                    {processedData.values.reduce((sum, val) => sum + val, 0)}
-                  </div>
-                  <div className="text-xs text-slate-500">Total Posts</div>
-                </div>
-              </div>
-            )}
+            
           </motion.div>
         )}
       </AnimatePresence>
