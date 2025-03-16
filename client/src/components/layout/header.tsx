@@ -12,6 +12,9 @@ import {
   Activity,
   HelpCircle,
   Globe,
+  Search,
+  Bell,
+  User,
 } from "lucide-react";
 
 export function Header() {
@@ -70,10 +73,11 @@ export function Header() {
     <motion.header
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="sticky top-0 bg-blue-50 border-b border-slate-200 py-4 px-6 shadow-md z-50"
+      className="sticky top-0 bg-gradient-to-b from-slate-900 to-slate-800 border-b border-slate-700/50 py-3 px-4 shadow-lg z-50"
     >
       <div className="max-w-[2000px] mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+          {/* Logo and Title */}
           <div className="flex items-center space-x-4">
             <div className="relative w-10 h-10">
               <motion.div
@@ -91,52 +95,100 @@ export function Header() {
               <BrainCircuit className="absolute inset-0 w-full h-full text-white p-2" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <motion.h1 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent"
+              >
                 PanicSense PH
-              </h1>
-              <p className="text-sm text-slate-500">
+              </motion.h1>
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-sm text-slate-400"
+              >
                 Real-time Sentiment Analysis
-              </p>
+              </motion.p>
             </div>
           </div>
 
+          {/* Navigation Menu */}
           {user && (
-            <div className="flex items-center space-x-1 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-              {menuItems.map((item) => (
-                <Button
+            <div className="relative flex items-center space-x-1 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+              <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-slate-900 to-transparent pointer-events-none" />
+              <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-900 to-transparent pointer-events-none" />
+              {menuItems.map((item, index) => (
+                <motion.div
                   key={item.path}
-                  variant={location === item.path ? "default" : "ghost"}
-                  className="flex items-center space-x-2 whitespace-nowrap"
-                  onClick={() =>
-                    location !== item.path && window.location.assign(item.path)
-                  }
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
                 >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </Button>
+                  <Button
+                    variant={location === item.path ? "default" : "ghost"}
+                    className={`
+                      flex items-center space-x-2 whitespace-nowrap transition-all duration-200
+                      ${location === item.path ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-slate-800'}
+                    `}
+                    onClick={() => location !== item.path && window.location.assign(item.path)}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Button>
+                </motion.div>
               ))}
             </div>
           )}
 
+          {/* User Section */}
           <div className="flex items-center space-x-4">
             {user ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-slate-600">
-                  Welcome, Mark Andrei
-                </span>
-                <Button variant="outline" onClick={handleLogout}>
+                {/* Quick Actions */}
+                <div className="hidden md:flex items-center space-x-2">
+                  <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
+                    <Search className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
+                    <Bell className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                {/* User Profile */}
+                <div className="flex items-center space-x-3">
+                  <div className="hidden md:block">
+                    <p className="text-sm font-medium text-slate-200">Mark Andrei</p>
+                    <p className="text-xs text-slate-400">Administrator</p>
+                  </div>
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
+                    <User className="h-4 w-4 text-white" />
+                  </div>
+                </div>
+
+                {/* Logout Button */}
+                <Button 
+                  variant="ghost" 
+                  onClick={handleLogout}
+                  className="border border-slate-700 hover:bg-slate-800 text-slate-300"
+                >
                   Logout
                 </Button>
               </div>
             ) : (
               <div className="flex space-x-2">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => window.location.assign("/login")}
+                  className="border border-slate-700 hover:bg-slate-800 text-slate-300"
                 >
                   Login
                 </Button>
-                <Button onClick={() => window.location.assign("/signup")}>
+                <Button 
+                  onClick={() => window.location.assign("/signup")}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
                   Sign up
                 </Button>
               </div>
