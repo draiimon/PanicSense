@@ -34,7 +34,14 @@ export default function GeographicAnalysis() {
   const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard');
   const [selectedRegionFilter, setSelectedRegionFilter] = useState<string | null>(null);
   const [showMarkers, setShowMarkers] = useState<boolean>(true);
-  const [detectedLocations, setDetectedLocations] = useState<Record<string, [number, number]>>({});
+  const [detectedLocations, setDetectedLocations] = useState<Record<string, [number, number]>>({
+    // Add locations that the AI might identify by name but aren't in our predefined list
+    "Meycauayan": [14.7345008, 120.9571635], 
+    "Meycuayan": [14.7345008, 120.9571635], // Common misspelling
+    "WoodEstate Village 2 Molino 3": [14.3476, 120.9735], // Approximated coords for Molino, Bacoor
+    "Molino 3": [14.3476, 120.9735],
+    "Molino": [14.3476, 120.9735]
+  });
 
   // Complete Philippine region coordinates
   const regionCoordinates: Record<string, [number, number]> = {
@@ -196,26 +203,39 @@ export default function GeographicAnalysis() {
 
   // Effect for processing new posts and extracting locations
   useEffect(() => {
-    // Dynamically lookup any locations that aren't in our predefined list
+    // Dynamically lookup ANY location in real-time using OpenStreetMap API
     async function fetchMissingCoordinates() {
-      const missingLocations = sentimentPosts
-        .filter(post => post.location && !regionCoordinates[post.location] && !detectedLocations[post.location])
+      // Find ALL locations from ALL posts
+      const allLocations = sentimentPosts
+        .filter(post => post.location)
         .map(post => post.location as string);
       
-      // Get unique locations
-      const uniqueLocations = [...new Set(missingLocations)];
+      // Find locations that we don't have coordinates for yet
+      const missingLocations = allLocations.filter(
+        location => !regionCoordinates[location] && !detectedLocations[location]
+      );
       
-      // Fetch coordinates for each missing location
+      // Get unique locations
+      const uniqueLocations = Array.from(new Set(missingLocations));
+      
+      if (uniqueLocations.length > 0) {
+        console.log(`Searching for ${uniqueLocations.length} missing locations in real-time...`);
+      }
+      
+      // Fetch coordinates for each missing location directly from OpenStreetMap
       const newDetectedLocations: Record<string, [number, number]> = {...detectedLocations};
       let hasNewLocations = false;
       
       for (const location of uniqueLocations) {
         try {
+          // Use OpenStreetMap to get coordinates for ANY location name
           const coordinates = await getCoordinates(location);
           if (coordinates) {
-            console.log(`Found coordinates for "${location}": [${coordinates[0]}, ${coordinates[1]}]`);
+            console.log(`✅ Found real-time coordinates for "${location}": [${coordinates[0]}, ${coordinates[1]}]`);
             newDetectedLocations[location] = coordinates;
             hasNewLocations = true;
+          } else {
+            console.log(`❌ Could not find coordinates for "${location}" - add to predefined list`);
           }
         } catch (error) {
           console.error(`Failed to get coordinates for ${location}:`, error);
@@ -223,12 +243,15 @@ export default function GeographicAnalysis() {
       }
       
       if (hasNewLocations) {
-        setDetectedLocations(newDetectedLocations);
+        setDetectedLocations(prevState => ({
+          ...prevState,
+          ...newDetectedLocations
+        }));
       }
     }
     
     fetchMissingCoordinates();
-  }, [sentimentPosts, regionCoordinates]);
+  }, [sentimentPosts]);
 
   // We no longer need this list since we're only using the exact location names from posts
   // This ensures consistency with the Dashboard Recent Affected Areas
