@@ -587,10 +587,8 @@ Respond ONLY with a JSON object containing:
                         "location": csv_location if csv_location else analysis_result.get("location")
                     })
 
-                                      # Add delay between records to avoid rate limits
-                    if i > 0 and (i + 1) % 3 == 0:
-                        time.sleep(1.5)  # Add delay between records to avoid rate limits
-                     > 0 and i % 3 == 0:
+                    # Add delay between records to avoid rate limits
+                    if i > 0 and i % 3 == 0:
                         time.sleep(1.5)
 
                 except Exception as e:
@@ -629,9 +627,8 @@ Respond ONLY with a JSON object containing:
         return metrics
 
 def main():
-    args = parser.parse_args()
-
     try:
+        args = parser.parse_args()
         backend = DisasterSentimentBackend()
 
         if args.text:
@@ -697,9 +694,6 @@ def main():
                 print(json.dumps(error_response))
                 sys.stdout.flush()
 
-if __name__ == "__main__":
-    try:
-        main()
     except Exception as e:
         logging.error(f"Fatal error: {str(e)}")
         error_response = {
@@ -715,3 +709,6 @@ if __name__ == "__main__":
         print(json.dumps(error_response))
         sys.stdout.flush()
         sys.exit(1)
+
+if __name__ == "__main__":
+    main()
