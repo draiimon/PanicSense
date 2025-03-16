@@ -109,28 +109,45 @@ class DisasterSentimentAnalyzer:
         sentiment = self.sentiment_labels[predicted.item()]
         confidence = confidence.item()
 
+        # Generate explanation based on language
+        explanation = self._generate_explanation(sentiment, text)
+        language = "Filipino" if any(word in text.lower() for word in ["ang", "nga", "po", "mga"]) else "English"
+
         return {
             "sentiment": sentiment,
             "confidence": confidence,
-            "explanation": self._generate_explanation(sentiment, text),
-            "language": self._detect_language(text)
+            "explanation": explanation,
+            "language": language
         }
 
     def _generate_explanation(self, sentiment, text):
-        """Generate human-readable explanation for the sentiment"""
+        """Generate human-readable explanation for the sentiment in both English and Filipino"""
         explanations = {
-            'Panic': 'Shows immediate distress or urgent need for help',
-            'Fear/Anxiety': 'Expresses worry or concern about the situation',
-            'Disbelief': 'Shows shock or surprise about events',
-            'Resilience': 'Demonstrates community support and determination',
-            'Neutral': 'Provides factual information without strong emotion'
+            'Panic': {
+                'en': 'Shows immediate distress or urgent need for help',
+                'tl': 'Nagpapakita ng matinding pangamba o pangangailangan ng tulong'
+            },
+            'Fear/Anxiety': {
+                'en': 'Expresses worry or concern about the situation',
+                'tl': 'Nagpapahiwatig ng takot o pag-aalala sa sitwasyon'
+            },
+            'Disbelief': {
+                'en': 'Shows shock or surprise about events',
+                'tl': 'Nagpapakita ng pagkagulat o pagkabigla sa mga pangyayari'
+            },
+            'Resilience': {
+                'en': 'Demonstrates community support and determination',
+                'tl': 'Nagpapakita ng pagkakaisa at determinasyon ng komunidad'
+            },
+            'Neutral': {
+                'en': 'Provides factual information without strong emotion',
+                'tl': 'Nagbibigay ng impormasyon nang walang matinding damdamin'
+            }
         }
-        return explanations.get(sentiment, 'Sentiment analysis completed')
 
-    def _detect_language(self, text):
-        """Detect the language of the text"""
-        # For now returning English, but you can implement proper language detection
-        return 'en'
+        # Detect language and return appropriate explanation
+        lang = 'tl' if any(word in text.lower() for word in ["ang", "nga", "po", "mga"]) else 'en'
+        return explanations[sentiment][lang]
 
 # Create a global instance
 analyzer = DisasterSentimentAnalyzer()
