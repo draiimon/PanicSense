@@ -190,9 +190,26 @@ export function SentimentMap({
           ? getDisasterTypeColor(region.disasterType)
           : getSentimentColor(region.sentiment);
 
-        // Scale radius based on zoom level and intensity - MUCH SMALLER now
-        const baseRadius = 3 + (region.intensity / 100) * 5; // MUCH smaller radius
-        const radius = baseRadius * Math.pow(1.2, mapZoom - 6);
+        // Scale radius based on area coverage - match actual geographic area size
+        // For Philippine regions, typical coverage is around 0.5-2km for cities/municipalities
+        let areaRadius = 0;
+        
+        // Specific size adjustments based on location name
+        if (region.name.includes("Manila") || region.name.includes("Makati") || 
+            region.name.includes("Pasig") || region.name.includes("Taguig")) {
+          areaRadius = 0.7; // Small city areas - smaller radius
+        } else if (region.name.includes("Cebu") || region.name.includes("Davao") ||
+                   region.name.includes("Baguio")) {
+          areaRadius = 1.5; // Medium city areas
+        } else if (region.name.includes("Province") || region.name.includes("Region")) {
+          areaRadius = 10; // Province level - larger area
+        } else {
+          areaRadius = 0.8; // Default for municipalities
+        }
+        
+        // Add subtle variation based on intensity
+        const intensityFactor = 1 + (region.intensity / 200); // Subtle intensity impact
+        const radius = areaRadius * intensityFactor;
         
         // Create main marker circle - smaller and transparent
         const circle = L.circle(region.coordinates, {
@@ -321,8 +338,13 @@ export function SentimentMap({
             color // Restore original color
           });
           circle.setRadius(radius * 1000); // Back to normal size
-          setHoveredRegion(null);
-          circle.closePopup();
+          
+          // Keep popup open for a moment to allow user to read
+          setTimeout(() => {
+            if (!circle._map) return; // Check if marker is still on map
+            setHoveredRegion(null);
+            circle.closePopup();
+          }, 500); // Small delay to keep popup visible for better UX
         });
 
         circle.on('click', () => {
