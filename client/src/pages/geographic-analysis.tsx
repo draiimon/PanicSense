@@ -231,11 +231,12 @@ export default function GeographicAnalysis() {
     'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
     'Batangas', 'Zambales', 'Pampanga', 'Bicol', 'Leyte', 'Samar',
     'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna', 
-    'Rizal', 'Nueva Ecija', 'Benguet', 'Albay', 'Marikina', 'Pasig',
-    'Makati', 'Mandaluyong', 'Pasay', 'Taguig', 'Parañaque', 'Caloocan',
-    'Metro Manila', 'Monumento', 'San Juan', 'Las Piñas', 'Muntinlupa',
-    'Valenzuela', 'Navotas', 'Malabon', 'Tacloban', 'General Santos',
-    'Cagayan de Oro', 'Zamboanga', 'Angeles', 'Bacolod', 'Cabanatuan'
+    'Rizal', 'Taytay', 'Taytay Rizal', 'Nueva Ecija', 'Benguet', 'Albay', 
+    'Marikina', 'Pasig', 'Makati', 'Mandaluyong', 'Pasay', 'Taguig', 
+    'Parañaque', 'Caloocan', 'Metro Manila', 'Monumento', 'San Juan', 
+    'Las Piñas', 'Muntinlupa', 'Valenzuela', 'Navotas', 'Malabon', 
+    'Tacloban', 'General Santos', 'Cagayan de Oro', 'Zamboanga', 
+    'Angeles', 'Bacolod', 'Cabanatuan'
   ];
 
   const locationData = useMemo(() => {
@@ -255,6 +256,8 @@ export default function GeographicAnalysis() {
       if (lowerLoc === 'qc') return 'Quezon City';
       if (lowerLoc === 'cdo') return 'Cagayan de Oro';
       if (lowerLoc === 'gensan') return 'General Santos';
+      // Handle Taytay Rizal special case
+      if (lowerLoc.includes('taytay') && lowerLoc.includes('rizal')) return 'Taytay Rizal';
       
       // Check for close matches and typos using our typo correction function
       const correctedLocation = findClosestLocation(loc);

@@ -42,7 +42,7 @@ export function SentimentLegend({
           <Map className="h-5 w-5 text-blue-600" />
           <div>
             <CardTitle className="text-lg font-medium text-slate-800">
-              Geographic Analysis
+              Map Legend
             </CardTitle>
             <CardDescription className="text-sm text-slate-500">
               Disaster impacts by region
