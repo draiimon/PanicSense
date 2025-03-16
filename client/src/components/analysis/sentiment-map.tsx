@@ -320,67 +320,31 @@ export function SentimentMap({
 
         let isSelected = false;
 
-        circle.on('click', () => {
-          if (isSelected) {
-            // If already selected, deselect
-            circle.setStyle({ 
-              weight: 2,
-              fillOpacity: 0.5,
-              color
-            });
-            circle.setRadius(radius * 1200);
-            circle.closePopup();
-            setHoveredRegion(null);
-            isSelected = false;
-          } else {
-            // Clear any other selected circles
-            markersRef.current.forEach(marker => {
-              if (marker instanceof L.Circle) {
-                marker.setStyle({ 
-                  weight: 2,
-                  fillOpacity: 0.5,
-                  color: marker.options.color 
-                });
-                marker.setRadius(marker.options.radius);
-                marker.closePopup();
-              }
-            });
-            
-            // Select this circle
-            circle.setStyle({ 
-              weight: 3.5,
-              fillOpacity: 0.85,
-              color: '#FFFFFF'
-            });
-            circle.setRadius(radius * 2000);
-            circle.openPopup();
-            circle.bringToFront();
-            setHoveredRegion(region);
-            isSelected = true;
-          }
-          
-          if (onRegionSelect) {
-            onRegionSelect(region);
-          }
-        });
-
-        // Optional hover effects for better UX
+        // Simple hover effects with popup
         circle.on('mouseover', () => {
-          if (!isSelected) {
-            circle.setStyle({ 
-              weight: 3,
-              fillOpacity: 0.7
-            });
-          }
+          circle.setStyle({ 
+            weight: 3,
+            fillOpacity: 0.7,
+            color: '#FFFFFF'
+          });
+          circle.openPopup();
+          circle.bringToFront();
+          setHoveredRegion(region);
         });
 
         circle.on('mouseout', () => {
-          if (!isSelected) {
-            circle.setStyle({ 
-              weight: 2,
-              fillOpacity: 0.5,
-              color
-            });
+          circle.setStyle({ 
+            weight: 2,
+            fillOpacity: 0.5,
+            color
+          });
+          circle.closePopup();
+          setHoveredRegion(null);
+        });
+
+        circle.on('click', () => {
+          if (onRegionSelect) {
+            onRegionSelect(region);
           }
         });
       });
