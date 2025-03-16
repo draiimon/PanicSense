@@ -9,7 +9,6 @@ import os
 import re
 import random
 from datetime import datetime
-import math
 
 try:
     import pandas as pd
@@ -62,179 +61,50 @@ class DisasterSentimentBackend:
             self.api_keys.append(os.getenv("API_KEY"))
             self.groq_api_keys.append(os.getenv("API_KEY"))
 
-        # Initialize API configuration
+        # Default keys if none provided
+        if not self.api_keys:
+            self.api_keys = [
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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"
+            ]
+            self.groq_api_keys = self.api_keys.copy()
+
+        # API configuration
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
         self.current_api_index = 0
-        self.retry_delay = 2.0  # Increased base delay
-        self.max_retries = 5    # Increased max retries
+        self.retry_delay = 1.0
+        self.limit_delay = 5.0
+        self.max_retries = 3
         self.failed_keys = set()
         self.key_success_count = {}
-        self.last_request_time = {}  # Track last request time for each key
-        self.rate_limit_window = 60  # 60 seconds window for rate limiting
-        self.requests_per_window = 50  # Maximum requests per window
 
-        # Initialize tracking for each key
+        # Initialize success counter for each key
         for i in range(len(self.groq_api_keys)):
             self.key_success_count[i] = 0
-            self.last_request_time[i] = 0
 
         logging.info(f"Loaded {len(self.groq_api_keys)} API keys for rotation")
-
-    def wait_for_rate_limit(self, key_index):
-        """Implement rate limiting for each API key"""
-        current_time = time.time()
-        elapsed = current_time - self.last_request_time.get(key_index, 0)
-
-        if elapsed < (self.rate_limit_window / self.requests_per_window):
-            wait_time = (self.rate_limit_window / self.requests_per_window) - elapsed
-            time.sleep(wait_time)
-
-        self.last_request_time[key_index] = time.time()
-
-    def get_api_sentiment_analysis(self, text, language, retries=0):
-        """Get sentiment analysis from API with improved key rotation and rate limiting"""
-        if retries >= self.max_retries:
-            logging.error("Max retries exceeded for API request")
-            return self.get_fallback_analysis(text, language)
-
-        current_key_index = self.current_api_index
-        api_key = self.groq_api_keys[current_key_index]
-
-        # Apply rate limiting
-        self.wait_for_rate_limit(current_key_index)
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-
-        payload = {
-            "model": "llama3-70b-8192",
-            "messages": [
-                {"role": "system", "content": "You are a strict disaster sentiment analyzer that only uses 5 specific sentiment categories."},
-                {"role": "user", "content": self.get_analysis_prompt(text, language)}
-            ],
-            "temperature": 0.1,
-            "max_tokens": 500
-        }
-
-        try:
-            import requests
-            response = requests.post(
-                self.api_url,
-                headers=headers,
-                json=payload,
-                timeout=30
-            )
-
-            if response.status_code == 429:
-                logging.warning(f"Rate limit hit for key {current_key_index + 1}, rotating to next key")
-                self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
-                # Use exponential backoff
-                wait_time = self.retry_delay * (2 ** retries)
-                time.sleep(wait_time)
-                return self.get_api_sentiment_analysis(text, language, retries + 1)
-
-            response.raise_for_status()
-            self.key_success_count[current_key_index] += 1
-
-            # Parse and validate response
-            api_response = response.json()
-            content = api_response["choices"][0]["message"]["content"]
-
-            try:
-                result = json.loads(content)
-                return self.validate_sentiment_result(result, text, language)
-            except Exception as json_error:
-                logging.error(f"Error parsing API response: {json_error}")
-                return self.get_fallback_analysis(text, language)
-
-        except Exception as e:
-            logging.error(f"API request failed: {str(e)}")
-            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
-            # Add exponential backoff delay
-            wait_time = self.retry_delay * (2 ** retries)
-            time.sleep(wait_time)
-            return self.get_api_sentiment_analysis(text, language, retries + 1)
-
-    def get_fallback_analysis(self, text, language):
-        """Provide fallback analysis when API fails"""
-        return {
-            "sentiment": "Neutral",
-            "confidence": 0.7,
-            "explanation": "Fallback analysis due to API unavailability",
-            "disasterType": self.extract_disaster_type(text),
-            "location": self.extract_location(text),
-            "language": language
-        }
-
-    def validate_sentiment_result(self, result, text, language):
-        """Validate and normalize API response"""
-        if not isinstance(result, dict):
-            return self.get_fallback_analysis(text, language)
-
-        # Ensure all required fields exist
-        result.setdefault("sentiment", "Neutral")
-        result.setdefault("confidence", 0.7)
-        result.setdefault("explanation", "No explanation provided")
-        result.setdefault("disasterType", self.extract_disaster_type(text))
-        result.setdefault("location", self.extract_location(text))
-        result.setdefault("language", language)
-
-        # Validate sentiment is one of the allowed values
-        if result["sentiment"] not in self.sentiment_labels:
-            result["sentiment"] = "Neutral"
-
-        return result
-
-    def get_analysis_prompt(self, text, language):
-        """Generate the analysis prompt"""
-        return f"""Analyze the sentiment in this disaster-related message (language: {language}):
-"{text}"
-
-You must ONLY classify the sentiment as one of these exact categories with these specific rules:
-
-1. Panic: Choose this when the text shows:
-   - People desperately needing immediate help or rescue
-   - Having no food, water, or basic necessities
-   - Trapped or in immediate danger
-   - Using words like "tulong!", "help!", "SOS", or many exclamation points
-   - Expressing desperate situations they don't know how to handle
-
-2. Fear/Anxiety: Choose this when the text shows:
-   - General fear or worry but not immediate danger
-   - Concern about what might happen
-   - Using words like "takot", "natatakot", "scared", "afraid"
-   - Worried about potential worsening of situation
-   - Expressing uncertainty about safety
-
-3. Disbelief: Choose this when the text shows:
-   - Surprise or shock about disaster's impact
-   - Difficulty believing the situation
-   - Using phrases like "hindi ako makapaniwala", "can't believe"
-   - Expressing disbelief about speed or scale of disaster
-   - Shocked reactions to damage or changes
-
-4. Resilience: Choose this when the text shows:
-   - Helping others or community support
-   - Hope and determination
-   - Using words like "kakayanin", "magtulungan", "we will overcome"
-   - Sharing resources or information to help
-   - Expressions of unity and strength
-
-5. Neutral: Choose this when the text:
-   - Simply reports facts or observations
-   - Shares news or updates without emotion
-   - Gives objective information about the situation
-   - Contains mostly technical or weather-related data
-   - Provides status updates without personal reaction
-
-Respond ONLY with a JSON object containing:
-1. sentiment: MUST be one of [Panic, Fear/Anxiety, Disbelief, Resilience, Neutral] - no other values allowed
-2. confidence: a number between 0 and 1
-3. explanation: brief reason for the classification
-4. disasterType: MUST be one of [Earthquake, Flood, Typhoon, Fire, Volcano, Landslide] or "Not Specified"
-5. location: ONLY return the exact location name if mentioned (a Philippine location), with no explanation"""
 
     def extract_disaster_type(self, text):
         """Extract disaster type from text using keyword matching"""
@@ -358,6 +228,170 @@ Respond ONLY with a JSON object containing:
 
         return result
 
+    def get_api_sentiment_analysis(self, text, language):
+        """Get sentiment analysis from API with key rotation"""
+        headers = {
+            "Content-Type": "application/json"
+        }
+
+        prompt = f"""Analyze the sentiment in this disaster-related message (language: {language}):
+"{text}"
+
+You must ONLY classify the sentiment as one of these exact categories with these specific rules:
+
+1. Panic: Choose this when the text shows:
+   - People desperately needing immediate help or rescue
+   - Having no food, water, or basic necessities
+   - Trapped or in immediate danger
+   - Using words like "tulong!", "help!", "SOS", or many exclamation points
+   - Expressing desperate situations they don't know how to handle
+
+2. Fear/Anxiety: Choose this when the text shows:
+   - General fear or worry but not immediate danger
+   - Concern about what might happen
+   - Using words like "takot", "natatakot", "scared", "afraid"
+   - Worried about potential worsening of situation
+   - Expressing uncertainty about safety
+
+3. Disbelief: Choose this when the text shows:
+   - Surprise or shock about disaster's impact
+   - Difficulty believing the situation
+   - Using phrases like "hindi ako makapaniwala", "can't believe"
+   - Expressing disbelief about speed or scale of disaster
+   - Shocked reactions to damage or changes
+
+4. Resilience: Choose this when the text shows:
+   - Helping others or community support
+   - Hope and determination
+   - Using words like "kakayanin", "magtulungan", "we will overcome"
+   - Sharing resources or information to help
+   - Expressions of unity and strength
+
+5. Neutral: Choose this when the text:
+   - Simply reports facts or observations
+   - Shares news or updates without emotion
+   - Gives objective information about the situation
+   - Contains mostly technical or weather-related data
+   - Provides status updates without personal reaction
+
+Examples for each category:
+- Panic: "Tulong! Nasa bubong na kami, mataas na tubig!", "No food and water, please help!"
+- Fear/Anxiety: "Natatakot ako baka tumaas pa ang tubig", "Worried about more aftershocks"
+- Disbelief: "Di ko akalaing ganito kabilis!", "Can't believe how strong the earthquake was"
+- Resilience: "Tulungan ang mga kapwa, kakayanin natin to!", "We're helping evacuate neighbors"
+- Neutral: "Road closed due to flooding", "Magnitude 5.2 earthquake reported"
+
+Respond ONLY with a JSON object containing:
+1. sentiment: MUST be one of [Panic, Fear/Anxiety, Disbelief, Resilience, Neutral] - no other values allowed
+2. confidence: a number between 0 and 1
+3. explanation: brief reason for the classification
+4. disasterType: MUST be one of [Earthquake, Flood, Typhoon, Fire, Volcano, Landslide] or "Not Specified"
+5. location: ONLY return the exact location name if mentioned (a Philippine location), with no explanation DONT MENTION ANY PLACES IF ITS NOT A PHILIPPINE LOCATION!!
+"""
+
+        payload = {
+            "model": "llama3-70b-8192",
+            "messages": [
+                {"role": "system", "content": "You are a strict disaster sentiment analyzer that only uses 5 specific sentiment categories."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.1,
+            "max_tokens": 500
+        }
+
+        # Try to use the API with retries and key rotation
+        try:
+            # Use the current key
+            api_key = self.groq_api_keys[self.current_api_index]
+            headers["Authorization"] = f"Bearer {api_key}"
+
+            logging.info(f"Attempting API request with key {self.current_api_index + 1}/{len(self.groq_api_keys)}")
+
+            # Make the API request
+            import requests
+            response = requests.post(
+                self.api_url,
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+
+            response.raise_for_status()
+
+            # Track successful key usage
+            self.key_success_count[self.current_api_index] += 1
+            logging.info(f"Successfully used API key {self.current_api_index + 1} (successes: {self.key_success_count[self.current_api_index]})")
+
+            # Parse the response
+            api_response = response.json()
+            content = api_response["choices"][0]["message"]["content"]
+
+            # Try to parse JSON from the response
+            try:
+                start_idx = content.find("{")
+                end_idx = content.rfind("}") + 1
+                if start_idx >= 0 and end_idx > start_idx:
+                    json_str = content[start_idx:end_idx]
+                    result = json.loads(json_str)
+                else:
+                    # Fallback to rule-based analysis if JSON not found
+                    result = {
+                        "sentiment": "Neutral",
+                        "confidence": 0.7,
+                        "explanation": "Determined by fallback rule-based analysis",
+                        "disasterType": self.extract_disaster_type(text),
+                        "location": self.extract_location(text),
+                        "language": language
+                    }
+            except Exception as json_error:
+                logging.error(f"Error parsing API response: {json_error}")
+                result = {
+                    "sentiment": "Neutral",
+                    "confidence": 0.7,
+                    "explanation": "Fallback due to JSON parsing error",
+                    "disasterType": self.extract_disaster_type(text),
+                    "location": self.extract_location(text),
+                    "language": language
+                }
+
+            # Ensure required fields exist
+            if "sentiment" not in result:
+                result["sentiment"] = "Neutral"
+            if "confidence" not in result:
+                result["confidence"] = 0.7
+            if "explanation" not in result:
+                result["explanation"] = "No explanation provided"
+            if "disasterType" not in result:
+                result["disasterType"] = self.extract_disaster_type(text)
+            if "location" not in result:
+                result["location"] = self.extract_location(text)
+            if "language" not in result:
+                result["language"] = language
+
+            # Rotate to next key for next request
+            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+
+            return result
+
+        except Exception as e:
+            logging.error(f"API request failed: {str(e)}")
+
+            # Mark the current key as failed and try a different key
+            self.failed_keys.add(self.current_api_index)
+            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
+
+            # Add delay after error
+            time.sleep(self.retry_delay)
+
+            # Fallback to rule-based analysis
+            return {
+                "sentiment": "Neutral",
+                "confidence": 0.7,
+                "explanation": "Fallback due to API error",
+                "disasterType": self.extract_disaster_type(text),
+                "location": self.extract_location(text),
+                "language": language
+            }
 
     def process_csv(self, file_path):
         """Process a CSV file with sentiment analysis"""
@@ -593,15 +627,20 @@ Respond ONLY with a JSON object containing:
         return metrics
 
 def main():
-    """Main function to process text or CSV file"""
     try:
         args = parser.parse_args()
         backend = DisasterSentimentBackend()
 
         if args.text:
+            # Single text analysis
             try:
-                # Handle text analysis
-                text = args.text if not args.text.startswith('{') else json.loads(args.text)['text']
+                # Parse the text input as JSON if it's a JSON string
+                if args.text.startswith('{'):
+                    params = json.loads(args.text)
+                    text = params.get('text', '')
+                else:
+                    text = args.text
+
                 result = backend.analyze_sentiment(text)
                 print(json.dumps(result))
                 sys.stdout.flush()
@@ -618,21 +657,27 @@ def main():
                 sys.stdout.flush()
 
         elif args.file:
+            # Process CSV file
             try:
-                # Handle CSV file processing
+                logging.info(f"Processing CSV file: {args.file}")
                 processed_results = backend.process_csv(args.file)
-                metrics = backend.calculate_real_metrics(processed_results) if processed_results else {
-                    "accuracy": 0.0,
-                    "precision": 0.0,
-                    "recall": 0.0,
-                    "f1Score": 0.0
-                }
 
-                print(json.dumps({
-                    "results": processed_results,
-                    "metrics": metrics
-                }))
-                sys.stdout.flush()
+                if processed_results and len(processed_results) > 0:
+                    # Calculate metrics
+                    metrics = backend.calculate_real_metrics(processed_results)
+                    print(json.dumps({"results": processed_results, "metrics": metrics}))
+                    sys.stdout.flush()
+                else:
+                    print(json.dumps({
+                        "results": [],
+                        "metrics": {
+                            "accuracy": 0.0,
+                            "precision": 0.0,
+                            "recall": 0.0,
+                            "f1Score": 0.0
+                        }
+                    }))
+                    sys.stdout.flush()
 
             except Exception as e:
                 logging.error(f"Error processing CSV file: {str(e)}")
