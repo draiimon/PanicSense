@@ -6,7 +6,7 @@ import { getSentimentColor, getDisasterTypeColor } from '@/lib/colors';
 interface TimelineEvent {
   id: number;
   name: string;
-  description: string;
+  description: string | null;
   timestamp: string;
   location: string | null;
   type: string;

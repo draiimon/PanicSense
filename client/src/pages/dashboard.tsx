@@ -107,7 +107,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Beautiful hero section with animated gradient and prominent upload button */}
+      {/* Beautiful hero section with animated gradient */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -118,8 +118,8 @@ export default function Dashboard() {
         <div className="absolute h-40 w-40 rounded-full bg-blue-400 filter blur-3xl opacity-30 -top-20 -left-20 animate-pulse"></div>
         <div className="absolute h-40 w-40 rounded-full bg-indigo-400 filter blur-3xl opacity-30 -bottom-20 -right-20 animate-pulse"></div>
         
-        <div className="relative px-6 py-12 sm:px-12 sm:py-16 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="md:max-w-[60%]">
+        <div className="relative px-6 py-12 sm:px-12 sm:py-16">
+          <div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
               Disaster Response Dashboard
             </h1>
@@ -142,34 +142,43 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          
-          {/* Prominent upload button with hover effect */}
-          <div className="flex-shrink-0 relative min-w-[240px]">
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              className="bg-white rounded-xl shadow-2xl overflow-hidden"
-            >
-              <div className="p-6">
-                <div className="flex items-center mb-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Upload className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <h3 className="ml-3 font-semibold text-gray-800">Upload Data</h3>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Upload CSV files for instant sentiment analysis and disaster monitoring
-                </p>
-                <FileUploader className="w-full justify-center mt-2 !shadow-none hover:!bg-blue-700" />
-              </div>
-            </motion.div>
-            {isLoadingSentimentPosts && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-lg rounded-lg">
-                <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-              </div>
-            )}
-          </div>
         </div>
+      </motion.div>
+      
+      {/* Upload button placed outside the dashboard cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="mb-8 relative"
+      >
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="bg-white rounded-xl shadow-xl overflow-hidden border border-blue-50"
+        >
+          <div className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center">
+                <Upload className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800 text-lg mb-1">Upload Disaster Data</h3>
+                <p className="text-sm text-gray-600">
+                  Upload CSV files for instant sentiment analysis and disaster monitoring. Our system will automatically process and visualize the data.
+                </p>
+              </div>
+            </div>
+            <div className="md:flex-shrink-0">
+              <FileUploader className="min-w-[180px] justify-center" />
+            </div>
+          </div>
+        </motion.div>
+        {isLoadingSentimentPosts && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-lg rounded-lg">
+            <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+          </div>
+        )}
       </motion.div>
 
       {/* Stats Grid with improved styling */}
@@ -342,6 +351,36 @@ export default function Dashboard() {
                   />
                   {isLoadingSentimentPosts && (
                     <LoadingOverlay message="Loading recent posts..." />
+                  )}
+                </div>
+              </div>
+
+              {/* Key Events Card */}
+              <div className="h-full flex flex-col">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100/50 p-6 pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-blue-500/10">
+                        <AlertTriangle className="text-blue-600 h-5 w-5" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-slate-800">Key Disaster Events</h3>
+                    </div>
+                    <a href="/timeline" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex items-center px-3 py-1.5">
+                      View Timeline
+                      <ArrowUpRight className="h-3 w-3 ml-1" />
+                    </a>
+                  </div>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Critical disaster events requiring immediate attention
+                  </p>
+                </div>
+                <div className="flex-grow overflow-auto scrollbar-hide">
+                  <KeyEvents 
+                    events={disasterEvents}
+                    sentimentPosts={filteredPosts}
+                  />
+                  {isLoadingSentimentPosts && (
+                    <LoadingOverlay message="Loading disaster events..." />
                   )}
                 </div>
               </div>

@@ -136,9 +136,7 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
     
     // Start auto-scrolling like a slot machine
     const startSlotRolling = () => {
-      if (!containerRef.current || isSlotRolling) return;
-      
-      setIsSlotRolling(true);
+      if (!containerRef.current) return;
       
       const container = containerRef.current;
       const scrollHeight = container.scrollHeight;
@@ -146,12 +144,12 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
       
       // Stop if there's not enough content to scroll
       if (scrollHeight <= clientHeight) {
-        setIsSlotRolling(false);
         return;
       }
       
       let currentPosition = 0;
       const scrollSpeed = 0.5; // pixels per frame
+      let animationId: number | null = null;
       
       const scroll = () => {
         if (!containerRef.current) return;
@@ -164,21 +162,25 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
         }
         
         containerRef.current.scrollTop = currentPosition;
-        
-        if (isSlotRolling) {
-          requestAnimationFrame(scroll);
-        }
+        animationId = requestAnimationFrame(scroll);
       };
       
-      requestAnimationFrame(scroll);
+      animationId = requestAnimationFrame(scroll);
+      
+      // Return cleanup function
+      return () => {
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+        }
+      };
     };
     
-    startSlotRolling();
+    // Start the animation and get the cleanup function
+    const cleanup = startSlotRolling();
     
-    return () => {
-      setIsSlotRolling(false);
-    };
-  }, [affectedAreas, isSlotRolling]);
+    // Return the cleanup function to useEffect
+    return cleanup;
+  }, [affectedAreas]);
 
   return (
     <div 
