@@ -1,5 +1,5 @@
 
-import { Client } from '@replit/object-storage';
+import { Client } from '@replit/object-storage/dist/esm/index.js';
 
 const client = new Client();
 
