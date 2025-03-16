@@ -411,10 +411,6 @@ Respond ONLY with a JSON object containing:
             failed_records = 0
 
             # Print initial stats
-            print(f"\n===== Starting CSV Processing =====")
-            print(f"Total records to process: {total_records}")
-            print("===================================\n")
-
             logging.info(f"Total records to process: {total_records}")
 
             # Report initial progress
@@ -534,15 +530,7 @@ Respond ONLY with a JSON object containing:
                     progress_percentage = int((i / total_records) * 100)
                     remaining = total_records - i
 
-                    # Print progress for each record
-                    print(f"\rProcessing record {i+1}/{total_records} | " 
-                          f"Success: {successful_records} | "
-                          f"Failed: {failed_records} | "
-                          f"Remaining: {remaining} | "
-                          f"Progress: {progress_percentage}%", end="")
-                    sys.stdout.flush()
-
-                    # Report progress through the standard channel
+                    # Report detailed progress
                     report_progress(
                         progress_percentage,
                         f"Processing record {i+1}/{total_records} ({progress_percentage}% complete). "
@@ -551,10 +539,9 @@ Respond ONLY with a JSON object containing:
                     )
 
                     # Extract text
-                    text = str(row.get(text_col, ""))
+                    text = str(row.get("text", ""))
                     if not text.strip():
                         failed_records += 1
-                        print(f"\nSkipped empty record {i+1}")
                         continue
 
                     # Get metadata from columns
@@ -605,15 +592,7 @@ Respond ONLY with a JSON object containing:
 
                 except Exception as e:
                     failed_records += 1
-                    print(f"\nError processing record {i+1}: {str(e)}")
                     logging.error(f"Error processing row {i}: {str(e)}")
-
-            # Print final stats
-            print("\n\n===== CSV Processing Complete =====")
-            print(f"Total records processed: {total_records}")
-            print(f"Successful records: {successful_records}")
-            print(f"Failed records: {failed_records}")
-            print("==================================\n")
 
             # Report final stats
             final_message = (
@@ -627,9 +606,6 @@ Respond ONLY with a JSON object containing:
             logging.info(final_message)
             loc_count = sum(1 for r in processed_results if r.get("location"))
             disaster_count = sum(1 for r in processed_results if r.get("disasterType") != "Not Specified")
-            print(f"Records with location: {loc_count}/{len(processed_results)}")
-            print(f"Records with disaster type: {disaster_count}/{len(processed_results)}")
-
             logging.info(f"Records with location: {loc_count}/{len(processed_results)}")
             logging.info(f"Records with disaster type: {disaster_count}/{len(processed_results)}")
 
@@ -637,7 +613,6 @@ Respond ONLY with a JSON object containing:
 
         except Exception as e:
             logging.error(f"CSV processing error: {str(e)}")
-            print(f"\nError processing CSV: {str(e)}")
             return []
 
     def calculate_real_metrics(self, results):
