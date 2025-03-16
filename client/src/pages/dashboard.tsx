@@ -11,6 +11,7 @@ import { CardCarousel } from "@/components/dashboard/card-carousel";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { KeyEvents } from "@/components/timeline/key-events";
+import { useState } from 'react';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -45,6 +46,7 @@ export default function Dashboard() {
     modelConfidence = 0,
     isLoadingSentimentPosts = false
   } = useDisasterContext();
+  const [carouselPaused, setCarouselPaused] = useState(false);
 
   // Calculate stats (added from changes)
   const totalPosts = sentimentPosts.length;
@@ -118,7 +120,7 @@ export default function Dashboard() {
         <div className="absolute inset-0 bg-grid-white/10 bg-[size:20px_20px] opacity-20"></div>
         <div className="absolute h-40 w-40 rounded-full bg-blue-400 filter blur-3xl opacity-30 -top-20 -left-20 animate-pulse"></div>
         <div className="absolute h-40 w-40 rounded-full bg-indigo-400 filter blur-3xl opacity-30 -bottom-20 -right-20 animate-pulse"></div>
-        
+
         <div className="relative px-6 py-12 sm:px-12 sm:py-16">
           <div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
@@ -127,7 +129,7 @@ export default function Dashboard() {
             <p className="text-blue-100 text-base sm:text-lg mb-6 max-w-xl">
               Real-time sentiment monitoring and geospatial analysis for disaster response in the Philippines
             </p>
-            
+
             <div className="flex flex-wrap gap-3">
               <div className="flex items-center text-xs bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white">
                 <Database className="h-3.5 w-3.5 mr-1.5" />
@@ -145,7 +147,7 @@ export default function Dashboard() {
           </div>
         </div>
       </motion.div>
-      
+
       {/* Upload button placed outside the dashboard cards */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -263,14 +265,14 @@ export default function Dashboard() {
                   Recent disaster impact by location
                 </CardDescription>
               </CardHeader>
-              
+
               <div className="flex-grow overflow-hidden">
                 <AffectedAreasCard 
                   sentimentPosts={filteredPosts} 
                   isLoading={isLoadingSentimentPosts}
                 />
               </div>
-              
+
               {isLoadingSentimentPosts && (
                 <LoadingOverlay message="Updating affected areas..." />
               )}
@@ -290,26 +292,14 @@ export default function Dashboard() {
             <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
               <div 
                 className="cursor-pointer hover:scale-110 transition-transform"
-                onClick={(e) => {
-                  const icon = e.currentTarget.querySelector('.rotate-icon');
-                  if (icon) {
-                    const newState = icon.style.animationPlayState === 'paused' ? 'running' : 'paused';
-                    icon.style.animationPlayState = newState;
-                    // Find and update carousel's auto-rotate state
-                    const carousel = e.currentTarget.closest('.relative')?.querySelector('.card-carousel');
-                    if (carousel) {
-                      carousel.setAttribute('data-auto-rotate', newState === 'running' ? 'true' : 'false');
-                    }
-                  }
-                }}
+                onClick={() => setCarouselPaused(!carouselPaused)}
               >
-                <RefreshCw className="h-5 w-5 text-blue-600 animate-spin-slow rotate-icon" />
+                <RefreshCw className={`h-5 w-5 text-blue-600 ${carouselPaused ? '' : 'animate-spin-slow'} rotate-icon`} />
               </div>
             </div>
-            
+
             <CardCarousel 
-              className="card-carousel" 
-              autoRotate={true}
+              autoRotate={!carouselPaused}
               interval={10000}
               showControls={true}
               className="h-[450px]"
