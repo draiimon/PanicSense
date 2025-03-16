@@ -41,6 +41,7 @@ export interface AnalyzedFile {
 
 export interface UploadProgress {
   processed: number;
+  total?: number;
   stage: string;
   error?: string;
 }

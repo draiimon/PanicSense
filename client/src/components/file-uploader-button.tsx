@@ -76,8 +76,15 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
           const result = await uploadCSV(file, (progress) => {
             const processedRecords = progress.processed || 0;
-            const totalRecords = lines || 100;
+            const totalRecords = progress.total || lines || 100;
             const percentage = Math.min(Math.round((processedRecords / totalRecords) * 100), 100);
+            
+            console.log('Upload progress:', { 
+              processed: processedRecords, 
+              total: totalRecords, 
+              percentage, 
+              stage: progress.stage 
+            });
 
             updateUploadProgress({
               processedRecords,

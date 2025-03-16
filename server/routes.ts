@@ -99,6 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Send initial progress data
     res.write(`data: ${JSON.stringify({
       processed: 0,
+      total: 100,
       stage: "Connecting...",
     })}\n\n`);
 
