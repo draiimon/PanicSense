@@ -131,7 +131,7 @@ class DisasterSentimentBackend:
         """Extract location from text using Philippine location names"""
         text_lower = text.lower()
 
-        # Comprehensive list of Philippine locations
+        # STRICT list of Philippine locations - ONLY these are valid
         ph_locations = [
             # ALL REGIONS
             "NCR", "CAR", "Ilocos Region", "Cagayan Valley", "Central Luzon",
@@ -191,11 +191,15 @@ class DisasterSentimentBackend:
             "Luzon", "Visayas", "Mindanao"
         ]
 
+        # Make text case-insensitive but preserve original location names
+        text_lower = text.lower()
         for location in ph_locations:
+            # Check if the location appears in the text (case-insensitive)
             if location.lower() in text_lower:
-                # Return ONLY the location name, no explanation
+                # Return ONLY the location name exactly as it appears in our list
                 return location
 
+        # If no valid Philippine location is found, return None
         return None
 
     def analyze_sentiment(self, text):
@@ -282,7 +286,7 @@ Respond ONLY with a JSON object containing:
 2. confidence: a number between 0 and 1
 3. explanation: brief reason for the classification
 4. disasterType: MUST be one of [Earthquake, Flood, Typhoon, Fire, Volcano, Landslide] or "Not Specified"
-5. location: ONLY return the exact location name if mentioned (a Philippine location), with no explanation
+5. location: ONLY return the exact location name if mentioned (a Philippine location), with no explanation DONT MENTION ANY PLACES IF ITS NOT A PHILIPPINE LOCATION!!
 """
 
         payload = {
@@ -481,7 +485,7 @@ Respond ONLY with a JSON object containing:
 
                         elif col_type == "disaster":
                             # Look for disaster keywords
-                            disaster_indicators = ["flood", "earthquake", "typhoon", "fire", "landslide", "volcano"]
+                            disaster_indicators = ["flood", "earthquake", "typhoon", "fire", "landslide", "volcanic erruption"]
                             if any(any(ind in str(val).lower() for ind in disaster_indicators) for val in sample_values):
                                 identified_columns["disaster"] = col
                                 match_found = True
@@ -623,6 +627,7 @@ Respond ONLY with a JSON object containing:
         return metrics
 
 def main():
+    args = parser.replit_final_file>
     args = parser.parse_args()
 
     try:
