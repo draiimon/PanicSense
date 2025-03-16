@@ -160,20 +160,10 @@ export function SentimentMap({
 
     // Clear previous markers, animations, and popup
     markersRef.current.forEach(marker => {
-      if (typeof marker === 'object' && marker !== null) {
-        // If marker is our complex object with animation
-        if ('circle' in marker && 'pulseCircle' in marker && 'animationRef' in marker) {
-          // Cancel animation frame if exists
-          if (marker.animationRef && marker.animationRef.current) {
-            cancelAnimationFrame(marker.animationRef.current);
-          }
-          // Remove circles from map
-          if (marker.circle) marker.circle.remove();
-          if (marker.pulseCircle) marker.pulseCircle.remove();
-        } else {
-          // Simple marker
-          marker.remove();
-        }
+      if (typeof marker === 'object' && marker !== null && 'circle' in marker) {
+        marker.circle.remove();
+      } else if (marker) {
+        marker.remove();
       }
     });
     markersRef.current = [];
@@ -221,61 +211,8 @@ export function SentimentMap({
           className: 'main-marker',
         }).addTo(mapInstanceRef.current);
 
-        // Create animated pulse circle with same initial size as main marker
-        const pulseCircle = L.circle(region.coordinates, {
-          color: 'rgba(255,255,255,0.3)', // Subtle border
-          fillColor: color,
-          fillOpacity: 0.3, // More visible starting opacity
-          radius: radius * 1000, // Start at same size as main marker
-          weight: 1,
-          className: 'pulse-marker',
-        }).addTo(mapInstanceRef.current);
-
-        // Add ping animation with better, smoother effect - MUCH SLOWER
-        const animatePulse = () => {
-          let size = radius * 1000; // Start at main circle size
-          let opacity = 0.3; 
-          let growing = true;
-          let maxSize = radius * 3000; // Larger maximum size for more dramatic effect
-          let growthRate = radius * 30; // MUCH slower growth rate
-
-          const expandPulse = () => {
-            if (growing) {
-              // Growing phase
-              size += growthRate;
-              opacity -= 0.006; // Slower fade out for smoother effect
-
-              if (size >= maxSize) {
-                growing = false;
-              }
-            } else {
-              // Reset phase
-              size = radius * 1000;  // Reset to main marker size
-              opacity = 0.3;  // Reset opacity
-              growing = true;
-            }
-
-            pulseCircle.setRadius(size);
-            pulseCircle.setStyle({ 
-              fillOpacity: Math.max(0.01, opacity), // Keep minimum opacity visible
-              opacity: Math.max(0.05, opacity * 1.5) // Keep borders slightly more visible
-            });
-
-            // Schedule next frame
-            animationRef.current = requestAnimationFrame(expandPulse);
-          };
-
-          // Start animation
-          expandPulse();
-        };
-
-        // Store animation reference for cleanup
-        const animationRef = { current: null as number | null };
-        animatePulse();
-
-        // Store animation ref for cleanup
-        // Store marker with animation data
-        markersRef.current.push({ circle, pulseCircle, animationRef });
+        // Store marker reference only
+        markersRef.current.push({ circle });
 
         // Create custom popup with better styling and layout
         const popupContent = `
