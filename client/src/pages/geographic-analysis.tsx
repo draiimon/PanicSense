@@ -341,7 +341,34 @@ export default function GeographicAnalysis() {
 
   // Convert location data to regions for map
   const regions = useMemo((): Region[] => {
-    return Object.entries(locationData).map(([name, data]) => {
+    const processedData = new Map<string, any>();
+    
+    sentimentPosts.forEach(post => {
+      if (post.location) {
+        const fullLocation = post.location;
+        // Split location if it contains comma (e.g. "Taytay, Rizal" -> "Rizal")
+        const mainRegion = fullLocation.includes(',') ? 
+          fullLocation.split(',')[1].trim() : fullLocation;
+          
+        if (!processedData.has(mainRegion)) {
+          processedData.set(mainRegion, {
+            count: 0,
+            sentiments: {},
+            disasterTypes: {},
+            coordinates: regionCoordinates[mainRegion] || regionCoordinates['Unknown']
+          });
+        }
+        
+        const data = processedData.get(mainRegion);
+        data.count++;
+        data.sentiments[post.sentiment] = (data.sentiments[post.sentiment] || 0) + 1;
+        if (post.disasterType) {
+          data.disasterTypes[post.disasterType] = (data.disasterTypes[post.disasterType] || 0) + 1;
+        }
+      }
+    });
+
+    return Array.from(processedData.entries()).map(([name, data]) => {
       // Find dominant sentiment
       let maxCount = 0;
       let dominantSentiment = "Neutral";
