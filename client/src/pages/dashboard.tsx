@@ -6,7 +6,8 @@ import { AffectedAreasCard } from "@/components/dashboard/affected-areas-card";
 import { FileUploader } from "@/components/file-uploader";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Upload, Database, BarChart3, BrainCircuit, Globe2, ArrowUpRight } from "lucide-react";
+import { Loader2, Upload, Database, BarChart3, Globe2, ArrowUpRight, RefreshCw } from "lucide-react";
+import { CardCarousel } from "@/components/dashboard/card-carousel";
 import { Button } from "@/components/ui/button";
 
 const fadeInUp = {
@@ -201,7 +202,7 @@ export default function Dashboard() {
         <StatusCard 
           title="Dominant Sentiment"
           value={dominantSentiment}
-          icon="brain"
+          icon="bar-chart"
           trend={{
             value: "stable",
             isUpward: null,
@@ -270,67 +271,84 @@ export default function Dashboard() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex-grow space-y-6"
+          className="flex-grow"
         >
-          {/* Sentiment Distribution Card */}
-          <Card className="bg-white shadow-xl border-none rounded-xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100/50 pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <BarChart3 className="text-blue-600 h-5 w-5" />
+          {/* Card Carousel for auto-rotating between Sentiment Distribution and Recent Activity */}
+          <div className="relative mb-6 bg-white shadow-xl border-none rounded-xl overflow-hidden">
+            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+              <span className="text-xs text-blue-600 font-medium flex items-center">
+                <RefreshCw className="h-3 w-3 mr-1 animate-spin-slow" />
+                Auto-rotating
+              </span>
+            </div>
+            
+            <CardCarousel 
+              autoRotate={true}
+              interval={10000}
+              showControls={true}
+              className="h-[450px]"
+            >
+              {/* Sentiment Distribution Card */}
+              <div className="h-full">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100/50 p-6 pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-blue-500/10">
+                        <BarChart3 className="text-blue-600 h-5 w-5" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-slate-800">Sentiment Distribution</h3>
+                    </div>
+                    <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                      Full Analysis
+                      <ArrowUpRight className="h-3 w-3" />
+                    </Button>
                   </div>
-                  <CardTitle className="text-lg font-semibold text-slate-800">Sentiment Distribution</CardTitle>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Emotional response breakdown across disaster events
+                  </p>
                 </div>
-                <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                  Full Analysis
-                  <ArrowUpRight className="h-3 w-3" />
-                </Button>
+                <div className="p-6">
+                  <div className="h-[350px]">
+                    <OptimizedSentimentChart 
+                      data={sentimentData}
+                      isLoading={isLoadingSentimentPosts}
+                    />
+                  </div>
+                </div>
               </div>
-              <CardDescription className="text-slate-500 mt-1">
-                Emotional response breakdown across disaster events
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="h-[300px]">
-                <OptimizedSentimentChart 
-                  data={sentimentData}
-                  isLoading={isLoadingSentimentPosts}
-                />
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Recent Posts Card */}
-          <Card className="bg-white shadow-xl border-none rounded-xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100/50 pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <Database className="text-blue-600 h-5 w-5" />
+              {/* Recent Posts Card */}
+              <div className="h-full flex flex-col">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100/50 p-6 pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-blue-500/10">
+                        <Database className="text-blue-600 h-5 w-5" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-slate-800">Recent Activity</h3>
+                    </div>
+                    <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                      View All
+                      <ArrowUpRight className="h-3 w-3" />
+                    </Button>
                   </div>
-                  <CardTitle className="text-lg font-semibold text-slate-800">Recent Activity</CardTitle>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Latest analyzed posts and sentiment data
+                  </p>
                 </div>
-                <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                  View All
-                  <ArrowUpRight className="h-3 w-3" />
-                </Button>
+                <div className="flex-grow overflow-hidden relative">
+                  <RecentPostsTable 
+                    posts={filteredPosts} 
+                    limit={5}
+                    isLoading={isLoadingSentimentPosts}
+                  />
+                  {isLoadingSentimentPosts && (
+                    <LoadingOverlay message="Loading recent posts..." />
+                  )}
+                </div>
               </div>
-              <CardDescription className="text-slate-500 mt-1">
-                Latest analyzed posts and sentiment data
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <RecentPostsTable 
-                posts={filteredPosts} 
-                limit={5}
-                isLoading={isLoadingSentimentPosts}
-              />
-              {isLoadingSentimentPosts && (
-                <LoadingOverlay message="Loading recent posts..." />
-              )}
-            </CardContent>
-          </Card>
+            </CardCarousel>
+          </div>
         </motion.div>
       </div>
     </div>

@@ -9,7 +9,6 @@ import {
   Wind, 
   Waves, 
   BarChart, 
-  BrainCircuit, 
   CheckCircle,
   ArrowUp,
   ArrowDown,
@@ -34,7 +33,6 @@ const getIconComponent = (iconName: string) => {
   switch (iconName) {
     case 'alert-triangle': return AlertTriangle;
     case 'bar-chart': return BarChart;
-    case 'brain': return BrainCircuit;
     case 'check-circle': return CheckCircle;
     case 'typhoon': case 'storm': return Wind;
     case 'flood': return Droplets;
