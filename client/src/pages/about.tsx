@@ -86,19 +86,105 @@ export default function About() {
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        className="relative w-full space-y-16"
+        className="relative w-full space-y-8" // Adjusted spacing here
       >
         {/* Hero Section */}
         <motion.div 
           variants={itemVariants}
-          className="text-center space-y-3"
+          className="relative w-full py-20 overflow-hidden"
         >
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            PanicSense PH
-          </h1>
-          <p className="text-xl text-gray-600">
-            Disaster Sentiment Analysis Platform
-          </p>
+          {/* Animated background elements */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ 
+              opacity: [0.5, 0.3, 0.5],
+              scale: [1, 1.2, 1],
+              rotate: [0, 45, 0]
+            }}
+            transition={{ 
+              duration: 10,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 rounded-full blur-3xl"
+          />
+
+          <div className="relative text-center space-y-8">
+            {/* Decorative line */}
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: "100px" }}
+              transition={{ duration: 1, delay: 0.2 }}
+              className="h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mx-auto"
+            />
+
+            {/* Main title */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8 }}
+              className="space-y-4"
+            >
+              <h1 className="text-6xl md:text-7xl font-bold">
+                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  PanicSense PH
+                </span>
+              </h1>
+
+              <div className="relative">
+                <motion.p 
+                  className="text-2xl md:text-3xl text-blue-200 max-w-3xl mx-auto leading-relaxed"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.8 }}
+                >
+                  Revolutionizing Disaster Response Through
+                  <br />
+                  <span className="relative inline-block">
+                    <span className="relative z-10 font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                      Advanced Sentiment Analysis
+                    </span>
+                    <motion.span
+                      className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-blue-400 to-purple-400"
+                      initial={{ width: "0%" }}
+                      animate={{ width: "100%" }}
+                      transition={{ delay: 1, duration: 0.8 }}
+                    />
+                  </span>
+                </motion.p>
+              </div>
+            </motion.div>
+
+            {/* Decorative elements */}
+            <div className="flex justify-center gap-4 mt-8">
+              {[...Array(3)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.8 + i * 0.1, duration: 0.5 }}
+                  className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"
+                />
+              ))}
+            </div>
+
+            {/* Key features */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2, duration: 0.8 }}
+              className="flex flex-wrap justify-center gap-6 mt-8"
+            >
+              {["Real-time Analysis", "Bilingual Processing", "Disaster Response"].map((feature, i) => (
+                <div
+                  key={i}
+                  className="px-6 py-2 bg-white/5 backdrop-blur-lg border border-white/10 rounded-full"
+                >
+                  <span className="text-blue-200">{feature}</span>
+                </div>
+              ))}
+            </motion.div>
+          </div>
         </motion.div>
 
         {/* Founders Carousel */}
