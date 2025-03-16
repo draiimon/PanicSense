@@ -288,7 +288,17 @@ export default function Dashboard() {
           {/* Card Carousel for auto-rotating between Sentiment Distribution and Recent Activity */}
           <div className="relative mb-6 bg-white shadow-xl border-none rounded-xl overflow-hidden">
             <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-              <RefreshCw className="h-3 w-3 text-blue-600 animate-spin-slow" />
+              <div 
+                className="cursor-pointer hover:scale-110 transition-transform"
+                onClick={(e) => {
+                  const icon = e.currentTarget.querySelector('.rotate-icon');
+                  if (icon) {
+                    icon.style.animationPlayState = icon.style.animationPlayState === 'paused' ? 'running' : 'paused';
+                  }
+                }}
+              >
+                <RefreshCw className="h-5 w-5 text-blue-600 animate-spin-slow rotate-icon" />
+              </div>
             </div>
             
             <CardCarousel 
