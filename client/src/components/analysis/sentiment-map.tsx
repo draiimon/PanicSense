@@ -318,52 +318,69 @@ export function SentimentMap({
           autoPanPadding: [20, 20] // Padding for auto-pan
         });
 
-        // Enhanced hover interactions with adjusted values for smaller circles
-        circle.on('mouseover', () => {
-          circle.setStyle({ 
-            weight: 3.5,
-            fillOpacity: 0.85,
-            color: '#FFFFFF'
-          });
-          const newRadius = radius * 2000; // Even larger for better visibility
-          circle.setRadius(newRadius);
-          setHoveredRegion(region);
-          
-          // Ensure popup stays visible during animation
-          setTimeout(() => {
+        let isSelected = false;
+
+        circle.on('click', () => {
+          if (isSelected) {
+            // If already selected, deselect
+            circle.setStyle({ 
+              weight: 2,
+              fillOpacity: 0.5,
+              color
+            });
+            circle.setRadius(radius * 1200);
+            circle.closePopup();
+            setHoveredRegion(null);
+            isSelected = false;
+          } else {
+            // Clear any other selected circles
+            markersRef.current.forEach(marker => {
+              if (marker instanceof L.Circle) {
+                marker.setStyle({ 
+                  weight: 2,
+                  fillOpacity: 0.5,
+                  color: marker.options.color 
+                });
+                marker.setRadius(marker.options.radius);
+                marker.closePopup();
+              }
+            });
+            
+            // Select this circle
+            circle.setStyle({ 
+              weight: 3.5,
+              fillOpacity: 0.85,
+              color: '#FFFFFF'
+            });
+            circle.setRadius(radius * 2000);
             circle.openPopup();
             circle.bringToFront();
-          }, 50);
+            setHoveredRegion(region);
+            isSelected = true;
+          }
+          
+          if (onRegionSelect) {
+            onRegionSelect(region);
+          }
+        });
 
-          // Update popup position continuously during animation
-          const updatePopup = () => {
-            if (circle._popup && circle._popup.isOpen()) {
-              circle._popup.setLatLng(circle.getLatLng());
-            }
-          };
-          circle.on('radius', updatePopup);
+        // Optional hover effects for better UX
+        circle.on('mouseover', () => {
+          if (!isSelected) {
+            circle.setStyle({ 
+              weight: 3,
+              fillOpacity: 0.7
+            });
+          }
         });
 
         circle.on('mouseout', () => {
-          circle.setStyle({ 
-            weight: 2,
-            fillOpacity: 0.5,
-            color
-          });
-          circle.setRadius(radius * 1200);
-          circle.off('radius');
-
-          // Keep popup open for a moment to allow user to read
-          setTimeout(() => {
-            if (!circle._map) return; // Check if marker is still on map
-            setHoveredRegion(null);
-            circle.closePopup();
-          }, 500); // Small delay to keep popup visible for better UX
-        });
-
-        circle.on('click', () => {
-          if (onRegionSelect) {
-            onRegionSelect(region);
+          if (!isSelected) {
+            circle.setStyle({ 
+              weight: 2,
+              fillOpacity: 0.5,
+              color
+            });
           }
         });
       });
