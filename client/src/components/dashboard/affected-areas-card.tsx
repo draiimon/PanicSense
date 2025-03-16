@@ -127,11 +127,11 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
   }, [sentimentPosts]);
 
   return (
-    <div className="p-4 h-[450px] flex flex-col">
+    <div className="h-full overflow-auto">
       <AnimatePresence>
-        <div className="space-y-4 flex-grow">
+        <div className="space-y-4 p-4">
           {affectedAreas.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full py-8">
+            <div className="flex flex-col items-center justify-center h-[350px] py-8">
               <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
                 <MapPin className="h-7 w-7 text-blue-400" />
               </div>

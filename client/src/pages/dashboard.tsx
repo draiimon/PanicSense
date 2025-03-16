@@ -234,7 +234,7 @@ export default function Dashboard() {
           className="w-full lg:w-[450px] flex-shrink-0"
         >
           <div className="sticky top-6">
-            <Card className="bg-white shadow-xl border-none overflow-hidden rounded-xl relative">
+            <Card className="bg-white shadow-xl border-none overflow-hidden rounded-xl relative h-[450px] flex flex-col">
               <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100/50 pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -243,19 +243,17 @@ export default function Dashboard() {
                     </div>
                     <CardTitle className="text-lg font-semibold text-slate-800">Affected Areas</CardTitle>
                   </div>
-                  <Link href="/geographic-analysis">
-                    <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                      View All
-                      <ArrowUpRight className="h-3 w-3" />
-                    </Button>
-                  </Link>
+                  <a href="/geographic-analysis" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex items-center px-3 py-1.5">
+                    View All
+                    <ArrowUpRight className="h-3 w-3 ml-1" />
+                  </a>
                 </div>
                 <CardDescription className="text-slate-500 mt-1">
                   Recent disaster impact by location
                 </CardDescription>
               </CardHeader>
               
-              <div>
+              <div className="flex-grow overflow-hidden">
                 <AffectedAreasCard 
                   sentimentPosts={filteredPosts} 
                   isLoading={isLoadingSentimentPosts}
@@ -301,12 +299,10 @@ export default function Dashboard() {
                       </div>
                       <h3 className="text-lg font-semibold text-slate-800">Sentiment Distribution</h3>
                     </div>
-                    <Link href="/emotion-analysis">
-                      <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                        Full Analysis
-                        <ArrowUpRight className="h-3 w-3" />
-                      </Button>
-                    </Link>
+                    <a href="/emotion-analysis" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex items-center px-3 py-1.5">
+                      Full Analysis
+                      <ArrowUpRight className="h-3 w-3 ml-1" />
+                    </a>
                   </div>
                   <p className="text-sm text-slate-500 mt-1">
                     Emotional response breakdown across disaster events
@@ -332,12 +328,10 @@ export default function Dashboard() {
                       </div>
                       <h3 className="text-lg font-semibold text-slate-800">Recent Activity</h3>
                     </div>
-                    <Link href="/raw-data">
-                      <Button variant="ghost" size="sm" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                        View All
-                        <ArrowUpRight className="h-3 w-3" />
-                      </Button>
-                    </Link>
+                    <a href="/raw-data" className="rounded-lg h-8 gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex items-center px-3 py-1.5">
+                      View All
+                      <ArrowUpRight className="h-3 w-3 ml-1" />
+                    </a>
                   </div>
                   <p className="text-sm text-slate-500 mt-1">
                     Latest analyzed posts and sentiment data
