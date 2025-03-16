@@ -13,16 +13,19 @@ export default function About() {
     {
       name: "Mark Andrei R. Castillo",
       role: "Core System Architecture & Machine Learning",
+      image: "/drei.jpg",
       description: "Leads the development of our advanced ML pipelines and system architecture"
     },
     {
       name: "Ivahnn B. Garcia",
       role: "Frontend Development & User Experience",
+      image: "/van.jpg",
       description: "Creates intuitive and responsive user interfaces for seamless interaction"
     },
     {
       name: "Julia Daphne Ngan-Gatdula",
       role: "Data Resources & Information Engineering",
+      image: "/julia.jpg",
       description: "Manages data infrastructure and information processing systems"
     }
   ];
@@ -92,9 +95,7 @@ export default function About() {
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       <div className="relative">
                         <div className="aspect-square bg-gradient-to-br from-blue-600/20 to-purple-600/20 flex items-center justify-center mb-4">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                          </svg>
+                          <img src={founder.image} alt={founder.name} className="w-full h-full object-cover"/>
                         </div>
                         <h3 className="text-xl font-bold text-blue-300 mb-2">{founder.name}</h3>
                         <p className="text-blue-200 mb-3">{founder.role}</p>
