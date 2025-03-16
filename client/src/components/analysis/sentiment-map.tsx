@@ -250,35 +250,35 @@ export function SentimentMap({
           maxWidth: 300,
           className: 'custom-popup',
           closeButton: false,
-          offset: [0, -15], // Greater offset to position better
-          autoPan: true, // Auto-pan to make popup visible
-          autoPanPadding: [20, 20] // Padding for auto-pan
+          offset: [0, -10], // Reduced offset for closer pinning
+          autoPan: true,
+          autoPanPadding: [10, 10], // Tighter padding
+          keepInView: true // Keep popup in view when panning
         });
 
         let isSelected = false;
-
-        // Enhanced hover effects with persistent popup
         let isHovered = false;
         let hoverTimeout: NodeJS.Timeout;
 
-        circle.on('mouseover', () => {
+        circle.on('mouseover', (e) => {
           isHovered = true;
           clearTimeout(hoverTimeout);
           
           circle.setStyle({ 
             weight: 3,
-            fillOpacity: 0.7,
+            fillOpacity: 0.8,
             color: '#FFFFFF'
           });
-          circle.openPopup();
-          circle.bringToFront();
-          setHoveredRegion(region);
 
-          // Update popup position for better visibility
+          // Pin popup exactly to mouse position
           const popup = circle.getPopup();
           if (popup) {
-            popup.setLatLng(circle.getLatLng());
+            popup.setLatLng(e.latlng);
+            popup.openOn(mapInstanceRef.current);
           }
+
+          circle.bringToFront();
+          setHoveredRegion(region);
         });
 
         circle.on('mousemove', (e) => {
