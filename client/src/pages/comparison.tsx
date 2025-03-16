@@ -183,51 +183,62 @@ export default function Comparison() {
 
   const disasterData = processDisasterData();
 
-  // Process comparison data for phases
-  const processPhaseData = () => {
-    // Sort posts by timestamp to analyze phases
-    const sortedPosts = [...sentimentPosts].sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
+  // Process data for disaster response effectiveness
+  const processResponseEffectivenessData = () => {
+    // Get all disaster types from posts
+    const disasterTypes = new Set<string>();
+    sentimentPosts.forEach(post => {
+      if (post.disasterType) disasterTypes.add(post.disasterType);
+    });
 
-    // Split posts into three phases
-    const totalPosts = sortedPosts.length;
-    const postsPerPhase = Math.ceil(totalPosts / 3);
+    // If no disaster types found, show default categories
+    const categories = disasterTypes.size > 0 
+      ? Array.from(disasterTypes) 
+      : ['Typhoon', 'Flood', 'Earthquake', 'Fire'];
 
-    const phases = ['Initial Phase', 'Peak Phase', 'Recovery Phase'];
-    
-    // If there are no posts, return a default value
-    if (totalPosts === 0) {
-      return {
-        labels: phases,
-        values: [0, 0, 0],
-        title: "Sentiment Intensity by Disaster Phase",
-        description: "Intensity of negative emotions (Panic, Fear/Anxiety, Disbelief) during each disaster stage"
-      };
-    }
+    // Calculate response effectiveness metrics for each disaster type
+    const values = categories.map(disasterType => {
+      // Get posts for this disaster type
+      const postsForType = sentimentPosts.filter(post => 
+        post.disasterType && post.disasterType.toLowerCase().includes(disasterType.toLowerCase())
+      );
+      
+      if (postsForType.length === 0) return 75; // Default value if no posts
 
-    const values = phases.map((_, index) => {
-      const start = index * postsPerPhase;
-      const end = Math.min(start + postsPerPhase, totalPosts);
-      const phasePosts = sortedPosts.slice(start, end);
-
-      // Calculate intensity based on negative sentiments
-      const negativeCount = phasePosts.filter(post => 
-        post.sentiment && ['Panic', 'Fear/Anxiety', 'Disbelief'].includes(post.sentiment)
+      // Sort by timestamp
+      const sortedPosts = [...postsForType].sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+      
+      // Calculate percentage of positive sentiment (Resilience) in the later half
+      // This shows how well response efforts worked over time
+      const halfwayPoint = Math.floor(sortedPosts.length / 2);
+      const laterPosts = sortedPosts.slice(halfwayPoint);
+      
+      if (laterPosts.length === 0) return 50;
+      
+      const positiveCount = laterPosts.filter(post => 
+        post.sentiment === 'Resilience'
       ).length;
-
-      return phasePosts.length > 0 ? Math.round((negativeCount / phasePosts.length) * 100) : 0;
+      
+      // Calculate score: base 50% + percentage of positive sentiment (max 50%)
+      const baseScore = 50;
+      const positiveScore = laterPosts.length > 0 
+        ? Math.round((positiveCount / laterPosts.length) * 50) 
+        : 25;
+      
+      return baseScore + positiveScore;
     });
 
     return {
-      labels: phases,
+      labels: categories,
       values,
-      title: "Sentiment Intensity by Disaster Phase",
-      description: "Intensity of negative emotions (Panic, Fear/Anxiety, Disbelief) during each disaster stage"
+      title: "Disaster Response Effectiveness",
+      description: "Higher values indicate better response effectiveness based on recovered sentiment"
     };
   };
 
-  const timeComparisonData = processPhaseData();
+  const responseEffectivenessData = processResponseEffectivenessData();
 
   return (
     <div className="space-y-6">
@@ -247,7 +258,7 @@ export default function Comparison() {
       {/* Additional comparison insights */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <SentimentChart 
-          data={timeComparisonData}
+          data={responseEffectivenessData}
           type="bar"
         />
 

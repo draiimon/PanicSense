@@ -32,6 +32,28 @@ export function SentimentChart({
       const ctx = chartRef.current.getContext('2d');
       if (!ctx) return;
 
+      // Custom colors for disaster response effectiveness (adjusted for positive metrics)
+      const getColorBasedOnScore = (score: number) => {
+        if (score >= 90) return '#10b981'; // Green for excellent
+        if (score >= 75) return '#3b82f6'; // Blue for good
+        if (score >= 60) return '#f59e0b'; // Amber for moderate
+        return '#ef4444';                 // Red for poor
+      };
+      
+      // Generate colors based on disaster type or use score-based colors
+      const generateColors = () => {
+        // Check if the chart appears to be for disaster response effectiveness
+        const isResponseChart = data.title?.includes('Response') || data.description?.includes('effectiveness');
+        
+        if (isResponseChart) {
+          return data.values.map(value => getColorBasedOnScore(value));
+        }
+        
+        return chartColors.slice(0, data.labels.length);
+      };
+      
+      const barColors = generateColors();
+
       // Chart configuration based on type
       let chartConfig: any = {
         type,
@@ -39,28 +61,68 @@ export function SentimentChart({
           labels: data.labels,
           datasets: [{
             data: data.values,
-            backgroundColor: chartColors.slice(0, data.labels.length),
-            borderWidth: 0
+            backgroundColor: barColors,
+            borderWidth: type === 'bar' ? 1 : 0,
+            borderColor: type === 'bar' ? barColors.map(c => c) : undefined,
+            borderRadius: type === 'bar' ? 4 : undefined,
+            maxBarThickness: type === 'bar' ? 50 : undefined,
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              display: type !== 'bar' // Hide legend for bar charts
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context: any) {
+                  if (data.title?.includes('Response')) {
+                    const score = context.raw;
+                    let assessment = 'Poor';
+                    if (score >= 90) assessment = 'Excellent';
+                    else if (score >= 75) assessment = 'Good';
+                    else if (score >= 60) assessment = 'Moderate';
+                    
+                    return `${context.label}: ${score}% (${assessment})`;
+                  }
+                  return `${context.label}: ${context.raw}`;
+                }
+              }
+            }
+          }
         }
       };
 
       // Type-specific configurations
       if (type === 'doughnut') {
         chartConfig.options.cutout = '70%';
-        chartConfig.options.plugins = {
-          legend: {
-            position: 'bottom'
-          }
-        };
       } else if (type === 'bar' || type === 'line') {
+        // Check if the chart is specifically for disaster response
+        const isResponseChart = data.title?.includes('Response') || data.description?.includes('effectiveness');
+        
+        const yMax = isResponseChart ? 100 : Math.max(...data.values) * 1.2;
+        
         chartConfig.options.scales = {
           y: {
-            beginAtZero: true
+            beginAtZero: true,
+            max: yMax,
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)',
+              borderDash: [5, 5]
+            },
+            ticks: {
+              callback: function(value: any) {
+                return isResponseChart ? value + '%' : value;
+              }
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
           }
         };
         
@@ -70,8 +132,8 @@ export function SentimentChart({
           chartConfig.data.datasets = data.labels.map((label, index) => ({
             label,
             data: [data.values[index]],
-            borderColor: chartColors[index % chartColors.length],
-            backgroundColor: `${chartColors[index % chartColors.length]}33`,
+            borderColor: barColors[index],
+            backgroundColor: `${barColors[index]}33`,
             tension: 0.4,
             fill: true
           }));
