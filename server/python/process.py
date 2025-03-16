@@ -626,6 +626,9 @@ Respond ONLY with a JSON object containing:
     def process_csv(self, file_path):
         """Process a CSV file with sentiment analysis"""
         try:
+            # Keep track of failed records to retry
+            failed_records = []
+            
             # Try different CSV reading methods
             try:
                 df = pd.read_csv(file_path)
@@ -909,6 +912,53 @@ Respond ONLY with a JSON object containing:
 
                 except Exception as e:
                     logging.error(f"Error processing row {i}: {str(e)}")
+                    # Add failed record to retry list
+                    failed_records.append((i, row))
+                    time.sleep(1.0)  # Wait 1 second before continuing
+
+            # Retry failed records
+            if failed_records:
+                logging.info(f"Retrying {len(failed_records)} failed records...")
+                for i, row in failed_records:
+                    try:
+                        text = str(row.get("text", ""))
+                        if not text.strip():
+                            continue
+
+                        timestamp = str(row.get(timestamp_col, datetime.now().isoformat())) if timestamp_col else datetime.now().isoformat()
+                        source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
+                        csv_location = str(row.get(location_col, "")) if location_col else None
+                        csv_disaster = str(row.get(disaster_col, "")) if disaster_col else None
+                        csv_language = str(row.get(language_col, "")) if language_col else None
+
+                        if csv_location and csv_location.lower() in ["nan", "none", ""]:
+                            csv_location = None
+                        if csv_disaster and csv_disaster.lower() in ["nan", "none", ""]:
+                            csv_disaster = None
+                        if csv_language:
+                            if csv_language.lower() in ["tagalog", "tl", "fil", "filipino"]:
+                                csv_language = "Filipino"
+                            else:
+                                csv_language = "English"
+
+                        analysis_result = self.analyze_sentiment(text)
+                        
+                        processed_results.append({
+                            "text": text,
+                            "timestamp": timestamp,
+                            "source": source,
+                            "language": csv_language if csv_language else analysis_result.get("language", "English"),
+                            "sentiment": analysis_result.get("sentiment", "Neutral"),
+                            "confidence": analysis_result.get("confidence", 0.7),
+                            "explanation": analysis_result.get("explanation", ""),
+                            "disasterType": csv_disaster if csv_disaster else analysis_result.get("disasterType", "Not Specified"),
+                            "location": csv_location if csv_location else analysis_result.get("location")
+                        })
+                        
+                        time.sleep(1.0)  # Wait 1 second between retries
+                        
+                    except Exception as e:
+                        logging.error(f"Failed to retry record {i} after multiple attempts: {str(e)}")
 
             # Report completion with total records
             report_progress(100, "Analysis complete!", total_records)
