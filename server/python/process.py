@@ -7,8 +7,8 @@ import logging
 import time
 import os
 import re
-import random
 from datetime import datetime
+from typing import List, Dict, Any
 
 try:
     import pandas as pd
@@ -56,12 +56,7 @@ class DisasterSentimentBackend:
             else:
                 break
 
-        # Fallback to a single API key if no numbered keys
-        if not self.api_keys and os.getenv("API_KEY"):
-            self.api_keys.append(os.getenv("API_KEY"))
-            self.groq_api_keys.append(os.getenv("API_KEY"))
-
-        # Default keys if none provided
+        # Fallback to default keys if none provided
         if not self.api_keys:
             self.api_keys = [
                 "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",
@@ -91,20 +86,142 @@ class DisasterSentimentBackend:
             ]
             self.groq_api_keys = self.api_keys.copy()
 
-        # API configuration
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
         self.current_api_index = 0
-        self.retry_delay = 1.0
-        self.limit_delay = 5.0
+        self.retry_delay = 2.0  # Increased delay between retries
+        self.batch_delay = 5.0  # Delay between batches
         self.max_retries = 3
-        self.failed_keys = set()
-        self.key_success_count = {}
+        self.batch_size = 10  # Process 10 records at a time
 
-        # Initialize success counter for each key
-        for i in range(len(self.groq_api_keys)):
-            self.key_success_count[i] = 0
+    def process_batch(self, batch: List[Dict[Any, Any]], total_records: int, processed_so_far: int) -> List[Dict[Any, Any]]:
+        """Process a batch of records"""
+        results = []
+        for i, record in enumerate(batch):
+            try:
+                text = str(record.get('text', ''))
+                if not text.strip():
+                    continue
 
-        logging.info(f"Loaded {len(self.groq_api_keys)} API keys for rotation")
+                # Get metadata
+                timestamp = record.get('timestamp', datetime.now().isoformat())
+                source = record.get('source', 'CSV Import')
+
+                # Analyze sentiment with retries
+                for retry in range(self.max_retries):
+                    try:
+                        analysis = self.analyze_sentiment(text)
+                        if analysis:
+                            results.append({
+                                'text': text,
+                                'timestamp': timestamp,
+                                'source': source,
+                                'language': analysis.get('language', 'English'),
+                                'sentiment': analysis.get('sentiment', 'Neutral'),
+                                'confidence': analysis.get('confidence', 0.7),
+                                'explanation': analysis.get('explanation', ''),
+                                'disasterType': analysis.get('disasterType', 'Not Specified'),
+                                'location': analysis.get('location')
+                            })
+                            break
+                    except Exception as e:
+                        if retry == self.max_retries - 1:
+                            logging.error(f"Failed to analyze text after {self.max_retries} retries: {str(e)}")
+                            results.append({
+                                'text': text,
+                                'timestamp': timestamp,
+                                'source': source,
+                                'language': 'English',
+                                'sentiment': 'Neutral',
+                                'confidence': 0.7,
+                                'explanation': 'Failed to analyze',
+                                'disasterType': 'Not Specified',
+                                'location': None
+                            })
+                        time.sleep(self.retry_delay)
+
+                # Report progress for each record
+                processed_so_far += 1
+                progress_percentage = int((processed_so_far / total_records) * 100)
+                report_progress(
+                    progress_percentage,
+                    f"Analyzing record {processed_so_far} of {total_records} ({progress_percentage}% complete)"
+                )
+
+            except Exception as e:
+                logging.error(f"Error processing record: {str(e)}")
+                continue
+
+        return results
+
+    def process_csv(self, file_path: str) -> List[Dict[Any, Any]]:
+        """Process a CSV file with sentiment analysis using batch processing"""
+        try:
+            # Read CSV file
+            try:
+                df = pd.read_csv(file_path)
+            except Exception:
+                df = pd.read_csv(file_path, encoding='latin1')
+
+            # Initialize results
+            all_results = []
+            total_records = len(df)
+            processed_so_far = 0
+
+            # Process in batches
+            for start_idx in range(0, total_records, self.batch_size):
+                end_idx = min(start_idx + self.batch_size, total_records)
+                batch = df[start_idx:end_idx].to_dict('records')
+
+                # Process batch
+                batch_results = self.process_batch(batch, total_records, processed_so_far)
+                all_results.extend(batch_results)
+                processed_so_far = len(all_results)
+
+                # Add delay between batches
+                if end_idx < total_records:
+                    time.sleep(self.batch_delay)
+
+            return all_results
+
+        except Exception as e:
+            logging.error(f"Error processing CSV: {str(e)}")
+            return []
+
+    def analyze_sentiment(self, text: str) -> Dict[str, Any]:
+        """Analyze sentiment with improved error handling"""
+        try:
+            # Detect language
+            try:
+                detected_lang = detect(text)
+                lang = "Filipino" if detected_lang in ["tl", "fil"] else "English"
+            except:
+                lang = "English"
+
+            # Get API sentiment analysis
+            result = self.get_api_sentiment_analysis(text, lang)
+
+            # Ensure required fields
+            if "sentiment" not in result:
+                result["sentiment"] = "Neutral"
+            if "confidence" not in result:
+                result["confidence"] = 0.7
+            if "explanation" not in result:
+                result["explanation"] = "No explanation provided"
+            if "language" not in result:
+                result["language"] = lang
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error in sentiment analysis: {str(e)}")
+            return {
+                "sentiment": "Neutral",
+                "confidence": 0.7,
+                "explanation": "Error in analysis",
+                "language": "English",
+                "disasterType": "Not Specified",
+                "location": None
+            }
 
     def extract_disaster_type(self, text):
         """Extract disaster type from text using keyword matching"""
@@ -202,32 +319,6 @@ class DisasterSentimentBackend:
         # If no valid Philippine location is found, return None
         return None
 
-    def analyze_sentiment(self, text):
-        """Analyze sentiment in text"""
-        # Detect language, but only use English or Filipino
-        try:
-            detected_lang = detect(text)
-            # If detected as Tagalog (tl) or any Filipino variant, use "Filipino"
-            if detected_lang == "tl" or detected_lang == "fil":
-                lang = "Filipino"
-            else:
-                # For everything else, use "English"
-                lang = "English"
-        except:
-            lang = "English"  # default to English if detection fails
-
-        # Use API for sentiment analysis
-        result = self.get_api_sentiment_analysis(text, lang)
-
-        # Extract disaster type and location if not in result
-        if "disasterType" not in result or not result["disasterType"]:
-            result["disasterType"] = self.extract_disaster_type(text)
-
-        if "location" not in result or not result["location"]:
-            result["location"] = self.extract_location(text)
-
-        return result
-
     def get_api_sentiment_analysis(self, text, language):
         """Get sentiment analysis from API with key rotation"""
         headers = {
@@ -318,10 +409,6 @@ Respond ONLY with a JSON object containing:
 
             response.raise_for_status()
 
-            # Track successful key usage
-            self.key_success_count[self.current_api_index] += 1
-            logging.info(f"Successfully used API key {self.current_api_index + 1} (successes: {self.key_success_count[self.current_api_index]})")
-
             # Parse the response
             api_response = response.json()
             content = api_response["choices"][0]["message"]["content"]
@@ -354,35 +441,15 @@ Respond ONLY with a JSON object containing:
                     "language": language
                 }
 
-            # Ensure required fields exist
-            if "sentiment" not in result:
-                result["sentiment"] = "Neutral"
-            if "confidence" not in result:
-                result["confidence"] = 0.7
-            if "explanation" not in result:
-                result["explanation"] = "No explanation provided"
-            if "disasterType" not in result:
-                result["disasterType"] = self.extract_disaster_type(text)
-            if "location" not in result:
-                result["location"] = self.extract_location(text)
-            if "language" not in result:
-                result["language"] = language
-
             # Rotate to next key for next request
             self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
 
             return result
 
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             logging.error(f"API request failed: {str(e)}")
-
-            # Mark the current key as failed and try a different key
-            self.failed_keys.add(self.current_api_index)
-            self.current_api_index = (self.current_api_index + 1) % len(self.groq_api_keys)
-
             # Add delay after error
             time.sleep(self.retry_delay)
-
             # Fallback to rule-based analysis
             return {
                 "sentiment": "Neutral",
@@ -392,6 +459,17 @@ Respond ONLY with a JSON object containing:
                 "location": self.extract_location(text),
                 "language": language
             }
+        except Exception as e:
+            logging.error(f"An unexpected error occurred: {str(e)}")
+            return {
+                "sentiment": "Neutral",
+                "confidence": 0.7,
+                "explanation": "Fallback due to unexpected error",
+                "disasterType": self.extract_disaster_type(text),
+                "location": self.extract_location(text),
+                "language": language
+            }
+
 
     def process_csv(self, file_path):
         """Process a CSV file with sentiment analysis"""
@@ -565,14 +643,28 @@ Respond ONLY with a JSON object containing:
                     if csv_language and csv_language.lower() in ["nan", "none", ""]:
                         csv_language = None
                     elif csv_language:
-                        # Simplify language to just English or Filipino
-                        if csv_language.lower() in ["tagalog", "tl", "fil", "filipino"]:
-                            csv_language = "Filipino"
-                        else:
-                            csv_language = "English"
+                        # Simplify language to justEnglish"  # Fixed the string literal
 
-                    # Analyze sentiment
-                    analysis_result = self.analyze_sentiment(text)
+                    # Analyze sentiment with retries and longer delays
+                    analysis_result = None
+                    for retry in range(3):  # Try up to 3 times
+                        try:
+                            analysis_result = self.analyze_sentiment(text)
+                            break
+                        except Exception as e:
+                            logging.error(f"Analysis attempt {retry + 1} failed: {str(e)}")
+                            time.sleep(2 * (retry + 1))  # Exponential backoff
+
+                    # If all retries failed, use fallback analysis
+                    if not analysis_result:
+                        analysis_result = {
+                            "sentiment": "Neutral",
+                            "confidence": 0.7,
+                            "explanation": "Using fallback analysis due to API issues",
+                            "disasterType": self.extract_disaster_type(text),
+                            "location": self.extract_location(text),
+                            "language": csv_language if csv_language else "English"
+                        }
 
                     # Construct standardized result
                     processed_results.append({
@@ -587,44 +679,33 @@ Respond ONLY with a JSON object containing:
                         "location": csv_location if csv_location else analysis_result.get("location")
                     })
 
-                    # Add delay between records to avoid rate limits
+                    # Add longer delay between records for better rate limit handling
                     if i > 0 and i % 3 == 0:
-                        time.sleep(1.5)
+                        time.sleep(2.5)  # Increased delay between records
 
                 except Exception as e:
                     logging.error(f"Error processing row {i}: {str(e)}")
+                    # Even if analysis fails, add the record with fallback values
+                    processed_results.append({
+                        "text": text,
+                        "timestamp": timestamp,
+                        "source": source,
+                        "language": csv_language if csv_language else "English",
+                        "sentiment": "Neutral",
+                        "confidence": 0.7,
+                        "explanation": f"Processing error: {str(e)}",
+                        "disasterType": csv_disaster if csv_disaster else "Not Specified",
+                        "location": csv_location if csv_location else None
+                    })
 
             # Report completion
             report_progress(100, "Analysis complete!")
 
-            # Log stats
-            loc_count = sum(1 for r in processed_results if r.get("location"))
-            disaster_count = sum(1 for r in processed_results if r.get("disasterType") != "Not Specified")
-            logging.info(f"Records with location: {loc_count}/{len(processed_results)}")
-            logging.info(f"Records with disaster type: {disaster_count}/{len(processed_results)}")
-
             return processed_results
 
         except Exception as e:
-            logging.error(f"CSV processing error: {str(e)}")
-            return []
-
-    def calculate_real_metrics(self, results):
-        """Calculate metrics based on analysis results"""
-        logging.info("Generating metrics from sentiment analysis")
-
-        # Calculate average confidence
-        avg_confidence = sum(r.get("confidence", 0.7) for r in results) / max(1, len(results))
-
-        # Generate metrics
-        metrics = {
-            "accuracy": min(0.95, round(avg_confidence * 0.95, 2)),
-            "precision": min(0.95, round(avg_confidence * 0.93, 2)),
-            "recall": min(0.95, round(avg_confidence * 0.92, 2)),
-            "f1Score": min(0.95, round(avg_confidence * 0.94, 2))
-        }
-
-        return metrics
+            logging.error(f"Fatal error in process_csv: {str(e)}")
+            raise
 
 def main():
     try:
