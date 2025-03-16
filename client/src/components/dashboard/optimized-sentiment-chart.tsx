@@ -156,7 +156,7 @@ export function OptimizedSentimentChart({
           },
         },
       } : undefined,
-      cutout: type === 'doughnut' ? '65%' : undefined,
+      cutout: type === 'doughnut' ? '50%' : undefined,
       radius: type === 'doughnut' ? '90%' : undefined,
     };
   }, [type, isLoading]);
