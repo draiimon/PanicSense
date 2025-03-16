@@ -134,7 +134,7 @@ export default function GeographicImpactAnalysis() {
     setMostAffectedAreas(
       processedRegions
         .sort((a, b) => b.count - a.count)
-        .slice(0, 5)
+        .slice(0, 10)
         .map(({ name, sentiment, count }) => ({ name, sentiment, count }))
     );
 

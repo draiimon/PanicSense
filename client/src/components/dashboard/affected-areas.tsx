@@ -100,7 +100,7 @@ export function AffectedAreas({
         };
       })
       .sort((a, b) => b.count - a.count)
-      .slice(0, 5); // Get top 5 affected areas
+      .slice(0, 10); // Get top 10 affected areas
 
     return areaData;
   }, [sentimentPosts]);
