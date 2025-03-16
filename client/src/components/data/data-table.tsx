@@ -111,18 +111,41 @@ export function DataTable({
             <CardDescription className="text-sm text-slate-600">{description}</CardDescription>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <Input
-                placeholder="Search in all columns..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
+            <Button
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/export-csv');
+                    if (!response.ok) throw new Error('Failed to download data');
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'complete-sentiment-dataset.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                  } catch (error) {
+                    console.error('Download failed:', error);
+                  }
                 }}
-                className="pl-9 w-full sm:w-64 bg-white/50 backdrop-blur-sm border-slate-200/50 focus:border-blue-500 transition-all duration-200"
-              />
-            </div>
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Download Complete Dataset
+              </Button>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <Input
+                  placeholder="Search in all columns..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="pl-9 w-full sm:w-64 bg-white/50 backdrop-blur-sm border-slate-200/50 focus:border-blue-500 transition-all duration-200"
+                />
+              </div>
             <Select
               value={selectedSentiment}
               onValueChange={(value) => {
