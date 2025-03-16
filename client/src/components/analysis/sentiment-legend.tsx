@@ -10,11 +10,13 @@ interface SentimentLegendProps {
     disasterType?: string | null;
   }[];
   showRegionSelection?: boolean;
+  onAreaClick?: (area: { name: string; sentiment: string; disasterType?: string | null }) => void; // Added onAreaClick prop
 }
 
 export function SentimentLegend({ 
   mostAffectedAreas = [],
-  showRegionSelection = true 
+  showRegionSelection = true,
+  onAreaClick // Added onAreaClick prop
 }: SentimentLegendProps) {
   // Sentiment indicators
   const sentiments = [
@@ -108,18 +110,17 @@ export function SentimentLegend({
             <div className="space-y-2">
               {mostAffectedAreas.map((area, index) => (
                 <div 
-                  key={index}
-                  className="bg-white p-2 rounded-md border border-slate-200"
+                  key={index} 
+                  className="flex items-center justify-between py-2 px-2 hover:bg-slate-100 rounded cursor-pointer transition-colors"
+                  onClick={() => onAreaClick?.(area)}
+                  title="Click to zoom to this location"
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-slate-800 truncate max-w-[70%]">
-                      {area.name}
-                    </span>
-                    <span className="text-xs text-slate-500">#{index + 1}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-600 text-sm">#{index + 1}</span>
+                    <span className="text-slate-800">{area.name}</span>
                   </div>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex gap-1">
                     <Badge 
-                      variant="outline"
                       className="text-xs"
                       style={{ 
                         borderColor: getSentimentColor(area.sentiment),
