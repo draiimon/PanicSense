@@ -46,18 +46,31 @@ export function extractLocations(text: string): string[] {
 }
 
 export async function getCoordinates(location: string): Promise<[number, number] | null> {
+  // Handle exact location name with NO normalization
+  // This is critical for finding specific places like "WoodEstate Village 2 Molino 3"
+  
   // If already in cache, return cached coordinates
   if (geocodingCache.has(location)) {
+    console.log(`💾 Using cached coordinates for "${location}"`);
     return geocodingCache.get(location)!;
   }
 
   try {
-    // Add "Philippines" to the search query to improve accuracy
+    console.log(`🔍 Searching OpenStreetMap for exact location: "${location}"`);
+    
+    // Try different search strategies
+    // Strategy 1: Exact location with Philippines context
     const searchQuery = `${location}, Philippines`;
     const encodedQuery = encodeURIComponent(searchQuery);
 
+    // Use more parameters to improve search precision
+    // - q: the search query
+    // - format: response format
+    // - countrycodes: restrict to Philippines
+    // - addressdetails: get full address details
+    // - limit: max number of results
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodedQuery}&format=json&countrycodes=ph&limit=1`,
+      `https://nominatim.openstreetmap.org/search?q=${encodedQuery}&format=json&countrycodes=ph&addressdetails=1&limit=1`,
       {
         headers: {
           'User-Agent': 'PanicSensePH/1.0'
@@ -72,6 +85,49 @@ export async function getCoordinates(location: string): Promise<[number, number]
     const results = await response.json() as GeocodingResult[];
 
     if (results.length === 0) {
+      console.log(`❌ No results found for "${location}" using exact search`);
+      
+      // Strategy 2: Try with different search methods if no results
+      // This is a fallback for complex location names
+      const alternativeQuery = encodeURIComponent(location.split(' ').join('+') + '+Philippines');
+      const altResponse = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${alternativeQuery}&format=json&countrycodes=ph&addressdetails=1&limit=1`,
+        {
+          headers: {
+            'User-Agent': 'PanicSensePH/1.0'
+          }
+        }
+      );
+      
+      if (!altResponse.ok) {
+        throw new Error('Failed to fetch coordinates with alternative method');
+      }
+      
+      const altResults = await altResponse.json() as GeocodingResult[];
+      
+      if (altResults.length === 0) {
+        console.log(`❌ No results found for "${location}" using alternative search`);
+        return null;
+      }
+      
+      const { lat, lon } = altResults[0];
+      const latitude = parseFloat(lat);
+      const longitude = parseFloat(lon);
+      
+      // Verify coordinates are within Philippines bounds
+      if (
+        latitude >= PHILIPPINES_BOUNDS.minLat &&
+        latitude <= PHILIPPINES_BOUNDS.maxLat &&
+        longitude >= PHILIPPINES_BOUNDS.minLon &&
+        longitude <= PHILIPPINES_BOUNDS.maxLon
+      ) {
+        console.log(`✅ Found coordinates for "${location}" using alternative search: [${latitude}, ${longitude}]`);
+        // Cache the result
+        const coordinates: [number, number] = [latitude, longitude];
+        geocodingCache.set(location, coordinates);
+        return coordinates;
+      }
+      
       return null;
     }
 
@@ -86,6 +142,7 @@ export async function getCoordinates(location: string): Promise<[number, number]
       longitude >= PHILIPPINES_BOUNDS.minLon &&
       longitude <= PHILIPPINES_BOUNDS.maxLon
     ) {
+      console.log(`✅ Found coordinates for "${location}" using primary search: [${latitude}, ${longitude}]`);
       // Cache the result
       const coordinates: [number, number] = [latitude, longitude];
       geocodingCache.set(location, coordinates);
