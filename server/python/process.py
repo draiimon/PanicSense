@@ -530,13 +530,17 @@ Respond ONLY with a JSON object containing:
                     progress_percentage = int((i / total_records) * 100)
                     remaining = total_records - i
 
-                    # Report detailed progress
-                    report_progress(
-                        progress_percentage,
-                        f"Processing record {i+1}/{total_records} ({progress_percentage}% complete). "
-                        f"Successful: {successful_records}, Failed: {failed_records}, "
-                        f"Remaining: {remaining}"
+                    # Report detailed progress with bigger message
+                    progress_message = (
+                        f"=== PROCESSING STATUS ===\n"
+                        f"Current: Record {i+1} of {total_records}\n"
+                        f"Progress: {progress_percentage}% complete\n"
+                        f"Successful: {successful_records}\n"
+                        f"Failed: {failed_records}\n"
+                        f"Remaining: {remaining}\n"
+                        f"======================="
                     )
+                    report_progress(progress_percentage, progress_message)
 
                     # Extract text
                     text = str(row.get("text", ""))
@@ -568,8 +572,14 @@ Respond ONLY with a JSON object containing:
                         else:
                             csv_language = "English"
 
+                    # Add delay before sentiment analysis for consistency
+                    time.sleep(2)  # 2 second delay before each analysis
+
                     # Analyze sentiment
                     analysis_result = self.analyze_sentiment(text)
+
+                    # Add delay after successful analysis
+                    time.sleep(1)  # 1 second delay after analysis
 
                     # Construct result and append
                     processed_results.append({
@@ -586,19 +596,24 @@ Respond ONLY with a JSON object containing:
 
                     successful_records += 1
 
-                    # Add delay between records to avoid rate limits
-                    if i > 0 and i % 3 == 0:
-                        time.sleep(1.5)
+                    # Add longer delay between records for large files
+                    if total_records > 10:  # If processing many records
+                        time.sleep(3)  # Add 3 second delay between records
+                    else:
+                        time.sleep(1.5)  # Normal delay for small files
 
                 except Exception as e:
                     failed_records += 1
                     logging.error(f"Error processing row {i}: {str(e)}")
+                    time.sleep(1)  # Add delay even on error to maintain consistency
 
-            # Report final stats
+            # Report final stats with detailed formatting
             final_message = (
-                f"Analysis complete! "
-                f"Processed {total_records} records. "
-                f"Success: {successful_records}, Failed: {failed_records}"
+                f"====== ANALYSIS COMPLETE ======\n"
+                f"Total Records: {total_records}\n"
+                f"Successfully Processed: {successful_records}\n"
+                f"Failed Records: {failed_records}\n"
+                f"==========================="
             )
             report_progress(100, final_message)
 
