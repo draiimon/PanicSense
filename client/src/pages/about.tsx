@@ -7,21 +7,39 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function About() {
+  const [api, setApi] = React.useState<any>(null);
   const [currentSlide, setCurrentSlide] = React.useState(0);
-  const { isMobile } = useIsMobile();
+  const isMobile = useIsMobile();
 
+  // Hook to track slide changes
+  React.useEffect(() => {
+    if (!api) return;
+    
+    // Set up slide change detection
+    const handleSelect = () => {
+      const selectedIndex = api.selectedScrollSnap();
+      setCurrentSlide(selectedIndex);
+    };
+    
+    api.on('select', handleSelect);
+    return () => {
+      api.off('select', handleSelect);
+    };
+  }, [api]);
+  
   // Auto-rotate carousel on mobile
   React.useEffect(() => {
-    if (!isMobile) return;
+    if (!isMobile || !api) return;
     
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % 3);
+      api.scrollNext();
     }, 3000);
     
     return () => clearInterval(interval);
-  }, [isMobile]);
+  }, [isMobile, api]);
   
   const founders = [
     {
@@ -95,6 +113,7 @@ export default function About() {
                 align: "start",
                 loop: true,
               }}
+              setApi={setApi}
               className="w-full overflow-hidden"
             >
               <CarouselContent>
@@ -125,6 +144,27 @@ export default function About() {
               </div>
               <div className="absolute -right-12 top-1/2 -translate-y-1/2 z-10 hidden md:block">
                 <CarouselNext className="bg-white/10 hover:bg-white/20 border-0 text-white rounded-full" />
+              </div>
+              
+              {/* Mobile indicator dots */}
+              <div className="flex justify-center gap-2 mt-4 md:hidden">
+                {[0, 1, 2].map((index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (api) {
+                        api.scrollTo(index);
+                        setCurrentSlide(index);
+                      }
+                    }}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      currentSlide === index 
+                        ? "bg-blue-400 w-4" 
+                        : "bg-blue-400/40"
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
               </div>
             </Carousel>
           </div>
