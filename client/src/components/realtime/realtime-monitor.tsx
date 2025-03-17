@@ -32,10 +32,8 @@ interface AnalyzedText {
 }
 
 interface AnalysisProgress {
-  step: number;
-  message: string;
-  progress: number;
-  subMessage?: string;
+  isProcessing: boolean;
+  startTime?: Date;
 }
 
 export function RealtimeMonitor() {
@@ -45,10 +43,7 @@ export function RealtimeMonitor() {
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress>({
-    step: 0,
-    message: "",
-    progress: 0,
-    subMessage: ""
+    isProcessing: false
   });
   const { toast } = useToast();
   const { refreshData } = useDisasterContext();
@@ -93,16 +88,6 @@ export function RealtimeMonitor() {
       .trim(); // Remove leading/trailing whitespace
   };
 
-  // Function to update progress during analysis
-  const updateProgress = (step: number, message: string, progress: number, subMessage?: string) => {
-    setAnalysisProgress({
-      step,
-      message,
-      progress,
-      subMessage
-    });
-  };
-
   const handleAnalyze = async () => {
     if (!text.trim()) {
       if (!autoAnalyze) {
@@ -116,53 +101,16 @@ export function RealtimeMonitor() {
     }
 
     setIsAnalyzing(true);
+    setAnalysisProgress({ 
+      isProcessing: true, 
+      startTime: new Date() 
+    });
+
     try {
-      // Step 1: Text Preprocessing
-      setAnalysisProgress({
-        step: 1,
-        message: "Preprocessing Text",
-        progress: 20,
-        subMessage: "Cleaning and formatting input..."
-      });
-      await new Promise(resolve => setTimeout(resolve, 300)); // Smooth animation
       const normalizedText = normalizeText(text);
-
-      // Step 2: Language Analysis
-      setAnalysisProgress({
-        step: 2,
-        message: "Analyzing Language",
-        progress: 40,
-        subMessage: "Detecting text language..."
-      });
-      await new Promise(resolve => setTimeout(resolve, 300));
       const hasFilipinoPhrases = /\b(ang|ng|mga|sa|ko|mo|nang|para|nung|yung|at|pag|ni|si|kay|na|po|opo|din|rin|nga|ba|eh|ay|ito|iyan|iyon|dito|diyan|doon)\b/i.test(normalizedText.toLowerCase());
-
-      // Step 3: Sentiment Analysis
-      setAnalysisProgress({
-        step: 3,
-        message: "Processing Sentiment",
-        progress: 60,
-        subMessage: "Analyzing emotional context..."
-      });
       const result = await analyzeText(normalizedText);
-
-      // Step 4: Location Detection
-      setAnalysisProgress({
-        step: 4,
-        message: "Identifying Location",
-        progress: 80,
-        subMessage: "Extracting location data..."
-      });
-      await new Promise(resolve => setTimeout(resolve, 300));
       const detectedLanguage = hasFilipinoPhrases || result.post.language === 'tl' ? 'tl' : 'en';
-
-      // Step 5: Finalizing
-      setAnalysisProgress({
-        step: 5,
-        message: "Completing Analysis",
-        progress: 100,
-        subMessage: "Preparing results..."
-      });
 
       const analyzedText: AnalyzedText = {
         text: normalizedText,
@@ -178,10 +126,9 @@ export function RealtimeMonitor() {
       setAnalyzedTexts(prev => [...prev, analyzedText]);
       setText('');
 
-      // Only check for disaster-related content
       const isNonDisasterInput = !result.post.explanation || 
-                                result.post.disasterType === "Not Specified" ||
-                                !result.post.disasterType;
+                              result.post.disasterType === "Not Specified" ||
+                              !result.post.disasterType;
 
       if (isNonDisasterInput && !autoAnalyze) {
         toast({
@@ -206,16 +153,8 @@ export function RealtimeMonitor() {
         variant: 'destructive',
       });
     } finally {
-      // Smooth reset of progress
-      setTimeout(() => {
-        setIsAnalyzing(false);
-        setAnalysisProgress({
-          step: 0,
-          message: "",
-          progress: 0,
-          subMessage: ""
-        });
-      }, 500);
+      setIsAnalyzing(false);
+      setAnalysisProgress({ isProcessing: false });
     }
   };
 
@@ -259,19 +198,19 @@ export function RealtimeMonitor() {
               className="w-full"
             >
               <div className="flex justify-between items-center mb-2">
-                <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                   <span className="text-sm font-medium text-slate-700">
-                    {analysisProgress.message}
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    {analysisProgress.subMessage}
+                    Analyzing text...
                   </span>
                 </div>
-                <span className="text-sm text-slate-500">
-                  Step {analysisProgress.step}/5
-                </span>
+                {analysisProgress.startTime && (
+                  <span className="text-xs text-slate-500">
+                    {Math.round((new Date().getTime() - analysisProgress.startTime.getTime()) / 100) / 10}s
+                  </span>
+                )}
               </div>
-              <Progress value={analysisProgress.progress} className="h-2" />
+              <Progress value={isAnalyzing ? 100 : 0} className="h-2" />
             </motion.div>
           )}
           <div className="flex justify-end w-full">
@@ -283,7 +222,7 @@ export function RealtimeMonitor() {
               {isAnalyzing ? (
                 <div className="flex items-center">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  <span>Analyzing...</span>
+                  <span>Processing...</span>
                 </div>
               ) : (
                 "Analyze Sentiment"
