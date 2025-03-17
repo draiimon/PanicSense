@@ -12,12 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { analyzeText } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { getSentimentBadgeClasses } from "@/lib/colors";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
+import { motion } from "framer-motion";
 
 interface AnalyzedText {
   text: string;
@@ -30,12 +31,23 @@ interface AnalyzedText {
   location?: string | null;
 }
 
+interface AnalysisProgress {
+  step: number;
+  message: string;
+  progress: number;
+}
+
 export function RealtimeMonitor() {
   const [text, setText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedTexts, setAnalyzedTexts] = useState<AnalyzedText[]>([]);
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress>({
+    step: 0,
+    message: "",
+    progress: 0
+  });
   const { toast } = useToast();
   const { refreshData } = useDisasterContext();
 
@@ -79,6 +91,15 @@ export function RealtimeMonitor() {
       .trim(); // Remove leading/trailing whitespace
   };
 
+  // Function to update progress during analysis
+  const updateProgress = (step: number, message: string, progress: number) => {
+    setAnalysisProgress({
+      step,
+      message,
+      progress
+    });
+  };
+
   const handleAnalyze = async () => {
     if (!text.trim()) {
       if (!autoAnalyze) {
@@ -93,15 +114,20 @@ export function RealtimeMonitor() {
 
     setIsAnalyzing(true);
     try {
-      // Normalize text while preserving emojis and special characters
+      // Step 1: Text Normalization
+      updateProgress(1, "Normalizing text...", 20);
       const normalizedText = normalizeText(text);
 
-      // Detect Filipino by checking common Filipino words
+      // Step 2: Language Detection
+      updateProgress(2, "Detecting language...", 40);
       const hasFilipinoPhrases = /\b(ang|ng|mga|sa|ko|mo|nang|para|nung|yung|at|pag|ni|si|kay|na|po|opo|din|rin|nga|ba|eh|ay|ito|iyan|iyon|dito|diyan|doon)\b/i.test(normalizedText.toLowerCase());
 
+      // Step 3: Sentiment Analysis
+      updateProgress(3, "Analyzing sentiment...", 60);
       const result = await analyzeText(normalizedText);
 
-      // Determine language based on text content and model detection
+      // Step 4: Processing Results
+      updateProgress(4, "Processing results...", 80);
       const detectedLanguage = hasFilipinoPhrases || result.post.language === 'tl' ? 'tl' : 'en';
 
       const analyzedText: AnalyzedText = {
@@ -115,10 +141,12 @@ export function RealtimeMonitor() {
         location: result.post.location
       };
 
+      // Step 5: Finalizing
+      updateProgress(5, "Finalizing analysis...", 100);
       setAnalyzedTexts(prev => [...prev, analyzedText]);
       setText('');
 
-      // Only check for disaster-related content, not text length
+      // Only check for disaster-related content
       const isNonDisasterInput = !result.post.explanation || 
                               result.post.disasterType === "Not Specified" ||
                               !result.post.disasterType;
@@ -146,7 +174,15 @@ export function RealtimeMonitor() {
         variant: 'destructive',
       });
     } finally {
-      setIsAnalyzing(false);
+      // Reset progress after completion or error
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        setAnalysisProgress({
+          step: 0,
+          message: "",
+          progress: 0
+        });
+      }, 500);
     }
   };
 
@@ -182,40 +218,40 @@ export function RealtimeMonitor() {
             className="min-h-[200px]"
           />
         </CardContent>
-        <CardFooter className="p-5 pt-0 flex justify-end">
-          <Button
-            onClick={handleAnalyze}
-            disabled={isAnalyzing || !text.trim()}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {isAnalyzing ? (
-              <>
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Analyzing...
-              </>
-            ) : (
-              "Analyze Sentiment"
-            )}
-          </Button>
+        <CardFooter className="p-5 pt-0 flex flex-col gap-4">
+          {isAnalyzing && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full"
+            >
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-slate-700">
+                  {analysisProgress.message}
+                </span>
+                <span className="text-sm text-slate-500">
+                  {analysisProgress.progress}%
+                </span>
+              </div>
+              <Progress value={analysisProgress.progress} className="h-2" />
+            </motion.div>
+          )}
+          <div className="flex justify-end w-full">
+            <Button
+              onClick={handleAnalyze}
+              disabled={isAnalyzing || !text.trim()}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isAnalyzing ? (
+                <div className="flex items-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span>Analyzing...</span>
+                </div>
+              ) : (
+                "Analyze Sentiment"
+              )}
+            </Button>
+          </div>
         </CardFooter>
       </Card>
 
