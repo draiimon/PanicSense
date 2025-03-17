@@ -1,8 +1,48 @@
 import React from 'react';
 import { motion } from "framer-motion";
-import { TeamCarousel } from '@/components/about/team-carousel';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 export default function About() {
+  const [currentSlide, setCurrentSlide] = React.useState(0);
+  const { isMobile } = useIsMobile();
+
+  // Auto-rotate carousel on mobile
+  React.useEffect(() => {
+    if (!isMobile) return;
+    
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % 3);
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [isMobile]);
+  
+  const founders = [
+    {
+      name: "Mark Andrei R. Castillo",
+      role: "Core System Architecture & Machine Learning",
+      image: "https://i.postimg.cc/s9Md8RYv/drei.png",
+      description: "Leads the development of our advanced ML pipelines and system architecture"
+    },
+    {
+      name: "Ivahnn B. Garcia",
+      role: "Frontend Development & User Experience",
+      image: "https://i.postimg.cc/ZRM8FLdD/van.png",
+      description: "Creates intuitive and responsive user interfaces for seamless interaction"
+    },
+    {
+      name: "Julia Daphne Ngan-Gatdula",
+      role: "Data Resources & Information Engineering",
+      image: "https://i.postimg.cc/bxpbndZ/julia.png",
+      description: "Manages data infrastructure and information processing systems"
+    }
+  ];
 
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100 via-indigo-50 to-white">
@@ -39,7 +79,7 @@ export default function About() {
           </p>
         </motion.div>
 
-        {/* Team Carousel - New Animated Version */}
+        {/* Founders Carousel */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -50,7 +90,43 @@ export default function About() {
             Meet Our Visionary Team
           </h2>
           <div className="relative">
-            <TeamCarousel />
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              className="w-full overflow-hidden"
+            >
+              <CarouselContent>
+                {founders.map((founder, index) => (
+                  <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="group relative bg-white/5 backdrop-blur-xl p-6 rounded-xl h-full border-0 hover:bg-white/10 transition-all duration-300"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+                      <div className="relative">
+                        <div className="aspect-square bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-xl flex items-center justify-center mb-4 overflow-hidden">
+                          <img src={founder.image} alt={founder.name} className="w-full h-full object-cover rounded-xl"/>
+                        </div>
+                        <h3 className="text-xl font-bold text-blue-300 mb-2">{founder.name}</h3>
+                        <p className="text-blue-200 mb-3">{founder.role}</p>
+                        <p className="text-sm text-blue-100/80">{founder.description}</p>
+                      </div>
+                    </motion.div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {/* Mobile view doesn't show navigation buttons */}
+              <div className="absolute -left-12 top-1/2 -translate-y-1/2 z-10 hidden md:block">
+                <CarouselPrevious className="bg-white/10 hover:bg-white/20 border-0 text-white rounded-full" />
+              </div>
+              <div className="absolute -right-12 top-1/2 -translate-y-1/2 z-10 hidden md:block">
+                <CarouselNext className="bg-white/10 hover:bg-white/20 border-0 text-white rounded-full" />
+              </div>
+            </Carousel>
           </div>
         </motion.div>
 
