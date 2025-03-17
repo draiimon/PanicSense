@@ -2,7 +2,7 @@
 
 import sys
 import argparse
-from sentiment_analyzer import analyzer
+from pattern_analyzer import analyzer
 import logging
 
 logging.basicConfig(level=logging.INFO,
@@ -10,32 +10,32 @@ logging.basicConfig(level=logging.INFO,
 
 def analyze_text():
     """Interactive sentiment analysis"""
-    if not sys.stdin.isatty():
-        print("Error: This script requires an interactive terminal")
-        return
-
-    print("\nDisaster Sentiment Analyzer (Type 'exit' to quit)")
-    print("Enter text to analyze (Press Enter after each input):")
+    print("\n🤖 Disaster Sentiment Analyzer (Type 'exit' to quit)")
+    print("📝 Enter text in English or Filipino to analyze:")
+    print("💡 Example: 'Help! There's a flood in our area!' or 'Tulong! Bumabaha sa amin!'")
+    print("\nType your message and press Enter ⌨️\n")
 
     while True:
         try:
-            # Get input from user
-            text = input("\nText > ").strip()
+            text = input("Text to analyze > ").strip()
 
             # Check for exit command
-            if text.lower() in ['exit', 'quit']:
+            if text.lower() in ['exit', 'quit', 'tapos', 'labas']:
+                print("\n👋 Salamat sa paggamit! Thank you for using the analyzer!")
                 break
 
             if not text:
+                print("⚠️  Please enter some text to analyze!")
                 continue
 
+            # Analyze and display results
             display_analysis(text)
 
         except (KeyboardInterrupt, EOFError):
-            print("\nExiting...")
+            print("\n👋 Exiting analyzer...")
             break
         except Exception as e:
-            print(f"Error: {str(e)}")
+            print(f"❌ Error: {str(e)}")
 
 def display_analysis(text):
     """Display sentiment analysis results"""
@@ -43,18 +43,31 @@ def display_analysis(text):
         # Analyze sentiment
         result = analyzer.analyze_sentiment(text)
 
-        # Print results
-        print("\nAnalysis Results:")
-        print(f"Sentiment: {result['sentiment']}")
-        print(f"Confidence: {result['confidence']:.2f}")
-        print(f"Explanation: {result['explanation']}")
-        print(f"Language: {result['language']}")
+        # Get emoji for sentiment
+        emoji = {
+            'Panic': '😨',
+            'Fear/Anxiety': '😰', 
+            'Disbelief': '😯',
+            'Resilience': '💪',
+            'Neutral': '😐'
+        }.get(result['sentiment'], '🤔')
+
+        # Print results with nice formatting
+        print("\n📊 Analysis Results / Resulta ng Pagsusuri:")
+        print("─" * 50)
+        print(f"🎯 Sentiment / Damdamin: {emoji} {result['sentiment']}")
+        print(f"📈 Confidence / Tiwala: {result['confidence']:.1%}")
+        print(f"💭 Explanation / Paliwanag: {result['explanation']}")
+        print(f"🗣️ Language / Wika: {result['language']}")
+        print("─" * 50 + "\n")
 
     except Exception as e:
-        print(f"Analysis error: {str(e)}")
+        print(f"❌ Analysis error / May error: {str(e)}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Analyze disaster-related sentiment in text")
+    parser = argparse.ArgumentParser(
+        description="Interactive disaster-related sentiment analyzer"
+    )
     parser.add_argument("--text", type=str, help="Text to analyze (for non-interactive mode)")
 
     args = parser.parse_args()
@@ -67,5 +80,5 @@ if __name__ == "__main__":
             # Interactive mode
             analyze_text()
     except Exception as e:
-        print(f"Fatal error: {str(e)}")
+        print(f"❌ Fatal error / Malubhang error: {str(e)}")
         sys.exit(1)
