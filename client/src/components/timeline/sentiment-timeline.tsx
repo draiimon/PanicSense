@@ -31,55 +31,56 @@ export function SentimentTimeline({
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
   const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month' | 'year'>('week');
-  
+
   // Get all available years from rawDates
   const availableYears = rawDates.length > 0 
     ? Array.from(new Set(rawDates.map(dateStr => getYear(parseISO(dateStr))))).sort((a, b) => a - b)
     : [new Date().getFullYear()];
-  
-  // State for selected year
-  const [selectedYear, setSelectedYear] = useState<number>(
-    availableYears.length > 0 ? availableYears[availableYears.length - 1] : new Date().getFullYear()
-  );
-  
-  // Move to previous year if available
-  const handlePreviousYear = () => {
-    const currentIndex = availableYears.indexOf(selectedYear);
-    if (currentIndex > 0) {
-      setSelectedYear(availableYears[currentIndex - 1]);
-    }
+
+  // State for selected years
+  const [selectedYears, setSelectedYears] = useState<number[]>(availableYears.length > 0 ? [availableYears[availableYears.length -1]] : [new Date().getFullYear()]);
+
+  const selectAllYears = () => {
+    setSelectedYears(availableYears);
   };
-  
-  // Move to next year if available
-  const handleNextYear = () => {
-    const currentIndex = availableYears.indexOf(selectedYear);
-    if (currentIndex < availableYears.length - 1) {
-      setSelectedYear(availableYears[currentIndex + 1]);
-    }
+
+  const toggleYear = (year: number) => {
+    setSelectedYears(prevYears => {
+      if (prevYears.includes(year)) {
+        return prevYears.filter(y => y !== year);
+      } else {
+        return [...prevYears, year];
+      }
+    });
   };
-  
+
+  const clearYears = () => {
+    setSelectedYears([availableYears[availableYears.length-1]]);
+  };
+
+
   // Function to filter the data based on the selected time range and year
   const filterDataByTimeRangeAndYear = () => {
     if (!rawDates || rawDates.length === 0) {
       return data; // Return original data if no raw dates
     }
-    
+
     const currentDate = new Date();
     let cutoffDate: Date;
-    
+
     // Convert all raw dates to Date objects for filtering
     const datePairs = rawDates.map(dateStr => {
       const date = parseISO(dateStr);
       const formattedDate = format(date, 'MMM dd, yyyy');
       return { original: dateStr, formatted: formattedDate, date, year: getYear(date) };
     });
-    
-    // First filter by selected year
-    let yearFilteredDates = datePairs.filter(pair => pair.year === selectedYear);
-    
+
+    // First filter by selected years
+    let yearFilteredDates = datePairs.filter(pair => selectedYears.includes(pair.year));
+
     // Then apply time range filter if needed
     let timeFilteredDates = yearFilteredDates;
-    
+
     if (timeRange !== 'year') {
       // Determine cutoff date based on selected range
       switch (timeRange) {
@@ -95,44 +96,42 @@ export function SentimentTimeline({
         default:
           cutoffDate = subDays(currentDate, 7);
       }
-      
+
       // Only apply additional time filter if viewing current year
-      if (selectedYear === new Date().getFullYear()) {
-        timeFilteredDates = yearFilteredDates.filter(
-          pair => isAfter(pair.date, cutoffDate) || isEqual(pair.date, cutoffDate)
-        );
-      }
+      timeFilteredDates = yearFilteredDates.filter(
+        pair => isAfter(pair.date, cutoffDate) || isEqual(pair.date, cutoffDate)
+      );
     }
-    
+
     // Get filtered formatted dates for labels
     const filteredLabels = Array.from(new Set(timeFilteredDates.map(pair => pair.formatted)));
-    
+
     // Sort chronologically
     filteredLabels.sort((a, b) => {
       const dateA = parseISO(datePairs.find(pair => pair.formatted === a)?.original || '');
       const dateB = parseISO(datePairs.find(pair => pair.formatted === b)?.original || '');
       return dateA.getTime() - dateB.getTime();
     });
-    
+
     // Create new datasets with filtered data
     const filteredDatasets = data.datasets.map(dataset => {
       const newData = filteredLabels.map(label => {
         const originalIndex = data.labels.indexOf(label);
         return originalIndex >= 0 ? dataset.data[originalIndex] : 0;
       });
-      
+
       return {
         ...dataset,
         data: newData
       };
     });
-    
+
     return {
       labels: filteredLabels,
       datasets: filteredDatasets
     };
   };
-  
+
   const filteredData = filterDataByTimeRangeAndYear();
 
   useEffect(() => {
@@ -148,7 +147,7 @@ export function SentimentTimeline({
       // Format datasets with more vibrant sentiment-specific colors
       const formattedDatasets = filteredData.datasets.map((dataset, index) => {
         let color;
-        
+
         // Get proper sentiment color
         switch(dataset.label) {
           case 'Panic':
@@ -169,7 +168,7 @@ export function SentimentTimeline({
           default:
             color = chartColors[index % chartColors.length];
         }
-        
+
         return {
           ...dataset,
           borderColor: color,
@@ -286,28 +285,28 @@ export function SentimentTimeline({
         chartInstance.current.destroy();
       }
     };
-  }, [filteredData, timeRange, selectedYear]);
+  }, [filteredData, timeRange, selectedYears]);
 
   // Get the correct description based on the time range and year
   const getRangeDescription = () => {
     if (filteredData.labels.length === 0) {
       return "No data available";
     }
-    
+
     const count = filteredData.labels.length;
-    const yearText = `${selectedYear}`;
-    
+    const yearsText = selectedYears.length > 1 ? `Years: ${selectedYears.join(', ')}` : `Year: ${selectedYears[0]}`;
+
     switch(timeRange) {
       case 'day':
-        return `Last 24 hours, ${yearText} (${count} data point${count !== 1 ? 's' : ''})`;
+        return `Last 24 hours, ${yearsText} (${count} data point${count !== 1 ? 's' : ''})`;
       case 'week':
-        return `Last 7 days, ${yearText} (${count} data point${count !== 1 ? 's' : ''})`;
+        return `Last 7 days, ${yearsText} (${count} data point${count !== 1 ? 's' : ''})`;
       case 'month':
-        return `Last 30 days, ${yearText} (${count} data point${count !== 1 ? 's' : ''})`;
+        return `Last 30 days, ${yearsText} (${count} data point${count !== 1 ? 's' : ''})`;
       case 'year':
-        return `Full year ${yearText} (${count} data point${count !== 1 ? 's' : ''})`;
+        return `Full year${selectedYears.length > 1 ? 's ' + selectedYears.join(', ') : ' ' + selectedYears[0]} (${count} data point${count !== 1 ? 's' : ''})`;
       default:
-        return `${count} data point${count !== 1 ? 's' : ''} for ${yearText}`;
+        return `${count} data point${count !== 1 ? 's' : ''} for ${yearsText}`;
     }
   };
 
@@ -319,35 +318,38 @@ export function SentimentTimeline({
             <CardTitle className="text-lg font-medium text-slate-800">{title}</CardTitle>
             <CardDescription className="text-sm text-slate-500">{getRangeDescription()}</CardDescription>
           </div>
-          
+
           {/* Year selector */}
           <div className="flex items-center space-x-2">
-            <Button 
-              size="icon" 
-              variant="outline" 
-              onClick={handlePreviousYear}
-              disabled={availableYears.indexOf(selectedYear) === 0}
-              className="h-8 w-8"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            
-            <div className="text-sm font-medium bg-slate-100 px-3 py-1 rounded min-w-[60px] text-center">
-              {selectedYear}
+            <div className="flex gap-2 items-center">
+              <Button
+                onClick={selectAllYears}
+                variant="outline"
+                size="sm"
+              >
+                All Years
+              </Button>
+              {availableYears.map(year => (
+                <Button
+                  key={year}
+                  onClick={() => toggleYear(year)}
+                  variant={selectedYears.includes(year) ? "default" : "outline"}
+                  size="sm"
+                >
+                  {year}
+                </Button>
+              ))}
+              <Button
+                onClick={clearYears}
+                variant="outline"
+                size="sm"
+              >
+                Latest Only
+              </Button>
             </div>
-            
-            <Button 
-              size="icon" 
-              variant="outline" 
-              onClick={handleNextYear}
-              disabled={availableYears.indexOf(selectedYear) === availableYears.length - 1}
-              className="h-8 w-8"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
           </div>
         </div>
-        
+
         {/* Time range selector dropdown */}
         <div className="flex justify-end">
           <select
@@ -365,7 +367,7 @@ export function SentimentTimeline({
       <CardContent className="p-5">
         {filteredData.labels.length === 0 ? (
           <div className="h-80 flex items-center justify-center text-slate-500">
-            No data available for {selectedYear} in the selected time range
+            No data available for {selectedYears.join(', ')} in the selected time range
           </div>
         ) : (
           <div className="h-80">
