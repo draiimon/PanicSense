@@ -145,28 +145,24 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
 
       const scroll = () => {
         if (!containerRef.current || isPaused) {
-          if (animationId) cancelAnimationFrame(animationId);
           animationId = requestAnimationFrame(scroll);
           return;
         }
 
         currentPosition += scrollSpeed;
-        
-        // Each item height calculation
-        const itemHeight = isMobile ? 92 : 116; // Reduced height on mobile
+        const itemHeight = isMobile ? 92 : 116;
         const cycleHeight = affectedAreas.length * itemHeight;
 
         if (currentPosition >= cycleHeight) {
           currentPosition = 0;
-          // Add smooth reset
-          if (containerRef.current) {
-            containerRef.current.style.scrollBehavior = 'auto';
-            containerRef.current.scrollTop = 0;
-            containerRef.current.style.scrollBehavior = 'smooth';
-          }
-        } else if (containerRef.current) {
+        }
+        
+        if (containerRef.current) {
           containerRef.current.scrollTop = currentPosition;
         }
+
+        animationId = requestAnimationFrame(scroll);
+      };
 
         animationId = requestAnimationFrame(scroll);
       };
