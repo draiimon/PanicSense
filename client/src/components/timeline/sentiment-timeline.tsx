@@ -6,6 +6,7 @@ import Chart from 'chart.js/auto';
 import 'chartjs-adapter-date-fns';
 import { subDays, subWeeks, subMonths, parseISO, differenceInDays, format, isAfter, isEqual, getYear } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
 
 interface TimelineData {
   labels: string[]; // dates
