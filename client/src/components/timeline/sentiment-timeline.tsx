@@ -34,7 +34,7 @@ export function SentimentTimeline({
   
   // Get all available years from rawDates
   const availableYears = rawDates.length > 0 
-    ? [...new Set(rawDates.map(dateStr => getYear(parseISO(dateStr))))].sort((a, b) => a - b)
+    ? Array.from(new Set(rawDates.map(dateStr => getYear(parseISO(dateStr))))).sort((a, b) => a - b)
     : [new Date().getFullYear()];
   
   // State for selected year
@@ -105,7 +105,7 @@ export function SentimentTimeline({
     }
     
     // Get filtered formatted dates for labels
-    const filteredLabels = [...new Set(timeFilteredDates.map(pair => pair.formatted))];
+    const filteredLabels = Array.from(new Set(timeFilteredDates.map(pair => pair.formatted)));
     
     // Sort chronologically
     filteredLabels.sort((a, b) => {
@@ -348,42 +348,18 @@ export function SentimentTimeline({
           </div>
         </div>
         
-        {/* Time range selector */}
+        {/* Time range selector dropdown */}
         <div className="flex justify-end">
-          <div className="flex space-x-2">
-            <Button 
-              size="sm" 
-              variant={timeRange === 'day' ? 'default' : 'outline'}
-              onClick={() => setTimeRange('day')}
-              className="text-xs"
-            >
-              Day
-            </Button>
-            <Button 
-              size="sm" 
-              variant={timeRange === 'week' ? 'default' : 'outline'}
-              onClick={() => setTimeRange('week')}
-              className="text-xs"
-            >
-              Week
-            </Button>
-            <Button 
-              size="sm" 
-              variant={timeRange === 'month' ? 'default' : 'outline'}
-              onClick={() => setTimeRange('month')}
-              className="text-xs"
-            >
-              Month
-            </Button>
-            <Button 
-              size="sm" 
-              variant={timeRange === 'year' ? 'default' : 'outline'}
-              onClick={() => setTimeRange('year')}
-              className="text-xs"
-            >
-              Year
-            </Button>
-          </div>
+          <select
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value as 'day' | 'week' | 'month' | 'year')}
+            className="bg-white border border-gray-200 text-slate-700 text-sm rounded-md p-2 pr-8 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value="day">Day</option>
+            <option value="week">Week</option>
+            <option value="month">Month</option>
+            <option value="year">Year</option>
+          </select>
         </div>
       </CardHeader>
       <CardContent className="p-5">
