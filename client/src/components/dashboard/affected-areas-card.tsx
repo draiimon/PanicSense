@@ -139,27 +139,32 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
 
       const container = containerRef.current;
       let currentPosition = 0;
-      const scrollSpeed = 0.5;
+      const scrollSpeed = isMobile ? 0.25 : 0.5; // Slower speed on mobile
       let animationId: number | null = null;
       let isPaused = false;
 
       const scroll = () => {
         if (!containerRef.current || isPaused) {
+          if (animationId) cancelAnimationFrame(animationId);
           animationId = requestAnimationFrame(scroll);
           return;
         }
 
         currentPosition += scrollSpeed;
-
-        // Reset position when reaching the end of one cycle
-        // Each item is roughly 116px high (92px content + 16px margin-bottom)
-        const cycleHeight = affectedAreas.length * 116;
+        
+        // Each item height calculation
+        const itemHeight = isMobile ? 92 : 116; // Reduced height on mobile
+        const cycleHeight = affectedAreas.length * itemHeight;
 
         if (currentPosition >= cycleHeight) {
           currentPosition = 0;
-        }
-
-        if (containerRef.current) {
+          // Add smooth reset
+          if (containerRef.current) {
+            containerRef.current.style.scrollBehavior = 'auto';
+            containerRef.current.scrollTop = 0;
+            containerRef.current.style.scrollBehavior = 'smooth';
+          }
+        } else if (containerRef.current) {
           containerRef.current.scrollTop = currentPosition;
         }
 
