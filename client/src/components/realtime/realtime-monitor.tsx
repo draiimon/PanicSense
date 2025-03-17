@@ -1,16 +1,23 @@
-import { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { analyzeText } from '@/lib/api';
-import { useToast } from '@/hooks/use-toast';
-import { getSentimentBadgeClasses } from '@/lib/colors';
-import { AlertCircle } from 'lucide-react';
-import { useDisasterContext } from '@/context/disaster-context';
+import { useState, useRef, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { analyzeText } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { getSentimentBadgeClasses } from "@/lib/colors";
+import { AlertCircle } from "lucide-react";
+import { useDisasterContext } from "@/context/disaster-context";
 
 interface AnalyzedText {
   text: string;
@@ -24,7 +31,7 @@ interface AnalyzedText {
 }
 
 export function RealtimeMonitor() {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedTexts, setAnalyzedTexts] = useState<AnalyzedText[]>([]);
   const [autoAnalyze, setAutoAnalyze] = useState(false);
@@ -37,7 +44,7 @@ export function RealtimeMonitor() {
 
   useEffect(() => {
     if (resultsEndRef.current) {
-      resultsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      resultsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [analyzedTexts]);
 
@@ -76,9 +83,9 @@ export function RealtimeMonitor() {
     if (!text.trim()) {
       if (!autoAnalyze) {
         toast({
-          title: 'Empty text',
-          description: 'Please enter some text to analyze',
-          variant: 'destructive',
+          title: "Empty text",
+          description: "Please enter some text to analyze",
+          variant: "destructive",
         });
       }
       return;
@@ -113,8 +120,8 @@ export function RealtimeMonitor() {
 
       // Only check for disaster-related content, not text length
       const isNonDisasterInput = !result.post.explanation || 
-                                result.post.disasterType === "Not Specified" ||
-                                !result.post.disasterType;
+                              result.post.disasterType === "Not Specified" ||
+                              !result.post.disasterType;
 
       if (isNonDisasterInput && !autoAnalyze) {
         toast({
@@ -150,7 +157,9 @@ export function RealtimeMonitor() {
         <CardHeader className="p-5 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-lg font-medium text-slate-800">Real-Time Sentiment Analysis</CardTitle>
+              <CardTitle className="text-lg font-medium text-slate-800">
+                Real-Time Sentiment Analysis
+              </CardTitle>
               <CardDescription className="text-sm text-slate-500">
                 Enter text related to disaster situations
               </CardDescription>
@@ -168,7 +177,7 @@ export function RealtimeMonitor() {
         <CardContent className="p-5">
           <Textarea
             value={text}
-            onChange={e => setText(e.target.value)}
+            onChange={(e) => setText(e.target.value)}
             placeholder="Enter disaster-related text to analyze sentiment..."
             className="min-h-[200px]"
           />
@@ -181,14 +190,30 @@ export function RealtimeMonitor() {
           >
             {isAnalyzing ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Analyzing...
               </>
             ) : (
-              'Analyze Sentiment'
+              "Analyze Sentiment"
             )}
           </Button>
         </CardFooter>
@@ -197,12 +222,13 @@ export function RealtimeMonitor() {
       {/* Results Card */}
       <Card className="bg-white rounded-lg shadow">
         <CardHeader className="p-5 border-b border-gray-200">
-          <CardTitle className="text-lg font-medium text-slate-800">Analysis Results</CardTitle>
+          <CardTitle className="text-lg font-medium text-slate-800">
+            Analysis Results
+          </CardTitle>
           <CardDescription className="text-sm text-slate-500">
             {analyzedTexts.length === 0
-              ? 'No results yet - analyze some text to see results'
-              : `Showing ${analyzedTexts.length} analyzed text${analyzedTexts.length !== 1 ? 's' : ''}`
-            }
+              ? "No results yet - analyze some text to see results"
+              : `Showing ${analyzedTexts.length} analyzed text${analyzedTexts.length !== 1 ? "s" : ""}`}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-5 max-h-[500px] overflow-y-auto">
@@ -230,13 +256,15 @@ export function RealtimeMonitor() {
               {analyzedTexts.map((item, index) => (
                 <div key={index} className="p-4 bg-slate-50 rounded-lg">
                   <div className="flex justify-between items-start">
-                    <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">{item.text}</p>
+                    <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">
+                      {item.text}
+                    </p>
                     <div className="flex items-center gap-2">
                       <Badge className={getSentimentBadgeClasses(item.sentiment)}>
                         {item.sentiment}
                       </Badge>
                       <Badge variant="outline" className="bg-slate-100">
-                        {item.language === 'tl' ? 'Tagalog' : 'English'}
+                        {item.language === "tl" ? "Tagalog" : "English"}
                       </Badge>
                     </div>
                   </div>
@@ -269,16 +297,19 @@ export function RealtimeMonitor() {
                           <div className="space-y-2">
                             {item.disasterType && item.disasterType !== "Not Specified" && (
                               <p className="text-sm text-slate-700">
-                                <span className="font-semibold">Disaster Type:</span> {item.disasterType}
+                                <span className="font-semibold">Disaster Type:</span>{" "}
+                                {item.disasterType}
                               </p>
                             )}
                             {item.location && (
                               <p className="text-sm text-slate-700">
-                                <span className="font-semibold">Location:</span> {item.location}
+                                <span className="font-semibold">Location:</span>{" "}
+                                {item.location}
                               </p>
                             )}
                             <p className="text-sm text-slate-700">
-                              <span className="font-semibold">Analysis:</span> {item.explanation}
+                              <span className="font-semibold">Analysis:</span>{" "}
+                              {item.explanation}
                             </p>
                           </div>
                         </div>
@@ -304,13 +335,16 @@ export function RealtimeMonitor() {
               variant="ghost"
               className="text-blue-600"
               onClick={() => {
-                const text = analyzedTexts.map(item =>
-                  `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(1)}%) - Language: ${item.language === 'tl' ? 'Tagalog' : 'English'}`
-                ).join('\n');
+                const text = analyzedTexts
+                  .map(
+                    (item) =>
+                      `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(1)}%) - Language: ${item.language === "tl" ? "Filipino" : "English"}`,
+                  )
+                  .join("\n");
                 navigator.clipboard.writeText(text);
                 toast({
-                  title: 'Copied to clipboard',
-                  description: 'Analysis results have been copied to clipboard',
+                  title: "Copied to clipboard",
+                  description: "Analysis results have been copied to clipboard",
                 });
               }}
             >
