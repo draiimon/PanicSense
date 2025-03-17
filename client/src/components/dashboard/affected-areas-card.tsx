@@ -125,7 +125,7 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
         };
       })
       .sort((a, b) => b.impactLevel - a.impactLevel)
-      .slice(0, 5); // Show only 5 areas to avoid scrolling
+      .slice(0, 10); // Show top 10 affected areas
 
     setAffectedAreas(sortedAreas);
   }, [sentimentPosts]);
