@@ -10,37 +10,37 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function About() {
-  const [api, setApi] = React.useState<any>(null);
+  const [api, setApi] = React.useState<any>();
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const isMobile = useIsMobile();
 
   // Hook to track slide changes
   React.useEffect(() => {
     if (!api) return;
-    
+
     // Set up slide change detection
     const handleSelect = () => {
       const selectedIndex = api.selectedScrollSnap();
       setCurrentSlide(selectedIndex);
     };
-    
+
     api.on('select', handleSelect);
     return () => {
       api.off('select', handleSelect);
     };
   }, [api]);
-  
+
   // Auto-rotate carousel on mobile
   React.useEffect(() => {
     if (!isMobile || !api) return;
-    
+
     const interval = setInterval(() => {
       api.scrollNext();
     }, 3000);
-    
+
     return () => clearInterval(interval);
   }, [isMobile, api]);
-  
+
   const founders = [
     {
       name: "Mark Andrei R. Castillo",
@@ -145,7 +145,7 @@ export default function About() {
               <div className="absolute -right-12 top-1/2 -translate-y-1/2 z-10 hidden md:block">
                 <CarouselNext className="bg-white/10 hover:bg-white/20 border-0 text-white rounded-full" />
               </div>
-              
+
               {/* Mobile indicator dots */}
               <div className="flex justify-center gap-2 mt-4 md:hidden">
                 {[0, 1, 2].map((index) => (
