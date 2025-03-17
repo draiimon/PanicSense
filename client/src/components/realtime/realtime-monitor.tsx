@@ -31,9 +31,16 @@ interface AnalyzedText {
   location?: string | null;
 }
 
+interface ProcessingStatus {
+  processed: number;
+  total: number;
+  stage: string;
+}
+
 interface AnalysisProgress {
   isProcessing: boolean;
   startTime?: Date;
+  status?: ProcessingStatus;
 }
 
 export function RealtimeMonitor() {
@@ -43,7 +50,12 @@ export function RealtimeMonitor() {
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress>({
-    isProcessing: false
+    isProcessing: false,
+    status: {
+      processed: 0,
+      total: 0,
+      stage: "Starting analysis..."
+    }
   });
   const { toast } = useToast();
   const { refreshData } = useDisasterContext();
@@ -78,15 +90,29 @@ export function RealtimeMonitor() {
     };
   }, [text, autoAnalyze]);
 
-  // Function to normalize text while preserving special characters
-  const normalizeText = (input: string): string => {
-    return input
-      .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width characters
-      .replace(/\r\n/g, '\n') // Normalize line endings
-      .replace(/\n+/g, ' ') // Replace multiple newlines with space
-      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-      .trim(); // Remove leading/trailing whitespace
-  };
+  // Update progress when receiving events
+  useEffect(() => {
+    const progressEventHandler = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'progress' && data.payload) {
+          setAnalysisProgress(prev => ({
+            ...prev,
+            status: {
+              processed: data.payload.processed || 0,
+              total: data.payload.total || 0,
+              stage: data.payload.stage || "Processing..."
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Error parsing progress event:', error);
+      }
+    };
+
+    window.addEventListener('message', progressEventHandler);
+    return () => window.removeEventListener('message', progressEventHandler);
+  }, []);
 
   const handleAnalyze = async () => {
     if (!text.trim()) {
@@ -103,11 +129,16 @@ export function RealtimeMonitor() {
     setIsAnalyzing(true);
     setAnalysisProgress({ 
       isProcessing: true, 
-      startTime: new Date() 
+      startTime: new Date(),
+      status: {
+        processed: 0,
+        total: 100,
+        stage: "Starting analysis..."
+      }
     });
 
     try {
-      const normalizedText = normalizeText(text);
+      const normalizedText = text.trim().replace(/\s+/g, ' ');
       const hasFilipinoPhrases = /\b(ang|ng|mga|sa|ko|mo|nang|para|nung|yung|at|pag|ni|si|kay|na|po|opo|din|rin|nga|ba|eh|ay|ito|iyan|iyon|dito|diyan|doon)\b/i.test(normalizedText.toLowerCase());
       const result = await analyzeText(normalizedText);
       const detectedLanguage = hasFilipinoPhrases || result.post.language === 'tl' ? 'tl' : 'en';
@@ -158,6 +189,11 @@ export function RealtimeMonitor() {
     }
   };
 
+  const getProgressValue = () => {
+    if (!analysisProgress.status) return 0;
+    return (analysisProgress.status.processed / analysisProgress.status.total) * 100;
+  };
+
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {/* Input Card */}
@@ -201,7 +237,7 @@ export function RealtimeMonitor() {
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                   <span className="text-sm font-medium text-slate-700">
-                    Analyzing text...
+                    {analysisProgress.status?.stage || "Analyzing..."}
                   </span>
                 </div>
                 {analysisProgress.startTime && (
@@ -210,7 +246,7 @@ export function RealtimeMonitor() {
                   </span>
                 )}
               </div>
-              <Progress value={isAnalyzing ? 100 : 0} className="h-2" />
+              <Progress value={getProgressValue()} className="h-2" />
             </motion.div>
           )}
           <div className="flex justify-end w-full">
