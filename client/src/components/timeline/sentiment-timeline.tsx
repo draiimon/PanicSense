@@ -357,13 +357,19 @@ export function SentimentTimeline({
               </Button>
             </div>
             <div className="flex gap-2">
-              <Button
-                onClick={selectAllYears}
-                variant={selectedYears.length === availableYears.length ? "default" : "outline"}
+              <Toggle
+                pressed={selectedYears.length === availableYears.length}
+                onPressedChange={(pressed) => {
+                  if (pressed) {
+                    selectAllYears();
+                  } else {
+                    clearYears();
+                  }
+                }}
                 size="sm"
               >
                 All Years
-              </Button>
+              </Toggle>
               <Button
                 onClick={clearYears}
                 variant="outline"
