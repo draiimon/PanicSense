@@ -364,13 +364,6 @@ export function SentimentTimeline({
               >
                 All Years
               </Button>
-              <Button
-                onClick={clearYears}
-                variant="outline"
-                size="sm"
-              >
-                Latest
-              </Button>
             </div>
           </div>
         </div>
