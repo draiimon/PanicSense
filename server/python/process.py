@@ -649,7 +649,7 @@ class DisasterSentimentBackend:
         # Detect language, but only use English or Filipino
         try:
             detected_lang = detect(text)
-            # If detected as Tagalog (tl) or any Filipino variant, use "Filipino"
+            # If detected as Filipino or any Filipino variant, use "Filipino"
             if detected_lang == "tl" or detected_lang == "fil":
                 lang = "Filipino"
             else:
@@ -1041,7 +1041,7 @@ Respond ONLY with a JSON object containing:
                         elif col_type == "language":
                             # Look for language names - only English and Filipino
                             language_indicators = [
-                                "english", "filipino", "tagalog", "en", "tl",
+                                "english", "filipino", "en", "tl",
                                 "fil"
                             ]
                             if any(

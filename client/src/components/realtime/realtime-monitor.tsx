@@ -62,6 +62,16 @@ export function RealtimeMonitor() {
     };
   }, [text, autoAnalyze]);
 
+  // Function to normalize text while preserving special characters
+  const normalizeText = (input: string): string => {
+    return input
+      .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width characters
+      .replace(/\r\n/g, '\n') // Normalize line endings
+      .replace(/\n+/g, ' ') // Replace multiple newlines with space
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .trim(); // Remove leading/trailing whitespace
+  };
+
   const handleAnalyze = async () => {
     if (!text.trim()) {
       if (!autoAnalyze) {
@@ -76,18 +86,19 @@ export function RealtimeMonitor() {
 
     setIsAnalyzing(true);
     try {
-      // Clean the text by removing extra spaces but preserve emojis and punctuation
-      const cleanedText = text.trim().replace(/\s+/g, ' ');
+      // Normalize text while preserving emojis and special characters
+      const normalizedText = normalizeText(text);
 
-      const result = await analyzeText(cleanedText);
+      // Detect Tagalog by checking common Filipino words
+      const hasTagalogWords = /\b(ang|ng|mga|sa|ko|mo|nang|para|nung|yung|at|pag|ni|si|kay|na|po|opo|din|rin|nga|ba|eh|ay|ito|iyan|iyon|dito|diyan|doon)\b/i.test(normalizedText.toLowerCase());
 
-      // Detect Tagalog by checking if the text contains common Filipino words or if model detected it
-      const hasTagalogWords = /\b(ang|ng|mga|sa|ko|mo|nang|para|nung|yung|at|pag|ni|si|kay|na|po|opo|din|rin|nga|ba|eh|ay|ito|iyan|iyon|dito|diyan|doon)\b/i.test(cleanedText.toLowerCase());
+      const result = await analyzeText(normalizedText);
+
+      // Determine language based on text content and model detection
       const detectedLanguage = hasTagalogWords || result.post.language === 'tl' ? 'tl' : 'en';
 
-      // Create the analyzed text entry
       const analyzedText: AnalyzedText = {
-        text: cleanedText,
+        text: normalizedText,
         sentiment: result.post.sentiment,
         confidence: result.post.confidence,
         timestamp: new Date(),
@@ -97,23 +108,18 @@ export function RealtimeMonitor() {
         location: result.post.location
       };
 
-      setAnalyzedTexts(prev => [
-        ...prev,
-        analyzedText
-      ]);
-
+      setAnalyzedTexts(prev => [...prev, analyzedText]);
       setText('');
 
-      // Check if this is a disaster-related input
-      const isNonDisasterInput = cleanedText.length < 9 || 
-                              !result.post.explanation || 
-                              result.post.disasterType === "Not Specified" ||
-                              !result.post.disasterType;
+      // Only check for disaster-related content, not text length
+      const isNonDisasterInput = !result.post.explanation || 
+                                result.post.disasterType === "Not Specified" ||
+                                !result.post.disasterType;
 
-      if (isNonDisasterInput) {
+      if (isNonDisasterInput && !autoAnalyze) {
         toast({
           title: 'Non-Disaster Input',
-          description: 'This appears to be a short non-disaster related input. For best results, please enter more detailed text about disaster situations.',
+          description: 'This appears to be a non-disaster related input. For best results, please enter text about disaster situations.',
           variant: 'destructive',
           duration: 5000,
         });
@@ -124,7 +130,6 @@ export function RealtimeMonitor() {
         });
       }
 
-      // Refresh the data in the disaster context
       refreshData();
     } catch (error) {
       console.error('Analysis error:', error);
@@ -225,7 +230,7 @@ export function RealtimeMonitor() {
               {analyzedTexts.map((item, index) => (
                 <div key={index} className="p-4 bg-slate-50 rounded-lg">
                   <div className="flex justify-between items-start">
-                    <p className="text-sm text-slate-900">{item.text}</p>
+                    <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">{item.text}</p>
                     <div className="flex items-center gap-2">
                       <Badge className={getSentimentBadgeClasses(item.sentiment)}>
                         {item.sentiment}
