@@ -13,6 +13,7 @@ export default function About() {
   const [api, setApi] = React.useState<any>();
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const isMobile = useIsMobile();
+  const [isPaused, setIsPaused] = React.useState(false); // Added state for pause
 
   // Hook to track slide changes
   React.useEffect(() => {
@@ -30,16 +31,19 @@ export default function About() {
     };
   }, [api]);
 
-  // Auto-rotate carousel on mobile
+  // Auto-rotate carousel on mobile, with pause functionality
   React.useEffect(() => {
     if (!isMobile || !api) return;
 
-    const interval = setInterval(() => {
-      api.scrollNext();
-    }, 3000);
+    let interval;
+    if (!isPaused) {
+      interval = setInterval(() => {
+        api.scrollNext();
+      }, 3000);
+    }
 
     return () => clearInterval(interval);
-  }, [isMobile, api]);
+  }, [isMobile, api, isPaused]); // isPaused added to dependency array
 
   const founders = [
     {
@@ -124,6 +128,8 @@ export default function About() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                       className="group relative bg-white/5 backdrop-blur-xl p-6 rounded-xl h-full border-0 hover:bg-white/10 transition-all duration-300"
+                      onMouseEnter={() => setIsPaused(true)}
+                      onMouseLeave={() => setIsPaused(false)}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
                       <div className="relative">
