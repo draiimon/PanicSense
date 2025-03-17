@@ -12,7 +12,7 @@ import { getSentimentBadgeClasses } from '@/lib/colors';
 import { AlertCircle } from 'lucide-react';
 import { useDisasterContext } from '@/context/disaster-context';
 
-// Extend from SentimentPost but with a Date object for timestamp
+// Interfaces remain unchanged
 interface AnalyzedText {
   text: string;
   sentiment: string;
@@ -49,15 +49,15 @@ export function RealtimeMonitor() {
       if (typingTimeout) {
         clearTimeout(typingTimeout);
       }
-      
+
       // Set a new timeout
       const timeout = setTimeout(() => {
         handleAnalyze();
       }, 1000); // Wait 1 second after the user stops typing
-      
+
       setTypingTimeout(timeout);
     }
-    
+
     // Cleanup function
     return () => {
       if (typingTimeout) {
@@ -80,12 +80,18 @@ export function RealtimeMonitor() {
 
     setIsAnalyzing(true);
     try {
-      const result = await analyzeText(text);
+      // Clean the text by removing unnecessary spaces while preserving commas
+      const cleanedText = text.trim().replace(/\s+/g, ' ');
+
+      const result = await analyzeText(cleanedText);
+
+      // Handle language detection more accurately
+      const languageDisplay = result.post.language === 'tl' ? 'Tagalog' : 'English';
 
       setAnalyzedTexts(prev => [
         ...prev,
         {
-          text,
+          text: cleanedText,
           sentiment: result.post.sentiment,
           confidence: result.post.confidence,
           timestamp: new Date(),
@@ -99,12 +105,11 @@ export function RealtimeMonitor() {
       setText('');
 
       // Strict check for non-disaster inputs
-      const isNonDisasterInput = result.post.text.length < 9 || 
-                                !result.post.explanation || 
-                                result.post.disasterType === "Not Specified" ||
-                                !result.post.disasterType ||
-                                result.post.text.match(/^[!?.,;:*\s]+$/);
-      
+      const isNonDisasterInput = cleanedText.length < 9 || 
+                              !result.post.explanation || 
+                              result.post.disasterType === "Not Specified" ||
+                              !result.post.disasterType;
+
       if (isNonDisasterInput) {
         toast({
           title: 'Non-Disaster Input',
@@ -115,16 +120,21 @@ export function RealtimeMonitor() {
       } else if (!autoAnalyze) {
         toast({
           title: 'Analysis complete',
-          description: `Sentiment detected: ${result.post.sentiment}`,
+          description: `Language: ${languageDisplay}, Sentiment: ${result.post.sentiment}`,
         });
       }
-      
+
       // Refresh the data in the disaster context
       refreshData();
     } catch (error) {
+      console.error('Analysis error:', error);
       toast({
         title: 'Analysis failed',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        description: error instanceof Error 
+          ? (error.message.includes('JSON') 
+              ? 'Error processing text. Please try again.' 
+              : error.message)
+          : 'An unexpected error occurred',
         variant: 'destructive',
       });
     } finally {
@@ -183,7 +193,7 @@ export function RealtimeMonitor() {
         </CardFooter>
       </Card>
 
-      {/* Results Card */}
+      {/* Results Card - Update language display */}
       <Card className="bg-white rounded-lg shadow">
         <CardHeader className="p-5 border-b border-gray-200">
           <CardTitle className="text-lg font-medium text-slate-800">Analysis Results</CardTitle>
@@ -231,13 +241,12 @@ export function RealtimeMonitor() {
                       </Badge>
                     </div>
                   </div>
-                  
+
                   <div className="mt-2 flex justify-between text-xs text-slate-500">
                     <span>Confidence: {(item.confidence * 100).toFixed(1)}%</span>
                     <span>{item.timestamp.toLocaleTimeString()}</span>
                   </div>
-                  
-                  {/* Show disaster type info only if it's a valid disaster type */}
+
                   {item.disasterType && item.disasterType !== "Not Specified" && (
                     <div className="mt-2 flex items-center gap-2">
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
@@ -250,62 +259,32 @@ export function RealtimeMonitor() {
                       )}
                     </div>
                   )}
-                  
-                  {/* Warning for non-disaster related short texts - using same strict check as analyze function */}
-                  {((!item.disasterType || 
-                     item.disasterType === "Not Specified" || 
-                     item.disasterType.toLowerCase().includes("none") || 
-                     item.disasterType.toLowerCase().includes("unspecified")) && 
-                    (item.text.length < 9 || 
-                     item.text.match(/^[!?.,;:*\s]+$/) || 
-                     !item.explanation)) && (
-                    <div className="bg-amber-50 p-3 rounded-md border border-amber-200 mt-2">
+
+                  {/* Show analysis explanation only for valid disaster-related inputs */}
+                  {item.explanation && !item.explanation.includes("Fallback") && (
+                    <div className="bg-slate-50 p-3 rounded-md border border-slate-200 mt-2">
                       <div className="flex items-start gap-2">
-                        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                        <AlertCircle className="h-5 w-5 text-slate-600 mt-0.5" />
                         <div>
-                          <h4 className="text-sm font-medium mb-1">Non-Disaster Input</h4>
-                          <p className="text-sm text-amber-700">
-                            This appears to be a short non-disaster related input. For best results, 
-                            please enter more detailed text about disaster situations.
-                          </p>
+                          <h4 className="text-sm font-medium mb-1">Analysis Details</h4>
+                          <div className="space-y-2">
+                            {item.disasterType && item.disasterType !== "Not Specified" && (
+                              <p className="text-sm text-slate-700">
+                                <span className="font-semibold">Disaster Type:</span> {item.disasterType}
+                              </p>
+                            )}
+                            {item.location && (
+                              <p className="text-sm text-slate-700">
+                                <span className="font-semibold">Location:</span> {item.location}
+                              </p>
+                            )}
+                            <p className="text-sm text-slate-700">
+                              <span className="font-semibold">Analysis:</span> {item.explanation}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  )}
-                  
-                  {/* Regular explanation - only show for meaningful inputs that have explanations */}
-                  {item.explanation && 
-                   !((!item.disasterType || 
-                      item.disasterType === "Not Specified" || 
-                      item.disasterType.toLowerCase().includes("none") || 
-                      item.disasterType.toLowerCase().includes("unspecified")) && 
-                     (item.text.length < 9 || 
-                      item.text.match(/^[!?.,;:*\s]+$/))) && (
-                     <div className="bg-slate-50 p-3 rounded-md border border-slate-200 mt-2">
-                       <div className="flex items-start gap-2">
-                         <AlertCircle className="h-5 w-5 text-slate-600 mt-0.5" />
-                         <div>
-                           <h4 className="text-sm font-medium mb-1">Analysis Details</h4>
-                           <div className="space-y-2">
-                             {item.disasterType && item.disasterType !== "Not Specified" && (
-                               <p className="text-sm text-slate-700">
-                                 <span className="font-semibold">Disaster Type:</span> {item.disasterType}
-                               </p>
-                             )}
-                             {item.location && (
-                               <p className="text-sm text-slate-700">
-                                 <span className="font-semibold">Location:</span> {item.location}
-                               </p>
-                             )}
-                             {item.explanation && (
-                               <p className="text-sm text-slate-700">
-                                 <span className="font-semibold">Analysis:</span> {item.explanation}
-                               </p>
-                             )}
-                           </div>
-                         </div>
-                       </div>
-                     </div>
                   )}
                 </div>
               ))}
