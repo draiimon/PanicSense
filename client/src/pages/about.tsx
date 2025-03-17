@@ -8,8 +8,34 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTitle } from "@/hooks/use-title";
+
+interface TeamMember {
+  name: string;
+  role: string;
+  imageUrl: string;
+}
+
+const teamMembers: TeamMember[] = [
+  {
+    name: "Drei",
+    role: "Developer",
+    imageUrl: "https://i.ibb.co/s9Md8RYv/drei.png"
+  },
+  {
+    name: "Julia",
+    role: "Developer",
+    imageUrl: "https://i.ibb.co/bxpbndZ/julia.png"
+  },
+  {
+    name: "Van",
+    role: "Developer",
+    imageUrl: "https://i.ibb.co/ZRM8FLdD/van.png"
+  }
+];
 
 export default function About() {
+  useTitle("About");
   const [api, setApi] = React.useState<any>(null);
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const isMobile = useIsMobile();
@@ -17,30 +43,30 @@ export default function About() {
   // Hook to track slide changes
   React.useEffect(() => {
     if (!api) return;
-    
+
     // Set up slide change detection
     const handleSelect = () => {
       const selectedIndex = api.selectedScrollSnap();
       setCurrentSlide(selectedIndex);
     };
-    
+
     api.on('select', handleSelect);
     return () => {
       api.off('select', handleSelect);
     };
   }, [api]);
-  
+
   // Auto-rotate carousel on mobile
   React.useEffect(() => {
     if (!isMobile || !api) return;
-    
+
     const interval = setInterval(() => {
       api.scrollNext();
     }, 3000);
-    
+
     return () => clearInterval(interval);
   }, [isMobile, api]);
-  
+
   const founders = [
     {
       name: "Mark Andrei R. Castillo",
@@ -70,14 +96,14 @@ export default function About() {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/50 via-indigo-900/50 to-purple-900/50" />
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
         className="relative w-full space-y-16 py-12 px-4"
       >
         {/* Hero Section */}
-        <motion.div 
+        <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
@@ -97,7 +123,7 @@ export default function About() {
           </p>
         </motion.div>
 
-        {/* Founders Carousel */}
+        {/* Founders Carousel Replacement */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -107,72 +133,33 @@ export default function About() {
           <h2 className="text-4xl font-bold text-center mb-12 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             Meet Our Visionary Team
           </h2>
-          <div className="relative">
-            <Carousel
-              opts={{
-                align: "start",
-                loop: true,
-              }}
-              setApi={setApi}
-              className="w-full overflow-hidden"
-            >
-              <CarouselContent>
-                {founders.map((founder, index) => (
-                  <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="group relative bg-white/5 backdrop-blur-xl p-6 rounded-xl h-full border-0 hover:bg-white/10 transition-all duration-300"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
-                      <div className="relative">
-                        <div className="aspect-square bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-xl flex items-center justify-center mb-4 overflow-hidden">
-                          <img src={founder.image} alt={founder.name} className="w-full h-full object-cover rounded-xl"/>
-                        </div>
-                        <h3 className="text-xl font-bold text-blue-300 mb-2">{founder.name}</h3>
-                        <p className="text-blue-200 mb-3">{founder.role}</p>
-                        <p className="text-sm text-blue-100/80">{founder.description}</p>
-                      </div>
-                    </motion.div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              {/* Mobile view doesn't show navigation buttons */}
-              <div className="absolute -left-12 top-1/2 -translate-y-1/2 z-10 hidden md:block">
-                <CarouselPrevious className="bg-white/10 hover:bg-white/20 border-0 text-white rounded-full" />
-              </div>
-              <div className="absolute -right-12 top-1/2 -translate-y-1/2 z-10 hidden md:block">
-                <CarouselNext className="bg-white/10 hover:bg-white/20 border-0 text-white rounded-full" />
-              </div>
-              
-              {/* Mobile indicator dots */}
-              <div className="flex justify-center gap-2 mt-4 md:hidden">
-                {[0, 1, 2].map((index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      if (api) {
-                        api.scrollTo(index);
-                        setCurrentSlide(index);
-                      }
-                    }}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      currentSlide === index 
-                        ? "bg-blue-400 w-4" 
-                        : "bg-blue-400/40"
-                    }`}
-                    aria-label={`Go to slide ${index + 1}`}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {teamMembers.map((member, index) => (
+              <motion.div
+                key={member.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.2 }}
+                className="flex flex-col items-center"
+              >
+                <div className="w-48 h-48 rounded-full overflow-hidden mb-4 shadow-lg">
+                  <img
+                    src={member.imageUrl}
+                    alt={member.name}
+                    className="w-full h-full object-cover"
                   />
-                ))}
-              </div>
-            </Carousel>
+                </div>
+                <h2 className="text-2xl font-semibold">{member.name}</h2>
+                <p className="text-gray-600">{member.role}</p>
+              </motion.div>
+            ))}
           </div>
         </motion.div>
 
+
         {/* Technology Stack & Features */}
         <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto px-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
@@ -209,7 +196,7 @@ export default function About() {
             </ul>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
