@@ -130,62 +130,64 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
     setAffectedAreas(sortedAreas);
   }, [sentimentPosts]);
 
-  // Slot machine effect with hover pause
+  // Modified slot machine effect with continuous loop
   useEffect(() => {
     if (affectedAreas.length === 0) return;
-    
+
     const startSlotRolling = () => {
       if (!containerRef.current) return;
-      
+
       const container = containerRef.current;
-      const scrollHeight = container.scrollHeight;
-      const clientHeight = container.clientHeight;
-      
-      if (scrollHeight <= clientHeight) return;
-      
-      let currentPosition = container.scrollTop;
+      let currentPosition = 0;
       const scrollSpeed = 0.5;
       let animationId: number | null = null;
       let isPaused = false;
-      
+
       const scroll = () => {
         if (!containerRef.current || isPaused) {
           animationId = requestAnimationFrame(scroll);
           return;
         }
-        
+
         currentPosition += scrollSpeed;
-        
-        if (currentPosition >= scrollHeight - clientHeight) {
+
+        // Reset position when reaching the end of one cycle
+        // Each item is roughly 116px high (92px content + 16px margin-bottom)
+        const cycleHeight = affectedAreas.length * 116;
+
+        if (currentPosition >= cycleHeight) {
           currentPosition = 0;
         }
-        
-        containerRef.current.scrollTop = currentPosition;
+
+        if (containerRef.current) {
+          containerRef.current.scrollTop = currentPosition;
+        }
+
         animationId = requestAnimationFrame(scroll);
       };
-      
+
       // Add hover and interaction handlers
       const handleMouseEnter = () => {
         isPaused = true;
       };
-      
+
       const handleMouseLeave = () => {
         isPaused = false;
         currentPosition = container.scrollTop;
       };
-      
+
       const handleScroll = () => {
         if (!isPaused) {
           currentPosition = container.scrollTop;
         }
       };
-      
+
       container.addEventListener('mouseenter', handleMouseEnter);
       container.addEventListener('mouseleave', handleMouseLeave);
       container.addEventListener('scroll', handleScroll);
-      
+
       animationId = requestAnimationFrame(scroll);
-      
+
       return () => {
         if (animationId) {
           cancelAnimationFrame(animationId);
@@ -195,7 +197,7 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
         container.removeEventListener('scroll', handleScroll);
       };
     };
-    
+
     const cleanup = startSlotRolling();
     return cleanup;
   }, [affectedAreas]);
@@ -204,7 +206,10 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
     <div 
       ref={containerRef}
       className="h-full overflow-auto scrollbar-hide"
-      style={{ maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent 100%)' }}
+      style={{ 
+        maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent 100%)',
+        scrollBehavior: 'smooth'
+      }}
     >
       <AnimatePresence>
         <div className="space-y-4 p-4">
@@ -217,8 +222,8 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
               <p className="text-center text-sm text-slate-400">Upload data to see disaster impact by location</p>
             </div>
           ) : (
-            // Add duplicated items for infinite scrolling effect
-            [...affectedAreas, ...affectedAreas, ...affectedAreas].map((area, index) => (
+            // Add more duplicates to ensure continuous scrolling
+            [...affectedAreas, ...affectedAreas, ...affectedAreas, ...affectedAreas].map((area, index) => (
               <motion.div
                 key={`${area.name}-${index}`}
                 initial={{ opacity: 0, y: 20 }}
@@ -269,8 +274,7 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
                     </div>
                   </div>
                 </div>
-                
-                {/* Impact meter */}
+
                 <div className="mt-3">
                   <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
                     <motion.div 
