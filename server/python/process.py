@@ -18,6 +18,23 @@ except ImportError:
     print(
         "Error: Required packages not found. Install them using pip install pandas numpy langdetect"
     )
+    
+# Helper function to check if a value is numeric
+def is_numeric(value):
+    try:
+        float(value)
+        return True
+    except (ValueError, TypeError):
+        return False
+        
+# Helper function to detect if text is in English
+def is_english(text):
+    try:
+        lang = detect(text)
+        return lang == 'en'
+    except:
+        # Default to English on detection error
+        return True
     sys.exit(1)
 
 logging.basicConfig(level=logging.INFO,
@@ -1265,14 +1282,117 @@ Respond ONLY with a JSON object containing:
                                     logging.info(f"Retrying analysis (attempt {retry_count+1}/{max_retries})...")
                                     time.sleep(2 * retry_count)  # Exponential backoff
                                 else:
-                                    logging.error("Maximum retries reached, falling back to neutral sentiment")
+                                    logging.error("Maximum retries reached, analyzing text with local sentiment rules")
+                                    
+                                    # Create a combined text from all available fields for better context
+                                    combined_text = ""
+                                    
+                                    # Add all non-empty values from the row to the combined text
+                                    for col_name, value in row.items():
+                                        # Skip empty values, NaN, numeric fields, and columns likely to not contain sentiment
+                                        if (isinstance(value, str) and value.strip() and 
+                                            not is_numeric(value) and 
+                                            col_name.lower() not in ['id', 'timestamp', 'date', 'time', 'index']):
+                                            combined_text += " " + value.strip()
+                                    
+                                    # Include the main text content as well
+                                    combined_text += " " + text.strip()
+                                    combined_text = combined_text.strip()
+                                    
+                                    # If still no meaningful text, fall back to basic text
+                                    if not combined_text:
+                                        combined_text = text
+                                    
+                                    # Simple rule-based sentiment analysis for better fallback
+                                    text_lower = combined_text.lower()
+                                    
+                                    # Define keyword patterns for each sentiment type
+                                    panic_patterns = [
+                                        r"tulong", r"help", r"sos", r"emergency", r"trapped", r"stuck", 
+                                        r"masaklolo", r"saklolo", r"tulungan", r"hindi makagalaw", r"baha",
+                                        r"no food", r"no water", r"walang tubig", r"walang pagkain", r"starving",
+                                        r"!!", r"!!!", r"evacuate now", r"evacuate immediately", r"stranded"
+                                    ]
+                                    
+                                    fear_patterns = [
+                                        r"natatakot", r"takot", r"scared", r"afraid", r"fear", r"worried", 
+                                        r"kabado", r"kinakabahan", r"anxious", r"anxiety", r"nervous", r"concern",
+                                        r"hindi safe", r"not safe", r"delikado", r"dangerous", r"landslide",
+                                        r"aftershock", r"tsunami", r"risk", r"warning", r"wary", r"alarming"
+                                    ]
+                                    
+                                    disbelief_patterns = [
+                                        r"hindi ako makapaniwala", r"can't believe", r"di ako makapaniwala", 
+                                        r"unbelievable", r"shocking", r"sobrang lakas", r"so strong", r"grabe",
+                                        r"nakakatakot", r"overwhelming", r"unreal", r"unprecedented", r"shock",
+                                        r"hindi inaasahan", r"unexpected", r"surprised", r"suddenly", r"biglaan"
+                                    ]
+                                    
+                                    resilience_patterns = [
+                                        r"kakayanin", r"kaya natin", r"we can", r"magtulungan", r"help each other", 
+                                        r"tulungan", r"stay strong", r"malalagpasan", r"overcome", r"we will survive",
+                                        r"donations", r"relief", r"support", r"volunteer", r"prayers", r"hope",
+                                        r"tulong", r"assist", r"rescue", r"evacuate", r"evacuating", r"safe"
+                                    ]
+                                    
+                                    # Count pattern matches for each sentiment
+                                    sentiment_scores = {
+                                        "Panic": 0,
+                                        "Fear/Anxiety": 0,
+                                        "Disbelief": 0,
+                                        "Resilience": 0,
+                                        "Neutral": 1  # Slight bias toward neutral as fallback
+                                    }
+                                    
+                                    # Check for panic indicators
+                                    for pattern in panic_patterns:
+                                        if re.search(f"\\b{pattern}", text_lower):
+                                            sentiment_scores["Panic"] += 2  # Higher weight for panic
+                                    
+                                    # Check for fear indicators
+                                    for pattern in fear_patterns:
+                                        if re.search(f"\\b{pattern}", text_lower):
+                                            sentiment_scores["Fear/Anxiety"] += 1.5
+                                    
+                                    # Check for disbelief indicators
+                                    for pattern in disbelief_patterns:
+                                        if re.search(f"\\b{pattern}", text_lower):
+                                            sentiment_scores["Disbelief"] += 1.5
+                                    
+                                    # Check for resilience indicators
+                                    for pattern in resilience_patterns:
+                                        if re.search(f"\\b{pattern}", text_lower):
+                                            sentiment_scores["Resilience"] += 1.5
+                                    
+                                    # Get the sentiment with the highest score
+                                    sentiment = max(sentiment_scores.items(), key=lambda x: x[1])[0]
+                                    
+                                    # Prepare explanation based on the identified sentiment
+                                    explanations = {
+                                        "Panic": "Message shows signs of urgency or immediate need for help",
+                                        "Fear/Anxiety": "Message expresses worry or concern about the situation",
+                                        "Disbelief": "Message shows shock or disbelief at the disaster situation",
+                                        "Resilience": "Message demonstrates community support or determination",
+                                        "Neutral": "Message contains mostly factual information without strong emotion"
+                                    }
+                                    
+                                    # Use any CSV sentiment values if available
+                                    if csv_sentiment and csv_sentiment in sentiment_values:
+                                        sentiment = csv_sentiment
+                                        confidence = 0.9  # Higher confidence for explicitly provided values
+                                    else:
+                                        # Calculate confidence based on margin between scores
+                                        scores = list(sentiment_scores.values())
+                                        top_score = max(scores)
+                                        confidence = min(0.85, 0.5 + (top_score / (sum(scores) + 0.01)) * 0.5)
+                                    
                                     analysis_result = {
-                                        "sentiment": "Neutral",
-                                        "confidence": 0.5,
-                                        "explanation": "Failed after maximum retries",
-                                        "disasterType": self.extract_disaster_type(text),
-                                        "location": self.extract_location(text),
-                                        "language": "English"
+                                        "sentiment": sentiment,
+                                        "confidence": confidence,
+                                        "explanation": explanations[sentiment],
+                                        "disasterType": self.extract_disaster_type(combined_text),
+                                        "location": self.extract_location(combined_text),
+                                        "language": "English" if is_english(combined_text) else "Filipino"
                                     }
 
                         # Construct standardized result
@@ -1376,14 +1496,117 @@ Respond ONLY with a JSON object containing:
                                     logging.info(f"Retrying failed record analysis (attempt {retry_count+1}/{max_retries})...")
                                     time.sleep(3 * retry_count)  # Even longer backoff for previous failures
                                 else:
-                                    logging.error("Maximum retries reached for failed record, falling back to neutral sentiment")
+                                    logging.error("Maximum retries reached for failed record, analyzing with local sentiment rules")
+                                    
+                                    # Create a combined text from all available fields for better context
+                                    combined_text = ""
+                                    
+                                    # Add all non-empty values from the row to the combined text
+                                    for col_name, value in row.items():
+                                        # Skip empty values, NaN, numeric fields, and columns likely to not contain sentiment
+                                        if (isinstance(value, str) and value.strip() and 
+                                            not is_numeric(value) and 
+                                            col_name.lower() not in ['id', 'timestamp', 'date', 'time', 'index']):
+                                            combined_text += " " + value.strip()
+                                    
+                                    # Include the main text content as well
+                                    combined_text += " " + text.strip()
+                                    combined_text = combined_text.strip()
+                                    
+                                    # If still no meaningful text, fall back to basic text
+                                    if not combined_text:
+                                        combined_text = text
+                                    
+                                    # Simple rule-based sentiment analysis for better fallback
+                                    text_lower = combined_text.lower()
+                                    
+                                    # Define keyword patterns for each sentiment type
+                                    panic_patterns = [
+                                        r"tulong", r"help", r"sos", r"emergency", r"trapped", r"stuck", 
+                                        r"masaklolo", r"saklolo", r"tulungan", r"hindi makagalaw", r"baha",
+                                        r"no food", r"no water", r"walang tubig", r"walang pagkain", r"starving",
+                                        r"!!", r"!!!", r"evacuate now", r"evacuate immediately", r"stranded"
+                                    ]
+                                    
+                                    fear_patterns = [
+                                        r"natatakot", r"takot", r"scared", r"afraid", r"fear", r"worried", 
+                                        r"kabado", r"kinakabahan", r"anxious", r"anxiety", r"nervous", r"concern",
+                                        r"hindi safe", r"not safe", r"delikado", r"dangerous", r"landslide",
+                                        r"aftershock", r"tsunami", r"risk", r"warning", r"wary", r"alarming"
+                                    ]
+                                    
+                                    disbelief_patterns = [
+                                        r"hindi ako makapaniwala", r"can't believe", r"di ako makapaniwala", 
+                                        r"unbelievable", r"shocking", r"sobrang lakas", r"so strong", r"grabe",
+                                        r"nakakatakot", r"overwhelming", r"unreal", r"unprecedented", r"shock",
+                                        r"hindi inaasahan", r"unexpected", r"surprised", r"suddenly", r"biglaan"
+                                    ]
+                                    
+                                    resilience_patterns = [
+                                        r"kakayanin", r"kaya natin", r"we can", r"magtulungan", r"help each other", 
+                                        r"tulungan", r"stay strong", r"malalagpasan", r"overcome", r"we will survive",
+                                        r"donations", r"relief", r"support", r"volunteer", r"prayers", r"hope",
+                                        r"tulong", r"assist", r"rescue", r"evacuate", r"evacuating", r"safe"
+                                    ]
+                                    
+                                    # Count pattern matches for each sentiment
+                                    sentiment_scores = {
+                                        "Panic": 0,
+                                        "Fear/Anxiety": 0,
+                                        "Disbelief": 0,
+                                        "Resilience": 0,
+                                        "Neutral": 1  # Slight bias toward neutral as fallback
+                                    }
+                                    
+                                    # Check for panic indicators
+                                    for pattern in panic_patterns:
+                                        if re.search(f"\\b{pattern}", text_lower):
+                                            sentiment_scores["Panic"] += 2  # Higher weight for panic
+                                    
+                                    # Check for fear indicators
+                                    for pattern in fear_patterns:
+                                        if re.search(f"\\b{pattern}", text_lower):
+                                            sentiment_scores["Fear/Anxiety"] += 1.5
+                                    
+                                    # Check for disbelief indicators
+                                    for pattern in disbelief_patterns:
+                                        if re.search(f"\\b{pattern}", text_lower):
+                                            sentiment_scores["Disbelief"] += 1.5
+                                    
+                                    # Check for resilience indicators
+                                    for pattern in resilience_patterns:
+                                        if re.search(f"\\b{pattern}", text_lower):
+                                            sentiment_scores["Resilience"] += 1.5
+                                    
+                                    # Get the sentiment with the highest score
+                                    sentiment = max(sentiment_scores.items(), key=lambda x: x[1])[0]
+                                    
+                                    # Prepare explanation based on the identified sentiment
+                                    explanations = {
+                                        "Panic": "Message shows signs of urgency or immediate need for help",
+                                        "Fear/Anxiety": "Message expresses worry or concern about the situation",
+                                        "Disbelief": "Message shows shock or disbelief at the disaster situation",
+                                        "Resilience": "Message demonstrates community support or determination",
+                                        "Neutral": "Message contains mostly factual information without strong emotion"
+                                    }
+                                    
+                                    # Use any CSV sentiment values if available
+                                    if csv_sentiment and csv_sentiment in sentiment_values:
+                                        sentiment = csv_sentiment
+                                        confidence = 0.9  # Higher confidence for explicitly provided values
+                                    else:
+                                        # Calculate confidence based on margin between scores
+                                        scores = list(sentiment_scores.values())
+                                        top_score = max(scores)
+                                        confidence = min(0.85, 0.5 + (top_score / (sum(scores) + 0.01)) * 0.5)
+                                    
                                     analysis_result = {
-                                        "sentiment": "Neutral",
-                                        "confidence": 0.5,
-                                        "explanation": "Failed after maximum retries",
-                                        "disasterType": self.extract_disaster_type(text),
-                                        "location": self.extract_location(text),
-                                        "language": "English"
+                                        "sentiment": sentiment,
+                                        "confidence": confidence,
+                                        "explanation": explanations[sentiment],
+                                        "disasterType": self.extract_disaster_type(combined_text),
+                                        "location": self.extract_location(combined_text),
+                                        "language": "English" if is_english(combined_text) else "Filipino"
                                     }
                         
                         processed_results.append({
