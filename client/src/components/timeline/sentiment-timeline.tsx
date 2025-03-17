@@ -6,7 +6,6 @@ import Chart from 'chart.js/auto';
 import 'chartjs-adapter-date-fns';
 import { subDays, subWeeks, subMonths, parseISO, differenceInDays, format, isAfter, isEqual, getYear } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Toggle } from '@/components/ui/toggle';
 
 interface TimelineData {
   labels: string[]; // dates
@@ -358,19 +357,20 @@ export function SentimentTimeline({
               </Button>
             </div>
             <div className="flex gap-2">
-              <Toggle
-                pressed={selectedYears.length === availableYears.length}
-                onPressedChange={(pressed) => {
-                  if (pressed) {
-                    selectAllYears();
-                  } else {
-                    clearYears();
-                  }
-                }}
+              <Button
+                onClick={selectAllYears}
+                variant={selectedYears.length === availableYears.length ? "default" : "outline"}
                 size="sm"
               >
                 All Years
-              </Toggle>
+              </Button>
+              <Button
+                onClick={clearYears}
+                variant="outline"
+                size="sm"
+              >
+                Latest
+              </Button>
             </div>
           </div>
         </div>
