@@ -677,7 +677,7 @@ class DisasterSentimentBackend:
         return result
 
     def get_api_sentiment_analysis(self, text, language):
-        """Get sentiment analysis from API with key rotation"""
+        """Get sentiment analysis from API with race condition for fastest response"""
         headers = {"Content-Type": "application/json"}
 
         prompt = f"""Analyze the sentiment in this disaster-related message (language: {language}):
@@ -753,64 +753,58 @@ Respond ONLY with a JSON object containing:
             500
         }
 
-        # Try to use the API with retries and key rotation
-        try:
-            # Use the current key
-            api_key = self.groq_api_keys[self.current_api_index]
-            headers["Authorization"] = f"Bearer {api_key}"
+        # Implement racing API calls - all keys compete to respond first
+        import concurrent.futures
+        import requests
 
-            logging.info(
-                f"Attempting API request with key {self.current_api_index + 1}/{len(self.groq_api_keys)}"
-            )
-
-            # Make the API request
-            import requests
-            response = requests.post(self.api_url,
-                                     headers=headers,
-                                     json=payload,
-                                     timeout=30)
-
-            response.raise_for_status()
-
-            # Track successful key usage
-            self.key_success_count[self.current_api_index] += 1
-            logging.info(
-                f"Successfully used API key {self.current_api_index + 1} (successes: {self.key_success_count[self.current_api_index]})"
-            )
-
-            # Parse the response
-            api_response = response.json()
-            content = api_response["choices"][0]["message"]["content"]
-
-            # Try to parse JSON from the response with improved robustness
+        # Function to make a single API request with a specific key
+        def make_api_request(key_index):
             try:
-                # First try direct parsing in case the whole response is a valid JSON
+                api_key = self.groq_api_keys[key_index]
+                request_headers = headers.copy()
+                request_headers["Authorization"] = f"Bearer {api_key}"
+                
+                logging.info(f"Racing API request with key {key_index + 1}/{len(self.groq_api_keys)}")
+                
+                response = requests.post(
+                    self.api_url,
+                    headers=request_headers,
+                    json=payload,
+                    timeout=30
+                )
+                response.raise_for_status()
+                
+                # Record successful key usage
+                self.key_success_count[key_index] += 1
+                
+                # Parse the response
+                api_response = response.json()
+                content = api_response["choices"][0]["message"]["content"]
+                
+                # Try to parse JSON
                 try:
-                    # Clean any non-JSON content before/after the actual JSON object
+                    # First try direct parsing
                     content = content.strip()
                     result = json.loads(content)
                 except:
-                    # Advanced JSON extraction for when model includes other text
-                    # Find all potential JSON objects in the text
+                    # Advanced JSON extraction
                     import re
                     json_pattern = r'({[^{}]*(?:{[^{}]*(?:{[^{}]*}[^{}]*)*}[^{}]*)*})'
                     potential_jsons = re.findall(json_pattern, content)
                     
-                    # Try each potential JSON object, starting with the largest one
                     potential_jsons.sort(key=len, reverse=True)
                     
                     result = None
                     for json_str in potential_jsons:
                         try:
                             parsed = json.loads(json_str)
-                            # Check if this looks like our expected format
                             if "sentiment" in parsed or "confidence" in parsed:
                                 result = parsed
                                 break
                         except:
                             continue
                     
-                    # If no valid JSON was found through regex, try the simple method
+                    # Simple method fallback
                     if result is None:
                         start_idx = content.find("{")
                         end_idx = content.rfind("}") + 1
@@ -820,63 +814,67 @@ Respond ONLY with a JSON object containing:
                         else:
                             raise ValueError("No valid JSON found in response")
                 
-            except Exception as json_error:
-                logging.error(f"Error parsing API response: {json_error}")
-                # Log the problematic content for debugging
-                logging.error(f"Problematic content: {content[:200]}...")
+                # Add required fields if missing
+                if "sentiment" not in result:
+                    result["sentiment"] = "Neutral"
+                if "confidence" not in result:
+                    result["confidence"] = 0.7
+                if "explanation" not in result:
+                    result["explanation"] = "No explanation provided"
+                if "disasterType" not in result:
+                    result["disasterType"] = self.extract_disaster_type(text)
+                if "location" not in result:
+                    result["location"] = self.extract_location(text)
+                if "language" not in result:
+                    result["language"] = language
                 
-                # Fallback to rule-based analysis
-                result = {
-                    "sentiment": "Neutral",
-                    "confidence": 0.7,
-                    "explanation": "Fallback due to JSON parsing error",
-                    "disasterType": self.extract_disaster_type(text),
-                    "location": self.extract_location(text),
-                    "language": language
-                }
-
-            # Ensure required fields exist
-            if "sentiment" not in result:
-                result["sentiment"] = "Neutral"
-            if "confidence" not in result:
-                result["confidence"] = 0.7
-            if "explanation" not in result:
-                result["explanation"] = "No explanation provided"
-            if "disasterType" not in result:
-                result["disasterType"] = self.extract_disaster_type(text)
-            if "location" not in result:
-                result["location"] = self.extract_location(text)
-            if "language" not in result:
-                result["language"] = language
-
-            # Rotate to next key for next request
-            self.current_api_index = (self.current_api_index + 1) % len(
-                self.groq_api_keys)
-
-            return result
-
-        except Exception as e:
-            logging.error(f"API request failed: {str(e)}")
-
-            # Mark the current key as failed and try a different key
-            self.failed_keys.add(self.current_api_index)
-            self.current_api_index = (self.current_api_index + 1) % len(
-                self.groq_api_keys)
-
-            # Add exponential delay after error with jitter
-            delay = self.retry_delay * (2**len(
-                self.failed_keys)) + random.uniform(1, 3)
-            time.sleep(delay)
-
-            # Fallback to rule-based analysis
-            return {
-                "sentiment": "Neutral",
-                "confidence": 0.7,
-                "explanation": "Fallback due to API error",
-                "disasterType": self.extract_disaster_type(text),
-                "location": self.extract_location(text),
-                "language": language
+                logging.info(f"API key {key_index + 1} racing win (successes: {self.key_success_count[key_index]})")
+                return result
+            
+            except Exception as e:
+                # This key failed but others might succeed
+                logging.error(f"API key {key_index + 1} racing request failed: {str(e)}")
+                self.failed_keys.add(key_index)
+                return None
+        
+        # Run requests in parallel for all available keys
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.groq_api_keys)) as executor:
+            # Submit all API calls in parallel
+            future_to_key = {
+                executor.submit(make_api_request, i): i 
+                for i in range(len(self.groq_api_keys))
             }
+            
+            # Get the first successful result (racing)
+            for future in concurrent.futures.as_completed(future_to_key):
+                key_index = future_to_key[future]
+                try:
+                    result = future.result()
+                    if result is not None:
+                        results.append(result)
+                        # We got our first successful result, cancel remaining futures
+                        for f in future_to_key:
+                            if f != future and not f.done():
+                                f.cancel()
+                        break
+                except Exception as e:
+                    logging.error(f"Error getting result from key {key_index + 1}: {str(e)}")
+        
+        # If we got at least one successful result, return the first one
+        if results:
+            return results[0]
+            
+        # All API calls failed, use fallback
+        logging.error("All API racing requests failed, using fallback")
+        return {
+            "sentiment": "Neutral",
+            "confidence": 0.7,
+            "explanation": "Fallback due to all API racing requests failing",
+            "disasterType": self.extract_disaster_type(text),
+            "location": self.extract_location(text),
+            "language": language
+        }
 
     def process_csv(self, file_path):
         """Process a CSV file with sentiment analysis"""
@@ -1068,35 +1066,58 @@ Respond ONLY with a JSON object containing:
             confidence_col = identified_columns.get("confidence")
             language_col = identified_columns.get("language")
 
-            # Process records (limit to 50 for demo)
-            sample_size = min(50, len(df))
-
+            # Process all records without limitation
+            sample_size = len(df)
+            
+            # Set batch size to 6 as requested
+            BATCH_SIZE = 6
+            
             # Report column identification progress
             report_progress(5, "Identified data columns", total_records)
+            
+            # Process data in batches of 6
+            processed_count = 0
+            
+            # Get all indices that we'll process
+            indices_to_process = df.head(sample_size).index.tolist()
+            
+            # Process data in batches of 6
+            for batch_start in range(0, len(indices_to_process), BATCH_SIZE):
+                # Get indices for this batch (up to 6 items)
+                batch_indices = indices_to_process[batch_start:batch_start + BATCH_SIZE]
+                
+                logging.info(f"Starting batch processing - items {batch_start + 1} to {batch_start + len(batch_indices)}")
+                report_progress(
+                    5 + int((batch_start / sample_size) * 90),
+                    f"Starting batch {batch_start // BATCH_SIZE + 1} - processing records {batch_start + 1} to {batch_start + len(batch_indices)}",
+                    total_records
+                )
+                
+                # Process each item in this batch
+                for idx, i in enumerate(batch_indices):
+                    row = df.iloc[df.index.get_loc(i)]
+                    try:
+                            # Calculate percentage progress (0-100)
+                        progress_percentage = int(
+                            ((batch_start + idx) / sample_size) *
+                            90) + 5  # Starts at 5%, goes to 95%
+                        
+                        # Report progress with percentage and totals
+                        report_progress(
+                            progress_percentage,
+                            f"Analyzing record {batch_start + idx + 1} of {sample_size} ({progress_percentage}% complete)",
+                            total_records)
 
-            for i, row in df.head(sample_size).iterrows():
-                try:
-                    # Calculate percentage progress (0-100)
-                    progress_percentage = int(
-                        (i / sample_size) *
-                        90) + 5  # Starts at 5%, goes to 95%
+                        # Extract text using identified text column
+                        text = str(row.get(text_col, ""))
+                        if not text.strip():
+                            continue
 
-                    # Report progress with percentage and totals
-                    report_progress(
-                        progress_percentage,
-                        f"Analyzing record {i+1} of {sample_size} ({progress_percentage}% complete)",
-                        total_records)
-
-                    # Extract text using identified text column
-                    text = str(row.get(text_col, ""))
-                    if not text.strip():
-                        continue
-
-                    # Get metadata from columns
-                    timestamp = str(
-                        row.get(timestamp_col,
-                                datetime.now().isoformat())
-                    ) if timestamp_col else datetime.now().isoformat()
+                        # Get metadata from columns
+                        timestamp = str(
+                            row.get(timestamp_col,
+                                    datetime.now().isoformat())
+                        ) if timestamp_col else datetime.now().isoformat()
                     
                     # Get source - check if it's Panic, Fear/Anxiety, etc. (sentiment accidentally in source column)
                     source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
