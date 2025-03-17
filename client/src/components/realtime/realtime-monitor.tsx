@@ -96,13 +96,13 @@ export function RealtimeMonitor() {
       // Normalize text while preserving emojis and special characters
       const normalizedText = normalizeText(text);
 
-      // Detect Tagalog by checking common Filipino words
-      const hasTagalogWords = /\b(ang|ng|mga|sa|ko|mo|nang|para|nung|yung|at|pag|ni|si|kay|na|po|opo|din|rin|nga|ba|eh|ay|ito|iyan|iyon|dito|diyan|doon)\b/i.test(normalizedText.toLowerCase());
+      // Detect Filipino by checking common Filipino words
+      const hasFilipinoPhrases = /\b(ang|ng|mga|sa|ko|mo|nang|para|nung|yung|at|pag|ni|si|kay|na|po|opo|din|rin|nga|ba|eh|ay|ito|iyan|iyon|dito|diyan|doon)\b/i.test(normalizedText.toLowerCase());
 
       const result = await analyzeText(normalizedText);
 
       // Determine language based on text content and model detection
-      const detectedLanguage = hasTagalogWords || result.post.language === 'tl' ? 'tl' : 'en';
+      const detectedLanguage = hasFilipinoPhrases || result.post.language === 'tl' ? 'tl' : 'en';
 
       const analyzedText: AnalyzedText = {
         text: normalizedText,
@@ -133,7 +133,7 @@ export function RealtimeMonitor() {
       } else if (!autoAnalyze) {
         toast({
           title: 'Analysis complete',
-          description: `Language: ${detectedLanguage === 'tl' ? 'Tagalog' : 'English'}, Sentiment: ${result.post.sentiment}`,
+          description: `Language: ${detectedLanguage === 'tl' ? 'Filipino' : 'English'}, Sentiment: ${result.post.sentiment}`,
         });
       }
 
@@ -264,7 +264,7 @@ export function RealtimeMonitor() {
                         {item.sentiment}
                       </Badge>
                       <Badge variant="outline" className="bg-slate-100">
-                        {item.language === "tl" ? "Tagalog" : "English"}
+                        {item.language === "tl" ? "Filipino" : "English"}
                       </Badge>
                     </div>
                   </div>
