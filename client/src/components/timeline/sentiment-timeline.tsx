@@ -320,8 +320,43 @@ export function SentimentTimeline({
           </div>
 
           {/* Year selector */}
-          <div className="flex items-center space-x-2">
+          <div className="flex justify-between items-center">
             <div className="flex gap-2 items-center">
+              <Button
+                onClick={() => {
+                  const currentIndex = availableYears.indexOf(selectedYears[0]);
+                  if (currentIndex > 0) {
+                    const prevYear = availableYears[currentIndex - 1];
+                    setSelectedYears([prevYear]);
+                  }
+                }}
+                variant="outline"
+                size="sm"
+                disabled={selectedYears.length !== 1 || selectedYears[0] === Math.min(...availableYears)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="font-medium">
+                {selectedYears.length === availableYears.length 
+                  ? "All Years" 
+                  : selectedYears.join(', ')}
+              </span>
+              <Button
+                onClick={() => {
+                  const currentIndex = availableYears.indexOf(selectedYears[0]);
+                  if (currentIndex < availableYears.length - 1) {
+                    const nextYear = availableYears[currentIndex + 1];
+                    setSelectedYears([nextYear]);
+                  }
+                }}
+                variant="outline"
+                size="sm"
+                disabled={selectedYears.length !== 1 || selectedYears[0] === Math.max(...availableYears)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex gap-2">
               <Button
                 onClick={selectAllYears}
                 variant={selectedYears.length === availableYears.length ? "default" : "outline"}
@@ -329,22 +364,12 @@ export function SentimentTimeline({
               >
                 All Years
               </Button>
-              {selectedYears.length !== availableYears.length && availableYears.map(year => (
-                <Button
-                  key={year}
-                  onClick={() => toggleYear(year)}
-                  variant={selectedYears.includes(year) ? "default" : "outline"}
-                  size="sm"
-                >
-                  {year}
-                </Button>
-              ))}
               <Button
                 onClick={clearYears}
                 variant="outline"
                 size="sm"
               >
-                Latest Only
+                Latest
               </Button>
             </div>
           </div>
