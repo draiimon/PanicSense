@@ -388,10 +388,30 @@ class DisasterSentimentBackend:
             
         return result
 
-    def get_api_sentiment_analysis(self, text, language):
-        """Get sentiment analysis from API with race condition for fastest response"""
+    def get_api_sentiment_analysis(self, texts, language):
+        """Get sentiment analysis from API using batch processing"""
         import requests
-        from concurrent.futures import ThreadPoolExecutor
+        
+        # Prepare batch requests
+        requests_data = []
+        for text in texts:
+            requests_data.append({
+                "model": "llama3-70b-8192",
+                "messages": [
+                    {"role": "system", "content": "You are a disaster and sentiment analysis expert."},
+                    {"role": "user", "content": text}
+                ]
+            })
+        
+        # Create and submit batch
+        batch_result = self.create_batch(requests_data)
+        
+        # Process results
+        while True:
+            results = self.process_batch_results(batch_result['id'])
+            if results:
+                return results
+            time.sleep(5)  # Wait 5 seconds before checking again
         
         def make_api_request(key_index):
             try:
@@ -1140,3 +1160,69 @@ def main():
 
 if __name__ == "__main__":
     main()
+def create_batch(self, requests, completion_window="24h"):
+    """Create a new batch processing request"""
+    import tempfile
+    import json
+    
+    # Create a temporary JSONL file with the requests
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+        for request in requests:
+            json.dump(request, f)
+            f.write('\n')
+        temp_filename = f.name
+    
+    # Upload the file
+    files = {
+        'file': ('requests.jsonl', open(temp_filename, 'rb'), 'application/json')
+    }
+    
+    upload_response = requests.post(
+        'https://api.groq.com/v1/files',
+        headers={
+            'Authorization': f'Bearer {self.groq_api_keys[0]}'
+        },
+        files=files,
+        data={'purpose': 'batch'}
+    )
+    
+    file_id = upload_response.json()['id']
+    
+    # Create the batch
+    batch_response = requests.post(
+        'https://api.groq.com/v1/batches',
+        headers={
+            'Authorization': f'Bearer {self.groq_api_keys[0]}',
+            'Content-Type': 'application/json'
+        },
+        json={
+            'input_file_id': file_id,
+            'endpoint': '/v1/chat/completions',
+            'completion_window': completion_window
+        }
+    )
+    
+    return batch_response.json()
+
+def process_batch_results(self, batch_id):
+    """Check batch status and get results"""
+    response = requests.get(
+        f'https://api.groq.com/v1/batches/{batch_id}',
+        headers={
+            'Authorization': f'Bearer {self.groq_api_keys[0]}'
+        }
+    )
+    
+    batch_status = response.json()
+    
+    if batch_status['status'] == 'completed':
+        # Get results file
+        results_response = requests.get(
+            f'https://api.groq.com/v1/files/{batch_status["output_file_id"]}/content',
+            headers={
+                'Authorization': f'Bearer {self.groq_api_keys[0]}'
+            }
+        )
+        return results_response.json()
+    
+    return None
