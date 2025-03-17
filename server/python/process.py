@@ -865,14 +865,97 @@ Respond ONLY with a JSON object containing:
         if results:
             return results[0]
             
-        # All API calls failed, use fallback
-        logging.error("All API racing requests failed, using fallback")
+        # All API calls failed, use smart fallback with local analysis
+        logging.error("All API racing requests failed, using smart fallback")
+        
+        # Simple rule-based sentiment analysis for better fallback
+        text_lower = text.lower()
+        
+        # Define keyword patterns for each sentiment type
+        panic_patterns = [
+            r"tulong", r"help", r"sos", r"emergency", r"trapped", r"stuck", 
+            r"masaklolo", r"saklolo", r"tulungan", r"hindi makagalaw", r"baha",
+            r"no food", r"no water", r"walang tubig", r"walang pagkain", r"starving",
+            r"!!", r"!!!", r"evacuate now", r"evacuate immediately", r"stranded"
+        ]
+        
+        fear_patterns = [
+            r"natatakot", r"takot", r"scared", r"afraid", r"fear", r"worried", 
+            r"kabado", r"kinakabahan", r"anxious", r"anxiety", r"nervous", r"concern",
+            r"hindi safe", r"not safe", r"delikado", r"dangerous", r"landslide",
+            r"aftershock", r"tsunami", r"risk", r"warning", r"wary", r"alarming"
+        ]
+        
+        disbelief_patterns = [
+            r"hindi ako makapaniwala", r"can't believe", r"di ako makapaniwala", 
+            r"unbelievable", r"shocking", r"sobrang lakas", r"so strong", r"grabe",
+            r"nakakatakot", r"overwhelming", r"unreal", r"unprecedented", r"shock",
+            r"hindi inaasahan", r"unexpected", r"surprised", r"suddenly", r"biglaan"
+        ]
+        
+        resilience_patterns = [
+            r"kakayanin", r"kaya natin", r"we can", r"magtulungan", r"help each other", 
+            r"tulungan", r"stay strong", r"malalagpasan", r"overcome", r"we will survive",
+            r"donations", r"relief", r"support", r"volunteer", r"prayers", r"hope",
+            r"tulong", r"assist", r"rescue", r"evacuate", r"evacuating", r"safe"
+        ]
+        
+        # Count pattern matches for each sentiment
+        sentiment_scores = {
+            "Panic": 0,
+            "Fear/Anxiety": 0,
+            "Disbelief": 0,
+            "Resilience": 0,
+            "Neutral": 1  # Slight bias toward neutral as fallback
+        }
+        
+        # Check for panic indicators
+        for pattern in panic_patterns:
+            if re.search(f"\\b{pattern}", text_lower):
+                sentiment_scores["Panic"] += 2  # Higher weight for panic
+        
+        # Check for fear indicators
+        for pattern in fear_patterns:
+            if re.search(f"\\b{pattern}", text_lower):
+                sentiment_scores["Fear/Anxiety"] += 1.5
+        
+        # Check for disbelief indicators
+        for pattern in disbelief_patterns:
+            if re.search(f"\\b{pattern}", text_lower):
+                sentiment_scores["Disbelief"] += 1.5
+        
+        # Check for resilience indicators
+        for pattern in resilience_patterns:
+            if re.search(f"\\b{pattern}", text_lower):
+                sentiment_scores["Resilience"] += 1.5
+        
+        # Get the sentiment with the highest score
+        sentiment = max(sentiment_scores.items(), key=lambda x: x[1])[0]
+        
+        # Calculate a confidence score based on the margin between top score and others
+        scores = list(sentiment_scores.values())
+        top_score = max(scores)
+        confidence = min(0.85, 0.5 + (top_score / (sum(scores) + 0.01)) * 0.5)
+        
+        # Prepare explanation based on the identified sentiment
+        explanations = {
+            "Panic": "Message shows signs of urgency or immediate need for help",
+            "Fear/Anxiety": "Message expresses worry or concern about the situation",
+            "Disbelief": "Message shows shock or disbelief at the disaster situation",
+            "Resilience": "Message demonstrates community support or determination",
+            "Neutral": "Message contains mostly factual information without strong emotion"
+        }
+        
+        # Get disaster type and location through normal extraction methods
+        disaster_type = self.extract_disaster_type(text)
+        location = self.extract_location(text)
+        
         return {
-            "sentiment": "Neutral",
-            "confidence": 0.7,
-            "explanation": "Fallback due to all API racing requests failing",
-            "disasterType": self.extract_disaster_type(text),
-            "location": self.extract_location(text),
+            "sentiment": sentiment,
+            "confidence": confidence,
+            "explanation": explanations[sentiment],
+            "disasterType": disaster_type,
+            "location": location,
             "language": language
         }
 
