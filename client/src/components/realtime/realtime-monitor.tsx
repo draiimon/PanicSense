@@ -12,13 +12,12 @@ import { getSentimentBadgeClasses } from '@/lib/colors';
 import { AlertCircle } from 'lucide-react';
 import { useDisasterContext } from '@/context/disaster-context';
 
-// Interfaces remain unchanged
 interface AnalyzedText {
   text: string;
   sentiment: string;
   confidence: number;
   timestamp: Date;
-  language: string; 
+  language: string;
   explanation?: string | null;
   disasterType?: string | null;
   location?: string | null;
@@ -45,20 +44,17 @@ export function RealtimeMonitor() {
   // Effect for auto-analyze
   useEffect(() => {
     if (autoAnalyze && text.trim() && !isAnalyzing) {
-      // Clear any existing timeout
       if (typingTimeout) {
         clearTimeout(typingTimeout);
       }
 
-      // Set a new timeout
       const timeout = setTimeout(() => {
         handleAnalyze();
-      }, 1000); // Wait 1 second after the user stops typing
+      }, 1000);
 
       setTypingTimeout(timeout);
     }
 
-    // Cleanup function
     return () => {
       if (typingTimeout) {
         clearTimeout(typingTimeout);
@@ -80,31 +76,35 @@ export function RealtimeMonitor() {
 
     setIsAnalyzing(true);
     try {
-      // Clean the text by removing unnecessary spaces while preserving commas
+      // Clean the text by removing extra spaces but preserve emojis and punctuation
       const cleanedText = text.trim().replace(/\s+/g, ' ');
 
       const result = await analyzeText(cleanedText);
 
-      // Handle language detection more accurately
-      const languageDisplay = result.post.language === 'tl' ? 'Tagalog' : 'English';
+      // Detect Tagalog by checking if the text contains common Filipino words or if model detected it
+      const hasTagalogWords = /\b(ang|ng|mga|sa|ko|mo|nang|para|nung|yung|at|pag|ni|si|kay|na|po|opo|din|rin|nga|ba|eh|ay|ito|iyan|iyon|dito|diyan|doon)\b/i.test(cleanedText.toLowerCase());
+      const detectedLanguage = hasTagalogWords || result.post.language === 'tl' ? 'tl' : 'en';
+
+      // Create the analyzed text entry
+      const analyzedText: AnalyzedText = {
+        text: cleanedText,
+        sentiment: result.post.sentiment,
+        confidence: result.post.confidence,
+        timestamp: new Date(),
+        language: detectedLanguage,
+        explanation: result.post.explanation,
+        disasterType: result.post.disasterType,
+        location: result.post.location
+      };
 
       setAnalyzedTexts(prev => [
         ...prev,
-        {
-          text: cleanedText,
-          sentiment: result.post.sentiment,
-          confidence: result.post.confidence,
-          timestamp: new Date(),
-          language: result.post.language,
-          explanation: result.post.explanation,
-          disasterType: result.post.disasterType,
-          location: result.post.location
-        }
+        analyzedText
       ]);
 
       setText('');
 
-      // Strict check for non-disaster inputs
+      // Check if this is a disaster-related input
       const isNonDisasterInput = cleanedText.length < 9 || 
                               !result.post.explanation || 
                               result.post.disasterType === "Not Specified" ||
@@ -120,7 +120,7 @@ export function RealtimeMonitor() {
       } else if (!autoAnalyze) {
         toast({
           title: 'Analysis complete',
-          description: `Language: ${languageDisplay}, Sentiment: ${result.post.sentiment}`,
+          description: `Language: ${detectedLanguage === 'tl' ? 'Tagalog' : 'English'}, Sentiment: ${result.post.sentiment}`,
         });
       }
 
@@ -130,11 +130,7 @@ export function RealtimeMonitor() {
       console.error('Analysis error:', error);
       toast({
         title: 'Analysis failed',
-        description: error instanceof Error 
-          ? (error.message.includes('JSON') 
-              ? 'Error processing text. Please try again.' 
-              : error.message)
-          : 'An unexpected error occurred',
+        description: 'Error processing text. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -193,7 +189,7 @@ export function RealtimeMonitor() {
         </CardFooter>
       </Card>
 
-      {/* Results Card - Update language display */}
+      {/* Results Card */}
       <Card className="bg-white rounded-lg shadow">
         <CardHeader className="p-5 border-b border-gray-200">
           <CardTitle className="text-lg font-medium text-slate-800">Analysis Results</CardTitle>
@@ -231,9 +227,7 @@ export function RealtimeMonitor() {
                   <div className="flex justify-between items-start">
                     <p className="text-sm text-slate-900">{item.text}</p>
                     <div className="flex items-center gap-2">
-                      <Badge
-                        className={getSentimentBadgeClasses(item.sentiment)}
-                      >
+                      <Badge className={getSentimentBadgeClasses(item.sentiment)}>
                         {item.sentiment}
                       </Badge>
                       <Badge variant="outline" className="bg-slate-100">
@@ -260,7 +254,7 @@ export function RealtimeMonitor() {
                     </div>
                   )}
 
-                  {/* Show analysis explanation only for valid disaster-related inputs */}
+                  {/* Only show explanation if it exists and is meaningful */}
                   {item.explanation && !item.explanation.includes("Fallback") && (
                     <div className="bg-slate-50 p-3 rounded-md border border-slate-200 mt-2">
                       <div className="flex items-start gap-2">
