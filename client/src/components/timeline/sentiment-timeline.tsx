@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { chartColors, sentimentColors } from '@/lib/colors';
 import Chart from 'chart.js/auto';
 import 'chartjs-adapter-date-fns';
-import { subDays, subWeeks, subMonths, parseISO, differenceInDays, format, isAfter, isEqual } from 'date-fns';
+import { subDays, subWeeks, subMonths, parseISO, differenceInDays, format, isAfter, isEqual, getYear } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface TimelineData {
   labels: string[]; // dates
@@ -29,10 +30,36 @@ export function SentimentTimeline({
 }: SentimentTimelineProps) {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
-  const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month'>('week');
+  const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month' | 'year'>('week');
   
-  // Function to filter the data based on the selected time range
-  const filterDataByTimeRange = () => {
+  // Get all available years from rawDates
+  const availableYears = rawDates.length > 0 
+    ? [...new Set(rawDates.map(dateStr => getYear(parseISO(dateStr))))].sort((a, b) => a - b)
+    : [new Date().getFullYear()];
+  
+  // State for selected year
+  const [selectedYear, setSelectedYear] = useState<number>(
+    availableYears.length > 0 ? availableYears[availableYears.length - 1] : new Date().getFullYear()
+  );
+  
+  // Move to previous year if available
+  const handlePreviousYear = () => {
+    const currentIndex = availableYears.indexOf(selectedYear);
+    if (currentIndex > 0) {
+      setSelectedYear(availableYears[currentIndex - 1]);
+    }
+  };
+  
+  // Move to next year if available
+  const handleNextYear = () => {
+    const currentIndex = availableYears.indexOf(selectedYear);
+    if (currentIndex < availableYears.length - 1) {
+      setSelectedYear(availableYears[currentIndex + 1]);
+    }
+  };
+  
+  // Function to filter the data based on the selected time range and year
+  const filterDataByTimeRangeAndYear = () => {
     if (!rawDates || rawDates.length === 0) {
       return data; // Return original data if no raw dates
     }
@@ -40,35 +67,45 @@ export function SentimentTimeline({
     const currentDate = new Date();
     let cutoffDate: Date;
     
-    // Determine cutoff date based on selected range
-    switch (timeRange) {
-      case 'day':
-        cutoffDate = subDays(currentDate, 1);
-        break;
-      case 'week':
-        cutoffDate = subWeeks(currentDate, 1);
-        break;
-      case 'month':
-        cutoffDate = subMonths(currentDate, 1);
-        break;
-      default:
-        cutoffDate = subDays(currentDate, 7);
-    }
-    
     // Convert all raw dates to Date objects for filtering
     const datePairs = rawDates.map(dateStr => {
       const date = parseISO(dateStr);
       const formattedDate = format(date, 'MMM dd, yyyy');
-      return { original: dateStr, formatted: formattedDate, date };
+      return { original: dateStr, formatted: formattedDate, date, year: getYear(date) };
     });
     
-    // Filter for dates within the selected range
-    const filteredDates = datePairs.filter(
-      pair => isAfter(pair.date, cutoffDate) || isEqual(pair.date, cutoffDate)
-    );
+    // First filter by selected year
+    let yearFilteredDates = datePairs.filter(pair => pair.year === selectedYear);
+    
+    // Then apply time range filter if needed
+    let timeFilteredDates = yearFilteredDates;
+    
+    if (timeRange !== 'year') {
+      // Determine cutoff date based on selected range
+      switch (timeRange) {
+        case 'day':
+          cutoffDate = subDays(currentDate, 1);
+          break;
+        case 'week':
+          cutoffDate = subWeeks(currentDate, 1);
+          break;
+        case 'month':
+          cutoffDate = subMonths(currentDate, 1);
+          break;
+        default:
+          cutoffDate = subDays(currentDate, 7);
+      }
+      
+      // Only apply additional time filter if viewing current year
+      if (selectedYear === new Date().getFullYear()) {
+        timeFilteredDates = yearFilteredDates.filter(
+          pair => isAfter(pair.date, cutoffDate) || isEqual(pair.date, cutoffDate)
+        );
+      }
+    }
     
     // Get filtered formatted dates for labels
-    const filteredLabels = [...new Set(filteredDates.map(pair => pair.formatted))];
+    const filteredLabels = [...new Set(timeFilteredDates.map(pair => pair.formatted))];
     
     // Sort chronologically
     filteredLabels.sort((a, b) => {
@@ -96,7 +133,7 @@ export function SentimentTimeline({
     };
   };
   
-  const filteredData = filterDataByTimeRange();
+  const filteredData = filterDataByTimeRangeAndYear();
 
   useEffect(() => {
     if (chartRef.current) {
@@ -249,65 +286,110 @@ export function SentimentTimeline({
         chartInstance.current.destroy();
       }
     };
-  }, [filteredData, timeRange]);
+  }, [filteredData, timeRange, selectedYear]);
 
-  // Get the correct description based on the time range
+  // Get the correct description based on the time range and year
   const getRangeDescription = () => {
     if (filteredData.labels.length === 0) {
       return "No data available";
     }
     
     const count = filteredData.labels.length;
+    const yearText = `${selectedYear}`;
+    
     switch(timeRange) {
       case 'day':
-        return `Last 24 hours (${count} data point${count !== 1 ? 's' : ''})`;
+        return `Last 24 hours, ${yearText} (${count} data point${count !== 1 ? 's' : ''})`;
       case 'week':
-        return `Last 7 days (${count} data point${count !== 1 ? 's' : ''})`;
+        return `Last 7 days, ${yearText} (${count} data point${count !== 1 ? 's' : ''})`;
       case 'month':
-        return `Last 30 days (${count} data point${count !== 1 ? 's' : ''})`;
+        return `Last 30 days, ${yearText} (${count} data point${count !== 1 ? 's' : ''})`;
+      case 'year':
+        return `Full year ${yearText} (${count} data point${count !== 1 ? 's' : ''})`;
       default:
-        return `${count} data point${count !== 1 ? 's' : ''}`;
+        return `${count} data point${count !== 1 ? 's' : ''} for ${yearText}`;
     }
   };
 
   return (
     <Card className="bg-white rounded-lg shadow">
-      <CardHeader className="p-4 md:p-5 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
-        <div>
-          <CardTitle className="text-lg font-medium text-slate-800">{title}</CardTitle>
-          <CardDescription className="text-sm text-slate-500">{getRangeDescription()}</CardDescription>
+      <CardHeader className="p-4 md:p-5 border-b border-gray-200 flex flex-col space-y-3">
+        <div className="flex flex-row justify-between items-center">
+          <div>
+            <CardTitle className="text-lg font-medium text-slate-800">{title}</CardTitle>
+            <CardDescription className="text-sm text-slate-500">{getRangeDescription()}</CardDescription>
+          </div>
+          
+          {/* Year selector */}
+          <div className="flex items-center space-x-2">
+            <Button 
+              size="icon" 
+              variant="outline" 
+              onClick={handlePreviousYear}
+              disabled={availableYears.indexOf(selectedYear) === 0}
+              className="h-8 w-8"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <div className="text-sm font-medium bg-slate-100 px-3 py-1 rounded min-w-[60px] text-center">
+              {selectedYear}
+            </div>
+            
+            <Button 
+              size="icon" 
+              variant="outline" 
+              onClick={handleNextYear}
+              disabled={availableYears.indexOf(selectedYear) === availableYears.length - 1}
+              className="h-8 w-8"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <div className="mt-3 sm:mt-0 flex space-x-3">
-          <Button 
-            size="sm" 
-            variant={timeRange === 'day' ? 'default' : 'outline'}
-            onClick={() => setTimeRange('day')}
-            className="text-xs"
-          >
-            Day
-          </Button>
-          <Button 
-            size="sm" 
-            variant={timeRange === 'week' ? 'default' : 'outline'}
-            onClick={() => setTimeRange('week')}
-            className="text-xs"
-          >
-            Week
-          </Button>
-          <Button 
-            size="sm" 
-            variant={timeRange === 'month' ? 'default' : 'outline'}
-            onClick={() => setTimeRange('month')}
-            className="text-xs"
-          >
-            Month
-          </Button>
+        
+        {/* Time range selector */}
+        <div className="flex justify-end">
+          <div className="flex space-x-2">
+            <Button 
+              size="sm" 
+              variant={timeRange === 'day' ? 'default' : 'outline'}
+              onClick={() => setTimeRange('day')}
+              className="text-xs"
+            >
+              Day
+            </Button>
+            <Button 
+              size="sm" 
+              variant={timeRange === 'week' ? 'default' : 'outline'}
+              onClick={() => setTimeRange('week')}
+              className="text-xs"
+            >
+              Week
+            </Button>
+            <Button 
+              size="sm" 
+              variant={timeRange === 'month' ? 'default' : 'outline'}
+              onClick={() => setTimeRange('month')}
+              className="text-xs"
+            >
+              Month
+            </Button>
+            <Button 
+              size="sm" 
+              variant={timeRange === 'year' ? 'default' : 'outline'}
+              onClick={() => setTimeRange('year')}
+              className="text-xs"
+            >
+              Year
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-5">
         {filteredData.labels.length === 0 ? (
           <div className="h-80 flex items-center justify-center text-slate-500">
-            No data available for the selected time range
+            No data available for {selectedYear} in the selected time range
           </div>
         ) : (
           <div className="h-80">

@@ -782,26 +782,50 @@ Respond ONLY with a JSON object containing:
             api_response = response.json()
             content = api_response["choices"][0]["message"]["content"]
 
-            # Try to parse JSON from the response
+            # Try to parse JSON from the response with improved robustness
             try:
-                start_idx = content.find("{")
-                end_idx = content.rfind("}") + 1
-                if start_idx >= 0 and end_idx > start_idx:
-                    json_str = content[start_idx:end_idx]
-                    result = json.loads(json_str)
-                else:
-                    # Fallback to rule-based analysis if JSON not found
-                    result = {
-                        "sentiment": "Neutral",
-                        "confidence": 0.7,
-                        "explanation":
-                        "Determined by fallback rule-based analysis",
-                        "disasterType": self.extract_disaster_type(text),
-                        "location": self.extract_location(text),
-                        "language": language
-                    }
+                # First try direct parsing in case the whole response is a valid JSON
+                try:
+                    # Clean any non-JSON content before/after the actual JSON object
+                    content = content.strip()
+                    result = json.loads(content)
+                except:
+                    # Advanced JSON extraction for when model includes other text
+                    # Find all potential JSON objects in the text
+                    import re
+                    json_pattern = r'({[^{}]*(?:{[^{}]*(?:{[^{}]*}[^{}]*)*}[^{}]*)*})'
+                    potential_jsons = re.findall(json_pattern, content)
+                    
+                    # Try each potential JSON object, starting with the largest one
+                    potential_jsons.sort(key=len, reverse=True)
+                    
+                    result = None
+                    for json_str in potential_jsons:
+                        try:
+                            parsed = json.loads(json_str)
+                            # Check if this looks like our expected format
+                            if "sentiment" in parsed or "confidence" in parsed:
+                                result = parsed
+                                break
+                        except:
+                            continue
+                    
+                    # If no valid JSON was found through regex, try the simple method
+                    if result is None:
+                        start_idx = content.find("{")
+                        end_idx = content.rfind("}") + 1
+                        if start_idx >= 0 and end_idx > start_idx:
+                            json_str = content[start_idx:end_idx]
+                            result = json.loads(json_str)
+                        else:
+                            raise ValueError("No valid JSON found in response")
+                
             except Exception as json_error:
                 logging.error(f"Error parsing API response: {json_error}")
+                # Log the problematic content for debugging
+                logging.error(f"Problematic content: {content[:200]}...")
+                
+                # Fallback to rule-based analysis
                 result = {
                     "sentiment": "Neutral",
                     "confidence": 0.7,
