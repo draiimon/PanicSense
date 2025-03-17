@@ -43,17 +43,6 @@ export class PythonService {
     }
   }
 
-  private escapeText(text: string): string {
-    // Escape special characters for JSON
-    return text.replace(/\\/g, '\\\\')
-              .replace(/"/g, '\\"')
-              .replace(/\n/g, '\\n')
-              .replace(/\r/g, '\\r')
-              .replace(/\t/g, '\\t')
-              .replace(/\f/g, '\\f')
-              .replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
-  }
-
   public async processCSV(
     fileBuffer: Buffer, 
     originalFilename: string,
@@ -76,27 +65,7 @@ export class PythonService {
         throw new Error('CSV file appears to be empty or malformed');
       }
 
-      // Clean the CSV content
-      const cleanedContent = lines.map(line => {
-        // Handle quoted fields properly
-        let inQuotes = false;
-        let cleanedLine = '';
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-            cleanedLine += char;
-          } else if (char === ',' && !inQuotes) {
-            cleanedLine += char;
-          } else {
-            // Escape special characters only within quoted fields
-            cleanedLine += inQuotes ? this.escapeText(char) : char;
-          }
-        }
-        return cleanedLine;
-      }).join('\n');
-
-      fs.writeFileSync(tempFilePath, cleanedContent);
+      fs.writeFileSync(tempFilePath, fileBuffer);
 
       log(`Processing CSV file: ${originalFilename}`, 'python-service');
 
@@ -160,8 +129,7 @@ export class PythonService {
       }
 
       if (textToAnalyze) {
-        const escapedText = this.escapeText(textToAnalyze);
-        args.push('--text', escapedText);
+        args.push('--text', textToAnalyze);
       }
 
       log(`Running Python script with args: ${args.join(' ')}`, 'python-service');
@@ -239,7 +207,6 @@ export class PythonService {
       });
     });
   }
-
   public async analyzeSentiment(
     text: string, 
     csvLocation?: string, 
@@ -253,16 +220,19 @@ export class PythonService {
     disasterType?: string;
     location?: string;
   }> {
+    // Run the Python script only once - don't retry
+    // The Python script itself will manage key rotation to handle rate limits
+    
     // Create a JSON object with the parameters
     const params = {
-      text: this.escapeText(text),
+      text,
       csvLocation,
       csvEmotion,
       csvDisasterType
     };
-
+    
     const paramsJson = JSON.stringify(params);
-
+    
     try {
       // We pass the JSON parameters as the text parameter
       const result = await this.runPythonScript('', paramsJson);
