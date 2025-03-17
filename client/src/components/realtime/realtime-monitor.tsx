@@ -5,11 +5,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { analyzeText } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { getSentimentBadgeClasses } from '@/lib/colors';
 import { AlertCircle } from 'lucide-react';
 import { useDisasterContext } from '@/context/disaster-context';
 
+// Extend from SentimentPost but with a Date object for timestamp
 interface AnalyzedText {
   text: string;
   sentiment: string;
@@ -42,17 +45,20 @@ export function RealtimeMonitor() {
   // Effect for auto-analyze
   useEffect(() => {
     if (autoAnalyze && text.trim() && !isAnalyzing) {
+      // Clear any existing timeout
       if (typingTimeout) {
         clearTimeout(typingTimeout);
       }
-
+      
+      // Set a new timeout
       const timeout = setTimeout(() => {
         handleAnalyze();
-      }, 1000); // Wait 1 second after typing stops
-
+      }, 1000); // Wait 1 second after the user stops typing
+      
       setTypingTimeout(timeout);
     }
-
+    
+    // Cleanup function
     return () => {
       if (typingTimeout) {
         clearTimeout(typingTimeout);
@@ -74,43 +80,31 @@ export function RealtimeMonitor() {
 
     setIsAnalyzing(true);
     try {
-      // Call our pattern-based sentiment analyzer
-      const response = await fetch('/api/analyze-text', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to analyze text');
-      }
-
-      const result = await response.json();
+      const result = await analyzeText(text);
 
       setAnalyzedTexts(prev => [
         ...prev,
         {
           text,
-          sentiment: result.sentiment,
-          confidence: result.confidence,
+          sentiment: result.post.sentiment,
+          confidence: result.post.confidence,
           timestamp: new Date(),
-          language: result.language,
-          explanation: result.explanation,
-          disasterType: result.disasterType,
-          location: result.location
+          language: result.post.language,
+          explanation: result.post.explanation,
+          disasterType: result.post.disasterType,
+          location: result.post.location
         }
       ]);
 
       setText('');
 
       // Strict check for non-disaster inputs
-      const isNonDisasterInput = result.text?.length < 9 || 
-                               !result.explanation || 
-                               result.disasterType === "Not Specified" ||
-                               !result.disasterType;
-
+      const isNonDisasterInput = result.post.text.length < 9 || 
+                                !result.post.explanation || 
+                                result.post.disasterType === "Not Specified" ||
+                                !result.post.disasterType ||
+                                result.post.text.match(/^[!?.,;:*\s]+$/);
+      
       if (isNonDisasterInput) {
         toast({
           title: 'Non-Disaster Input',
@@ -121,10 +115,11 @@ export function RealtimeMonitor() {
       } else if (!autoAnalyze) {
         toast({
           title: 'Analysis complete',
-          description: `Sentiment detected: ${result.sentiment} (${result.language})`,
+          description: `Sentiment detected: ${result.post.sentiment}`,
         });
       }
-
+      
+      // Refresh the data in the disaster context
       refreshData();
     } catch (error) {
       toast({
@@ -144,11 +139,9 @@ export function RealtimeMonitor() {
         <CardHeader className="p-5 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-lg font-medium text-slate-800">
-                Pattern-Based Sentiment Analysis
-              </CardTitle>
+              <CardTitle className="text-lg font-medium text-slate-800">Real-Time Sentiment Analysis</CardTitle>
               <CardDescription className="text-sm text-slate-500">
-                Enter disaster-related text in English or Filipino
+                Enter text related to disaster situations
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
@@ -165,7 +158,7 @@ export function RealtimeMonitor() {
           <Textarea
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder="Enter disaster-related text to analyze sentiment (supports English and Filipino)..."
+            placeholder="Enter disaster-related text to analyze sentiment..."
             className="min-h-[200px]"
           />
         </CardContent>
@@ -219,7 +212,7 @@ export function RealtimeMonitor() {
                 />
               </svg>
               <p className="font-medium">No analysis results yet</p>
-              <p className="text-sm mt-1">Enter text in English or Filipino and click Analyze</p>
+              <p className="text-sm mt-1">Enter some text and click Analyze</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -234,22 +227,17 @@ export function RealtimeMonitor() {
                         {item.sentiment}
                       </Badge>
                       <Badge variant="outline" className="bg-slate-100">
-                        {item.language === 'Filipino' ? 'Filipino' : 'English'}
+                        {item.language === 'tl' ? 'Tagalog' : 'English'}
                       </Badge>
                     </div>
                   </div>
-
+                  
                   <div className="mt-2 flex justify-between text-xs text-slate-500">
                     <span>Confidence: {(item.confidence * 100).toFixed(1)}%</span>
                     <span>{item.timestamp.toLocaleTimeString()}</span>
                   </div>
-
-                  {item.explanation && (
-                    <div className="mt-2">
-                      <p className="text-sm text-slate-600">{item.explanation}</p>
-                    </div>
-                  )}
-
+                  
+                  {/* Show disaster type info only if it's a valid disaster type */}
                   {item.disasterType && item.disasterType !== "Not Specified" && (
                     <div className="mt-2 flex items-center gap-2">
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
@@ -261,6 +249,63 @@ export function RealtimeMonitor() {
                         </Badge>
                       )}
                     </div>
+                  )}
+                  
+                  {/* Warning for non-disaster related short texts - using same strict check as analyze function */}
+                  {((!item.disasterType || 
+                     item.disasterType === "Not Specified" || 
+                     item.disasterType.toLowerCase().includes("none") || 
+                     item.disasterType.toLowerCase().includes("unspecified")) && 
+                    (item.text.length < 9 || 
+                     item.text.match(/^[!?.,;:*\s]+$/) || 
+                     !item.explanation)) && (
+                    <div className="bg-amber-50 p-3 rounded-md border border-amber-200 mt-2">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                        <div>
+                          <h4 className="text-sm font-medium mb-1">Non-Disaster Input</h4>
+                          <p className="text-sm text-amber-700">
+                            This appears to be a short non-disaster related input. For best results, 
+                            please enter more detailed text about disaster situations.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Regular explanation - only show for meaningful inputs that have explanations */}
+                  {item.explanation && 
+                   !((!item.disasterType || 
+                      item.disasterType === "Not Specified" || 
+                      item.disasterType.toLowerCase().includes("none") || 
+                      item.disasterType.toLowerCase().includes("unspecified")) && 
+                     (item.text.length < 9 || 
+                      item.text.match(/^[!?.,;:*\s]+$/))) && (
+                     <div className="bg-slate-50 p-3 rounded-md border border-slate-200 mt-2">
+                       <div className="flex items-start gap-2">
+                         <AlertCircle className="h-5 w-5 text-slate-600 mt-0.5" />
+                         <div>
+                           <h4 className="text-sm font-medium mb-1">Analysis Details</h4>
+                           <div className="space-y-2">
+                             {item.disasterType && item.disasterType !== "Not Specified" && (
+                               <p className="text-sm text-slate-700">
+                                 <span className="font-semibold">Disaster Type:</span> {item.disasterType}
+                               </p>
+                             )}
+                             {item.location && (
+                               <p className="text-sm text-slate-700">
+                                 <span className="font-semibold">Location:</span> {item.location}
+                               </p>
+                             )}
+                             {item.explanation && (
+                               <p className="text-sm text-slate-700">
+                                 <span className="font-semibold">Analysis:</span> {item.explanation}
+                               </p>
+                             )}
+                           </div>
+                         </div>
+                       </div>
+                     </div>
                   )}
                 </div>
               ))}
@@ -282,7 +327,7 @@ export function RealtimeMonitor() {
               className="text-blue-600"
               onClick={() => {
                 const text = analyzedTexts.map(item =>
-                  `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(1)}%) - Language: ${item.language}`
+                  `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(1)}%) - Language: ${item.language === 'tl' ? 'Tagalog' : 'English'}`
                 ).join('\n');
                 navigator.clipboard.writeText(text);
                 toast({
