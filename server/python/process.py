@@ -1209,11 +1209,11 @@ Respond ONLY with a JSON object containing:
                         if i > 0 and i % 3 == 0:
                             time.sleep(1.5)
 
-                except Exception as e:
-                    logging.error(f"Error processing row {i}: {str(e)}")
-                    # Add failed record to retry list
-                    failed_records.append((i, row))
-                    time.sleep(1.0)  # Wait 1 second before continuing
+                    except Exception as e:
+                        logging.error(f"Error processing row {i}: {str(e)}")
+                        # Add failed record to retry list
+                        failed_records.append((i, row))
+                        time.sleep(1.0)  # Wait 1 second before continuing
 
             # Retry failed records
             if failed_records:
