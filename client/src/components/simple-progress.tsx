@@ -8,7 +8,7 @@ interface SimpleProgressProps {
   onComplete?: () => void;
 }
 
-export function SimpleProgress({ totalItems = 20, isProcessing, onComplete }: SimpleProgressProps) {
+export function SimpleProgress({ totalItems = 200, isProcessing, onComplete }: SimpleProgressProps) {
   const [progress, setProgress] = useState(0);
   const [processedItems, setProcessedItems] = useState(0);
   const [avgSpeed, setAvgSpeed] = useState(0);
@@ -75,7 +75,7 @@ export function SimpleProgress({ totalItems = 20, isProcessing, onComplete }: Si
       };
 
       // Start processing after initial delay
-      setStage("Initializing analysis for 20 records...");
+      setStage(`Initializing analysis for ${totalItems} records...`);
       setTimeout(processNextItem, 2000);
     };
 
