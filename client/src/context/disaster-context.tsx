@@ -86,7 +86,7 @@ const initialProgress: UploadProgress = {
 };
 
 export function DisasterContextProvider({ children }: { children: ReactNode }) {
-  // State
+  // State management
   const [selectedDisasterType, setSelectedDisasterType] = useState<string>("All");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>(initialProgress);
@@ -100,24 +100,25 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'progress') {
-          console.log('Progress event received:', data.progress);
+        if (data.type === 'progress' && data.progress) {
+          // Log progress update
+          console.log('Progress update received:', data.progress);
 
-          // Directly update progress state with the received data
+          // Direct update of progress state
           setUploadProgress(prev => ({
             ...prev,
-            processed: data.progress.processed || 0,
-            total: data.progress.total || prev.total,
-            stage: data.progress.stage || 'Processing...',
-            batchNumber: data.progress.processed || 0,
-            totalBatches: data.progress.total || prev.totalBatches,
+            processed: data.progress.processed,
+            total: data.progress.total,
+            stage: data.progress.stage,
+            batchNumber: data.progress.batchNumber,
+            totalBatches: data.progress.totalBatches,
             batchProgress: data.progress.total > 0 
               ? Math.round((data.progress.processed / data.progress.total) * 100) 
               : 0,
             processingStats: {
-              successCount: data.progress.processed || 0,
-              errorCount: 0,
-              averageSpeed: 0
+              successCount: data.progress.processed,
+              errorCount: data.progress.errorCount || 0,
+              averageSpeed: data.progress.averageSpeed || 0
             }
           }));
         }
