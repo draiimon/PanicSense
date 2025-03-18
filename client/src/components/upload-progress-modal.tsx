@@ -160,38 +160,60 @@ export function UploadProgressModal() {
         )}
 
 
-        {/* Download-style Progress Bar */}
+        {/* Enhanced Progress Bar */}
         <div className="mt-6">
-          <div className="flex justify-between text-sm text-slate-600 mb-1">
-            <span>Overall Progress</span>
-            <span>{Math.round((processed / total) * 100)}%</span>
+          <div className="flex justify-between text-sm font-medium mb-2">
+            <span className="text-slate-700">Overall Progress</span>
+            <span className={`transition-colors ${processed === total ? 'text-green-600' : 'text-blue-600'}`}>
+              {Math.round((processed / total) * 100)}%
+            </span>
           </div>
-          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-blue-500 via-blue-600 to-blue-500" 
-                 style={{
-                   width: `${(processed / total) * 100}%`,
-                   backgroundSize: '200% 100%',
-                   animation: 'download-progress 1.5s ease-in-out infinite'
-                 }}
+          <div className="h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+            <motion.div 
+              className={`h-full transition-colors duration-300 ${
+                processed === total 
+                  ? 'bg-gradient-to-r from-green-400 to-green-500' 
+                  : 'bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400'
+              }`}
+              initial={{ width: 0 }}
+              animate={{ 
+                width: `${(processed / total) * 100}%`,
+                transition: { duration: 0.3 }
+              }}
+              style={{
+                backgroundSize: '200% 100%',
+                animation: processed === total 
+                  ? 'completion-pulse 1s ease-in-out' 
+                  : 'progress-flow 2s linear infinite'
+              }}
             />
           </div>
         </div>
 
-        {/* Add keyframes for smooth download-style animation */}
+        {/* Enhanced animations */}
         <style>
           {`
-            @keyframes download-progress {
+            @keyframes progress-flow {
               0% {
                 background-position: 100% 0;
-                opacity: 0.5;
-              }
-              50% {
-                background-position: 0 0;
-                opacity: 1;
               }
               100% {
                 background-position: -100% 0;
-                opacity: 0.5;
+              }
+            }
+            
+            @keyframes completion-pulse {
+              0% {
+                opacity: 0.8;
+                transform: scale(1);
+              }
+              50% {
+                opacity: 1;
+                transform: scale(1.02);
+              }
+              100% {
+                opacity: 1;
+                transform: scale(1);
               }
             }
           `}
