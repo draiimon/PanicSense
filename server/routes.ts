@@ -46,39 +46,26 @@ const uploadProgressMap = new Map<string, {
 // Track connected WebSocket clients
 const connectedClients = new Set<WebSocket>();
 
-// Improved broadcastUpdate function
+// Simplified broadcastUpdate function to directly handle Python service output
 function broadcastUpdate(data: any) {
   if (data.type === 'progress') {
     try {
-      // Handle Python service progress messages
-      const progressStr = data.progress?.stage || '';
-      const matches = progressStr.match(/(\d+)\/(\d+)/);
-      const currentRecord = matches ? parseInt(matches[1]) : 0;
-      const totalRecords = matches ? parseInt(matches[2]) : data.progress?.total || 0;
-      const processedCount = data.progress?.processed || currentRecord;
+      // Log the raw progress data for debugging
+      console.log('Progress being sent to UI:', data.progress);
 
-      // Create enhanced progress object
-      const enhancedProgress = {
+      // Send the raw progress data directly to clients
+      const message = JSON.stringify({
         type: 'progress',
         progress: {
-          processed: processedCount,
-          total: totalRecords,
-          stage: data.progress?.stage || 'Processing...',
-          batchNumber: currentRecord,
-          totalBatches: totalRecords,
-          batchProgress: totalRecords > 0 ? Math.round((processedCount / totalRecords) * 100) : 0,
-          currentSpeed: data.progress?.currentSpeed || 0,
-          timeRemaining: data.progress?.timeRemaining || 0,
+          ...data.progress,
           processingStats: {
-            successCount: processedCount,
-            errorCount: data.progress?.processingStats?.errorCount || 0,
-            averageSpeed: data.progress?.processingStats?.averageSpeed || 0
+            successCount: data.progress.processed || 0,
+            errorCount: 0,
+            averageSpeed: 0
           }
         }
-      };
+      });
 
-      // Send to all connected clients
-      const message = JSON.stringify(enhancedProgress);
       connectedClients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
           try {
@@ -89,7 +76,7 @@ function broadcastUpdate(data: any) {
         }
       });
     } catch (error) {
-      console.error('Error processing progress update:', error);
+      console.error('Error in broadcastUpdate:', error);
     }
   }
 }

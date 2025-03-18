@@ -101,36 +101,25 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'progress') {
-          console.log('WebSocket progress update:', data);
+          console.log('Progress event received:', data.progress);
 
-          // Extract progress info from Python service
-          const pythonProgress = data.progress;
-          if (pythonProgress && typeof pythonProgress === 'object') {
-            // Parse numbers from the progress message
-            const matches = pythonProgress.stage?.match(/(\d+)\/(\d+)/);
-            const currentRecord = matches ? parseInt(matches[1]) : 0;
-            const totalRecords = matches ? parseInt(matches[2]) : pythonProgress.total || 0;
-
-            // Calculate actual progress percentage
-            const processedCount = pythonProgress.processed || currentRecord;
-
-            setUploadProgress(prev => ({
-              ...prev,
-              processed: processedCount,
-              total: totalRecords || prev.total,
-              stage: pythonProgress.stage || prev.stage,
-              batchNumber: currentRecord,
-              totalBatches: totalRecords,
-              batchProgress: totalRecords > 0 ? Math.round((processedCount / totalRecords) * 100) : 0,
-              currentSpeed: pythonProgress.currentSpeed || prev.currentSpeed,
-              timeRemaining: pythonProgress.timeRemaining || prev.timeRemaining,
-              processingStats: {
-                successCount: processedCount,
-                errorCount: pythonProgress.processingStats?.errorCount || 0,
-                averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
-              }
-            }));
-          }
+          // Directly update progress state with the received data
+          setUploadProgress(prev => ({
+            ...prev,
+            processed: data.progress.processed || 0,
+            total: data.progress.total || prev.total,
+            stage: data.progress.stage || 'Processing...',
+            batchNumber: data.progress.processed || 0,
+            totalBatches: data.progress.total || prev.totalBatches,
+            batchProgress: data.progress.total > 0 
+              ? Math.round((data.progress.processed / data.progress.total) * 100) 
+              : 0,
+            processingStats: {
+              successCount: data.progress.processed || 0,
+              errorCount: 0,
+              averageSpeed: 0
+            }
+          }));
         }
       } catch (error) {
         console.error('Error processing WebSocket message:', error);
