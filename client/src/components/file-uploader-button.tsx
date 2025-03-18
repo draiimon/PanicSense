@@ -30,24 +30,35 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     }
 
     try {
-      // CRITICAL RESET SEQUENCE:
-      // 1. First, hide the entire dialog
+      // Reset sequence
       setIsUploading(false);
-      
-      // Wait to ensure UI updates and state resets
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // 2. Completely reset the state before starting a new upload
-      setUploadProgress({ processed: 0, total: 0, stage: '' });
-      
-      // 3. Wait again to ensure the state is completely reset
+      setUploadProgress({ 
+        processed: 0, 
+        total: 0, 
+        stage: '',
+        currentSpeed: 0,
+        timeRemaining: 0,
+        processingStats: {
+          successCount: 0,
+          errorCount: 0,
+          averageSpeed: 0
+        }
+      });
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // 4. Now show the upload dialog with fresh state
       setIsUploading(true);
-      
-      // 5. Initialize with clear "starting" message
-      setUploadProgress({ processed: 0, total: 0, stage: 'Starting new upload...' });
+      setUploadProgress({ 
+        processed: 0, 
+        total: 0, 
+        stage: 'Preparing to process your data...',
+        currentSpeed: 0,
+        timeRemaining: 0,
+        processingStats: {
+          successCount: 0,
+          errorCount: 0,
+          averageSpeed: 0
+        }
+      });
 
       const result = await uploadCSV(file, (progress) => {
         setUploadProgress({
@@ -92,31 +103,72 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       // Keep progress visible briefly after completion
       setTimeout(() => {
         setIsUploading(false);
-        setUploadProgress({ processed: 0, total: 0, stage: '' });
+        setUploadProgress({ 
+          processed: 0, 
+          total: 0, 
+          stage: '',
+          currentSpeed: 0,
+          timeRemaining: 0,
+          processingStats: {
+            successCount: 0,
+            errorCount: 0,
+            averageSpeed: 0
+          }
+        });
       }, 2000);
     }
   };
 
   return (
     <motion.label
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       className={`
-        inline-flex items-center justify-center px-6 py-3
-        bg-gradient-to-r from-blue-600 to-indigo-600
-        hover:from-blue-700 hover:to-indigo-700
+        relative inline-flex items-center justify-center px-6 py-3
+        bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600
+        hover:from-blue-700 hover:via-indigo-700 hover:to-blue-700
         text-white text-sm font-medium rounded-full
         cursor-pointer transition-all duration-300
-        shadow-lg hover:shadow-xl transform hover:-translate-y-0.5
+        shadow-lg hover:shadow-xl
+        overflow-hidden
         ${className}
       `}
     >
-      <Upload className="h-5 w-5 mr-2" />
-      Upload Dataset
+      {/* Animated background */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-indigo-400/20 to-blue-400/20 animate-gradient-x" />
+
+      {/* Content */}
+      <div className="relative flex items-center">
+        <Upload className="h-5 w-5 mr-2" />
+        Upload Dataset
+      </div>
+
       <input 
         type="file" 
         className="hidden" 
         accept=".csv" 
         onChange={handleFileUpload}
       />
+
+      <style>
+        {`
+          @keyframes gradient-x {
+            0% {
+              background-position: 0% 50%;
+            }
+            50% {
+              background-position: 100% 50%;
+            }
+            100% {
+              background-position: 0% 50%;
+            }
+          }
+          .animate-gradient-x {
+            animation: gradient-x 3s ease infinite;
+            background-size: 200% 100%;
+          }
+        `}
+      </style>
     </motion.label>
   );
 }
