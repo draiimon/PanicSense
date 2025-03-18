@@ -2,8 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, FileText, Database, ChevronRight, Activity, Clock, AlertTriangle } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
 // Animated number component for smooth transitions
 const AnimatedNumber = ({ value }: { value: number }) => (
@@ -79,6 +78,7 @@ export function UploadProgressModal() {
   const isLoading = stage.toLowerCase().includes('initializing') || stage.toLowerCase().includes('loading');
   const isProcessing = stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record');
   const hasError = stage.toLowerCase().includes('error');
+  const isComplete = stage.toLowerCase().includes('analysis complete');
 
   return createPortal(
     <motion.div
@@ -119,7 +119,7 @@ export function UploadProgressModal() {
           <div className="text-center">
             <h3 className="text-xl font-semibold text-slate-200 mb-2">
               {hasError ? 'Upload Error' :
-                stage.toLowerCase().includes('analysis complete') 
+                isComplete 
                   ? 'Analysis Complete!' 
                   : total > 0 
                     ? `Processing ${total.toLocaleString()} records...` 
@@ -157,7 +157,7 @@ export function UploadProgressModal() {
               )}
 
               {/* Time Remaining */}
-              {timeRemaining > 0 && !stage.toLowerCase().includes('analysis complete') && (
+              {timeRemaining > 0 && !isComplete && (
                 <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-sm rounded-xl p-4 border border-slate-600/50 shadow-lg">
                   <div className="flex items-center gap-2 text-blue-400 mb-2">
                     <Clock className="h-4 w-4" />
@@ -171,45 +171,43 @@ export function UploadProgressModal() {
             </div>
           )}
 
-          {/* Progress Stages */}
-          <ScrollArea className="h-[180px] rounded-xl border border-slate-600/50 p-4 bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
-            <div className="space-y-3">
-              {/* Loading Stage */}
-              <div className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                isLoading ? 'bg-blue-900/30 text-blue-300 shadow-lg border border-blue-500/20' : 'bg-slate-800/50 text-slate-400'
-              }`}>
-                <FileText className="h-4 w-4" />
-                <span className="text-sm font-medium">Loading File</span>
-                {isLoading && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
-                {!isLoading && <ChevronRight className="h-4 w-4 ml-auto" />}
-              </div>
+          {/* Progress Stages - No ScrollArea */}
+          <div className="space-y-3">
+            {/* Loading Stage */}
+            <div className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+              isLoading ? 'bg-blue-900/30 text-blue-300 shadow-lg border border-blue-500/20' : 'bg-slate-800/50 text-slate-400'
+            }`}>
+              <FileText className="h-4 w-4" />
+              <span className="text-sm font-medium">Loading File</span>
+              {isLoading && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
+              {!isLoading && <ChevronRight className="h-4 w-4 ml-auto" />}
+            </div>
 
-              {/* Processing Stage */}
-              <div className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                isProcessing ? 'bg-blue-900/30 text-blue-300 shadow-lg border border-blue-500/20' : 'bg-slate-800/50 text-slate-400'
-              }`}>
-                <Database className="h-4 w-4" />
-                <span className="text-sm font-medium">
-                  {isProcessing ? `Processing record ${processed.toLocaleString()} of ${total.toLocaleString()}` : "Processing Records"}
-                </span>
-                {isProcessing && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
-                {!isProcessing && <ChevronRight className="h-4 w-4 ml-auto" />}
-              </div>
+            {/* Processing Stage */}
+            <div className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+              isProcessing ? 'bg-blue-900/30 text-blue-300 shadow-lg border border-blue-500/20' : 'bg-slate-800/50 text-slate-400'
+            }`}>
+              <Database className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                {isProcessing ? `Processing record ${processed.toLocaleString()} of ${total.toLocaleString()}` : "Processing Records"}
+              </span>
+              {isProcessing && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
+              {!isProcessing && <ChevronRight className="h-4 w-4 ml-auto" />}
+            </div>
 
-              {/* Status Message */}
-              <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
-                <div className="text-sm font-mono text-slate-300 whitespace-pre-wrap break-words">
-                  {stage}
-                </div>
+            {/* Status Message */}
+            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+              <div className="text-sm font-mono text-slate-300 whitespace-pre-wrap break-words">
+                {stage}
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Enhanced Progress Bar */}
           <div>
             <div className="flex justify-between text-sm font-medium mb-2">
               <span className="text-slate-300">Overall Progress</span>
-              <span className={`transition-colors ${stage.toLowerCase().includes('analysis complete') ? 'text-green-400' : hasError ? 'text-red-400' : 'text-blue-400'}`}>
+              <span className={`transition-colors ${isComplete ? 'text-green-400' : hasError ? 'text-red-400' : 'text-blue-400'}`}>
                 {percentComplete}%
               </span>
             </div>
@@ -218,7 +216,7 @@ export function UploadProgressModal() {
                 className={`h-full transition-colors duration-300 ${
                   hasError 
                     ? 'bg-gradient-to-r from-red-500 to-red-600'
-                    : stage.toLowerCase().includes('analysis complete')
+                    : isComplete
                       ? 'bg-gradient-to-r from-green-400 to-emerald-500' 
                       : 'bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500'
                 }`}
@@ -229,7 +227,7 @@ export function UploadProgressModal() {
                 }}
                 style={{
                   backgroundSize: '200% 100%',
-                  animation: stage.toLowerCase().includes('analysis complete')
+                  animation: isComplete
                     ? 'completion-pulse 2s ease-in-out infinite' 
                     : 'progress-flow 2s linear infinite'
                 }}
