@@ -464,11 +464,26 @@ class DisasterSentimentBackend:
         return result
 
     def get_api_sentiment_analysis(self, text, language):
-        """Get sentiment analysis from API with race condition for fastest response"""
+        """Get sentiment analysis from API using a single key with proper rotation"""
         import requests
-        from concurrent.futures import ThreadPoolExecutor
+        import time
 
-        def make_api_request(key_index):
+        # Try each API key in sequence until one works
+        # We'll use a simple rotation pattern that doesn't create racing requests
+        num_keys = len(self.groq_api_keys)
+        if num_keys == 0:
+            logging.error("No API keys available, using rule-based fallback")
+            return self._rule_based_sentiment_analysis(text, language)
+            
+        # Use a new key for each request, rotating through the available keys
+        # Using static class variable to track which key to use next
+        if not hasattr(self, 'current_key_index'):
+            self.current_key_index = 0
+            
+        # Try up to 3 different keys before giving up
+        for attempt in range(min(3, num_keys)):
+            key_index = (self.current_key_index + attempt) % num_keys
+            
             try:
                 url = self.api_url
                 headers = {
@@ -493,8 +508,7 @@ class DisasterSentimentBackend:
                     Respond ONLY in JSON format: {"sentiment": "category", "confidence": score, "explanation": "explanation", "disasterType": "type", "location": "location"}"""
 
                 data = {
-                    "model":
-                    "llama3-8b-8192",
+                    "model": "llama3-8b-8192",
                     "messages": [{
                         "role": "system",
                         "content": system_message
@@ -502,20 +516,22 @@ class DisasterSentimentBackend:
                         "role": "user",
                         "content": text
                     }],
-                    "temperature":
-                    0.1,
-                    "max_tokens":
-                    500,
-                    "top_p":
-                    1,
-                    "stream":
-                    False
+                    "temperature": 0.1,
+                    "max_tokens": 500,
+                    "top_p": 1,
+                    "stream": False
                 }
 
                 response = requests.post(url,
-                                         headers=headers,
-                                         json=data,
-                                         timeout=15)
+                                        headers=headers,
+                                        json=data,
+                                        timeout=15)
+                
+                # Handle rate limiting with a simple retry
+                if response.status_code == 429:  # Too Many Requests
+                    logging.warning(f"API key {key_index + 1} rate limited, trying next key")
+                    continue
+                    
                 response.raise_for_status()
 
                 # Parse response from API
@@ -557,68 +573,31 @@ class DisasterSentimentBackend:
                     if "explanation" not in result:
                         result["explanation"] = "No explanation provided"
                     if "disasterType" not in result:
-                        result["disasterType"] = self.extract_disaster_type(
-                            text)
+                        result["disasterType"] = self.extract_disaster_type(text)
                     if "location" not in result:
                         result["location"] = self.extract_location(text)
                     if "language" not in result:
                         result["language"] = language
 
-                    logging.info(
-                        f"API key {key_index + 1} racing win (successes: {self.key_success_count[key_index]})"
-                    )
+                    # Success - update the next key to use
+                    self.current_key_index = (key_index + 1) % num_keys
+                    
+                    # Track success for this key
+                    self.key_success_count[key_index] = self.key_success_count.get(key_index, 0) + 1
+                    logging.info(f"API key {key_index + 1} succeeded (successes: {self.key_success_count[key_index]})")
+                    
                     return result
-
                 else:
                     raise ValueError("No valid JSON found in response")
 
             except Exception as e:
-                # This key failed but others might succeed
-                logging.error(
-                    f"API key {key_index + 1} racing request failed: {str(e)}")
-                self.failed_keys.add(key_index)
-                return None
-
-        # Run requests in parallel for all available keys
-        results = []
-        with concurrent.futures.ThreadPoolExecutor(
-                max_workers=len(self.groq_api_keys)) as executor:
-            # Submit all API calls in parallel
-            future_to_key = {
-                executor.submit(make_api_request, i): i
-                for i in range(len(self.groq_api_keys))
-            }
-
-            # Get the first successful result (racing)
-            for future in concurrent.futures.as_completed(future_to_key):
-                key_index = future_to_key[future]
-                try:
-                    result = future.result()
-                    if result is not None:
-                        results.append(result)
-                        # We got our first successful result, cancel remaining futures
-                        for f in future_to_key:
-                            if f != future and not f.done():
-                                f.cancel()
-                        break
-                except Exception as e:
-                    logging.error(
-                        f"Error getting result from key {key_index + 1}: {str(e)}"
-                    )
-
-        # Check if we got any results from the API
-        if results:
-            # Increment success counter for the key that succeeded
-            for future, key_index in future_to_key.items():
-                if future.done() and not future.cancelled() and future.result(
-                ) is not None:
-                    self.key_success_count[
-                        key_index] = self.key_success_count.get(key_index,
-                                                                0) + 1
-
-            return results[0]
-
-        # If all API calls failed, fallback to rule-based analysis
+                logging.error(f"API key {key_index + 1} request failed: {str(e)}")
+                if "rate limit" in str(e).lower() or "429" in str(e):
+                    logging.warning(f"Rate limit detected, trying next key")
+                    continue
+                    
+        # All attempts failed, use rule-based fallback
+        logging.warning("All API attempts failed, using rule-based fallback")
         fallback_result = self._rule_based_sentiment_analysis(text, language)
 
         # Add extracted metadata
