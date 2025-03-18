@@ -3,6 +3,7 @@ import { StatusCard } from "@/components/dashboard/status-card";
 import { OptimizedSentimentChart } from "@/components/dashboard/optimized-sentiment-chart";
 import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
 import { AffectedAreasCard } from "@/components/dashboard/affected-areas-card";
+import { UsageStatsCard } from "@/components/dashboard/usage-stats-card";
 import { FileUploader } from "@/components/file-uploader";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -168,7 +169,7 @@ export default function Dashboard() {
               <div>
                 <h3 className="font-semibold text-gray-800 text-lg mb-1">Upload Disaster Data</h3>
                 <p className="text-sm text-gray-600">
-                  Upload CSV files for instant sentiment analysis and disaster monitoring. Our system will automatically process and visualize the data.
+                  Upload CSV files for sentiment analysis and disaster monitoring. Files are processed in batches of 20 rows with a daily limit of 1,000 rows. Small files (under 20 rows) are processed instantly.
                 </p>
               </div>
             </div>
@@ -224,17 +225,7 @@ export default function Dashboard() {
           }}
           isLoading={isLoadingSentimentPosts}
         />
-        <StatusCard 
-          title="Model Confidence"
-          value={`${(modelConfidence * 100).toFixed(1)}%`}
-          icon="check-circle"
-          trend={{
-            value: "+5%",
-            isUpward: true,
-            label: "accuracy improvement"
-          }}
-          isLoading={isLoadingSentimentPosts}
-        />
+        <UsageStatsCard />
       </motion.div>
 
       {/* Flexbox layout for main content with improved proportions */}
