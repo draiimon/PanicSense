@@ -34,11 +34,12 @@ export function UploadProgressModal() {
     processingStats 
   } = uploadProgress;
 
+  // Calculate percentage based on actual processed records
   const percentage = total > 0 ? Math.round((processed / total) * 100) : 0;
 
-  // Determine current stage
-  const isLoading = stage.toLowerCase().includes('loading') || stage.toLowerCase().includes('initializing');
-  const isProcessing = stage.toLowerCase().includes('processing');
+  // Determine stage status
+  const isLoading = stage.toLowerCase().includes('initializing') || stage.toLowerCase().includes('loading');
+  const isProcessing = stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record');
   const isCompleted = stage.toLowerCase().includes('complete');
 
   return createPortal(
@@ -101,9 +102,7 @@ export function UploadProgressModal() {
               ${isProcessing ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-500'}`}>
               <Database className="h-4 w-4" />
               <span className="text-sm">
-                {isProcessing && totalBatches > 0 ? 
-                  `Processing batch ${batchNumber} of ${totalBatches}` : 
-                  'Processing Data'}
+                {isProcessing && `Processing record ${batchNumber} of ${total}`}
               </span>
               {isProcessing && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
               {!isProcessing && <ChevronRight className="h-4 w-4 ml-auto" />}

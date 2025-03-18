@@ -102,14 +102,35 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         const data = JSON.parse(event.data);
         if (data.type === 'progress') {
           console.log('WebSocket progress update:', data);
-          setUploadProgress(prev => ({
-            ...prev,
-            ...data.progress,
-            processingStats: {
-              ...prev.processingStats,
-              ...data.progress.processingStats
-            }
-          }));
+
+          // Extract progress info from Python service
+          const pythonProgress = data.progress;
+          if (pythonProgress && typeof pythonProgress === 'object') {
+            // Parse numbers from the progress message
+            const matches = pythonProgress.stage?.match(/(\d+)\/(\d+)/);
+            const currentRecord = matches ? parseInt(matches[1]) : 0;
+            const totalRecords = matches ? parseInt(matches[2]) : pythonProgress.total || 0;
+
+            // Calculate actual progress percentage
+            const processedCount = pythonProgress.processed || currentRecord;
+
+            setUploadProgress(prev => ({
+              ...prev,
+              processed: processedCount,
+              total: totalRecords || prev.total,
+              stage: pythonProgress.stage || prev.stage,
+              batchNumber: currentRecord,
+              totalBatches: totalRecords,
+              batchProgress: totalRecords > 0 ? Math.round((processedCount / totalRecords) * 100) : 0,
+              currentSpeed: pythonProgress.currentSpeed || prev.currentSpeed,
+              timeRemaining: pythonProgress.timeRemaining || prev.timeRemaining,
+              processingStats: {
+                successCount: processedCount,
+                errorCount: pythonProgress.processingStats?.errorCount || 0,
+                averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
+              }
+            }));
+          }
         }
       } catch (error) {
         console.error('Error processing WebSocket message:', error);
