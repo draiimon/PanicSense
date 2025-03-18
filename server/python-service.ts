@@ -160,8 +160,8 @@ export class PythonService {
 
         const timeout = setTimeout(() => {
           pythonProcess.kill();
-          reject(new Error('Python script execution timed out after 5 minutes'));
-        }, 5 * 60 * 1000);
+          reject(new Error('Python script execution timed out after 15 minutes'));
+        }, 15 * 60 * 1000); // Increased to 15 minutes to handle slower API responses
 
         pythonProcess.on('close', (code) => {
           clearTimeout(timeout);
