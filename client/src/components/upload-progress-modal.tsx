@@ -3,7 +3,7 @@ import { Loader2, FileText, Database, ChevronRight, Terminal } from "lucide-reac
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { getPythonConsoleMessages, PythonConsoleMessage } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 
@@ -24,14 +24,33 @@ const AnimatedNumber = ({ value }: { value: number }) => (
 export function UploadProgressModal() {
   const { isUploading, uploadProgress } = useDisasterContext();
   const [activeTab, setActiveTab] = useState<'progress'|'console'>('progress');
+  const consoleScrollRef = useRef<HTMLDivElement>(null);
   
   // Fetch Python console messages
   const { data: consoleMessages = [], refetch: refetchConsoleMessages } = useQuery({
     queryKey: ['/api/python-console-messages'],
     queryFn: () => getPythonConsoleMessages(100),
     refetchInterval: isUploading ? 500 : false, // Poll every 500ms while uploading
-    enabled: isUploading
+    enabled: isUploading,
+    // Suppress error messages in the console
+    onError: () => {
+      // Silent error handling - don't show in console
+    }
   });
+  
+  // Auto-scroll console to bottom when new messages arrive
+  useEffect(() => {
+    if (consoleScrollRef.current && consoleMessages.length > 0) {
+      setTimeout(() => {
+        if (consoleScrollRef.current) {
+          const scrollElement = consoleScrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+          if (scrollElement) {
+            scrollElement.scrollTop = scrollElement.scrollHeight;
+          }
+        }
+      }, 100);
+    }
+  }, [consoleMessages.length]);
 
   if (!isUploading) return null;
 
@@ -156,7 +175,7 @@ export function UploadProgressModal() {
         )}
 
         {activeTab === 'console' && (
-          <ScrollArea className="h-[200px] rounded-md border">
+          <ScrollArea ref={consoleScrollRef} className="h-[200px] rounded-md border">
             <div className="p-2 bg-black text-green-400 font-mono text-xs space-y-1">
               {consoleMessages.length > 0 ? (
                 consoleMessages.map((msg, index) => (

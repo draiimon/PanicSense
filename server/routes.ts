@@ -467,22 +467,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (sessionId) {
         // Log the raw progress update from Python service
         console.log('Raw progress update:', { processed, stage, total });
+        
+        // Try to extract progress data from PROGRESS: messages
+        let extractedProcessed = processed;
+        let extractedTotal = total || uploadProgressMap.get(sessionId)?.total || 0;
+        let extractedStage = stage;
+        
+        // Check if the stage message contains a JSON progress report
+        if (stage.includes("PROGRESS:")) {
+          try {
+            // Extract the JSON portion from the PROGRESS: message
+            const jsonStartIndex = stage.indexOf("PROGRESS:");
+            const jsonString = stage.substring(jsonStartIndex + 9).trim();
+            const progressJson = JSON.parse(jsonString);
+            
+            // Update with more accurate values from the progress message
+            if (progressJson.processed !== undefined) {
+              extractedProcessed = progressJson.processed;
+            }
+            if (progressJson.total !== undefined) {
+              extractedTotal = progressJson.total;
+            }
+            if (progressJson.stage) {
+              extractedStage = progressJson.stage;
+            }
+            
+            console.log('Extracted progress from message:', { 
+              extractedProcessed, 
+              extractedStage, 
+              extractedTotal 
+            });
+          } catch (err) {
+            console.error('Failed to parse PROGRESS message:', err);
+          }
+        }
+        
+        // Handle "Completed record X/Y" format
+        if (stage.includes("Completed record")) {
+          const matches = stage.match(/Completed record (\d+)\/(\d+)/);
+          if (matches) {
+            extractedProcessed = parseInt(matches[1]);
+            extractedTotal = parseInt(matches[2]);
+            console.log('Extracted progress from completed record:', { 
+              extractedProcessed, 
+              extractedTotal 
+            });
+          }
+        }
 
         // Create progress update for broadcasting
         const progressData = {
           type: 'progress',
           sessionId,
           progress: {
-            processed,
-            total: total || uploadProgressMap.get(sessionId)?.total || 0,
-            // Keep the raw stage message from Python
-            stage: stage.includes("PROGRESS:") || stage.includes("Completed record") ? stage : stage,
+            processed: extractedProcessed,
+            total: extractedTotal,
+            stage: extractedStage,
             timestamp: Date.now(),
             batchNumber: batchInfo?.batchNumber || 0,
             totalBatches: batchInfo?.totalBatches || 0,
             batchProgress: batchInfo?.batchProgress || 0,
             processingStats: batchInfo?.stats || {
-              successCount: processed,
+              successCount: extractedProcessed,
               errorCount: 0,
               lastBatchDuration: 0,
               averageSpeed: 0
