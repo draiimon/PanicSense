@@ -158,13 +158,9 @@ export class PythonService {
           log(`Python process error: ${errorMsg}`, 'python-service');
         });
 
-        const timeout = setTimeout(() => {
-          pythonProcess.kill();
-          reject(new Error('Python script execution timed out after 15 minutes'));
-        }, 15 * 60 * 1000); // Increased to 15 minutes to handle slower API responses
-
+        // No timeout as requested by user - Python process will run until completion
+        
         pythonProcess.on('close', (code) => {
-          clearTimeout(timeout);
           if (code !== 0) {
             reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
             return;
@@ -178,7 +174,6 @@ export class PythonService {
         });
 
         pythonProcess.on('error', (error) => {
-          clearTimeout(timeout);
           reject(new Error(`Failed to start Python process: ${error.message}`));
         });
       });
