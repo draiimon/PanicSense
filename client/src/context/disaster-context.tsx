@@ -86,7 +86,7 @@ const initialProgress: UploadProgress = {
 };
 
 export function DisasterContextProvider({ children }: { children: ReactNode }) {
-  // State management
+  // State
   const [selectedDisasterType, setSelectedDisasterType] = useState<string>("All");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>(initialProgress);
@@ -100,28 +100,37 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'progress' && data.progress) {
-          console.log('Progress update:', data.progress);
+        if (data.type === 'progress') {
+          console.log('WebSocket progress update:', data);
 
-          // Update progress state directly from server data
-          setUploadProgress(prev => ({
-            ...prev,
-            processed: data.progress.processed,
-            total: data.progress.total,
-            stage: data.progress.stage,
-            batchNumber: data.progress.batchNumber,
-            totalBatches: data.progress.totalBatches,
-            batchProgress: data.progress.total > 0 
-              ? Math.round((data.progress.processed / data.progress.total) * 100) 
-              : 0,
-            currentSpeed: data.progress.currentSpeed,
-            timeRemaining: data.progress.timeRemaining,
-            processingStats: {
-              successCount: data.progress.processingStats?.successCount || 0,
-              errorCount: data.progress.processingStats?.errorCount || 0,
-              averageSpeed: data.progress.processingStats?.averageSpeed || 0
-            }
-          }));
+          // Extract progress info from Python service
+          const pythonProgress = data.progress;
+          if (pythonProgress && typeof pythonProgress === 'object') {
+            // Parse numbers from the progress message
+            const matches = pythonProgress.stage?.match(/(\d+)\/(\d+)/);
+            const currentRecord = matches ? parseInt(matches[1]) : 0;
+            const totalRecords = matches ? parseInt(matches[2]) : pythonProgress.total || 0;
+
+            // Calculate actual progress percentage
+            const processedCount = pythonProgress.processed || currentRecord;
+
+            setUploadProgress(prev => ({
+              ...prev,
+              processed: processedCount,
+              total: totalRecords || prev.total,
+              stage: pythonProgress.stage || prev.stage,
+              batchNumber: currentRecord,
+              totalBatches: totalRecords,
+              batchProgress: totalRecords > 0 ? Math.round((processedCount / totalRecords) * 100) : 0,
+              currentSpeed: pythonProgress.currentSpeed || prev.currentSpeed,
+              timeRemaining: pythonProgress.timeRemaining || prev.timeRemaining,
+              processingStats: {
+                successCount: processedCount,
+                errorCount: pythonProgress.processingStats?.errorCount || 0,
+                averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
+              }
+            }));
+          }
         }
       } catch (error) {
         console.error('Error processing WebSocket message:', error);
