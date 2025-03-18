@@ -893,7 +893,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Return the most recent messages, with a limit of 100
       const limit = parseInt(req.query.limit as string) || 100;
-      const recentMessages = pythonConsoleMessages
+      
+      // Filter out noise and technical error messages that don't provide value to users
+      const filteredMessages = pythonConsoleMessages.filter(item => {
+        const message = item.message.toLowerCase();
+        
+        // Skip empty messages
+        if (!item.message.trim()) return false;
+        
+        // Skip purely technical error messages with no user value
+        if (
+          (message.includes('traceback') && message.includes('error:')) ||
+          message.includes('command failed with exit code') ||
+          message.includes('deprecated') ||
+          message.includes('warning: ') ||
+          message.match(/^\s*at\s+[\w./<>]+:\d+:\d+\s*$/) // Stack trace lines
+        ) {
+          return false;
+        }
+        
+        return true;
+      });
+      
+      const recentMessages = filteredMessages
         .slice(-limit)
         .map(item => ({
           message: item.message,

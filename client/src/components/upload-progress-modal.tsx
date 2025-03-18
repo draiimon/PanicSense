@@ -29,13 +29,16 @@ export function UploadProgressModal() {
   // Fetch Python console messages
   const { data: consoleMessages = [], refetch: refetchConsoleMessages } = useQuery({
     queryKey: ['/api/python-console-messages'],
-    queryFn: () => getPythonConsoleMessages(100),
+    queryFn: async () => {
+      try {
+        return await getPythonConsoleMessages(100);
+      } catch (error) {
+        // Silent error handling - don't log to console
+        return [];
+      }
+    },
     refetchInterval: isUploading ? 500 : false, // Poll every 500ms while uploading
-    enabled: isUploading,
-    // Suppress error messages in the console
-    onError: () => {
-      // Silent error handling - don't show in console
-    }
+    enabled: isUploading
   });
   
   // Auto-scroll console to bottom when new messages arrive
@@ -178,11 +181,36 @@ export function UploadProgressModal() {
           <ScrollArea ref={consoleScrollRef} className="h-[200px] rounded-md border">
             <div className="p-2 bg-black text-green-400 font-mono text-xs space-y-1">
               {consoleMessages.length > 0 ? (
-                consoleMessages.map((msg, index) => (
-                  <div key={index} className="py-1">
-                    <span className="text-gray-500">[{new Date(msg.timestamp).toLocaleTimeString()}]</span> {msg.message}
-                  </div>
-                ))
+                consoleMessages
+                  .filter(msg => {
+                    // Filter out technical error messages that don't provide value to users
+                    const message = msg.message.toLowerCase();
+                    return !(
+                      message.includes('traceback') && message.includes('error:') ||
+                      message.includes('python process error') ||
+                      message.includes('unhandled exception') ||
+                      message.includes('command failed with exit code')
+                    );
+                  })
+                  .map((msg, index) => {
+                    // Check if it's a progress message and make it stand out
+                    const isProgressMsg = msg.message.includes('PROGRESS:');
+                    const isSuccessMsg = msg.message.toLowerCase().includes('success') || 
+                                         msg.message.toLowerCase().includes('completed');
+                    
+                    return (
+                      <div 
+                        key={index} 
+                        className={`py-1 ${isProgressMsg ? 'text-blue-400' : ''} ${isSuccessMsg ? 'text-green-400 font-semibold' : ''}`}
+                      >
+                        <span className="text-gray-500">[{new Date(msg.timestamp).toLocaleTimeString()}]</span>{' '}
+                        {/* Clean up PROGRESS: prefix for better readability */}
+                        {isProgressMsg 
+                          ? msg.message.replace('PROGRESS:', 'Progress:') 
+                          : msg.message}
+                      </div>
+                    );
+                  })
               ) : (
                 <div className="py-2 text-gray-500 italic">No console output available...</div>
               )}
