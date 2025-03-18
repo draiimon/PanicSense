@@ -21,14 +21,14 @@ const AnimatedNumber = ({ value }: { value: number }) => (
 
 // Format time remaining
 const formatTimeRemaining = (seconds: number): string => {
-  if (!seconds || seconds <= 0) return 'Calculating...';
+  if (!seconds || seconds <= 0) return '';
   if (seconds < 60) return `${Math.round(seconds)}s`;
   return `${Math.round(seconds / 60)}m ${Math.round(seconds % 60)}s`;
 };
 
 // Format speed
 const formatSpeed = (recordsPerSecond: number): string => {
-  if (!recordsPerSecond || recordsPerSecond <= 0) return 'Calculating...';
+  if (!recordsPerSecond || recordsPerSecond <= 0) return '';
   if (recordsPerSecond >= 1000) {
     return `${(recordsPerSecond / 1000).toFixed(1)}k records/s`;
   }
@@ -79,7 +79,7 @@ export function UploadProgressModal() {
   // Stage indication
   const isLoading = stage.toLowerCase().includes('initializing') || stage.toLowerCase().includes('loading');
   const isProcessing = stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record');
-  const isCompleted = percentComplete === 100; 
+  const isCompleted = stage.toLowerCase().includes('complete') || stage.toLowerCase().includes('completed');
 
   return createPortal(
     <motion.div
@@ -129,26 +129,30 @@ export function UploadProgressModal() {
           {/* Enhanced Stats Grid */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             {/* Processing Speed */}
-            <div className="bg-white/50 backdrop-blur-sm rounded-lg p-3 border border-blue-100/50">
-              <div className="flex items-center gap-2 text-blue-600 mb-1">
-                <Activity className="h-4 w-4" />
-                <span className="text-xs font-medium">Processing Speed</span>
+            {(currentSpeed > 0 || processingStats.averageSpeed > 0) && (
+              <div className="bg-white/50 backdrop-blur-sm rounded-lg p-3 border border-blue-100/50">
+                <div className="flex items-center gap-2 text-blue-600 mb-1">
+                  <Activity className="h-4 w-4" />
+                  <span className="text-xs font-medium">Processing Speed</span>
+                </div>
+                <div className="text-sm font-semibold text-slate-700">
+                  {currentSpeed > 0 ? formatSpeed(currentSpeed) : formatSpeed(processingStats.averageSpeed)}
+                </div>
               </div>
-              <div className="text-sm font-semibold text-slate-700">
-                {currentSpeed > 0 ? formatSpeed(currentSpeed) : `${processingStats.averageSpeed > 0 ? formatSpeed(processingStats.averageSpeed) : 'Starting...'}`}
-              </div>
-            </div>
+            )}
 
             {/* Time Remaining */}
-            <div className="bg-white/50 backdrop-blur-sm rounded-lg p-3 border border-blue-100/50">
-              <div className="flex items-center gap-2 text-blue-600 mb-1">
-                <Clock className="h-4 w-4" />
-                <span className="text-xs font-medium">Time Remaining</span>
+            {timeRemaining > 0 && !isCompleted && (
+              <div className="bg-white/50 backdrop-blur-sm rounded-lg p-3 border border-blue-100/50">
+                <div className="flex items-center gap-2 text-blue-600 mb-1">
+                  <Clock className="h-4 w-4" />
+                  <span className="text-xs font-medium">Time Remaining</span>
+                </div>
+                <div className="text-sm font-semibold text-slate-700">
+                  {formatTimeRemaining(timeRemaining)}
+                </div>
               </div>
-              <div className="text-sm font-semibold text-slate-700">
-                {isCompleted ? 'Completed!' : timeRemaining > 0 ? formatTimeRemaining(timeRemaining) : 'Starting...'}
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Progress Stages */}
