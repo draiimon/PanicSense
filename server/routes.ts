@@ -449,10 +449,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let sessionId = '';
     // Track the highest progress value to prevent jumping backward
     let highestProcessedValue = 0;
-    
+
     // Log start of a new upload
     console.log('Starting new CSV upload, resetting progress tracking');
-    
+
     let updateProgress = (
       processed: number, 
       stage: string, 
@@ -473,16 +473,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (sessionId) {
         // Log the raw progress update from Python service
         console.log('Raw progress update:', { processed, stage, total });
-        
+
         // Get existing progress from the map
         const existingProgress = uploadProgressMap.get(sessionId);
         const existingTotal = existingProgress?.total || 0;
-        
+
         // Try to extract progress data from PROGRESS: messages
         let extractedProcessed = processed;
         let extractedTotal = total || existingTotal;
         let extractedStage = stage;
-        
+
         // Check if the stage message contains a JSON progress report
         if (stage.includes("PROGRESS:")) {
           try {
@@ -490,7 +490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const jsonStartIndex = stage.indexOf("PROGRESS:");
             const jsonString = stage.substring(jsonStartIndex + 9).trim();
             const progressJson = JSON.parse(jsonString);
-            
+
             // Update with more accurate values from the progress message
             if (progressJson.processed !== undefined) {
               extractedProcessed = progressJson.processed;
@@ -501,7 +501,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (progressJson.stage) {
               extractedStage = progressJson.stage;
             }
-            
+
             console.log('Extracted progress from message:', { 
               extractedProcessed, 
               extractedStage, 
@@ -511,7 +511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error('Failed to parse PROGRESS message:', err);
           }
         }
-        
+
         // Handle "Completed record X/Y" format
         if (stage.includes("Completed record")) {
           const matches = stage.match(/Completed record (\d+)\/(\d+)/);
@@ -524,7 +524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
         }
-        
+
         // Prevent progress from going backward
         if (extractedProcessed < highestProcessedValue) {
           console.log(`Progress went backward (${extractedProcessed} < ${highestProcessedValue}), maintaining highest value`);
@@ -911,14 +911,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Return the most recent messages, with a limit of 100
       const limit = parseInt(req.query.limit as string) || 100;
-      
+
       // Filter out noise and technical error messages that don't provide value to users
       const filteredMessages = pythonConsoleMessages.filter(item => {
         const message = item.message.toLowerCase();
-        
+
         // Skip empty messages
         if (!item.message.trim()) return false;
-        
+
         // Skip purely technical error messages with no user value
         if (
           (message.includes('traceback') && message.includes('error:')) ||
@@ -929,17 +929,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ) {
           return false;
         }
-        
+
         return true;
       });
-      
+
       const recentMessages = filteredMessages
         .slice(-limit)
         .map(item => ({
           message: item.message,
           timestamp: item.timestamp.toISOString()
         }));
-      
+
       res.json(recentMessages);
     } catch (error) {
       res.status(500).json({ 
@@ -978,8 +978,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename=disaster-sentiments.csv');
 
-      res.send(csv);
-    } catch (error) {
+      res.send(csv);    } catch (error) {
       res.status(500).json({ error: "Failed to export CSV" });
     }
   });
