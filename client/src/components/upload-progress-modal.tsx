@@ -25,6 +25,7 @@ export function UploadProgressModal() {
   const { isUploading, uploadProgress } = useDisasterContext();
   const [activeTab, setActiveTab] = useState<'progress'|'console'>('progress');
   const consoleScrollRef = useRef<HTMLDivElement>(null);
+  const [highestProcessed, setHighestProcessed] = useState(0);
   
   // Fetch Python console messages
   const { data: consoleMessages = [], refetch: refetchConsoleMessages } = useQuery({
@@ -55,11 +56,28 @@ export function UploadProgressModal() {
     }
   }, [consoleMessages.length]);
 
+  // Effect to track the highest processed value to prevent jumping backward
+  useEffect(() => {
+    if (uploadProgress.processed > highestProcessed) {
+      setHighestProcessed(uploadProgress.processed);
+    }
+  }, [uploadProgress.processed, highestProcessed]);
+  
+  // Reset the highest processed value when a new upload starts
+  // This is detected by checking if the stage changes to "Initializing"
+  useEffect(() => {
+    if (uploadProgress.stage && 
+       (uploadProgress.stage.includes('Initializing') || uploadProgress.stage.includes('starting'))) {
+      console.log('Resetting highest processed value due to new upload starting');
+      setHighestProcessed(0);
+    }
+  }, [uploadProgress.stage]);
+
   if (!isUploading) return null;
 
   const { 
     stage = 'Processing...', 
-    processed = 0, 
+    processed: rawProcessed = 0, 
     total = 100,
     processingStats = {
       successCount: 0,
@@ -68,6 +86,10 @@ export function UploadProgressModal() {
     },
     currentSpeed = 0
   } = uploadProgress;
+  
+  // Use the higher value between current processed and highest recorded
+  // This prevents the counter from going backward
+  const processed = Math.max(rawProcessed, highestProcessed);
 
   // Stage indication
   const isLoading = stage.toLowerCase().includes('initializing') || stage.toLowerCase().includes('loading');

@@ -30,8 +30,16 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     }
 
     try {
+      // Clear any previous upload state
+      setIsUploading(false);
+      
+      // Wait a moment before starting the new upload to ensure reset of any tracking state
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Start the new upload process with a clear initialization state
       setIsUploading(true);
-      setUploadProgress({ processed: 0, total: 0, stage: 'Initializing...' });
+      // Set initializing stage which will trigger our reset in the upload progress modal
+      setUploadProgress({ processed: 0, total: 0, stage: 'Initializing new upload...' });
 
       const result = await uploadCSV(file, (progress) => {
         setUploadProgress({

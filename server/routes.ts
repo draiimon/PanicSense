@@ -447,6 +447,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced file upload endpoint
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
     let sessionId = '';
+    // Track the highest progress value to prevent jumping backward
+    let highestProcessedValue = 0;
+    
     let updateProgress = (
       processed: number, 
       stage: string, 
@@ -468,9 +471,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Log the raw progress update from Python service
         console.log('Raw progress update:', { processed, stage, total });
         
+        // Get existing progress from the map
+        const existingProgress = uploadProgressMap.get(sessionId);
+        const existingTotal = existingProgress?.total || 0;
+        
         // Try to extract progress data from PROGRESS: messages
         let extractedProcessed = processed;
-        let extractedTotal = total || uploadProgressMap.get(sessionId)?.total || 0;
+        let extractedTotal = total || existingTotal;
         let extractedStage = stage;
         
         // Check if the stage message contains a JSON progress report
@@ -513,6 +520,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               extractedTotal 
             });
           }
+        }
+        
+        // Prevent progress from going backward
+        if (extractedProcessed < highestProcessedValue) {
+          console.log(`Progress went backward (${extractedProcessed} < ${highestProcessedValue}), maintaining highest value`);
+          extractedProcessed = highestProcessedValue;
+        } else if (extractedProcessed > highestProcessedValue) {
+          highestProcessedValue = extractedProcessed;
         }
 
         // Create progress update for broadcasting
