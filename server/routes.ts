@@ -9,13 +9,15 @@ import { insertSentimentPostSchema, insertAnalyzedFileSchema } from "@shared/sch
 import { EventEmitter } from 'events';
 
 // Track upload progress
-const uploadProgressMap = new Map();
+const uploadProgressMap = new Map<string, {
+  processed: number;
+  total: number;
+  stage: string;
+  timestamp: number;
+}>();
 
 // Track connected WebSocket clients
 const connectedClients = new Set<WebSocket>();
-
-// Progress event emitter for real-time updates
-const progressEmitter = new EventEmitter();
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -33,10 +35,10 @@ const upload = multer({
 });
 
 // Function to broadcast progress to all connected clients
-function broadcastProgress(progress: any) {
+function broadcastProgress(data: any) {
   const message = JSON.stringify({
     type: 'progress',
-    progress
+    progress: data
   });
 
   connectedClients.forEach(client => {
@@ -45,12 +47,6 @@ function broadcastProgress(progress: any) {
     }
   });
 }
-
-// Listen for Python service progress updates
-progressEmitter.on('progress', (data: any) => {
-  console.log('Broadcasting progress:', data);
-  broadcastProgress(data);
-});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve static files from attached_assets
@@ -70,36 +66,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('New WebSocket client connected');
     connectedClients.add(ws);
 
-    // Send initial data
-    storage.getSentimentPosts().then(posts => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'initial_data',
-          data: posts
-        }));
-      }
-    });
-
     // Handle client disconnection
     ws.on('close', () => {
       console.log('WebSocket client disconnected');
       connectedClients.delete(ws);
     });
-
-    // Handle client messages
-    ws.on('message', (message: string) => {
-      try {
-        const data = JSON.parse(message.toString());
-        console.log('Received message:', data);
-      } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
-      }
-    });
   });
 
-
-  // Add the SSE endpoint inside registerRoutes
-  //This section has been removed as per the edited code.  The SSE approach is replaced with WebSockets.
 
   // Authentication Routes
   app.post('/api/auth/signup', async (req: Request, res: Response) => {
@@ -354,16 +327,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileContent = fileBuffer.toString('utf-8');
       const totalRecords = fileContent.split('\n').length - 1;
 
-      // Initialize progress tracking for this session
+      // Initialize progress tracking
       uploadProgressMap.set(sessionId, {
-        processed: 0,
-        total: totalRecords,
-        stage: 'Initializing...',
-        timestamp: Date.now()
-      });
-
-      // Initial progress broadcast
-      broadcastProgress({
         processed: 0,
         total: totalRecords,
         stage: `Initializing analysis for ${totalRecords} records...`,
@@ -386,13 +351,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         broadcastProgress(progress);
       };
 
+      // Process the file
       const { data, storedFilename } = await pythonService.processCSV(
         fileBuffer,
         originalFilename,
         updateProgress
       );
 
-      // Filter results for valid entries
+      // Filter results
       const filteredResults = data.results.filter(post => 
         post.text.length >= 9 && 
         post.explanation && 
@@ -439,7 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       uploadProgressMap.set(sessionId, finalProgress);
       broadcastProgress(finalProgress);
 
-      // Clean up progress tracking after 5 seconds
+      // Clean up progress tracking
       setTimeout(() => {
         uploadProgressMap.delete(sessionId);
       }, 5000);
