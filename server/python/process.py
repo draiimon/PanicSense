@@ -1075,35 +1075,45 @@ class DisasterSentimentBackend:
                         failed_records.append((i, row))
                         time.sleep(1.0)  # Wait 1 second before continuing
 
-                # Add delay between batches to prevent API rate limits
+                # Add delay between batches to prevent API rate limits, but only for files > 20 rows
                 if batch_start + BATCH_SIZE < len(indices_to_process):
                     batch_number = batch_start // BATCH_SIZE + 1
-                    logging.info(
-                        f"Completed batch {batch_number} - cooldown period started for 60 seconds"
-                    )
                     
-                    # Implement cooldown with countdown in the progress reports
-                    cooldown_start = time.time()
-                    for remaining in range(BATCH_COOLDOWN, 0, -1):
-                        elapsed = time.time() - cooldown_start
-                        actual_remaining = max(0, BATCH_COOLDOWN - int(elapsed))
-                        
-                        # Update progress with cooldown information
+                    # Skip cooldown for small files (under 20 rows)
+                    if sample_size <= 20:
+                        logging.info(f"Small file detected (≤20 rows). Skipping cooldown period.")
                         report_progress(
                             5 + int(((batch_start + BATCH_SIZE) / sample_size) * 90),
-                            f"Cooldown: {actual_remaining} seconds remaining until next batch. Completed {batch_number} of {len(indices_to_process) // BATCH_SIZE + 1} batches.",
+                            f"Small file detected (≤20 rows). Processing without cooldown restrictions.",
                             total_records
                         )
+                    else:
+                        logging.info(
+                            f"Completed batch {batch_number} - cooldown period started for 60 seconds"
+                        )
                         
-                        # Only sleep if we haven't already exceeded the interval
-                        if actual_remaining > 0:
-                            time.sleep(1)  # Update countdown every second
+                        # Implement cooldown with countdown in the progress reports
+                        cooldown_start = time.time()
+                        for remaining in range(BATCH_COOLDOWN, 0, -1):
+                            elapsed = time.time() - cooldown_start
+                            actual_remaining = max(0, BATCH_COOLDOWN - int(elapsed))
                             
-                    report_progress(
-                        5 + int(((batch_start + BATCH_SIZE) / sample_size) * 90),
-                        f"Cooldown complete. Starting next batch.",
-                        total_records
-                    )
+                            # Update progress with cooldown information
+                            report_progress(
+                                5 + int(((batch_start + BATCH_SIZE) / sample_size) * 90),
+                                f"Cooldown: {actual_remaining} seconds remaining until next batch. Completed {batch_number} of {len(indices_to_process) // BATCH_SIZE + 1} batches.",
+                                total_records
+                            )
+                            
+                            # Only sleep if we haven't already exceeded the interval
+                            if actual_remaining > 0:
+                                time.sleep(1)  # Update countdown every second
+                                
+                        report_progress(
+                            5 + int(((batch_start + BATCH_SIZE) / sample_size) * 90),
+                            f"Cooldown complete. Starting next batch.",
+                            total_records
+                        )
 
             # Retry failed records
             if failed_records:

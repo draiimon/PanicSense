@@ -190,7 +190,7 @@ export default function Dashboard() {
         initial="hidden"
         animate="visible"
         variants={fadeInUp}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6"
       >
         <StatusCard 
           title="Active Disasters"
@@ -217,7 +217,7 @@ export default function Dashboard() {
         <StatusCard 
           title="Dominant Sentiment"
           value={dominantSentiment}
-          icon="bar-chart"
+          icon="heart"
           trend={{
             value: "stable",
             isUpward: null,
