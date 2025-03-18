@@ -2,6 +2,7 @@ import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
+import path from "path";
 import multer from "multer";
 import { pythonService } from "./python-service";
 import { insertSentimentPostSchema, insertAnalyzedFileSchema } from "@shared/schema";
