@@ -114,10 +114,10 @@ export function UploadProgressModal() {
         </div>
 
         {/* Content wrapper */}
-        <div className="relative space-y-6">
+        <div className="relative space-y-2">
           {/* Main Progress Display */}
-          <div className="text-center">
-            <h3 className="text-xl font-semibold text-slate-200 mb-2">
+          <div className="text-center mb-2">
+            <h3 className="text-xl font-semibold text-slate-200 mb-1">
               {hasError ? 'Upload Error' :
                 isComplete 
                   ? 'Analysis Complete!' 
@@ -142,7 +142,7 @@ export function UploadProgressModal() {
 
           {/* Enhanced Stats Grid */}
           {!hasError && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 mb-4">
               {/* Processing Speed */}
               {(currentSpeed > 0 || processingStats.averageSpeed > 0) && (
                 <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-sm rounded-xl p-4 border border-slate-600/50 shadow-lg">
@@ -171,8 +171,8 @@ export function UploadProgressModal() {
             </div>
           )}
 
-          {/* Progress Stages - No ScrollArea */}
-          <div className="space-y-3">
+          {/* Progress Stages */}
+          <div className="space-y-2">
             {/* Loading Stage */}
             <div className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
               isLoading ? 'bg-blue-900/30 text-blue-300 shadow-lg border border-blue-500/20' : 'bg-slate-800/50 text-slate-400'
