@@ -4,7 +4,7 @@ import { useDisasterContext } from '@/context/disaster-context';
 import { useToast } from '@/hooks/use-toast';
 import { uploadCSV } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
-import { SimpleProgress } from './simple-progress';
+import { UploadProgressModal } from './upload-progress-modal';
 
 interface FileUploaderButtonProps {
   onSuccess?: (data: any) => void;
@@ -32,6 +32,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
     try {
       setIsUploading(true);
+      setUploadProgress({ processed: 0, total: 0, stage: 'Initializing...' });
       console.log('Starting upload process...');
 
       const result = await uploadCSV(file, (progress) => {
@@ -99,7 +100,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           onChange={handleFileUpload}
         />
       </motion.label>
-      <SimpleProgress />
+      <UploadProgressModal />
     </>
   );
 }
