@@ -3,24 +3,18 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 interface SimpleProgressProps {
-  totalItems: number; // Required prop, no default value
   isProcessing: boolean;
   onComplete?: () => void;
   stage?: string; // The current stage message from the system
 }
 
-export function SimpleProgress({ totalItems, isProcessing, onComplete, stage }: SimpleProgressProps) {
+export function SimpleProgress({ isProcessing, onComplete, stage }: SimpleProgressProps) {
   const [progress, setProgress] = useState(0);
-  const [processedItems, setProcessedItems] = useState(0);
-  const [avgSpeed, setAvgSpeed] = useState(0);
-  const [startTime] = useState(Date.now());
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
     if (!isProcessing) {
       setProgress(0);
-      setProcessedItems(0);
-      setAvgSpeed(0);
       setIsComplete(false);
       return;
     }
@@ -30,21 +24,16 @@ export function SimpleProgress({ totalItems, isProcessing, onComplete, stage }: 
       const matches = stage.match(/(\d+)\/(\d+)/);
       if (matches) {
         const current = parseInt(matches[1]);
-        setProcessedItems(current);
-        setProgress((current / totalItems) * 100);
+        const total = parseInt(matches[2]);
+        setProgress((current / total) * 100);
 
-        // Calculate actual speed
-        const elapsedSeconds = (Date.now() - startTime) / 1000;
-        const speed = elapsedSeconds > 0 ? current / elapsedSeconds : 0;
-        setAvgSpeed(Number(speed.toFixed(1)));
-
-        if (current >= totalItems) {
+        if (current >= total) {
           setIsComplete(true);
           onComplete?.();
         }
       }
     }
-  }, [isProcessing, stage, totalItems, onComplete, startTime]);
+  }, [isProcessing, stage, onComplete]);
 
   return (
     <div className="w-full space-y-2">
@@ -58,9 +47,6 @@ export function SimpleProgress({ totalItems, isProcessing, onComplete, stage }: 
       <div className="flex justify-between text-sm text-muted-foreground">
         <span>
           {stage || ''}
-        </span>
-        <span>
-          Average Speed: {avgSpeed} records/s
         </span>
       </div>
     </div>
