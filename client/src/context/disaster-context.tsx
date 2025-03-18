@@ -101,24 +101,24 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'progress' && data.progress) {
-          // Log progress update
-          console.log('Progress update received:', data.progress);
+          console.log('Progress update:', data.progress);
 
-          // Direct update of progress state
           setUploadProgress(prev => ({
             ...prev,
             processed: data.progress.processed,
             total: data.progress.total,
             stage: data.progress.stage,
-            batchNumber: data.progress.batchNumber,
-            totalBatches: data.progress.totalBatches,
+            batchNumber: data.progress.processed,
+            totalBatches: data.progress.total,
             batchProgress: data.progress.total > 0 
               ? Math.round((data.progress.processed / data.progress.total) * 100) 
               : 0,
+            currentSpeed: prev.currentSpeed,
+            timeRemaining: prev.timeRemaining,
             processingStats: {
               successCount: data.progress.processed,
-              errorCount: data.progress.errorCount || 0,
-              averageSpeed: data.progress.averageSpeed || 0
+              errorCount: 0,
+              averageSpeed: prev.processingStats.averageSpeed
             }
           }));
         }
