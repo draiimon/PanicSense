@@ -25,24 +25,10 @@ interface ProcessCSVResult {
   };
 }
 
-interface BatchProgress {
-  batchNumber: number;
-  totalBatches: number;
-  batchProgress: number;
-  stats: {
-    successCount: number;
-    errorCount: number;
-    lastBatchDuration: number;
-    averageSpeed: number;
-  };
-}
-
 export class PythonService {
   private pythonBinary: string;
   private tempDir: string;
   private scriptPath: string;
-  private maxRetries: number = 3;
-  private retryDelay: number = 1000;
 
   constructor() {
     this.pythonBinary = 'python3';
@@ -51,21 +37,6 @@ export class PythonService {
 
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
-    }
-  }
-
-  private async retryOperation<T>(
-    operation: () => Promise<T>,
-    retryCount: number = 0
-  ): Promise<T> {
-    try {
-      return await operation();
-    } catch (error) {
-      if (retryCount < this.maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, this.retryDelay * Math.pow(2, retryCount)));
-        return this.retryOperation(operation, retryCount + 1);
-      }
-      throw error;
     }
   }
 
@@ -103,11 +74,13 @@ export class PythonService {
         let output = '';
         let errorOutput = '';
 
+        // Handle progress events from Python script
         pythonProcess.stdout.on('data', (data) => {
           const dataStr = data.toString();
           if (onProgress && dataStr.includes('PROGRESS:')) {
             try {
               const progressData = JSON.parse(dataStr.split('PROGRESS:')[1]);
+              log(`Progress update: ${JSON.stringify(progressData)}`, 'python-service');
               onProgress(
                 progressData.processed,
                 progressData.stage,
@@ -156,12 +129,7 @@ export class PythonService {
         throw new Error('Invalid data format returned from Python script');
       }
 
-      // Log processing results
       log(`Successfully processed ${data.results.length} records from CSV`, 'python-service');
-      const withLocation = data.results.filter(r => r.location).length;
-      const withDisasterType = data.results.filter(r => r.disasterType && r.disasterType !== "Not Specified").length;
-      log(`Records with location: ${withLocation}/${data.results.length}`, 'python-service');
-      log(`Records with disaster type: ${withDisasterType}/${data.results.length}`, 'python-service');
 
       return {
         data,
@@ -177,12 +145,7 @@ export class PythonService {
     }
   }
 
-  public async analyzeSentiment(
-    text: string, 
-    csvLocation?: string, 
-    csvEmotion?: string, 
-    csvDisasterType?: string
-  ): Promise<{
+  public async analyzeSentiment(text: string): Promise<{
     sentiment: string;
     confidence: number;
     explanation: string;
@@ -190,89 +153,40 @@ export class PythonService {
     disasterType?: string;
     location?: string;
   }> {
-    const params = {
-      text,
-      csvLocation,
-      csvEmotion,
-      csvDisasterType
-    };
-
-    const paramsJson = JSON.stringify(params);
-
     try {
-      const result = await this.retryOperation(async () => {
-        return this.runPythonScript('', paramsJson);
+      // Pass text directly to Python script
+      const pythonProcess = spawn(this.pythonBinary, [
+        this.scriptPath,
+        '--text', text
+      ]);
+
+      const result = await new Promise<string>((resolve, reject) => {
+        let output = '';
+        let errorOutput = '';
+
+        pythonProcess.stdout.on('data', (data) => {
+          output += data.toString();
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+          errorOutput += data.toString();
+          log(`Python process error: ${data.toString()}`, 'python-service');
+        });
+
+        pythonProcess.on('close', (code) => {
+          if (code !== 0) {
+            reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
+            return;
+          }
+          resolve(output.trim());
+        });
       });
+
       return JSON.parse(result);
     } catch (error) {
       log(`Sentiment analysis failed: ${error}`, 'python-service');
       throw new Error(`Failed to analyze sentiment: ${error}`);
     }
-  }
-
-  private runPythonScript(
-    filePath: string = '', 
-    textToAnalyze: string = '',
-  ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const args = [this.scriptPath];
-
-      if (filePath) {
-        args.push('--file', filePath);
-      }
-
-      if (textToAnalyze) {
-        args.push('--text', textToAnalyze);
-      }
-
-      log(`Running Python script with args: ${args.join(' ')}`, 'python-service');
-
-      const pythonProcess = spawn(this.pythonBinary, args);
-
-      let output = '';
-      let errorOutput = '';
-
-      pythonProcess.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
-      pythonProcess.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-        log(`Python process error: ${data.toString()}`, 'python-service');
-      });
-
-      const timeout = setTimeout(() => {
-        pythonProcess.kill();
-        reject(new Error('Python script execution timed out after 5 minutes'));
-      }, 5 * 60 * 1000);
-
-      pythonProcess.on('close', (code) => {
-        clearTimeout(timeout);
-
-        if (code !== 0) {
-          reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
-          return;
-        }
-
-        const trimmedOutput = output.trim();
-        if (!trimmedOutput) {
-          reject(new Error('Python process returned empty output'));
-          return;
-        }
-
-        try {
-          JSON.parse(trimmedOutput);
-          resolve(trimmedOutput);
-        } catch (e) {
-          reject(new Error('Invalid JSON output from Python script'));
-        }
-      });
-
-      pythonProcess.on('error', (error) => {
-        clearTimeout(timeout);
-        reject(new Error(`Failed to start Python process: ${error.message}`));
-      });
-    });
   }
 }
 
