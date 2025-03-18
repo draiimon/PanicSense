@@ -26,7 +26,7 @@ export function UploadProgressModal() {
   const [activeTab, setActiveTab] = useState<'progress'|'console'>('progress');
   const consoleScrollRef = useRef<HTMLDivElement>(null);
   const [highestProcessed, setHighestProcessed] = useState(0);
-  
+
   // Fetch Python console messages
   const { data: consoleMessages = [], refetch: refetchConsoleMessages } = useQuery({
     queryKey: ['/api/python-console-messages'],
@@ -41,7 +41,7 @@ export function UploadProgressModal() {
     refetchInterval: isUploading ? 500 : false, // Poll every 500ms while uploading
     enabled: isUploading
   });
-  
+
   // Auto-scroll console to bottom when new messages arrive
   useEffect(() => {
     if (consoleScrollRef.current && consoleMessages.length > 0) {
@@ -65,7 +65,7 @@ export function UploadProgressModal() {
       console.log(`Updated highest processed value to ${uploadProgress.processed}`);
     }
   }, [uploadProgress.processed, highestProcessed]);
-  
+
   // Reset highest processed value when modal is closed/hidden
   useEffect(() => {
     if (!isUploading) {
@@ -88,7 +88,7 @@ export function UploadProgressModal() {
     },
     currentSpeed = 0
   } = uploadProgress;
-  
+
   // Use the higher value between current processed and highest recorded
   // This prevents the counter from going backward
   const processed = Math.max(rawProcessed, highestProcessed);
@@ -126,7 +126,7 @@ export function UploadProgressModal() {
         {/* Main Progress Display */}
         <div className="text-center mb-6">
           <h3 className="text-lg font-semibold text-slate-800 mb-1">
-            {stage}
+            {total > 0 ? `Initializing analysis for ${total} records...` : 'Preparing upload...'}
           </h3>
           <div className="text-3xl font-bold text-blue-600 flex items-center justify-center gap-1">
             <AnimatedNumber value={processed} />
@@ -188,15 +188,7 @@ export function UploadProgressModal() {
                 </div>
               </div>
 
-              {/* Stats */}
-              <div className="p-2 rounded-lg bg-gray-50">
-                <div className="text-sm text-gray-600">
-                  <div>Successful: {processingStats.successCount}</div>
-                  <div>Errors: {processingStats.errorCount}</div>
-                  <div>Current Speed: {currentSpeed?.toFixed(1)} records/s</div>
-                  <div>Average Speed: {processingStats.averageSpeed?.toFixed(1)} records/s</div>
-                </div>
-              </div>
+
             </div>
           </ScrollArea>
         )}
@@ -221,7 +213,7 @@ export function UploadProgressModal() {
                     const isProgressMsg = msg.message.includes('PROGRESS:');
                     const isSuccessMsg = msg.message.toLowerCase().includes('success') || 
                                          msg.message.toLowerCase().includes('completed');
-                    
+
                     return (
                       <div 
                         key={index} 
