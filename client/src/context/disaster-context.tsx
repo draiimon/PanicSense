@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState } from "react";
+import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { 
   getSentimentPosts, 
@@ -73,12 +73,16 @@ const initialProgress: UploadProgress = {
   processed: 0,
   total: 0,
   stage: '',
-  batchNumber: undefined,
-  totalBatches: undefined,
-  batchProgress: undefined,
-  currentSpeed: undefined,
-  timeRemaining: undefined,
-  processingStats: undefined
+  batchNumber: 0,
+  totalBatches: 0,
+  batchProgress: 0,
+  currentSpeed: 0,
+  timeRemaining: 0,
+  processingStats: {
+    successCount: 0,
+    errorCount: 0,
+    averageSpeed: 0
+  }
 };
 
 export function DisasterContextProvider({ children }: { children: ReactNode }) {
@@ -86,6 +90,44 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   const [selectedDisasterType, setSelectedDisasterType] = useState<string>("All");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>(initialProgress);
+
+  // WebSocket setup
+  useEffect(() => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'progress') {
+          console.log('WebSocket progress update:', data);
+          setUploadProgress(prev => ({
+            ...prev,
+            ...data.progress,
+            processingStats: {
+              ...prev.processingStats,
+              ...data.progress.processingStats
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    };
+
+    socket.onopen = () => {
+      console.log('WebSocket connected');
+    };
+
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, []);
 
   // Queries
   const { 

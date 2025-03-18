@@ -23,7 +23,17 @@ export function UploadProgressModal() {
 
   if (!isUploading) return null;
 
-  const { processed, total, stage, batchNumber, totalBatches, batchProgress, currentSpeed, timeRemaining, processingStats } = uploadProgress;
+  const { 
+    processed = 0, 
+    total = 0, 
+    stage = 'Processing...', 
+    batchNumber = 0, 
+    totalBatches = 0, 
+    currentSpeed = 0, 
+    timeRemaining = 0, 
+    processingStats 
+  } = uploadProgress;
+
   const percentage = total > 0 ? Math.round((processed / total) * 100) : 0;
 
   // Determine current stage
@@ -91,7 +101,9 @@ export function UploadProgressModal() {
               ${isProcessing ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-500'}`}>
               <Database className="h-4 w-4" />
               <span className="text-sm">
-                {isProcessing ? `Processing batch ${batchNumber} of ${totalBatches}` : 'Processing Data'}
+                {isProcessing && totalBatches > 0 ? 
+                  `Processing batch ${batchNumber} of ${totalBatches}` : 
+                  'Processing Data'}
               </span>
               {isProcessing && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
               {!isProcessing && <ChevronRight className="h-4 w-4 ml-auto" />}
