@@ -87,6 +87,9 @@ export class PythonService {
               message: dataStr.trim(),
               timestamp: new Date()
             });
+            
+            // Log to server console for debugging
+            log(`Python stdout: ${dataStr.trim()}`, 'python-service');
           }
           
           if (onProgress && dataStr.includes('PROGRESS:')) {
@@ -196,12 +199,32 @@ export class PythonService {
         let errorOutput = '';
 
         pythonProcess.stdout.on('data', (data) => {
-          output += data.toString();
+          const dataStr = data.toString();
+          output += dataStr;
+          
+          // Store stdout message in our global array
+          if (dataStr.trim()) {
+            pythonConsoleMessages.push({
+              message: dataStr.trim(),
+              timestamp: new Date()
+            });
+            
+            // Log to server console for debugging
+            log(`Python stdout: ${dataStr.trim()}`, 'python-service');
+          }
         });
 
         pythonProcess.stderr.on('data', (data) => {
-          errorOutput += data.toString();
-          log(`Python process error: ${data.toString()}`, 'python-service');
+          const errorMsg = data.toString();
+          errorOutput += errorMsg;
+          
+          // Save all Python console output
+          pythonConsoleMessages.push({
+            message: errorMsg.trim(),
+            timestamp: new Date()
+          });
+          
+          log(`Python process error: ${errorMsg}`, 'python-service');
         });
 
         pythonProcess.on('close', (code) => {
