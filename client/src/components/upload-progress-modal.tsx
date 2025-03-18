@@ -1,11 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, FileText, Database, ChevronRight, Terminal } from "lucide-react";
+import { Loader2, FileText, Database, ChevronRight } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useState, useRef } from "react";
-import { getPythonConsoleMessages, PythonConsoleMessage } from "@/lib/api";
-import { useQuery } from "@tanstack/react-query";
+// import { getPythonConsoleMessages, PythonConsoleMessage } from "@/lib/api"; //Removed import
+// import { useQuery } from "@tanstack/react-query"; //Removed import
 
 // Animated number component for smooth transitions
 const AnimatedNumber = ({ value }: { value: number }) => (
@@ -23,38 +23,13 @@ const AnimatedNumber = ({ value }: { value: number }) => (
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress } = useDisasterContext();
-  const [activeTab, setActiveTab] = useState<'progress'|'console'>('progress');
+  const [activeTab, setActiveTab] = useState<'progress'>('progress'); //Removed 'console'
   const consoleScrollRef = useRef<HTMLDivElement>(null);
   const [highestProcessed, setHighestProcessed] = useState(0);
 
-  // Fetch Python console messages
-  const { data: consoleMessages = [], refetch: refetchConsoleMessages } = useQuery({
-    queryKey: ['/api/python-console-messages'],
-    queryFn: async () => {
-      try {
-        return await getPythonConsoleMessages(100);
-      } catch (error) {
-        // Silent error handling - don't log to console
-        return [];
-      }
-    },
-    refetchInterval: isUploading ? 500 : false, // Poll every 500ms while uploading
-    enabled: isUploading
-  });
+  // Removed useQuery hook and related code
 
-  // Auto-scroll console to bottom when new messages arrive
-  useEffect(() => {
-    if (consoleScrollRef.current && consoleMessages.length > 0) {
-      setTimeout(() => {
-        if (consoleScrollRef.current) {
-          const scrollElement = consoleScrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-          if (scrollElement) {
-            scrollElement.scrollTop = scrollElement.scrollHeight;
-          }
-        }
-      }, 100);
-    }
-  }, [consoleMessages.length]);
+  // Removed useEffect for auto-scrolling console
 
   // Effect to track the highest processed value to prevent jumping backward
   useEffect(() => {
@@ -135,7 +110,7 @@ export function UploadProgressModal() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Tab Navigation - Console tab removed */}
         <div className="flex mb-4 border-b">
           <button 
             onClick={() => setActiveTab('progress')} 
@@ -145,15 +120,6 @@ export function UploadProgressModal() {
           >
             <Database className="h-4 w-4" />
             <span>Progress</span>
-          </button>
-          <button 
-            onClick={() => setActiveTab('console')} 
-            className={`flex items-center gap-1 px-4 py-2 border-b-2 transition-colors ${activeTab === 'console' 
-              ? 'border-blue-500 text-blue-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            <Terminal className="h-4 w-4" />
-            <span>Console</span>
           </button>
         </div>
 
@@ -193,46 +159,6 @@ export function UploadProgressModal() {
           </ScrollArea>
         )}
 
-        {activeTab === 'console' && (
-          <ScrollArea ref={consoleScrollRef} className="h-[200px] rounded-md border">
-            <div className="p-2 bg-black text-green-400 font-mono text-xs space-y-1">
-              {consoleMessages.length > 0 ? (
-                consoleMessages
-                  .filter(msg => {
-                    // Filter out technical error messages that don't provide value to users
-                    const message = msg.message.toLowerCase();
-                    return !(
-                      message.includes('traceback') && message.includes('error:') ||
-                      message.includes('python process error') ||
-                      message.includes('unhandled exception') ||
-                      message.includes('command failed with exit code')
-                    );
-                  })
-                  .map((msg, index) => {
-                    // Check if it's a progress message and make it stand out
-                    const isProgressMsg = msg.message.includes('PROGRESS:');
-                    const isSuccessMsg = msg.message.toLowerCase().includes('success') || 
-                                         msg.message.toLowerCase().includes('completed');
-
-                    return (
-                      <div 
-                        key={index} 
-                        className={`py-1 ${isProgressMsg ? 'text-blue-400' : ''} ${isSuccessMsg ? 'text-green-400 font-semibold' : ''}`}
-                      >
-                        <span className="text-gray-500">[{new Date(msg.timestamp).toLocaleTimeString()}]</span>{' '}
-                        {/* Clean up PROGRESS: prefix for better readability */}
-                        {isProgressMsg 
-                          ? msg.message.replace('PROGRESS:', 'Progress:') 
-                          : msg.message}
-                      </div>
-                    );
-                  })
-              ) : (
-                <div className="py-2 text-gray-500 italic">No console output available...</div>
-              )}
-            </div>
-          </ScrollArea>
-        )}
 
         {/* Download-style Progress Bar */}
         <div className="mt-6">
