@@ -48,16 +48,50 @@ const connectedClients = new Set<WebSocket>();
 
 // Improved broadcastUpdate function
 function broadcastUpdate(data: any) {
-  const message = JSON.stringify(data);
-  connectedClients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      try {
-        client.send(message);
-      } catch (error) {
-        console.error('Failed to send WebSocket message:', error);
-      }
+  if (data.type === 'progress') {
+    try {
+      // Handle Python service progress messages
+      const progressStr = data.progress?.stage || '';
+      const matches = progressStr.match(/(\d+)\/(\d+)/);
+      const currentRecord = matches ? parseInt(matches[1]) : 0;
+      const totalRecords = matches ? parseInt(matches[2]) : data.progress?.total || 0;
+      const processedCount = data.progress?.processed || currentRecord;
+
+      // Create enhanced progress object
+      const enhancedProgress = {
+        type: 'progress',
+        progress: {
+          processed: processedCount,
+          total: totalRecords,
+          stage: data.progress?.stage || 'Processing...',
+          batchNumber: currentRecord,
+          totalBatches: totalRecords,
+          batchProgress: totalRecords > 0 ? Math.round((processedCount / totalRecords) * 100) : 0,
+          currentSpeed: data.progress?.currentSpeed || 0,
+          timeRemaining: data.progress?.timeRemaining || 0,
+          processingStats: {
+            successCount: processedCount,
+            errorCount: data.progress?.processingStats?.errorCount || 0,
+            averageSpeed: data.progress?.processingStats?.averageSpeed || 0
+          }
+        }
+      };
+
+      // Send to all connected clients
+      const message = JSON.stringify(enhancedProgress);
+      connectedClients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          try {
+            client.send(message);
+          } catch (error) {
+            console.error('Failed to send WebSocket message:', error);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error processing progress update:', error);
     }
-  });
+  }
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -431,52 +465,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       error?: string
     ) => {
       if (sessionId) {
-        const progress = uploadProgressMap.get(sessionId);
-        if (progress) {
-          // Update progress tracking
-          progress.processed = processed;
-          progress.stage = stage;
-          progress.timestamp = Date.now();
+        // Log the raw progress update from Python service
+        console.log('Raw progress update:', { processed, stage, total });
 
-          // Update total if provided
-          if (total !== undefined) {
-            progress.total = total;
-          }
-
-          // Update batch information if provided
-          if (batchInfo) {
-            progress.batchNumber = batchInfo.batchNumber;
-            progress.totalBatches = batchInfo.totalBatches;
-            progress.batchProgress = batchInfo.batchProgress;
-            progress.processingStats = batchInfo.stats;
-          }
-
-          // Set error if provided
-          if (error) {
-            progress.error = error;
-          }
-
-          // Log progress update
-          console.log(`Progress update: ${processed}/${progress.total} - ${stage} - Batch ${progress.batchNumber}/${progress.totalBatches} (${progress.batchProgress}%)`);
-
-          // Enhanced progress broadcast
-          broadcastUpdate({
-            type: 'upload_progress',
-            sessionId,
-            progress: {
-              processed: progress.processed,
-              total: progress.total,
-              stage: progress.stage,
-              batchNumber: progress.batchNumber,
-              totalBatches: progress.totalBatches,
-              batchProgress: progress.batchProgress,
-              currentSpeed: progress.currentSpeed,
-              timeRemaining: progress.timeRemaining,
-              processingStats: progress.processingStats,
-              error: progress.error
+        // Create progress update for broadcasting
+        const progressData = {
+          type: 'progress',
+          sessionId,
+          progress: {
+            processed,
+            total: total || uploadProgressMap.get(sessionId)?.total || 0,
+            stage,
+            timestamp: Date.now(),
+            batchNumber: batchInfo?.batchNumber || 0,
+            totalBatches: batchInfo?.totalBatches || 0,
+            batchProgress: batchInfo?.batchProgress || 0,
+            processingStats: batchInfo?.stats || {
+              successCount: processed,
+              errorCount: 0,
+              lastBatchDuration: 0,
+              averageSpeed: 0
             }
-          });
-        }
+          }
+        };
+
+        // Log the formatted progress data before broadcasting
+        console.log('Formatted progress data:', progressData);
+
+        broadcastUpdate(progressData);
       }
     };
 
@@ -516,7 +532,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send initial progress to connected clients
       broadcastUpdate({
-        type: 'upload_progress',
+        type: 'progress',
         sessionId,
         progress: uploadProgressMap.get(sessionId)
       });
