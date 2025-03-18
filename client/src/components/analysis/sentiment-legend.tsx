@@ -3,19 +3,24 @@ import { Badge } from '@/components/ui/badge';
 import { getSentimentColor, getDisasterTypeColor } from '@/lib/colors';
 import { PieChart, Map, AlertTriangle, Globe } from 'lucide-react';
 
+interface MostAffectedArea {
+  name: string;
+  sentiment: string;
+  disasterType?: string | null;
+  coordinates?: [number, number];
+}
+
 interface SentimentLegendProps {
-  mostAffectedAreas?: {
-    name: string;
-    sentiment: string;
-    disasterType?: string | null;
-  }[];
+  mostAffectedAreas?: MostAffectedArea[];
   showRegionSelection?: boolean;
+  onSentimentClick?: (sentiment: string) => void;
 }
 
 export function SentimentLegend({ 
   mostAffectedAreas = [],
   showRegionSelection = true,
-  onAreaClick
+  onAreaClick,
+  onSentimentClick
 }: SentimentLegendProps & {
   onAreaClick?: (coordinates: [number, number]) => void;
 }) {
@@ -98,7 +103,7 @@ export function SentimentLegend({
 
         {/* Affected Areas section without separate scrolling */}
         {mostAffectedAreas && mostAffectedAreas.length > 0 && (
-          <div className="bg-slate-50 p-3 rounded-lg max-h-[600px] overflow-y-auto"> {/* Modified line */}
+          <div className="bg-slate-50 p-3 rounded-lg max-h-[600px] overflow-y-auto">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-red-500" />

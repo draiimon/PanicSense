@@ -14,7 +14,7 @@ const AnimatedNumber = ({ value }: { value: number }) => (
     transition={{ duration: 0.2 }}
     className="tabular-nums"
   >
-    {value}
+    {value.toLocaleString()}
   </motion.span>
 );
 
@@ -23,22 +23,13 @@ export function UploadProgressModal() {
 
   if (!isUploading) return null;
 
-  // Calculate current stage and progress
-  const { processed, total, stage } = uploadProgress;
+  const { processed, total, stage, batchNumber, totalBatches, batchProgress, currentSpeed, timeRemaining, processingStats } = uploadProgress;
   const percentage = total > 0 ? Math.round((processed / total) * 100) : 0;
 
-  // Determine stages based on stage string
-  const isLoading = stage.toLowerCase().includes('loading');
+  // Determine current stage
+  const isLoading = stage.toLowerCase().includes('loading') || stage.toLowerCase().includes('initializing');
   const isProcessing = stage.toLowerCase().includes('processing');
   const isCompleted = stage.toLowerCase().includes('complete');
-
-  // Enhanced stage message
-  const getStageMessage = () => {
-    if (isCompleted) return 'Analysis Complete!';
-    if (isProcessing) return `Processing record ${processed} of ${total}`;
-    if (isLoading) return stage;
-    return 'Preparing...';
-  };
 
   return createPortal(
     <motion.div
@@ -68,16 +59,22 @@ export function UploadProgressModal() {
         {/* Main Progress Display */}
         <div className="text-center mb-6">
           <h3 className="text-lg font-semibold text-slate-800 mb-1">
-            {getStageMessage()}
+            {stage}
           </h3>
           <div className="text-3xl font-bold text-blue-600 flex items-center justify-center gap-1">
             <AnimatedNumber value={processed} />
             <span>/</span>
             <AnimatedNumber value={total} />
           </div>
+          {currentSpeed > 0 && (
+            <div className="text-sm text-slate-600 mt-2">
+              Processing {Math.round(currentSpeed)} records/second
+              {timeRemaining > 0 && ` • ${Math.round(timeRemaining)}s remaining`}
+            </div>
+          )}
         </div>
 
-        {/* Scrollable Progress Log */}
+        {/* Detailed Progress Log */}
         <ScrollArea className="h-[200px] rounded-md border p-4">
           <div className="space-y-2">
             {/* Loading Stage */}
@@ -93,15 +90,25 @@ export function UploadProgressModal() {
             <div className={`flex items-center gap-2 p-2 rounded-lg transition-colors
               ${isProcessing ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-500'}`}>
               <Database className="h-4 w-4" />
-              <span className="text-sm">Analyzing Data</span>
+              <span className="text-sm">
+                {isProcessing ? `Processing batch ${batchNumber} of ${totalBatches}` : 'Processing Data'}
+              </span>
               {isProcessing && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
               {!isProcessing && <ChevronRight className="h-4 w-4 ml-auto" />}
             </div>
 
-            {/* Current Progress */}
-            <div className="p-2 rounded-lg bg-gray-50">
-              <span className="text-sm text-gray-600">Current Stage: {stage}</span>
-            </div>
+            {/* Stats */}
+            {processingStats && (
+              <div className="p-2 rounded-lg bg-gray-50">
+                <div className="text-sm text-gray-600">
+                  <div>Successful: {processingStats.successCount}</div>
+                  {processingStats.errorCount > 0 && (
+                    <div className="text-red-600">Errors: {processingStats.errorCount}</div>
+                  )}
+                  <div>Average Speed: {Math.round(processingStats.averageSpeed)} records/s</div>
+                </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
 
@@ -109,9 +116,7 @@ export function UploadProgressModal() {
         <div className="mt-6">
           <div className="flex justify-between text-sm text-slate-600 mb-1">
             <span>Overall Progress</span>
-            <span className="font-semibold">
-              {percentage}%
-            </span>
+            <span className="font-semibold">{percentage}%</span>
           </div>
           <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
             <motion.div

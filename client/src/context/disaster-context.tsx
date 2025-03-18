@@ -6,9 +6,28 @@ import {
   getAnalyzedFiles,
   SentimentPost,
   DisasterEvent,
-  AnalyzedFile,
-  UploadProgress
+  AnalyzedFile
 } from "@/lib/api";
+
+// Define ProcessingStats interface
+interface ProcessingStats {
+  successCount: number;
+  errorCount: number;
+  averageSpeed: number;
+}
+
+// Define UploadProgress interface with all properties
+interface UploadProgress {
+  processed: number;
+  total: number;
+  stage: string;
+  batchNumber?: number;
+  totalBatches?: number;
+  batchProgress?: number;
+  currentSpeed?: number;
+  timeRemaining?: number;
+  processingStats?: ProcessingStats;
+}
 
 interface DisasterContextType {
   // Data
@@ -23,11 +42,7 @@ interface DisasterContextType {
   isUploading: boolean;
 
   // Upload progress
-  uploadProgress: {
-    processed: number;
-    total: number;
-    stage: string;
-  };
+  uploadProgress: UploadProgress;
 
   // Error states
   errorSentimentPosts: Error | null;
@@ -54,17 +69,23 @@ interface DisasterContextType {
 
 const DisasterContext = createContext<DisasterContextType | undefined>(undefined);
 
-const initialProgress = {
+const initialProgress: UploadProgress = {
   processed: 0,
   total: 0,
-  stage: ''
+  stage: '',
+  batchNumber: undefined,
+  totalBatches: undefined,
+  batchProgress: undefined,
+  currentSpeed: undefined,
+  timeRemaining: undefined,
+  processingStats: undefined
 };
 
 export function DisasterContextProvider({ children }: { children: ReactNode }) {
   // State
   const [selectedDisasterType, setSelectedDisasterType] = useState<string>("All");
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(initialProgress);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>(initialProgress);
 
   // Queries
   const { 

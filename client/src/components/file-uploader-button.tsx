@@ -4,7 +4,6 @@ import { useDisasterContext } from '@/context/disaster-context';
 import { useToast } from '@/hooks/use-toast';
 import { uploadCSV } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
-import { UploadProgressModal } from './upload-progress-modal';
 
 interface FileUploaderButtonProps {
   onSuccess?: (data: any) => void;
@@ -33,14 +32,18 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     try {
       setIsUploading(true);
       setUploadProgress({ processed: 0, total: 0, stage: 'Initializing...' });
-      console.log('Starting upload process...');
 
       const result = await uploadCSV(file, (progress) => {
-        console.log('Progress update:', progress);
         setUploadProgress({
           processed: Number(progress.processed) || 0,
           total: Number(progress.total) || 0,
-          stage: progress.stage || 'Processing...'
+          stage: progress.stage || 'Processing...',
+          batchNumber: progress.batchNumber,
+          totalBatches: progress.totalBatches,
+          batchProgress: progress.batchProgress,
+          currentSpeed: progress.currentSpeed,
+          timeRemaining: progress.timeRemaining,
+          processingStats: progress.processingStats
         });
       });
 
@@ -79,28 +82,25 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
   };
 
   return (
-    <>
-      <motion.label
-        className={`
-          inline-flex items-center justify-center px-6 py-3
-          bg-gradient-to-r from-blue-600 to-indigo-600
-          hover:from-blue-700 hover:to-indigo-700
-          text-white text-sm font-medium rounded-full
-          cursor-pointer transition-all duration-300
-          shadow-lg hover:shadow-xl transform hover:-translate-y-0.5
-          ${className}
-        `}
-      >
-        <Upload className="h-5 w-5 mr-2" />
-        Upload Dataset
-        <input 
-          type="file" 
-          className="hidden" 
-          accept=".csv" 
-          onChange={handleFileUpload}
-        />
-      </motion.label>
-      <UploadProgressModal />
-    </>
+    <motion.label
+      className={`
+        inline-flex items-center justify-center px-6 py-3
+        bg-gradient-to-r from-blue-600 to-indigo-600
+        hover:from-blue-700 hover:to-indigo-700
+        text-white text-sm font-medium rounded-full
+        cursor-pointer transition-all duration-300
+        shadow-lg hover:shadow-xl transform hover:-translate-y-0.5
+        ${className}
+      `}
+    >
+      <Upload className="h-5 w-5 mr-2" />
+      Upload Dataset
+      <input 
+        type="file" 
+        className="hidden" 
+        accept=".csv" 
+        onChange={handleFileUpload}
+      />
+    </motion.label>
   );
 }

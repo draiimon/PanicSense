@@ -11,6 +11,9 @@ interface FileUploaderProps {
 
 export function FileUploader({ onSuccess, className }: FileUploaderProps) {
   return (
-    <FileUploaderButton onSuccess={onSuccess} className={className} />
+    <>
+      <FileUploaderButton onSuccess={onSuccess} className={className} />
+      <UploadProgressModal />
+    </>
   );
 }
