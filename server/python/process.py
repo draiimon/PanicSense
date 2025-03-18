@@ -851,21 +851,22 @@ class DisasterSentimentBackend:
             # Process all records without limitation
             sample_size = len(df)
 
-            # Set batch size to 6 as requested
-            BATCH_SIZE = 6
+            # Set batch size to 20 as per requirements
+            BATCH_SIZE = 20
+            BATCH_COOLDOWN = 60  # 60-second cooldown between batches
 
             # Report column identification progress
             report_progress(5, "Identified data columns", total_records)
 
-            # Process data in batches of 6
+            # Process data in batches of 20
             processed_count = 0
 
             # Get all indices that we'll process
             indices_to_process = df.head(sample_size).index.tolist()
 
-            # Process data in batches of 6
+            # Process data in batches of 20
             for batch_start in range(0, len(indices_to_process), BATCH_SIZE):
-                # Get indices for this batch (up to 6 items)
+                # Get indices for this batch (up to 20 items)
                 batch_indices = indices_to_process[batch_start:batch_start +
                                                    BATCH_SIZE]
 
@@ -1076,15 +1077,33 @@ class DisasterSentimentBackend:
 
                 # Add delay between batches to prevent API rate limits
                 if batch_start + BATCH_SIZE < len(indices_to_process):
+                    batch_number = batch_start // BATCH_SIZE + 1
                     logging.info(
-                        f"Completed batch {batch_start // BATCH_SIZE + 1} - pausing before next batch"
+                        f"Completed batch {batch_number} - cooldown period started for 60 seconds"
                     )
+                    
+                    # Implement cooldown with countdown in the progress reports
+                    cooldown_start = time.time()
+                    for remaining in range(BATCH_COOLDOWN, 0, -1):
+                        elapsed = time.time() - cooldown_start
+                        actual_remaining = max(0, BATCH_COOLDOWN - int(elapsed))
+                        
+                        # Update progress with cooldown information
+                        report_progress(
+                            5 + int(((batch_start + BATCH_SIZE) / sample_size) * 90),
+                            f"Cooldown: {actual_remaining} seconds remaining until next batch. Completed {batch_number} of {len(indices_to_process) // BATCH_SIZE + 1} batches.",
+                            total_records
+                        )
+                        
+                        # Only sleep if we haven't already exceeded the interval
+                        if actual_remaining > 0:
+                            time.sleep(1)  # Update countdown every second
+                            
                     report_progress(
-                        5 + int(
-                            ((batch_start + BATCH_SIZE) / sample_size) * 90),
-                        f"Completed batch {batch_start // BATCH_SIZE + 1} - pausing before next batch",
-                        total_records)
-                    time.sleep(3)  # 3-second pause between batches
+                        5 + int(((batch_start + BATCH_SIZE) / sample_size) * 90),
+                        f"Cooldown complete. Starting next batch.",
+                        total_records
+                    )
 
             # Retry failed records
             if failed_records:

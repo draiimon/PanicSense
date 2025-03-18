@@ -4,6 +4,7 @@ import path from 'path';
 import os from 'os';
 import { nanoid } from 'nanoid';
 import { log } from './vite';
+import { usageTracker } from './utils/usage-tracker';
 
 // Global array to store console logs from Python service
 export const pythonConsoleMessages: {message: string, timestamp: Date}[] = [];
@@ -64,8 +65,32 @@ export class PythonService {
       if (lines.length < 2) {
         throw new Error('CSV file appears to be empty or malformed');
       }
-
-      fs.writeFileSync(tempFilePath, fileBuffer);
+      
+      // Check if we can process this file based on the daily limit
+      if (usageTracker.hasReachedDailyLimit()) {
+        throw new Error('Daily processing limit of 1,000 rows has been reached. Please try again tomorrow.');
+      }
+      
+      // Calculate how many rows we can process
+      const processableRowCount = usageTracker.getProcessableRowCount(totalRecords);
+      if (processableRowCount === 0) {
+        throw new Error('Cannot process any more rows today. Daily limit reached.');
+      }
+      
+      // If we can't process all rows, create a truncated version of the file
+      if (processableRowCount < totalRecords) {
+        log(`Daily limit restriction: Can only process ${processableRowCount} of ${totalRecords} rows.`, 'python-service');
+        // Include header row (line 0) plus processableRowCount number of data rows
+        const truncatedContent = lines.slice(0, processableRowCount + 1).join('\n');
+        fs.writeFileSync(tempFilePath, truncatedContent);
+        
+        if (onProgress) {
+          onProgress(0, `PROGRESS:{"processed":0,"stage":"Daily limit restriction: Can only process ${processableRowCount} of ${totalRecords} rows.","total":processableRowCount}`, processableRowCount);
+        }
+      } else {
+        fs.writeFileSync(tempFilePath, fileBuffer);
+      }
+      
       log(`Processing CSV file: ${originalFilename}`, 'python-service');
 
       const pythonProcess = spawn(this.pythonBinary, [
