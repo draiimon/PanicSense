@@ -84,8 +84,9 @@ export function UploadProgressModal() {
   // Extract cooldown time remaining if applicable
   const cooldownTimeRemaining = (() => {
     if (isCooldown) {
-      // Try to extract the seconds remaining from the cooldown message
-      const match = stage.match(/Cooldown: (\d+) seconds remaining/);
+      // Try to extract the seconds remaining from the cooldown message - more flexible regex
+      const match = stage.match(/Cooldown: (\d+) seconds? remaining/i) || 
+                    stage.match(/(\d+) seconds? remaining/i);
       if (match && match[1]) {
         return parseInt(match[1]);
       }
@@ -155,23 +156,32 @@ export function UploadProgressModal() {
 
           {/* Cooldown Timer Display */}
           {isCooldown && cooldownTimeRemaining !== null && (
-            <div className="mb-4 bg-gradient-to-br from-amber-800/30 to-amber-700/30 backdrop-blur-sm rounded-xl border border-amber-600/30 overflow-hidden">
+            <div className="mb-4 bg-gradient-to-br from-amber-800/30 to-amber-700/30 backdrop-blur-sm rounded-xl border border-amber-600/30 overflow-hidden shadow-lg">
               <div className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-full bg-amber-500/20">
-                      <Clock className="h-5 w-5 text-amber-400" />
+                      <Clock className="h-5 w-5 text-amber-400 animate-pulse" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-amber-300">API Cooldown Period</h4>
+                      <h4 className="text-sm font-semibold text-amber-300">60-Second Cooldown Period</h4>
                       <p className="text-xs text-amber-300/70">Processing will resume automatically</p>
                     </div>
                   </div>
-                  <div className="text-xl font-bold font-mono text-amber-300">{cooldownTimeRemaining}s</div>
+                  <div className="text-2xl font-bold font-mono text-amber-300 tabular-nums">
+                    <motion.div
+                      key={cooldownTimeRemaining}
+                      initial={{ scale: 1.2, opacity: 0.7 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {cooldownTimeRemaining}s
+                    </motion.div>
+                  </div>
                 </div>
                 
                 {/* Countdown progress bar */}
-                <div className="h-2 bg-slate-800/50 rounded-full overflow-hidden">
+                <div className="h-3 bg-slate-800/50 rounded-full overflow-hidden">
                   <motion.div 
                     className="h-full bg-gradient-to-r from-amber-400 to-amber-500"
                     initial={{ width: '100%' }}
@@ -182,8 +192,9 @@ export function UploadProgressModal() {
                   />
                 </div>
                 
-                <div className="mt-3 text-xs text-amber-300/70 italic">
-                  Limiting API requests to prevent rate limiting (20 records per minute)
+                <div className="mt-3 text-xs text-amber-300/70 italic text-center">
+                  Limiting API requests to prevent rate limiting<br />
+                  <span className="font-semibold">20 records per minute rate limit</span>
                 </div>
               </div>
             </div>
