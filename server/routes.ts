@@ -475,7 +475,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           progress: {
             processed,
             total: total || uploadProgressMap.get(sessionId)?.total || 0,
-            stage,
+            // Keep the raw stage message from Python
+            stage: stage.includes("PROGRESS:") || stage.includes("Completed record") ? stage : stage,
             timestamp: Date.now(),
             batchNumber: batchInfo?.batchNumber || 0,
             totalBatches: batchInfo?.totalBatches || 0,

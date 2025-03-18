@@ -105,7 +105,7 @@ export function UploadProgressModal() {
             {/* Console Message */}
             <div className="p-2 rounded-lg bg-gray-50">
               <div className="text-sm font-mono text-gray-700 whitespace-pre-wrap overflow-x-auto">
-                {stage}
+                {stage.includes("PROGRESS:") ? stage : stage.includes("Completed record") ? stage : "Processing..."}
               </div>
             </div>
 

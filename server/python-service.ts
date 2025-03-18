@@ -80,10 +80,11 @@ export class PythonService {
           if (onProgress && dataStr.includes('PROGRESS:')) {
             try {
               const progressData = JSON.parse(dataStr.split('PROGRESS:')[1]);
+              const rawMessage = data.toString().trim();
               log(`Progress update: ${JSON.stringify(progressData)}`, 'python-service');
               onProgress(
                 progressData.processed,
-                progressData.stage,
+                rawMessage, // Send the raw message instead of just the stage
                 progressData.total
               );
             } catch (e) {
@@ -95,8 +96,18 @@ export class PythonService {
         });
 
         pythonProcess.stderr.on('data', (data) => {
-          errorOutput += data.toString();
-          log(`Python process error: ${data.toString()}`, 'python-service');
+          const errorMsg = data.toString();
+          errorOutput += errorMsg;
+          // Also treat error messages as progress updates to show in the UI
+          if (onProgress && errorMsg.includes('Completed record')) {
+            const matches = errorMsg.match(/Completed record (\d+)\/(\d+)/);
+            if (matches) {
+              const processed = parseInt(matches[1]);
+              const total = parseInt(matches[2]);
+              onProgress(processed, errorMsg.trim(), total);
+            }
+          }
+          log(`Python process error: ${errorMsg}`, 'python-service');
         });
 
         const timeout = setTimeout(() => {
