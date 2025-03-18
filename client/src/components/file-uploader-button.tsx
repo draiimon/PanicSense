@@ -4,7 +4,7 @@ import { useDisasterContext } from '@/context/disaster-context';
 import { useToast } from '@/hooks/use-toast';
 import { uploadCSV } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
-import { UploadProgressModal } from './upload-progress-modal';
+import { SimpleProgress } from './simple-progress';
 
 interface FileUploaderButtonProps {
   onSuccess?: (data: any) => void;
@@ -35,9 +35,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       console.log('Starting upload process...');
 
       const result = await uploadCSV(file, (progress) => {
-        console.log('Raw progress update:', progress);
-
-        // Update progress with accurate tracking
+        console.log('Progress update:', progress);
         setUploadProgress({
           processed: Number(progress.processed) || 0,
           total: Number(progress.total) || 0,
@@ -71,7 +69,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     } finally {
       event.target.value = '';
 
-      // Keep the progress modal visible for a moment after completion
+      // Keep progress visible briefly after completion
       setTimeout(() => {
         setIsUploading(false);
         setUploadProgress({ processed: 0, total: 0, stage: '' });
@@ -101,7 +99,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           onChange={handleFileUpload}
         />
       </motion.label>
-      <UploadProgressModal />
+      <SimpleProgress />
     </>
   );
 }
