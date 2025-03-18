@@ -23,9 +23,24 @@ const AnimatedNumber = ({ value }: { value: number }) => (
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress } = useDisasterContext();
-  const [activeTab, setActiveTab] = useState<'progress'>('progress'); //Removed 'console'
+  const [activeTab, setActiveTab] = useState<'progress'>('progress');
   const consoleScrollRef = useRef<HTMLDivElement>(null);
   const [highestProcessed, setHighestProcessed] = useState(0);
+
+  // Style to center the modal content
+  const centerStyle = {
+    position: 'fixed' as const,
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: '90%',
+    maxWidth: '500px',
+    backgroundColor: 'white',
+    padding: '2rem',
+    borderRadius: '0.5rem',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+    zIndex: 50
+  };
 
   // Removed useQuery hook and related code
 
@@ -51,6 +66,9 @@ export function UploadProgressModal() {
   }, [isUploading]);
 
   if (!isUploading) return null;
+
+  return (
+    <div style={centerStyle} className="space-y-4">
 
   const { 
     stage = 'Processing...', 
