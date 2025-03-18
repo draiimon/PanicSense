@@ -11,72 +11,112 @@ const AnimatedNumber = ({ value }: { value: number }) => (
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: -20 }}
     transition={{ duration: 0.2 }}
+    className="tabular-nums"
   >
     {value}
   </motion.span>
 );
 
-// Progress step component
+// Progress step component with animations
 const ProgressStep = ({ 
   icon: Icon, 
   title, 
+  subtitle,
   isActive, 
-  isComplete 
+  isComplete,
+  percentage = 0
 }: { 
   icon: any;
   title: string;
+  subtitle?: string;
   isActive: boolean;
   isComplete: boolean;
+  percentage?: number;
 }) => (
-  <div className={`
-    flex items-center gap-2 p-2 rounded-lg transition-colors
-    ${isActive ? 'bg-blue-50' : isComplete ? 'bg-emerald-50' : 'bg-slate-50'}
-  `}>
+  <motion.div 
+    className={`
+      flex items-center gap-3 p-3 rounded-lg transition-colors
+      ${isActive ? 'bg-blue-50/80' : isComplete ? 'bg-emerald-50/80' : 'bg-slate-50/80'}
+    `}
+    initial={{ opacity: 0, x: -20 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ duration: 0.3 }}
+  >
     <div className={`
-      p-1.5 rounded-full
+      p-2 rounded-full
       ${isActive ? 'bg-blue-100 text-blue-600' : 
         isComplete ? 'bg-emerald-100 text-emerald-600' : 
         'bg-slate-100 text-slate-400'}
     `}>
-      <Icon className="h-4 w-4" />
+      <Icon className="h-5 w-5" />
     </div>
-    <span className={`
-      text-sm font-medium
-      ${isActive ? 'text-blue-700' : 
-        isComplete ? 'text-emerald-700' : 
-        'text-slate-400'}
-    `}>
-      {title}
-    </span>
+    <div className="flex-1">
+      <div className="flex items-center justify-between">
+        <span className={`
+          font-medium
+          ${isActive ? 'text-blue-700' : 
+            isComplete ? 'text-emerald-700' : 
+            'text-slate-500'}
+        `}>
+          {title}
+        </span>
+        {percentage > 0 && (
+          <span className="text-sm font-medium text-slate-600">
+            {percentage}%
+          </span>
+        )}
+      </div>
+      {subtitle && (
+        <span className="text-sm text-slate-500">
+          {subtitle}
+        </span>
+      )}
+      {isActive && percentage > 0 && (
+        <div className="mt-2 h-1 bg-slate-200 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-blue-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${percentage}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
+      )}
+    </div>
     <ChevronRight className={`
-      h-4 w-4 ml-auto
+      h-5 w-5
       ${isActive ? 'text-blue-400' : 
         isComplete ? 'text-emerald-400' : 
         'text-slate-300'}
     `} />
-  </div>
+  </motion.div>
 );
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress } = useDisasterContext();
 
-  // Calculate progress and determine current stage
-  const percentage = uploadProgress.totalRecords > 0 
-    ? Math.round((uploadProgress.processedRecords / uploadProgress.totalRecords) * 100)
-    : 0;
+  // Calculate current stage and progress
+  const { processed, total, stage } = uploadProgress;
+  const percentage = total > 0 ? Math.round((processed / total) * 100) : 0;
 
-  const stage = uploadProgress.stage || '';
-  const isLoading = stage.toLowerCase().includes('loading');
-  const isProcessing = stage.toLowerCase().includes('processing');
-  const isCompleted = uploadProgress.status === 'success';
+  // Determine active stages
+  const isLoading = stage.toLowerCase().includes('loading') || stage.toLowerCase().includes('identifying');
+  const isProcessing = stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('analyzing');
+  const isCompleted = stage.toLowerCase().includes('complete');
 
-  // Enhanced processing message
-  const processingMessage = uploadProgress.totalRecords > 0
-    ? `Processing record ${uploadProgress.processedRecords} of ${uploadProgress.totalRecords}`
-    : uploadProgress.message;
+  // Get stage-specific progress
+  const loadingProgress = isLoading ? Math.min(percentage, 100) : 0;
+  const processingProgress = isProcessing ? percentage : 0;
+
+  // Enhanced stage messages
+  const getStageMessage = () => {
+    if (isCompleted) return 'Analysis Complete!';
+    if (isProcessing) return `Processing record ${processed} of ${total}`;
+    if (isLoading) return stage;
+    return 'Preparing...';
+  };
 
   return createPortal(
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       {isUploading && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -109,19 +149,35 @@ export function UploadProgressModal() {
             }}
             className="relative bg-white/95 backdrop-blur-lg rounded-xl border border-blue-100 p-6 max-w-md w-full mx-4 shadow-2xl"
           >
-            {/* Progress Steps */}
-            <div className="space-y-2 mb-6">
+            {/* Main Progress Display */}
+            <div className="text-center mb-6">
+              <h3 className="text-lg font-semibold text-slate-800 mb-1">
+                {getStageMessage()}
+              </h3>
+              <div className="text-3xl font-bold text-blue-600 flex items-center justify-center gap-1">
+                <AnimatedNumber value={processed} />
+                <span>/</span>
+                <AnimatedNumber value={total} />
+              </div>
+            </div>
+
+            {/* Detailed Progress Steps */}
+            <div className="space-y-3">
               <ProgressStep
                 icon={FileText}
                 title="Loading File"
+                subtitle={isLoading ? stage : undefined}
                 isActive={isLoading}
                 isComplete={isProcessing || isCompleted}
+                percentage={loadingProgress}
               />
               <ProgressStep
                 icon={Database}
                 title="Processing Data"
+                subtitle={isProcessing ? `Record ${processed}/${total}` : undefined}
                 isActive={isProcessing}
                 isComplete={isCompleted}
+                percentage={processingProgress}
               />
               <ProgressStep
                 icon={CheckCircle}
@@ -131,85 +187,23 @@ export function UploadProgressModal() {
               />
             </div>
 
-            {/* Current Status */}
-            <div className="flex items-center mb-4">
-              {uploadProgress.status === "uploading" && (
-                <Loader2 className="animate-spin h-5 w-5 mr-2 text-blue-600" />
-              )}
-              {uploadProgress.status === "success" && (
-                <CheckCircle className="h-5 w-5 mr-2 text-emerald-600" />
-              )}
-              {uploadProgress.status === "error" && (
-                <AlertCircle className="h-5 w-5 mr-2 text-red-600" />
-              )}
-              <span
-                className={`font-medium text-sm ${
-                  uploadProgress.status === "error"
-                    ? "text-red-800"
-                    : uploadProgress.status === "success"
-                      ? "text-emerald-800"
-                      : "text-blue-800"
-                }`}
-              >
-                {processingMessage}
-              </span>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="relative">
-              <div className="overflow-hidden h-2.5 text-xs flex rounded-full bg-slate-200/50 backdrop-blur-sm">
+            {/* Overall Progress */}
+            <div className="mt-6">
+              <div className="flex justify-between text-sm text-slate-600 mb-1">
+                <span>Overall Progress</span>
+                <span className="font-semibold">
+                  <AnimatedNumber value={percentage} />%
+                </span>
+              </div>
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                 <motion.div
-                  className={`
-                    shadow-sm flex flex-col text-center whitespace-nowrap text-white justify-center
-                    ${
-                      uploadProgress.status === "error"
-                        ? "bg-red-500"
-                        : uploadProgress.status === "success"
-                          ? "bg-emerald-500"
-                          : "bg-blue-500"
-                    }
-                  `}
-                  initial={{ width: "0%" }}
+                  className="h-full bg-blue-500"
+                  initial={{ width: 0 }}
                   animate={{ width: `${percentage}%` }}
-                  transition={{ 
-                    duration: 0.3,
-                    ease: "easeInOut"
-                  }}
+                  transition={{ duration: 0.3 }}
                 />
               </div>
             </div>
-
-            {/* Progress Numbers */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ 
-                duration: 0.2,
-                delay: 0.1
-              }}
-              className="mt-4 flex flex-col items-center justify-center"
-            >
-              <div className="text-4xl font-bold text-blue-700 mb-2 tracking-tight tabular-nums flex items-center gap-1">
-                <AnimatePresence mode="wait">
-                  <AnimatedNumber value={uploadProgress.processedRecords} />
-                </AnimatePresence>
-                <span>/</span>
-                <AnimatePresence mode="wait">
-                  <AnimatedNumber value={uploadProgress.totalRecords} />
-                </AnimatePresence>
-              </div>
-
-              <div className="flex justify-between w-full text-sm text-slate-700">
-                <span>Records processed</span>
-                <span className="font-semibold tabular-nums">
-                  <AnimatePresence mode="wait">
-                    <AnimatedNumber value={percentage} />
-                  </AnimatePresence>
-                  %
-                </span>
-              </div>
-            </motion.div>
           </motion.div>
         </motion.div>
       )}

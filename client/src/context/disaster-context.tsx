@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState, useEffect } from "react";
+import { createContext, ReactNode, useContext, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { 
   getSentimentPosts, 
@@ -6,20 +6,9 @@ import {
   getAnalyzedFiles,
   SentimentPost,
   DisasterEvent,
-  AnalyzedFile
+  AnalyzedFile,
+  UploadProgress
 } from "@/lib/api";
-
-interface UploadProgress {
-  processed: number;
-  total: number;
-  stage: string;
-}
-
-const initialProgress: UploadProgress = {
-  processed: 0,
-  total: 0,
-  stage: ''
-};
 
 interface DisasterContextType {
   // Data
@@ -33,8 +22,12 @@ interface DisasterContextType {
   isLoadingAnalyzedFiles: boolean;
   isUploading: boolean;
 
-  // Upload states
-  uploadProgress: UploadProgress;
+  // Upload progress
+  uploadProgress: {
+    processed: number;
+    total: number;
+    stage: string;
+  };
 
   // Error states
   errorSentimentPosts: Error | null;
@@ -61,11 +54,17 @@ interface DisasterContextType {
 
 const DisasterContext = createContext<DisasterContextType | undefined>(undefined);
 
+const initialProgress = {
+  processed: 0,
+  total: 0,
+  stage: ''
+};
+
 export function DisasterContextProvider({ children }: { children: ReactNode }) {
-  // State for filters and upload
+  // State
   const [selectedDisasterType, setSelectedDisasterType] = useState<string>("All");
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress>(initialProgress);
+  const [uploadProgress, setUploadProgress] = useState(initialProgress);
 
   // Queries
   const { 
@@ -105,20 +104,17 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   // Calculate dominant sentiment
   const sentimentCounts: Record<string, number> = {};
   sentimentPosts.forEach(post => {
-    if (!sentimentCounts[post.sentiment]) {
-      sentimentCounts[post.sentiment] = 0;
-    }
-    sentimentCounts[post.sentiment]++;
+    sentimentCounts[post.sentiment] = (sentimentCounts[post.sentiment] || 0) + 1;
   });
 
-  const dominantSentiment = Object.entries(sentimentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "Neutral";
+  const dominantSentiment = Object.entries(sentimentCounts)
+    .sort((a, b) => b[1] - a[1])[0]?.[0] || "Neutral";
 
   // Calculate average model confidence
   const totalConfidence = sentimentPosts.reduce((sum, post) => sum + post.confidence, 0);
   const modelConfidence = sentimentPosts.length > 0 ? totalConfidence / sentimentPosts.length : 0;
 
-
-  // Refresh function for fetching all data
+  // Refresh function
   const refreshData = () => {
     refetchSentimentPosts();
     refetchDisasterEvents();

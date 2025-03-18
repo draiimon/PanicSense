@@ -12,7 +12,7 @@ import { EventEmitter } from 'events';
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 50 * 1024 * 1024, // Increased to 50MB for faster batch processing
+    fileSize: 50 * 1024 * 1024, 
   },
   fileFilter: (req, file, cb) => {
     if (file.originalname.toLowerCase().endsWith('.csv')) {
@@ -23,19 +23,30 @@ const upload = multer({
   }
 });
 
-// Enhanced upload progress tracking with better performance
+// Enhanced progress tracking with more details
 const uploadProgressMap = new Map<string, {
   processed: number;
   total: number;
   stage: string;
   timestamp: number;
+  batchNumber: number;
+  totalBatches: number;
+  batchProgress: number;
+  currentSpeed: number;  // Records per second
+  timeRemaining: number; // Seconds
+  processingStats: {
+    successCount: number;
+    errorCount: number;
+    lastBatchDuration: number;
+    averageSpeed: number;
+  };
   error?: string;
 }>();
 
 // Track connected WebSocket clients
 const connectedClients = new Set<WebSocket>();
 
-// Update the broadcastUpdate function to handle progress updates better
+// Improved broadcastUpdate function
 function broadcastUpdate(data: any) {
   const message = JSON.stringify(data);
   connectedClients.forEach(client => {
@@ -59,7 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create WebSocket server
   const wss = new WebSocketServer({ 
     server: httpServer,
-    path: '/ws'  // Distinct path to avoid conflicts with Vite's HMR
+    path: '/ws'  
   });
 
   // WebSocket connection handler
@@ -108,33 +119,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.write(`data: ${JSON.stringify({
       processed: 0,
       total: 100,
-      stage: "Connecting...",
+      stage: "Initializing...",
+      batchProgress: 0,
+      currentSpeed: 0,
+      timeRemaining: 0,
+      processingStats: {
+        successCount: 0,
+        errorCount: 0,
+        lastBatchDuration: 0,
+        averageSpeed: 0
+      }
     })}\n\n`);
 
     const sendProgress = () => {
       const progress = uploadProgressMap.get(sessionId);
       if (progress) {
-        // Always convert to numbers to ensure consistent handling
-        const processedNum = Number(progress.processed);
-        const totalNum = Number(progress.total || 100);
+        // Calculate real-time metrics
+        const now = Date.now();
+        const elapsed = (now - progress.timestamp) / 1000; // seconds
 
-        // Create a safe progress object with numerical values
-        const safeProgress = {
-          processed: isNaN(processedNum) ? 0 : processedNum,
-          total: isNaN(totalNum) ? 100 : totalNum,
+        if (elapsed > 0) {
+          progress.currentSpeed = progress.processed / elapsed;
+          progress.timeRemaining = progress.currentSpeed > 0 
+            ? (progress.total - progress.processed) / progress.currentSpeed 
+            : 0;
+        }
+
+        // Create enhanced progress object
+        const enhancedProgress = {
+          processed: progress.processed,
+          total: progress.total || 100,
           stage: progress.stage || "Processing...",
+          batchNumber: progress.batchNumber,
+          totalBatches: progress.totalBatches,
+          batchProgress: progress.batchProgress,
+          currentSpeed: Math.round(progress.currentSpeed * 100) / 100,
+          timeRemaining: Math.round(progress.timeRemaining),
+          processingStats: progress.processingStats,
           error: progress.error
         };
 
         // Send to browser
-        res.write(`data: ${JSON.stringify(safeProgress)}\n\n`);
-        progress.timestamp = Date.now();
+        res.write(`data: ${JSON.stringify(enhancedProgress)}\n\n`);
       }
     };
 
     // Send progress immediately and then set interval
     sendProgress();
-    const progressInterval = setInterval(sendProgress, 100); // More frequent updates
+    const progressInterval = setInterval(sendProgress, 100);
 
     req.on('close', () => {
       clearInterval(progressInterval);
@@ -378,14 +410,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update file upload endpoint with better progress tracking
+  // Enhanced file upload endpoint
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
     let sessionId = '';
-    let updateProgress: (processed: number, stage: string, total?: number | undefined, error?: string | undefined) => void = (processed, stage, total, error) => {
+    let updateProgress = (
+      processed: number, 
+      stage: string, 
+      total?: number,
+      batchInfo?: {
+        batchNumber: number;
+        totalBatches: number;
+        batchProgress: number;
+        stats: {
+          successCount: number;
+          errorCount: number;
+          lastBatchDuration: number;
+          averageSpeed: number;
+        };
+      },
+      error?: string
+    ) => {
       if (sessionId) {
         const progress = uploadProgressMap.get(sessionId);
         if (progress) {
-          // Update the progress tracking object
+          // Update progress tracking
           progress.processed = processed;
           progress.stage = stage;
           progress.timestamp = Date.now();
@@ -395,15 +443,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             progress.total = total;
           }
 
+          // Update batch information if provided
+          if (batchInfo) {
+            progress.batchNumber = batchInfo.batchNumber;
+            progress.totalBatches = batchInfo.totalBatches;
+            progress.batchProgress = batchInfo.batchProgress;
+            progress.processingStats = batchInfo.stats;
+          }
+
           // Set error if provided
           if (error) {
             progress.error = error;
           }
 
           // Log progress update
-          console.log(`Progress update: ${processed}/${progress.total || 'unknown'} - ${stage}`);
+          console.log(`Progress update: ${processed}/${progress.total} - ${stage} - Batch ${progress.batchNumber}/${progress.totalBatches} (${progress.batchProgress}%)`);
 
-          // Enhanced progress broadcast with more details
+          // Enhanced progress broadcast
           broadcastUpdate({
             type: 'upload_progress',
             sessionId,
@@ -411,8 +467,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               processed: progress.processed,
               total: progress.total,
               stage: progress.stage,
-              error: progress.error,
-              percentage: progress.total ? Math.round((progress.processed / progress.total) * 100) : 0
+              batchNumber: progress.batchNumber,
+              totalBatches: progress.totalBatches,
+              batchProgress: progress.batchProgress,
+              currentSpeed: progress.currentSpeed,
+              timeRemaining: progress.timeRemaining,
+              processingStats: progress.processingStats,
+              error: progress.error
             }
           });
         }
@@ -434,26 +495,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileContent = fileBuffer.toString('utf-8');
       const totalRecords = fileContent.split('\n').length - 1;
 
-      // Initialize progress tracking with meaningful data
+      // Initialize enhanced progress tracking
       uploadProgressMap.set(sessionId, {
         processed: 0,
         total: totalRecords,
-        stage: `Starting analysis of ${totalRecords} records...`,
-        timestamp: Date.now()
+        stage: `Initializing analysis for ${totalRecords} records...`,
+        timestamp: Date.now(),
+        batchNumber: 0,
+        totalBatches: Math.ceil(totalRecords / 6), 
+        batchProgress: 0,
+        currentSpeed: 0,
+        timeRemaining: 0,
+        processingStats: {
+          successCount: 0,
+          errorCount: 0,
+          lastBatchDuration: 0,
+          averageSpeed: 0
+        }
       });
 
       // Send initial progress to connected clients
-      if (sessionId) {
-        broadcastUpdate({
-          type: 'upload_progress',
-          sessionId,
-          progress: {
-            processed: 0,
-            total: totalRecords,
-            stage: `Starting analysis of ${totalRecords} records...`
-          }
-        });
-      }
+      broadcastUpdate({
+        type: 'upload_progress',
+        sessionId,
+        progress: uploadProgressMap.get(sessionId)
+      });
 
 
       const { data, storedFilename, recordCount } = await pythonService.processCSV(
@@ -481,7 +547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         insertAnalyzedFileSchema.parse({
           originalName: originalFilename,
           storedName: storedFilename,
-          recordCount: filteredResults.length, // Update to use filtered count
+          recordCount: filteredResults.length, 
           evaluationMetrics: data.metrics
         })
       );
@@ -531,16 +597,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing CSV:", error);
 
-      // Now use updateProgress with error message as the last parameter
-      updateProgress(0, 'Error', undefined, error instanceof Error ? error.message : String(error));
+      updateProgress(0, 'Error', undefined, undefined, error instanceof Error ? error.message : String(error));
 
       res.status(500).json({ 
         error: "Failed to process CSV file",
         details: error instanceof Error ? error.message : String(error)
       });
     } finally {
-      // Cleanup progress tracking after 5 seconds
-      // sessionId is always a string now because we initialized it as ''
       setTimeout(() => {
         uploadProgressMap.delete(sessionId);
       }, 5000);
@@ -599,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // For non-disaster content, return the analysis but don't save it
           sentimentPost = {
-            id: -1, // Use negative ID to indicate this wasn't saved
+            id: -1, 
             text,
             timestamp: new Date().toISOString(),
             source: 'Manual Input (Not Saved - Non-Disaster)',

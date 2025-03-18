@@ -44,6 +44,17 @@ export interface UploadProgress {
   total?: number;
   stage: string;
   error?: string;
+  batchNumber?: number;
+  totalBatches?: number;
+  batchProgress?: number;
+  currentSpeed?: number;  // Records per second
+  timeRemaining?: number; // Seconds
+  processingStats?: {
+    successCount: number;
+    errorCount: number;
+    lastBatchDuration: number;
+    averageSpeed: number;
+  };
 }
 
 // Sentiment Posts API
@@ -74,7 +85,7 @@ export async function getAnalyzedFile(id: number): Promise<AnalyzedFile> {
   return response.json();
 }
 
-// File Upload with session handling
+// File Upload with enhanced progress tracking
 export async function uploadCSV(
   file: File,
   onProgress?: (progress: UploadProgress) => void
@@ -99,40 +110,12 @@ export async function uploadCSV(
 
   eventSource.onmessage = (event) => {
     try {
-      const progress = JSON.parse(event.data);
+      const progress = JSON.parse(event.data) as UploadProgress;
       console.log('Progress event received:', progress);
-      
+
       if (onProgress) {
-        // Direct console log to see exactly what we're getting
-        console.log('DEBUG PROGRESS VALUES:', {
-          processed: progress.processed,
-          total: progress.total,
-          stage: progress.stage
-        });
-        
-        // CRITICAL FIX: Force number conversion with Number() instead of parseInt
-        // parseInt can fail with non-integer strings
-        const processedNum = Number(progress.processed) || 0;
-        const totalNum = Number(progress.total) || 100;
-        
-        // Create a safe progress object with numerical values
-        const safeProgress = {
-          processed: processedNum,
-          total: totalNum,
-          stage: progress.stage || 'Processing...',
-          error: progress.error
-        };
-        
-        console.log('Progress being sent to UI:', safeProgress);
-        
-        // CRITICAL DEBUG: Add a direct update with log to catch any issues
-        console.log('DIRECTLY CALLING onProgress with:', safeProgress);
-        
-        // Call the onProgress callback
-        onProgress(safeProgress);
-        
-        // Manually check if the DOM would update
-        console.log('After calling onProgress:', safeProgress);
+        console.log('Progress being sent to UI:', progress);
+        onProgress(progress);
       }
     } catch (error) {
       console.error('Error parsing progress data:', error);

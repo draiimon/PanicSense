@@ -1,11 +1,10 @@
-import { useRef } from 'react';
 import { Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDisasterContext } from '@/context/disaster-context';
 import { useToast } from '@/hooks/use-toast';
 import { uploadCSV } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
-import { SimpleProgress } from './simple-progress';
+import { UploadProgressModal } from './upload-progress-modal';
 
 interface FileUploaderButtonProps {
   onSuccess?: (data: any) => void;
@@ -33,15 +32,15 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
     try {
       setIsUploading(true);
-      console.log('Starting upload...');
+      console.log('Starting upload process...');
 
       const result = await uploadCSV(file, (progress) => {
-        console.log('Progress Update:', progress);
+        console.log('Raw progress update:', progress);
 
-        // Directly set the progress values from Python
+        // Update progress with accurate tracking
         setUploadProgress({
-          processed: progress.processed || 0,
-          total: progress.total || 0,
+          processed: Number(progress.processed) || 0,
+          total: Number(progress.total) || 0,
           stage: progress.stage || 'Processing...'
         });
       });
@@ -71,8 +70,12 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       });
     } finally {
       event.target.value = '';
-      setIsUploading(false);
-      setUploadProgress({ processed: 0, total: 0, stage: '' });
+
+      // Keep the progress modal visible for a moment after completion
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress({ processed: 0, total: 0, stage: '' });
+      }, 2000);
     }
   };
 
@@ -98,7 +101,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           onChange={handleFileUpload}
         />
       </motion.label>
-      <SimpleProgress />
+      <UploadProgressModal />
     </>
   );
 }
