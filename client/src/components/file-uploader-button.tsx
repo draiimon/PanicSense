@@ -19,7 +19,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     resetUploadProgress
   } = useDisasterContext();
   const progressTimeout = useRef<NodeJS.Timeout>();
-  const currentCount = useRef<number>(0);
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -59,13 +58,10 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
           console.log('Starting upload with', lines, 'records');
 
-          // Reset current count
-          currentCount.current = 0;
-
           // Start upload process
           setIsUploading(true);
 
-          // Initialize at 0
+          // Initialize progress state
           updateUploadProgress({
             totalRecords: lines,
             processedRecords: 0,
@@ -78,9 +74,9 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           await sleep(500);
 
           const result = await uploadCSV(file, async (progress) => {
-            // Extract record number from progress
+            // Extract record number from stage
             let nextRecord = 0;
-            const recordMatch = progress.stage?.match(/record (\d+) of (\d+)/i);
+            const recordMatch = progress.stage?.match(/record (\d+)\/(\d+)/i);
 
             if (recordMatch) {
               nextRecord = parseInt(recordMatch[1]);
@@ -88,26 +84,21 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
               nextRecord = Number(progress.processed);
             }
 
-            // Ensure we're moving forward
-            if (nextRecord > currentCount.current) {
-              // Increment one by one with delays
-              for (let i = currentCount.current + 1; i <= nextRecord; i++) {
-                await sleep(200); // Force delay between updates
-
-                currentCount.current = i;
-                updateUploadProgress({
-                  processedRecords: i,
-                  totalRecords: lines,
-                  percentage: Math.floor((i / lines) * 100),
-                  message: `Processing record ${i} of ${lines}`,
-                  status: 'uploading'
-                });
-              }
-            }
+            // Update progress immediately
+            updateUploadProgress({
+              processedRecords: nextRecord,
+              totalRecords: progress.total || lines,
+              percentage: progress.total ? Math.round((nextRecord / progress.total) * 100) : 0,
+              message: progress.stage || 'Processing...',
+              status: progress.error ? 'error' : 'uploading'
+            });
 
             if (progress.error) {
               throw new Error(progress.error);
             }
+
+            // Small delay for smoother UI updates
+            await sleep(100);
           });
 
           if (result?.file && result?.posts) {
