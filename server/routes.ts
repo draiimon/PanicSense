@@ -6,6 +6,7 @@ import path from "path";
 import multer from "multer";
 import { pythonService, pythonConsoleMessages } from "./python-service";
 import { insertSentimentPostSchema, insertAnalyzedFileSchema } from "@shared/schema";
+import { usageTracker } from "./utils/usage-tracker";
 import { EventEmitter } from 'events';
 
 // Configure multer for file uploads with improved performance
@@ -907,6 +908,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Endpoint to get Python console messages
+  // API endpoint to get daily usage stats
+  app.get('/api/usage-stats', async (req: Request, res: Response) => {
+    try {
+      const stats = usageTracker.getUsageStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch usage statistics" });
+    }
+  });
+
   app.get('/api/python-console-messages', async (req: Request, res: Response) => {
     try {
       // Return the most recent messages, with a limit of 100

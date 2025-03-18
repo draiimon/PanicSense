@@ -188,7 +188,11 @@ export class PythonService {
         throw new Error('Invalid data format returned from Python script');
       }
 
+      // Update the usage tracker with the number of rows processed
+      usageTracker.incrementRowCount(data.results.length);
+      
       log(`Successfully processed ${data.results.length} records from CSV`, 'python-service');
+      log(`Daily usage: ${usageTracker.getUsageStats().used}/${usageTracker.getUsageStats().limit} rows`, 'python-service');
 
       return {
         data,
@@ -261,6 +265,10 @@ export class PythonService {
         });
       });
 
+      // Increment usage by 1 for each individual text analysis
+      usageTracker.incrementRowCount(1);
+      log(`Daily usage: ${usageTracker.getUsageStats().used}/${usageTracker.getUsageStats().limit} rows`, 'python-service');
+      
       return JSON.parse(result);
     } catch (error) {
       log(`Sentiment analysis failed: ${error}`, 'python-service');
