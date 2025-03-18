@@ -58,20 +58,22 @@ export function UploadProgressModal() {
 
   // Effect to track the highest processed value to prevent jumping backward
   useEffect(() => {
-    if (uploadProgress.processed > highestProcessed) {
+    // Only update the highest processed value if it's greater than current highest
+    // AND only if we're not at the very beginning (processed > 0)
+    if (uploadProgress.processed > 0 && uploadProgress.processed > highestProcessed) {
       setHighestProcessed(uploadProgress.processed);
+      console.log(`Updated highest processed value to ${uploadProgress.processed}`);
     }
   }, [uploadProgress.processed, highestProcessed]);
   
-  // Reset the highest processed value when a new upload starts
-  // This is detected by checking if the stage changes to "Initializing"
+  // Reset highest processed value when modal is closed/hidden
   useEffect(() => {
-    if (uploadProgress.stage && 
-       (uploadProgress.stage.includes('Initializing') || uploadProgress.stage.includes('starting'))) {
-      console.log('Resetting highest processed value due to new upload starting');
+    if (!isUploading) {
+      // When the dialog closes, reset our tracking to ensure fresh start next time
       setHighestProcessed(0);
+      console.log('Upload Progress Modal closed - reset highest processed value');
     }
-  }, [uploadProgress.stage]);
+  }, [isUploading]);
 
   if (!isUploading) return null;
 
