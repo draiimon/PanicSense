@@ -9,6 +9,24 @@ import {
   AnalyzedFile
 } from "@/lib/api";
 
+interface UploadProgress {
+  status: 'idle' | 'uploading' | 'success' | 'error';
+  message: string;
+  percentage: number;
+  processedRecords: number;
+  totalRecords: number;
+  error?: string;
+}
+
+const initialUploadProgress: UploadProgress = {
+  status: 'idle',
+  message: '',
+  percentage: 0,
+  processedRecords: 0,
+  totalRecords: 0,
+  error: undefined,
+};
+
 interface DisasterContextType {
   // Data
   sentimentPosts: SentimentPost[];
@@ -21,15 +39,8 @@ interface DisasterContextType {
   isLoadingAnalyzedFiles: boolean;
   isUploading: boolean;
 
-  // Upload progress
-  uploadProgress: {
-    status: 'idle' | 'uploading' | 'success' | 'error';
-    message: string;
-    percentage: number;
-    processedRecords: number;
-    totalRecords: number;
-    error?: string;
-  };
+  // Upload states
+  uploadProgress: UploadProgress;
 
   // Error states
   errorSentimentPosts: Error | null;
@@ -48,21 +59,12 @@ interface DisasterContextType {
 
   // Upload state management
   setIsUploading: (state: boolean) => void;
-  updateUploadProgress: (progress: Partial<DisasterContextType['uploadProgress']>) => void;
+  updateUploadProgress: (progress: Partial<UploadProgress>) => void;
   resetUploadProgress: () => void;
 
   // Refresh function
   refreshData: () => void;
 }
-
-const initialUploadProgress = {
-  status: 'idle' as const,
-  message: '',
-  percentage: 0,
-  processedRecords: 0,
-  totalRecords: 0,
-  error: undefined,
-};
 
 const DisasterContext = createContext<DisasterContextType | undefined>(undefined);
 
@@ -70,7 +72,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   // State for filters and upload
   const [selectedDisasterType, setSelectedDisasterType] = useState<string>("All");
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(initialUploadProgress);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>(initialUploadProgress);
 
   // Queries
   const { 
@@ -123,17 +125,21 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   const modelConfidence = sentimentPosts.length > 0 ? totalConfidence / sentimentPosts.length : 0;
 
   // Update upload progress
-  const updateUploadProgress = (progress: Partial<DisasterContextType['uploadProgress']>) => {
-    setUploadProgress((prev) => {
-      return { ...prev, ...progress } as typeof initialUploadProgress;
-    });
+  const updateUploadProgress = (progress: Partial<UploadProgress>) => {
+    setUploadProgress(prev => ({
+      ...prev,
+      ...progress,
+      // Ensure percentage is calculated correctly
+      percentage: progress.totalRecords && progress.processedRecords !== undefined
+        ? Math.round((progress.processedRecords / progress.totalRecords) * 100)
+        : prev.percentage
+    }));
   };
 
-  // Reset upload progress, but keep isUploading separate
+  // Reset function
   const resetUploadProgress = () => {
     setUploadProgress(initialUploadProgress);
-    // Don't automatically set isUploading to false here
-    // This allows us to control when the entire upload UI disappears
+    setIsUploading(false);
   };
 
   // Refresh function for fetching all data

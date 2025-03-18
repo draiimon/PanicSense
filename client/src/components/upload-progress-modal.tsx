@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, FileText, Database, ChevronRight } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
 
@@ -16,13 +16,59 @@ const AnimatedNumber = ({ value }: { value: number }) => (
   </motion.span>
 );
 
+// Progress step component
+const ProgressStep = ({ 
+  icon: Icon, 
+  title, 
+  isActive, 
+  isComplete 
+}: { 
+  icon: any;
+  title: string;
+  isActive: boolean;
+  isComplete: boolean;
+}) => (
+  <div className={`
+    flex items-center gap-2 p-2 rounded-lg transition-colors
+    ${isActive ? 'bg-blue-50' : isComplete ? 'bg-emerald-50' : 'bg-slate-50'}
+  `}>
+    <div className={`
+      p-1.5 rounded-full
+      ${isActive ? 'bg-blue-100 text-blue-600' : 
+        isComplete ? 'bg-emerald-100 text-emerald-600' : 
+        'bg-slate-100 text-slate-400'}
+    `}>
+      <Icon className="h-4 w-4" />
+    </div>
+    <span className={`
+      text-sm font-medium
+      ${isActive ? 'text-blue-700' : 
+        isComplete ? 'text-emerald-700' : 
+        'text-slate-400'}
+    `}>
+      {title}
+    </span>
+    <ChevronRight className={`
+      h-4 w-4 ml-auto
+      ${isActive ? 'text-blue-400' : 
+        isComplete ? 'text-emerald-400' : 
+        'text-slate-300'}
+    `} />
+  </div>
+);
+
 export function UploadProgressModal() {
   const { isUploading, uploadProgress } = useDisasterContext();
 
-  // Calculate the actual percentage from the progress data
+  // Calculate progress and determine current stage
   const percentage = uploadProgress.totalRecords > 0 
     ? Math.round((uploadProgress.processedRecords / uploadProgress.totalRecords) * 100)
     : 0;
+
+  const stage = uploadProgress.stage || '';
+  const isLoading = stage.toLowerCase().includes('loading');
+  const isProcessing = stage.toLowerCase().includes('processing');
+  const isCompleted = uploadProgress.status === 'success';
 
   // Enhanced processing message
   const processingMessage = uploadProgress.totalRecords > 0
@@ -63,6 +109,29 @@ export function UploadProgressModal() {
             }}
             className="relative bg-white/95 backdrop-blur-lg rounded-xl border border-blue-100 p-6 max-w-md w-full mx-4 shadow-2xl"
           >
+            {/* Progress Steps */}
+            <div className="space-y-2 mb-6">
+              <ProgressStep
+                icon={FileText}
+                title="Loading File"
+                isActive={isLoading}
+                isComplete={isProcessing || isCompleted}
+              />
+              <ProgressStep
+                icon={Database}
+                title="Processing Data"
+                isActive={isProcessing}
+                isComplete={isCompleted}
+              />
+              <ProgressStep
+                icon={CheckCircle}
+                title="Analysis Complete"
+                isActive={isCompleted}
+                isComplete={isCompleted}
+              />
+            </div>
+
+            {/* Current Status */}
             <div className="flex items-center mb-4">
               {uploadProgress.status === "uploading" && (
                 <Loader2 className="animate-spin h-5 w-5 mr-2 text-blue-600" />
@@ -86,6 +155,7 @@ export function UploadProgressModal() {
               </span>
             </div>
 
+            {/* Progress Bar */}
             <div className="relative">
               <div className="overflow-hidden h-2.5 text-xs flex rounded-full bg-slate-200/50 backdrop-blur-sm">
                 <motion.div
