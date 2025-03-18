@@ -185,12 +185,12 @@ export default function Dashboard() {
         )}
       </motion.div>
 
-      {/* Stats Grid with improved styling */}
+      {/* Stats Grid with improved styling (3-card layout) */}
       <motion.div 
         initial="hidden"
         animate="visible"
         variants={fadeInUp}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6"
+        className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"
       >
         <StatusCard 
           title="Active Disasters"
@@ -225,6 +225,15 @@ export default function Dashboard() {
           }}
           isLoading={isLoadingSentimentPosts}
         />
+      </motion.div>
+
+      {/* Usage Stats Card - Separate row */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="mb-6"
+      >
         <UsageStatsCard />
       </motion.div>
 

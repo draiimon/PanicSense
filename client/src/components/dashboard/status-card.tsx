@@ -110,11 +110,9 @@ export function StatusCard({ title, value, icon, trend, isLoading = false }: Sta
       hasCustomIcon = !!icon;
   }
 
-  // Custom sentiment styling for Dominant Sentiment card
+  // No custom sentiment styling for Dominant Sentiment card
+  // We're making all text white as requested
   let sentimentColor = '';
-  if (title === 'Dominant Sentiment' && !isLoading) {
-    sentimentColor = getSentimentColor(value.toString());
-  }
 
   return (
     <Card className="overflow-hidden shadow-lg border-none hover:shadow-xl transition-all duration-300 group">
