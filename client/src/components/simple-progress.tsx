@@ -3,12 +3,12 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 interface SimpleProgressProps {
-  totalItems?: number;
+  totalItems: number; // Required prop, no default value
   isProcessing: boolean;
   onComplete?: () => void;
 }
 
-export function SimpleProgress({ totalItems = 200, isProcessing, onComplete }: SimpleProgressProps) {
+export function SimpleProgress({ totalItems, isProcessing, onComplete }: SimpleProgressProps) {
   const [progress, setProgress] = useState(0);
   const [processedItems, setProcessedItems] = useState(0);
   const [avgSpeed, setAvgSpeed] = useState(0);
