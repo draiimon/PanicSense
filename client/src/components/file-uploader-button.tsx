@@ -74,21 +74,16 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           await sleep(500);
 
           const result = await uploadCSV(file, async (progress) => {
-            // Extract record number from stage
-            let nextRecord = 0;
-            const recordMatch = progress.stage?.match(/record (\d+)\/(\d+)/i);
+            console.log('Progress update:', progress); // Debug log
 
-            if (recordMatch) {
-              nextRecord = parseInt(recordMatch[1]);
-            } else if (progress.processed) {
-              nextRecord = Number(progress.processed);
-            }
+            // Get the processed count directly from the progress object
+            const processedCount = progress.processed || 0;
 
             // Update progress immediately
             updateUploadProgress({
-              processedRecords: nextRecord,
+              processedRecords: processedCount,
               totalRecords: progress.total || lines,
-              percentage: progress.total ? Math.round((nextRecord / progress.total) * 100) : 0,
+              percentage: progress.total ? Math.round((processedCount / progress.total) * 100) : 0,
               message: progress.stage || 'Processing...',
               status: progress.error ? 'error' : 'uploading'
             });
@@ -98,7 +93,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             }
 
             // Small delay for smoother UI updates
-            await sleep(100);
+            await sleep(50);
           });
 
           if (result?.file && result?.posts) {

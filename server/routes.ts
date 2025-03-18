@@ -220,40 +220,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const generateDisasterEvents = async (posts: any[]): Promise<void> => {
     if (posts.length === 0) return;
 
-    // Group posts by day to identify patterns
-    const postsByDay: {[key: string]: {
+    // Group posts by day and disaster type
+    const postsByDayAndType: {[key: string]: {
       posts: any[],
       count: number,
-      sentiments: {[key: string]: number}
+      sentiments: {[key: string]: number},
+      type: string,
+      location: string | null
     }} = {};
 
-    // Group posts by day (YYYY-MM-DD)
+    // Group posts by day and disaster type
     for (const post of posts) {
-      const day = new Date(post.timestamp).toISOString().split('T')[0];
+      if (!post.disasterType) continue;
 
-      if (!postsByDay[day]) {
-        postsByDay[day] = {
+      const day = new Date(post.timestamp).toISOString().split('T')[0];
+      const key = `${day}-${post.disasterType}`;
+
+      if (!postsByDayAndType[key]) {
+        postsByDayAndType[key] = {
           posts: [],
           count: 0,
-          sentiments: {}
+          sentiments: {},
+          type: post.disasterType,
+          location: null
         };
       }
 
-      postsByDay[day].posts.push(post);
-      postsByDay[day].count++;
+      postsByDayAndType[key].posts.push(post);
+      postsByDayAndType[key].count++;
+
+      // Track location with most occurrences
+      if (post.location) {
+        postsByDayAndType[key].location = post.location;
+      }
 
       // Count sentiment occurrences
       const sentiment = post.sentiment;
-      postsByDay[day].sentiments[sentiment] = (postsByDay[day].sentiments[sentiment] || 0) + 1;
+      postsByDayAndType[key].sentiments[sentiment] = (postsByDayAndType[key].sentiments[sentiment] || 0) + 1;
     }
 
-    // Process each day with sufficient posts (at least 3)
-    for (const [day, data] of Object.entries(postsByDay)) {
+    // Process each group with sufficient posts (at least 3)
+    for (const [key, data] of Object.entries(postsByDayAndType)) {
       if (data.count < 3) continue;
 
-      // Find dominant sentiment
+      // Find dominant sentiment and its change description
       let maxCount = 0;
       let dominantSentiment: string | null = null;
+      let sentimentDescription = '';
 
       for (const [sentiment, count] of Object.entries(data.sentiments)) {
         if (count > maxCount) {
@@ -262,65 +275,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Extract disaster type and location from text content
-      const texts = data.posts.map(p => p.text.toLowerCase());
-      let disasterType = null;
-      let location = null;
-
-      // Enhanced disaster type detection with more variations
-      const disasterKeywords = {
-        "Earthquake": ['lindol', 'earthquake', 'quake', 'tremor', 'lumindol', 'yugto', 'lindol na malakas', 'paglindol'],
-        "Flood": ['baha', 'flood', 'pagbaha', 'pagbabaha', 'bumaha', 'tubig', 'binaha', 'napabaha', 'flash flood'],
-        "Typhoon": ['bagyo', 'typhoon', 'storm', 'cyclone', 'hurricane', 'bagyong', 'unos', 'habagat', 'super typhoon'],
-        "Fire": ['sunog', 'fire', 'nasunog', 'burning', 'apoy', 'silab', 'nagkasunog', 'wildfire', 'forest fire'],
-        "Volcanic Eruption": ['bulkan', 'volcano', 'eruption', 'ash fall', 'lava', 'ashfall', 'bulkang', 'pumutok', 'sumabog'],
-        "Landslide": ['landslide', 'pagguho', 'guho', 'mudslide', 'rockslide', 'avalanche', 'pagguho ng lupa', 'collapsed'],
-        "Tsunami": ['tsunami', 'tidal wave', 'daluyong', 'alon', 'malalaking alon']
-      };
-
-      // Check each disaster type in texts
-      for (const [type, keywords] of Object.entries(disasterKeywords)) {
-        if (texts.some(text => keywords.some(keyword => text.includes(keyword)))) {
-          disasterType = type;
-          break;
-        }
-      }
-
-      // Enhanced location detection with more Philippine locations
-      const locations = [
-        'Manila', 'Quezon City', 'Cebu', 'Davao', 'Mindanao', 'Luzon',
-        'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
-        'Batangas', 'Zambales', 'Pampanga', 'Bicol', 'Leyte', 'Samar',
-        'Pangasinan', 'Tarlac', 'Cagayan', 'Bulacan', 'Cavite', 'Laguna',
-        'Rizal', 'Marikina', 'Makati', 'Pasig', 'Taguig', 'Pasay', 'Mandaluyong',
-        'Parañaque', 'Caloocan', 'Valenzuela', 'Muntinlupa', 'Malabon', 'Navotas',
-        'San Juan', 'Las Piñas', 'Pateros', 'Nueva Ecija', 'Benguet', 'Albay',
-        'Catanduanes', 'Sorsogon', 'Camarines Sur', 'Camarines Norte', 'Marinduque'
-      ];
-
-      // Try to find locations in text more aggressively
-      for (const text of texts) {
-        const textLower = text.toLowerCase();
-        for (const loc of locations) {
-          if (textLower.includes(loc.toLowerCase())) {
-            location = loc;
-            break;
+      // Create meaningful sentiment change descriptions
+      if (dominantSentiment) {
+        const percentage = Math.round((maxCount / data.count) * 100);
+        if (percentage > 60) {
+          switch(dominantSentiment) {
+            case 'Fear/Anxiety':
+              sentimentDescription = 'Fear/Anxiety sentiment spike';
+              break;
+            case 'Panic':
+              sentimentDescription = 'Panic sentiment spike';
+              break;
+            case 'Neutral':
+              sentimentDescription = 'Neutral sentiment trend';
+              break;
+            case 'Relief':
+              sentimentDescription = 'Relief sentiment increase';
+              break;
+            case 'Disbelief':
+              sentimentDescription = 'Disbelief sentiment surge';
+              break;
+            default:
+              sentimentDescription = `${dominantSentiment} sentiment trend`;
           }
+        } else {
+          sentimentDescription = 'Mixed sentiment patterns';
         }
-        if (location) break;
       }
 
-      if (disasterType && (location || dominantSentiment)) {
-        // Create the disaster event
-        await storage.createDisasterEvent({
-          name: `${disasterType} Incident on ${new Date(day).toLocaleDateString()}`,
-          description: `Based on ${data.count} social media reports. Sample content: ${data.posts[0].text}`,
-          timestamp: new Date(day),
-          location,
-          type: disasterType,
-          sentimentImpact: dominantSentiment || undefined
-        });
-      }
+      // Find most relevant sample content matching the disaster type
+      const relevantPost = data.posts.find(post => 
+        post.text.toLowerCase().includes(data.type.toLowerCase()) ||
+        post.sentiment === dominantSentiment
+      ) || data.posts[0];
+
+      // Create the disaster event with improved description
+      await storage.createDisasterEvent({
+        name: `${data.type} Incident on ${new Date(key.split('-')[0]).toLocaleDateString()}`,
+        description: `Based on ${data.count} social media reports. Sample content: ${relevantPost.text}`,
+        timestamp: new Date(key.split('-')[0]),
+        location: data.location,
+        type: data.type,
+        sentimentImpact: sentimentDescription
+      });
     }
   };
 
