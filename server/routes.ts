@@ -450,6 +450,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Track the highest progress value to prevent jumping backward
     let highestProcessedValue = 0;
     
+    // Log start of a new upload
+    console.log('Starting new CSV upload, resetting progress tracking');
+    
     let updateProgress = (
       processed: number, 
       stage: string, 
