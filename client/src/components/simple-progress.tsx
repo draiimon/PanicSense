@@ -28,10 +28,12 @@ export function SimpleProgress({ totalItems = 20, isProcessing, onComplete }: Si
 
     // Simulate a slow, natural-feeling progress with random delays
     const simulateProgress = () => {
-      const baseDelay = 2000; // Base delay of 2 seconds between records
+      const baseDelay = 3000; // Base delay of 3 seconds between records
       const randomDelay = () => baseDelay + (Math.random() * 1000); // Add 0-1 second random variation
+      const batchSize = 6; // Process in batches of 6 like the actual process
 
       let currentItem = 0;
+      let currentBatch = 1;
 
       const processNextItem = () => {
         if (currentItem >= totalItems) {
@@ -43,23 +45,38 @@ export function SimpleProgress({ totalItems = 20, isProcessing, onComplete }: Si
         currentItem++;
         setProcessedItems(currentItem);
         setProgress((currentItem / totalItems) * 100);
-        setStage(`Processing record ${currentItem}/${totalItems}`);
 
-        // Calculate realistic-looking average speed
-        const elapsedSeconds = (Date.now() - startTime) / 1000;
-        const speed = elapsedSeconds > 0 ? currentItem / elapsedSeconds : 0;
-        // Add some random variation to speed
-        const randomizedSpeed = speed * (0.8 + Math.random() * 0.4); // ±20% variation
-        setAvgSpeed(Number(randomizedSpeed.toFixed(1)));
+        // Simulate batch processing stages
+        if (currentItem % batchSize === 0) {
+          setStage(`Completed batch ${currentBatch} - pausing before next batch`);
+          currentBatch++;
+          // Add longer delay between batches (5 seconds)
+          setTimeout(() => {
+            if (currentItem < totalItems) {
+              setStage(`Starting batch ${currentBatch} - processing records ${currentItem + 1} to ${Math.min(currentItem + batchSize, totalItems)}`);
+              setTimeout(processNextItem, 1000); // Start next batch after 1 second
+            }
+          }, 5000);
+        } else {
+          setStage(`Processing record ${currentItem}/${totalItems}`);
 
-        // Schedule next item with random delay
-        if (currentItem < totalItems) {
-          setTimeout(processNextItem, randomDelay());
+          // Calculate realistic-looking average speed
+          const elapsedSeconds = (Date.now() - startTime) / 1000;
+          const speed = elapsedSeconds > 0 ? currentItem / elapsedSeconds : 0;
+          // Add some random variation to speed
+          const randomizedSpeed = speed * (0.8 + Math.random() * 0.4); // ±20% variation
+          setAvgSpeed(Number(randomizedSpeed.toFixed(1)));
+
+          // Schedule next item with random delay
+          if (currentItem < totalItems) {
+            setTimeout(processNextItem, randomDelay());
+          }
         }
       };
 
       // Start processing after initial delay
-      setTimeout(processNextItem, 500);
+      setStage("Initializing analysis for 20 records...");
+      setTimeout(processNextItem, 2000);
     };
 
     simulateProgress();
