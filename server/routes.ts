@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import path from "path";
 import multer from "multer";
-import { pythonService } from "./python-service";
+import { pythonService, pythonConsoleMessages } from "./python-service";
 import { insertSentimentPostSchema, insertAnalyzedFileSchema } from "@shared/schema";
 import { EventEmitter } from 'events';
 
@@ -837,6 +837,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ 
         error: "Failed to delete analyzed file",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Endpoint to get Python console messages
+  app.get('/api/python-console-messages', async (req: Request, res: Response) => {
+    try {
+      // Return the most recent messages, with a limit of 100
+      const limit = parseInt(req.query.limit as string) || 100;
+      const recentMessages = pythonConsoleMessages
+        .slice(-limit)
+        .map(item => ({
+          message: item.message,
+          timestamp: item.timestamp.toISOString()
+        }));
+      
+      res.json(recentMessages);
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Failed to retrieve Python console messages",
         details: error instanceof Error ? error.message : String(error)
       });
     }

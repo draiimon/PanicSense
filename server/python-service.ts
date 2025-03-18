@@ -5,6 +5,9 @@ import os from 'os';
 import { nanoid } from 'nanoid';
 import { log } from './vite';
 
+// Global array to store console logs from Python service
+export const pythonConsoleMessages: {message: string, timestamp: Date}[] = [];
+
 interface ProcessCSVResult {
   results: {
     text: string;
@@ -77,6 +80,15 @@ export class PythonService {
         // Handle progress events from Python script
         pythonProcess.stdout.on('data', (data) => {
           const dataStr = data.toString();
+          
+          // Store stdout message in our global array
+          if (dataStr.trim()) {
+            pythonConsoleMessages.push({
+              message: dataStr.trim(),
+              timestamp: new Date()
+            });
+          }
+          
           if (onProgress && dataStr.includes('PROGRESS:')) {
             try {
               const progressData = JSON.parse(dataStr.split('PROGRESS:')[1]);
@@ -98,6 +110,13 @@ export class PythonService {
         pythonProcess.stderr.on('data', (data) => {
           const errorMsg = data.toString();
           errorOutput += errorMsg;
+          
+          // Save all Python console output
+          pythonConsoleMessages.push({
+            message: errorMsg.trim(),
+            timestamp: new Date()
+          });
+          
           // Also treat error messages as progress updates to show in the UI
           if (onProgress && errorMsg.includes('Completed record')) {
             const matches = errorMsg.match(/Completed record (\d+)\/(\d+)/);
@@ -107,6 +126,7 @@ export class PythonService {
               onProgress(processed, errorMsg.trim(), total);
             }
           }
+          
           log(`Python process error: ${errorMsg}`, 'python-service');
         });
 
