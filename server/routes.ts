@@ -45,6 +45,9 @@ function broadcastUpdate(data: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve static files from attached_assets
+  app.use('/assets', express.static(path.join(process.cwd(), 'attached_assets')));
+
   // Create HTTP server
   const httpServer = createServer(app);
 
