@@ -1,0 +1,44 @@
+ rest-express@1.0.0 dev
+> tsx server/index.ts
+
+2:21:16 PM [express] 🚀 Server running on port 5000
+2:21:44 PM [express] GET /api/analyzed-files 304 in 946ms :: [{"id":11,"originalName":"sentiment_data.csv","storedName":"aw-G2eHQenfP1Unh1Vv7Z-sentiment_data.csv...
+2:21:44 PM [express] GET /api/disaster-events 304 in 960ms :: [{"id":20,"name":"Earthquake Incident on 8/1/2023","description":"Based on 10 social media reports. ...
+2:21:44 PM [express] GET /api/sentiment-posts 304 in 1198ms :: [{"id":192,"text":"mag sunog sa TIP!!","timestamp":"2025-03-18T13:39:57.432Z","source":"Manual Input...
+2:21:49 PM [python-service] Processing CSV file: sentiment_data - sentiment_data.csv.csv
+2:21:50 PM [python-service] Python process error: usage: process.py [-h] [--text TEXT] [--file FILE]
+
+2:21:50 PM [python-service] Python process error: process.py: error: unrecognized arguments: --batch-size 6
+
+2:21:50 PM [python-service] Python process error: usage: process.py [-h] [--text TEXT] [--file FILE]
+process.py: error: unrecognized arguments: --batch-size 6
+
+2:21:51 PM [python-service] Python process error: usage: process.py [-h] [--text TEXT] [--file FILE]
+
+2:21:51 PM [python-service] Python process error: process.py: error: unrecognized arguments: --batch-size 6
+
+2:21:51 PM [python-service] Python process error: usage: process.py [-h] [--text TEXT] [--file FILE]
+process.py: error: unrecognized arguments: --batch-size 6
+
+2:21:54 PM [python-service] Python process error: usage: process.py [-h] [--text TEXT] [--file FILE]
+
+2:21:54 PM [python-service] Python process error: process.py: error: unrecognized arguments: --batch-size 6
+
+2:21:54 PM [python-service] Python process error: usage: process.py [-h] [--text TEXT] [--file FILE]
+process.py: error: unrecognized arguments: --batch-size 6
+
+2:21:58 PM [python-service] Python process error: usage: process.py [-h] [--text TEXT] [--file FILE]
+process.py: error: unrecognized arguments: --batch-size 6
+
+2:21:58 PM [python-service] Python process error: usage: process.py [-h] [--text TEXT] [--file FILE]
+process.py: error: unrecognized arguments: --batch-size 6
+
+Error processing CSV: Error: Python script exited with code 2: usage: process.py [-h] [--text TEXT] [--file FILE]
+process.py: error: unrecognized arguments: --batch-size 6
+
+    at ChildProcess.<anonymous> (/home/runner/workspace/server/python-service.ts:192:22)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+Progress update: 0/20 - Error - Batch 0/4 (0%)
+2:21:58 PM [express] POST /api/upload-csv 500 in 8950ms :: {"error":"Failed to process CSV file","details":"Python script exited with code 2: usage: process.py...

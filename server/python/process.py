@@ -77,6 +77,24 @@ class DisasterSentimentBackend:
                 "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",
                 "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",
                 "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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"
             ]
             self.groq_api_keys = self.api_keys.copy()
 
@@ -102,15 +120,15 @@ class DisasterSentimentBackend:
         """
         if not text or len(text.strip()) == 0:
             return "Not Specified"
-            
+
         text_lower = text.lower()
 
         # Only use these 6 specific disaster types:
         disaster_types = {
             "Earthquake": [
                 "earthquake", "quake", "tremor", "seismic", "lindol",
-                "magnitude", "aftershock", "shaking", "lumindol", 
-                "pagyanig", "paglindol", "ground shaking", "magnitude"
+                "magnitude", "aftershock", "shaking", "lumindol", "pagyanig",
+                "paglindol", "ground shaking", "magnitude"
             ],
             "Flood": [
                 "flood", "flooding", "inundation", "baha", "tubig", "binaha",
@@ -121,20 +139,23 @@ class DisasterSentimentBackend:
             "Typhoon": [
                 "typhoon", "storm", "cyclone", "hurricane", "bagyo",
                 "super typhoon", "habagat", "ulan", "buhos", "storm surge",
-                "malakas na hangin", "heavy rain", "signal no", "strong wind", "malakas na ulan",
-                "flood warning", "storm warning", "evacuate due to storm", "matinding ulan"
+                "malakas na hangin", "heavy rain", "signal no", "strong wind",
+                "malakas na ulan", "flood warning", "storm warning",
+                "evacuate due to storm", "matinding ulan"
             ],
             "Fire": [
-                "fire", "blaze", "burning", "sunog", "nasusunog", "nasunog", "nagliliyab",
-                "flame", "apoy", "burning building", "burning house", "tulong sunog",
-                "house fire", "fire truck", "fire fighter", "building fire", "fire alarm",
-                "burning", "nagliliyab", "sinusunog", "smoke", "usok"
+                "fire", "blaze", "burning", "sunog", "nasusunog", "nasunog",
+                "nagliliyab", "flame", "apoy", "burning building",
+                "burning house", "tulong sunog", "house fire", "fire truck",
+                "fire fighter", "building fire", "fire alarm", "burning",
+                "nagliliyab", "sinusunog", "smoke", "usok"
             ],
             "Volcano": [
                 "volcano", "eruption", "lava", "ash", "bulkan", "ashfall",
-                "magma", "volcanic", "bulkang", "active volcano", "phivolcs alert",
-                "taal", "mayon", "pinatubo", "volcanic activity", "phivolcs",
-                "volcanic ash", "evacuate volcano", "erupting", "erupted", "abo ng bulkan"
+                "magma", "volcanic", "bulkang", "active volcano",
+                "phivolcs alert", "taal", "mayon", "pinatubo",
+                "volcanic activity", "phivolcs", "volcanic ash",
+                "evacuate volcano", "erupting", "erupted", "abo ng bulkan"
             ],
             "Landslide": [
                 "landslide", "mudslide", "avalanche", "guho", "pagguho",
@@ -147,62 +168,70 @@ class DisasterSentimentBackend:
         # First pass: Check for direct keyword matches with scoring
         scores = {disaster_type: 0 for disaster_type in disaster_types}
         matched_keywords = {}
-        
+
         for disaster_type, keywords in disaster_types.items():
             matched_terms = []
             for keyword in keywords:
                 if keyword in text_lower:
                     # Check if it's a full word or part of a word
-                    if (f" {keyword} " in f" {text_lower} " or
-                        text_lower.startswith(f"{keyword} ") or
-                        text_lower.endswith(f" {keyword}") or
-                        text_lower == keyword):
+                    if (f" {keyword} " in f" {text_lower} "
+                            or text_lower.startswith(f"{keyword} ")
+                            or text_lower.endswith(f" {keyword}")
+                            or text_lower == keyword):
                         scores[disaster_type] += 2  # Full word match
                         matched_terms.append(keyword)
                     else:
                         scores[disaster_type] += 1  # Partial match
                         matched_terms.append(keyword)
-            
+
             if matched_terms:
                 matched_keywords[disaster_type] = matched_terms
-        
+
         # Context analysis for specific disaster scenarios
         context_indicators = {
             "Earthquake": [
-                "shaking", "ground moved", "buildings collapsed", "magnitude", "richter scale",
-                "fell down", "trembling", "evacuate building", "underneath rubble", "trapped"
+                "shaking", "ground moved", "buildings collapsed", "magnitude",
+                "richter scale", "fell down", "trembling", "evacuate building",
+                "underneath rubble", "trapped"
             ],
             "Flood": [
-                "water level", "rising water", "underwater", "submerged", "evacuate",
-                "rescue boat", "stranded", "high water", "knee deep", "waist deep"
+                "water level", "rising water", "underwater", "submerged",
+                "evacuate", "rescue boat", "stranded", "high water",
+                "knee deep", "waist deep"
             ],
             "Typhoon": [
-                "strong winds", "heavy rain", "evacuation center", "storm signal", "stranded",
-                "cancelled flights", "damaged roof", "blown away", "flooding due to", "trees fell"
+                "strong winds", "heavy rain", "evacuation center",
+                "storm signal", "stranded", "cancelled flights",
+                "damaged roof", "blown away", "flooding due to", "trees fell"
             ],
             "Fire": [
-                "smoke", "evacuate building", "trapped inside", "firefighter", "fire truck",
-                "burning", "call 911", "spread to", "emergency", "burning smell"
+                "smoke", "evacuate building", "trapped inside", "firefighter",
+                "fire truck", "burning", "call 911", "spread to", "emergency",
+                "burning smell"
             ],
             "Volcano": [
-                "alert level", "evacuate area", "danger zone", "eruption warning", "exclusion zone",
-                "kilometer radius", "volcanic activity", "ash covered", "masks", "respiratory"
+                "alert level", "evacuate area", "danger zone",
+                "eruption warning", "exclusion zone", "kilometer radius",
+                "volcanic activity", "ash covered", "masks", "respiratory"
             ],
             "Landslide": [
-                "collapsed", "blocked road", "buried", "fell", "slid down", "mountain slope",
-                "after heavy rain", "buried homes", "rescue team", "clearing operation"
+                "collapsed", "blocked road", "buried", "fell", "slid down",
+                "mountain slope", "after heavy rain", "buried homes",
+                "rescue team", "clearing operation"
             ]
         }
-        
+
         # Check for contextual indicators
         for disaster_type, indicators in context_indicators.items():
             for indicator in indicators:
                 if indicator in text_lower:
-                    scores[disaster_type] += 1.5  # Context indicators have higher weight
+                    scores[
+                        disaster_type] += 1.5  # Context indicators have higher weight
                     if disaster_type not in matched_keywords:
                         matched_keywords[disaster_type] = []
-                    matched_keywords[disaster_type].append(f"context:{indicator}")
-        
+                    matched_keywords[disaster_type].append(
+                        f"context:{indicator}")
+
         # Check for co-occurrence patterns
         if "water" in text_lower and "rising" in text_lower:
             scores["Flood"] += 2
@@ -219,26 +248,31 @@ class DisasterSentimentBackend:
             for d_type in ["Volcano", "Fire", "Flood", "Typhoon"]:
                 if any(k in text_lower for k in disaster_types[d_type]):
                     scores[d_type] += 1
-        
+
         # Get the disaster type with the highest score
         max_score = max(scores.values())
-        
+
         # If no significant evidence found
         if max_score < 1:
             return "Not Specified"
-            
+
         # Get disaster types that tied for highest score
-        top_disasters = [dt for dt, score in scores.items() if score == max_score]
-        
+        top_disasters = [
+            dt for dt, score in scores.items() if score == max_score
+        ]
+
         if len(top_disasters) == 1:
             return top_disasters[0]
         else:
             # In case of tie, use order of priority for Philippines (typhoon > flood > earthquake > volcano > fire > landslide)
-            priority_order = ["Typhoon", "Flood", "Earthquake", "Volcano", "Fire", "Landslide"]
+            priority_order = [
+                "Typhoon", "Flood", "Earthquake", "Volcano", "Fire",
+                "Landslide"
+            ]
             for disaster in priority_order:
                 if disaster in top_disasters:
                     return disaster
-            
+
             # Fallback to first match
             return top_disasters[0]
 
@@ -249,38 +283,76 @@ class DisasterSentimentBackend:
         # STRICT list of Philippine locations - top-level regions and popular cities
         ph_locations = [
             # Regions
-            "NCR", "Metro Manila", "CAR", "Cordillera", "Ilocos", "Cagayan Valley", 
-            "Central Luzon", "CALABARZON", "MIMAROPA", "Bicol", "Western Visayas",
-            "Central Visayas", "Eastern Visayas", "Zamboanga Peninsula", "Northern Mindanao",
-            "Davao Region", "SOCCSKSARGEN", "Caraga", "BARMM", "Bangsamoro",
-            
+            "NCR",
+            "Metro Manila",
+            "CAR",
+            "Cordillera",
+            "Ilocos",
+            "Cagayan Valley",
+            "Central Luzon",
+            "CALABARZON",
+            "MIMAROPA",
+            "Bicol",
+            "Western Visayas",
+            "Central Visayas",
+            "Eastern Visayas",
+            "Zamboanga Peninsula",
+            "Northern Mindanao",
+            "Davao Region",
+            "SOCCSKSARGEN",
+            "Caraga",
+            "BARMM",
+            "Bangsamoro",
+
             # Popular cities
-            "Manila", "Quezon City", "Makati", "Taguig", "Pasig", "Mandaluyong", "Pasay",
-            "Baguio", "Cebu", "Davao", "Iloilo", "Cagayan de Oro", "Zamboanga",
-            "Bacolod", "General Santos", "Tacloban", "Angeles", "Olongapo",
-            "Naga", "Butuan", "Cotabato", "Dagupan", "Iligan"
+            "Manila",
+            "Quezon City",
+            "Makati",
+            "Taguig",
+            "Pasig",
+            "Mandaluyong",
+            "Pasay",
+            "Baguio",
+            "Cebu",
+            "Davao",
+            "Iloilo",
+            "Cagayan de Oro",
+            "Zamboanga",
+            "Bacolod",
+            "General Santos",
+            "Tacloban",
+            "Angeles",
+            "Olongapo",
+            "Naga",
+            "Butuan",
+            "Cotabato",
+            "Dagupan",
+            "Iligan"
         ]
-            
+
         # Top provinces
         provinces = [
-            "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay", "Antique",
-            "Apayao", "Aurora", "Basilan", "Bataan", "Batanes", "Batangas", "Benguet", 
-            "Biliran", "Bohol", "Bukidnon", "Bulacan", "Cagayan", "Camarines Norte",
-            "Camarines Sur", "Camiguin", "Capiz", "Catanduanes", "Cavite", "Cebu",
-            "Cotabato", "Davao de Oro", "Davao del Norte", "Davao del Sur", "Davao Oriental", 
-            "Dinagat Islands", "Eastern Samar", "Guimaras", "Ifugao", "Ilocos Norte",
-            "Ilocos Sur", "Iloilo", "Isabela", "Kalinga", "La Union", "Laguna", 
-            "Lanao del Norte", "Lanao del Sur", "Leyte", "Maguindanao", "Marinduque", 
-            "Masbate", "Misamis Occidental", "Misamis Oriental", "Mountain Province", 
-            "Negros Occidental", "Negros Oriental", "Northern Samar", "Nueva Ecija",
-            "Nueva Vizcaya", "Occidental Mindoro", "Oriental Mindoro", "Palawan", 
-            "Pampanga", "Pangasinan", "Quezon", "Quirino", "Rizal", "Romblon", 
-            "Samar", "Sarangani", "Siquijor", "Sorsogon", "South Cotabato", 
-            "Southern Leyte", "Sultan Kudarat", "Sulu", "Surigao del Norte", 
-            "Surigao del Sur", "Tarlac", "Tawi-Tawi", "Zambales", "Zamboanga del Norte",
-            "Zamboanga del Sur", "Zamboanga Sibugay"
+            "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay",
+            "Antique", "Apayao", "Aurora", "Basilan", "Bataan", "Batanes",
+            "Batangas", "Benguet", "Biliran", "Bohol", "Bukidnon", "Bulacan",
+            "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz",
+            "Catanduanes", "Cavite", "Cebu", "Cotabato", "Davao de Oro",
+            "Davao del Norte", "Davao del Sur", "Davao Oriental",
+            "Dinagat Islands", "Eastern Samar", "Guimaras", "Ifugao",
+            "Ilocos Norte", "Ilocos Sur", "Iloilo", "Isabela", "Kalinga",
+            "La Union", "Laguna", "Lanao del Norte", "Lanao del Sur", "Leyte",
+            "Maguindanao", "Marinduque", "Masbate", "Misamis Occidental",
+            "Misamis Oriental", "Mountain Province", "Negros Occidental",
+            "Negros Oriental", "Northern Samar", "Nueva Ecija",
+            "Nueva Vizcaya", "Occidental Mindoro", "Oriental Mindoro",
+            "Palawan", "Pampanga", "Pangasinan", "Quezon", "Quirino", "Rizal",
+            "Romblon", "Samar", "Sarangani", "Siquijor", "Sorsogon",
+            "South Cotabato", "Southern Leyte", "Sultan Kudarat", "Sulu",
+            "Surigao del Norte", "Surigao del Sur", "Tarlac", "Tawi-Tawi",
+            "Zambales", "Zamboanga del Norte", "Zamboanga del Sur",
+            "Zamboanga Sibugay"
         ]
-        
+
         ph_locations.extend(provinces)
 
         # Convert locations to regular expressions for whole-word matching
@@ -298,18 +370,18 @@ class DisasterSentimentBackend:
         if locations_found:
             # Return first found location
             return locations_found[0]
-            
+
         # Second, check for substring matches that may not be complete words
         for loc in ph_locations:
             if loc.lower() in text_lower:
                 return loc
-                
+
         # Attempt to extract place names via specific patterns
         place_patterns = [
             r'(?:in|at|from|to|near)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)',
             r'(?:sa|mula|papunta|malapit)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)'
         ]
-        
+
         for pattern in place_patterns:
             matches = re.findall(pattern, text)
             if matches:
@@ -318,7 +390,7 @@ class DisasterSentimentBackend:
                     for loc in ph_locations:
                         if match.lower() == loc.lower():
                             return loc
-        
+
         return None
 
     def detect_social_media_source(self, text):
@@ -327,9 +399,10 @@ class DisasterSentimentBackend:
         Returns the identified platform or "Unknown" if no match
         """
         text_lower = text.lower()
-        
+
         # Social media identifiers
-        if "rt @" in text_lower or "retweeted" in text_lower or "@" in text_lower and len(text) < 280:
+        if "rt @" in text_lower or "retweeted" in text_lower or "@" in text_lower and len(
+                text) < 280:
             return "Twitter"
         elif "#fb" in text_lower or "facebook.com" in text_lower:
             return "Facebook"
@@ -341,7 +414,7 @@ class DisasterSentimentBackend:
             return "Reddit"
         elif "youtube" in text_lower or "youtu.be" in text_lower:
             return "YouTube"
-        
+
         # Format clues
         if len(text) <= 280 and "@" in text_lower:
             return "Twitter"
@@ -349,7 +422,7 @@ class DisasterSentimentBackend:
             return "News Media"
         if "Posted by u/" in text:
             return "Reddit"
-        
+
         return "Unknown Social Media"
 
     def analyze_sentiment(self, text):
@@ -374,10 +447,10 @@ class DisasterSentimentBackend:
         except:
             # Default to English if detection fails
             language = "English"
-            
+
         # Get API-based sentiment analysis
         result = self.get_api_sentiment_analysis(text, language)
-        
+
         # Add additional metadata
         if "disasterType" not in result:
             result["disasterType"] = self.extract_disaster_type(text)
@@ -385,14 +458,14 @@ class DisasterSentimentBackend:
             result["location"] = self.extract_location(text)
         if "language" not in result:
             result["language"] = language
-            
+
         return result
 
     def get_api_sentiment_analysis(self, text, language):
         """Get sentiment analysis from API with race condition for fastest response"""
         import requests
         from concurrent.futures import ThreadPoolExecutor
-        
+
         def make_api_request(key_index):
             try:
                 url = self.api_url
@@ -418,30 +491,42 @@ class DisasterSentimentBackend:
                     Respond ONLY in JSON format: {"sentiment": "category", "confidence": score, "explanation": "explanation", "disasterType": "type", "location": "location"}"""
 
                 data = {
-                    "model": "llama3-8b-8192",
-                    "messages": [
-                        {"role": "system", "content": system_message},
-                        {"role": "user", "content": text}
-                    ],
-                    "temperature": 0.1,
-                    "max_tokens": 500,
-                    "top_p": 1,
-                    "stream": False
+                    "model":
+                    "llama3-8b-8192",
+                    "messages": [{
+                        "role": "system",
+                        "content": system_message
+                    }, {
+                        "role": "user",
+                        "content": text
+                    }],
+                    "temperature":
+                    0.1,
+                    "max_tokens":
+                    500,
+                    "top_p":
+                    1,
+                    "stream":
+                    False
                 }
-                
-                response = requests.post(url, headers=headers, json=data, timeout=15)
+
+                response = requests.post(url,
+                                         headers=headers,
+                                         json=data,
+                                         timeout=15)
                 response.raise_for_status()
-                
+
                 # Parse response from API
                 resp_data = response.json()
-                
+
                 if "choices" in resp_data and resp_data["choices"]:
                     content = resp_data["choices"][0]["message"]["content"]
-                    
+
                     # Extract JSON from the content
                     import re
-                    json_match = re.search(r'```json(.*?)```', content, re.DOTALL)
-                    
+                    json_match = re.search(r'```json(.*?)```', content,
+                                           re.DOTALL)
+
                     if json_match:
                         json_str = json_match.group(1)
                         result = json.loads(json_str)
@@ -456,10 +541,12 @@ class DisasterSentimentBackend:
                                 try:
                                     result = json.loads(json_match.group(0))
                                 except:
-                                    raise ValueError("Could not parse JSON from response")
+                                    raise ValueError(
+                                        "Could not parse JSON from response")
                             else:
-                                raise ValueError("No valid JSON found in response")
-                
+                                raise ValueError(
+                                    "No valid JSON found in response")
+
                     # Add required fields if missing
                     if "sentiment" not in result:
                         result["sentiment"] = "Neutral"
@@ -468,33 +555,38 @@ class DisasterSentimentBackend:
                     if "explanation" not in result:
                         result["explanation"] = "No explanation provided"
                     if "disasterType" not in result:
-                        result["disasterType"] = self.extract_disaster_type(text)
+                        result["disasterType"] = self.extract_disaster_type(
+                            text)
                     if "location" not in result:
                         result["location"] = self.extract_location(text)
                     if "language" not in result:
                         result["language"] = language
-                
-                    logging.info(f"API key {key_index + 1} racing win (successes: {self.key_success_count[key_index]})")
+
+                    logging.info(
+                        f"API key {key_index + 1} racing win (successes: {self.key_success_count[key_index]})"
+                    )
                     return result
-                
+
                 else:
                     raise ValueError("No valid JSON found in response")
-            
+
             except Exception as e:
                 # This key failed but others might succeed
-                logging.error(f"API key {key_index + 1} racing request failed: {str(e)}")
+                logging.error(
+                    f"API key {key_index + 1} racing request failed: {str(e)}")
                 self.failed_keys.add(key_index)
                 return None
-        
+
         # Run requests in parallel for all available keys
         results = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.groq_api_keys)) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+                max_workers=len(self.groq_api_keys)) as executor:
             # Submit all API calls in parallel
             future_to_key = {
-                executor.submit(make_api_request, i): i 
+                executor.submit(make_api_request, i): i
                 for i in range(len(self.groq_api_keys))
             }
-            
+
             # Get the first successful result (racing)
             for future in concurrent.futures.as_completed(future_to_key):
                 key_index = future_to_key[future]
@@ -508,59 +600,68 @@ class DisasterSentimentBackend:
                                 f.cancel()
                         break
                 except Exception as e:
-                    logging.error(f"Error getting result from key {key_index + 1}: {str(e)}")
-        
+                    logging.error(
+                        f"Error getting result from key {key_index + 1}: {str(e)}"
+                    )
+
         # Check if we got any results from the API
         if results:
             # Increment success counter for the key that succeeded
             for future, key_index in future_to_key.items():
-                if future.done() and not future.cancelled() and future.result() is not None:
-                    self.key_success_count[key_index] = self.key_success_count.get(key_index, 0) + 1
-            
+                if future.done() and not future.cancelled() and future.result(
+                ) is not None:
+                    self.key_success_count[
+                        key_index] = self.key_success_count.get(key_index,
+                                                                0) + 1
+
             return results[0]
-        
+
         # If all API calls failed, fallback to rule-based analysis
         fallback_result = self._rule_based_sentiment_analysis(text, language)
-        
+
         # Add extracted metadata
         fallback_result["disasterType"] = self.extract_disaster_type(text)
         fallback_result["location"] = self.extract_location(text)
         fallback_result["language"] = language
-        
+
         return fallback_result
 
     def _rule_based_sentiment_analysis(self, text, language):
         """Fallback rule-based sentiment analysis"""
         text_lower = text.lower()
-        
+
         # Keywords associated with each sentiment
         sentiment_keywords = {
             "Panic": [
-                "emergency", "help", "trapped", "dying", "death", "urgent", "critical", 
-                "tulong", "saklolo", "naiipit", "mamamatay", "agad", "kritikal", "emerhensya"
+                "emergency", "help", "trapped", "dying", "death", "urgent",
+                "critical", "tulong", "saklolo", "naiipit", "mamamatay",
+                "agad", "kritikal", "emerhensya"
             ],
             "Fear/Anxiety": [
-                "scared", "afraid", "worried", "fear", "terrified", "anxious", "frightened",
-                "takot", "natatakot", "nag-aalala", "kabado", "kinakabahan", "nangangamba"
+                "scared", "afraid", "worried", "fear", "terrified", "anxious",
+                "frightened", "takot", "natatakot", "nag-aalala", "kabado",
+                "kinakabahan", "nangangamba"
             ],
             "Disbelief": [
-                "unbelievable", "impossible", "can't believe", "what's happening", "shocked",
-                "hindi kapani-paniwala", "imposible", "di ako makapaniwala", "nagulat", "gulat"
+                "unbelievable", "impossible", "can't believe",
+                "what's happening", "shocked", "hindi kapani-paniwala",
+                "imposible", "di ako makapaniwala", "nagulat", "gulat"
             ],
             "Resilience": [
-                "stay strong", "we will overcome", "resilient", "rebuild", "recover", "hope",
-                "malalampasan", "tatayo ulit", "magbabalik", "pag-asa", "malalagpasan"
+                "stay strong", "we will overcome", "resilient", "rebuild",
+                "recover", "hope", "malalampasan", "tatayo ulit", "magbabalik",
+                "pag-asa", "malalagpasan"
             ]
         }
-        
+
         # Score each sentiment
         scores = {sentiment: 0 for sentiment in self.sentiment_labels}
-        
+
         for sentiment, keywords in sentiment_keywords.items():
             for keyword in keywords:
                 if keyword in text_lower:
                     scores[sentiment] += 1
-                    
+
         # Additional scoring patterns
         if "!" in text:
             # Exclamation points can indicate Panic
@@ -569,17 +670,17 @@ class DisasterSentimentBackend:
                 scores["Panic"] += 2
             elif exclamation_count > 0:
                 scores["Panic"] += 1
-                
+
         if "?" in text:
             # Question marks might indicate Disbelief
             question_count = text.count("?")
             if question_count >= 2:
                 scores["Disbelief"] += 1
-                
+
         # ALL CAPS text often indicates Panic
         if text.isupper() and len(text) > 10:
             scores["Panic"] += 2
-            
+
         # Determine the sentiment with the highest score
         max_score = max(scores.values())
         if max_score == 0:
@@ -589,26 +690,33 @@ class DisasterSentimentBackend:
                 "confidence": 0.7,
                 "explanation": "No clear sentiment indicators found in text"
             }
-            
+
         # Get all sentiments with the maximum score (in case of ties)
-        top_sentiments = [s for s, score in scores.items() if score == max_score]
-        
+        top_sentiments = [
+            s for s, score in scores.items() if score == max_score
+        ]
+
         if len(top_sentiments) == 1:
             sentiment = top_sentiments[0]
         else:
             # In case of a tie, prioritize in this order: Panic > Fear > Disbelief > Resilience > Neutral
-            priority_order = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"]
+            priority_order = [
+                "Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"
+            ]
             for sentiment in priority_order:
                 if sentiment in top_sentiments:
                     break
-        
+
         # Calculate confidence based on the score and text length
         confidence = min(0.9, 0.5 + (max_score / 10))
-        
+
         return {
-            "sentiment": sentiment,
-            "confidence": confidence,
-            "explanation": f"Rule-based analysis detected {sentiment.lower()} indicators"
+            "sentiment":
+            sentiment,
+            "confidence":
+            confidence,
+            "explanation":
+            f"Rule-based analysis detected {sentiment.lower()} indicators"
         }
 
     def process_csv(self, file_path):
@@ -617,7 +725,7 @@ class DisasterSentimentBackend:
             # Keep track of failed records to retry
             failed_records = []
             processed_results = []
-            
+
             # Load the CSV file
             report_progress(0, "Loading CSV file")
             try:
@@ -625,107 +733,109 @@ class DisasterSentimentBackend:
             except UnicodeDecodeError:
                 # Try with different encoding if utf-8 fails
                 df = pd.read_csv(file_path, encoding='latin1')
-                
+
             # Get total number of records for progress reporting
             total_records = len(df)
             report_progress(0, "CSV file loaded", total_records)
-            
+
             if total_records == 0:
                 report_progress(100, "No records found in CSV", 0)
                 return []
-                
+
             # Identify column names to use
             report_progress(3, "Identifying columns", total_records)
-            
+
             # Auto-detect column names for text, timestamp, etc.
             columns = list(df.columns)
             identified_columns = {}
-            
+
             # Try to identify the text column
             text_col_candidates = [
-                col for col in columns if col.lower() in 
-                ['text', 'content', 'message', 'post', 'tweet', 'status', 'description', 'comments']
+                col for col in columns if col.lower() in [
+                    'text', 'content', 'message', 'post', 'tweet', 'status',
+                    'description', 'comments'
+                ]
             ]
-            
+
             if text_col_candidates:
                 text_col = text_col_candidates[0]
             else:
                 # If no obvious text column, use the column with the longest average text
-                col_avg_lengths = {col: df[col].astype(str).str.len().mean() for col in columns}
+                col_avg_lengths = {
+                    col: df[col].astype(str).str.len().mean()
+                    for col in columns
+                }
                 text_col = max(col_avg_lengths, key=col_avg_lengths.get)
-            
+
             identified_columns["text"] = text_col
-            
+
             # Try to identify timestamp column
             timestamp_candidates = [
-                col for col in columns if any(
-                    time_word in col.lower() for time_word in 
-                    ['time', 'date', 'timestamp', 'created', 'posted']
-                )
+                col for col in columns
+                if any(time_word in col.lower() for time_word in
+                       ['time', 'date', 'timestamp', 'created', 'posted'])
             ]
             if timestamp_candidates:
                 identified_columns["timestamp"] = timestamp_candidates[0]
-                
+
             # Try to identify location column
             location_candidates = [
-                col for col in columns if any(
-                    loc_word in col.lower() for loc_word in 
-                    ['location', 'place', 'area', 'region', 'city', 'province', 'address']
-                )
+                col for col in columns
+                if any(loc_word in col.lower() for loc_word in [
+                    'location', 'place', 'area', 'region', 'city', 'province',
+                    'address'
+                ])
             ]
             if location_candidates:
                 identified_columns["location"] = location_candidates[0]
-                
+
             # Try to identify source column
             source_candidates = [
-                col for col in columns if any(
-                    src_word in col.lower() for src_word in 
-                    ['source', 'platform', 'media', 'channel', 'from']
-                )
+                col for col in columns
+                if any(src_word in col.lower() for src_word in
+                       ['source', 'platform', 'media', 'channel', 'from'])
             ]
             if source_candidates:
                 identified_columns["source"] = source_candidates[0]
-                
+
             # Try to identify disaster type column
             disaster_candidates = [
-                col for col in columns if any(
-                    dis_word in col.lower() for dis_word in 
-                    ['disaster', 'type', 'event', 'category', 'calamity', 'hazard']
-                )
+                col for col in columns
+                if any(dis_word in col.lower() for dis_word in [
+                    'disaster', 'type', 'event', 'category', 'calamity',
+                    'hazard'
+                ])
             ]
             if disaster_candidates:
                 identified_columns["disaster"] = disaster_candidates[0]
-                
+
             # Try to identify sentiment column (in case it's labeled data)
             sentiment_candidates = [
-                col for col in columns if any(
-                    sent_word in col.lower() for sent_word in 
-                    ['sentiment', 'emotion', 'feeling', 'mood', 'attitude']
-                )
+                col for col in columns
+                if any(sent_word in col.lower() for sent_word in
+                       ['sentiment', 'emotion', 'feeling', 'mood', 'attitude'])
             ]
             if sentiment_candidates:
                 identified_columns["sentiment"] = sentiment_candidates[0]
-                
+
             # Try to identify confidence column
             confidence_candidates = [
-                col for col in columns if any(
-                    conf_word in col.lower() for conf_word in 
-                    ['confidence', 'score', 'probability', 'certainty']
-                )
+                col for col in columns
+                if any(conf_word in col.lower() for conf_word in
+                       ['confidence', 'score', 'probability', 'certainty'])
             ]
             if confidence_candidates:
                 identified_columns["confidence"] = confidence_candidates[0]
-                
+
             # Try to identify language column
             language_candidates = [
-                col for col in columns if any(
-                    lang_word in col.lower() for lang_word in 
-                    ['language', 'lang', 'dialect']
-                )
+                col for col in columns
+                if any(lang_word in col.lower()
+                       for lang_word in ['language', 'lang', 'dialect'])
             ]
             if language_candidates:
                 identified_columns["language"] = language_candidates[0]
-                
+
             # Extract column references
             text_col = identified_columns.get("text")
             location_col = identified_columns.get("location")
@@ -738,236 +848,313 @@ class DisasterSentimentBackend:
 
             # Process all records without limitation
             sample_size = len(df)
-            
+
             # Set batch size to 6 as requested
             BATCH_SIZE = 6
-            
+
             # Report column identification progress
             report_progress(5, "Identified data columns", total_records)
-            
+
             # Process data in batches of 6
             processed_count = 0
-            
+
             # Get all indices that we'll process
             indices_to_process = df.head(sample_size).index.tolist()
-            
+
             # Process data in batches of 6
             for batch_start in range(0, len(indices_to_process), BATCH_SIZE):
                 # Get indices for this batch (up to 6 items)
-                batch_indices = indices_to_process[batch_start:batch_start + BATCH_SIZE]
-                
-                logging.info(f"Starting batch processing - items {batch_start + 1} to {batch_start + len(batch_indices)}")
+                batch_indices = indices_to_process[batch_start:batch_start +
+                                                   BATCH_SIZE]
+
+                logging.info(
+                    f"Starting batch processing - items {batch_start + 1} to {batch_start + len(batch_indices)}"
+                )
                 report_progress(
                     5 + int((batch_start / sample_size) * 90),
                     f"Starting batch {batch_start // BATCH_SIZE + 1} - processing records {batch_start + 1} to {batch_start + len(batch_indices)}",
-                    total_records
-                )
-                
+                    total_records)
+
                 # Process each item in this batch sequentially
                 for idx, i in enumerate(batch_indices):
                     try:
                         # Calculate percentage progress (0-100)
-                        progress_pct = 5 + int(((batch_start + idx) / sample_size) * 90)
+                        progress_pct = 5 + int(
+                            ((batch_start + idx) / sample_size) * 90)
                         record_num = batch_start + idx + 1
-                        
+
                         # Report progress for each record
                         report_progress(
-                            progress_pct, 
+                            progress_pct,
                             f"Processing record {record_num}/{total_records}",
-                            total_records
-                        )
-                        
+                            total_records)
+
                         # Get current row data
                         row = df.iloc[i]
-                        
+
                         # Use the proper identified text column
                         text = str(row.get(text_col, ""))
                         if not text.strip():
                             continue
-                            
+
                         # Get timestamp, with fallback to current time
                         timestamp = str(
-                            row.get(timestamp_col, datetime.now().isoformat())
+                            row.get(timestamp_col,
+                                    datetime.now().isoformat())
                         ) if timestamp_col else datetime.now().isoformat()
-                        
+
                         # Get source with fallback logic
-                        source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
-                        sentiment_values = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"]
-                        
+                        source = str(row.get(
+                            source_col,
+                            "CSV Import")) if source_col else "CSV Import"
+                        sentiment_values = [
+                            "Panic", "Fear/Anxiety", "Disbelief", "Resilience",
+                            "Neutral"
+                        ]
+
                         # Check if source is actually a sentiment value
                         if source in sentiment_values:
                             csv_sentiment = source
                             source = "CSV Import"  # Reset source to default
                         else:
                             csv_sentiment = None
-                        
+
                         # Detect social media platform from text content
                         if source == "CSV Import" or not source.strip():
-                            detected_source = self.detect_social_media_source(text)
+                            detected_source = self.detect_social_media_source(
+                                text)
                             if detected_source != "Unknown Social Media":
                                 source = detected_source
-                        
+
                         # Extract location and disaster type from CSV if available
-                        csv_location = str(row.get(location_col, "")) if location_col else None
-                        csv_disaster = str(row.get(disaster_col, "")) if disaster_col else None
-                        csv_language = str(row.get(language_col, "")) if language_col else None
-                        
+                        csv_location = str(row.get(
+                            location_col, "")) if location_col else None
+                        csv_disaster = str(row.get(
+                            disaster_col, "")) if disaster_col else None
+                        csv_language = str(row.get(
+                            language_col, "")) if language_col else None
+
                         # Clean up NaN values
-                        if csv_location and csv_location.lower() in ["nan", "none", ""]:
+                        if csv_location and csv_location.lower() in [
+                                "nan", "none", ""
+                        ]:
                             csv_location = None
-                            
-                        if csv_disaster and csv_disaster.lower() in ["nan", "none", ""]:
+
+                        if csv_disaster and csv_disaster.lower() in [
+                                "nan", "none", ""
+                        ]:
                             csv_disaster = None
-                            
+
                         # Check if disaster column contains full text (common error)
-                        if csv_disaster and len(csv_disaster) > 20 and text in csv_disaster:
+                        if csv_disaster and len(
+                                csv_disaster) > 20 and text in csv_disaster:
                             # The disaster column contains the full text, which is wrong
                             csv_disaster = None  # Reset and let our analyzer determine it
-                        
+
                         if csv_language:
-                            if csv_language.lower() in ["tagalog", "tl", "fil", "filipino"]:
+                            if csv_language.lower() in [
+                                    "tagalog", "tl", "fil", "filipino"
+                            ]:
                                 csv_language = "Filipino"
                             else:
                                 csv_language = "English"
-                                
+
                         # Check if sentiment is already provided in the CSV
-                        if sentiment_col and row.get(sentiment_col) in sentiment_values:
+                        if sentiment_col and row.get(
+                                sentiment_col) in sentiment_values:
                             csv_sentiment = str(row.get(sentiment_col))
-                            csv_confidence = float(row.get(confidence_col, 0.7)) if confidence_col else 0.7
-                            
+                            csv_confidence = float(row.get(
+                                confidence_col,
+                                0.7)) if confidence_col else 0.7
+
                             # Skip API analysis if sentiment is already provided
                             analysis_result = {
-                                "sentiment": csv_sentiment,
-                                "confidence": csv_confidence,
-                                "explanation": "Sentiment provided in CSV",
-                                "disasterType": csv_disaster if csv_disaster else self.extract_disaster_type(text),
-                                "location": csv_location if csv_location else self.extract_location(text),
-                                "language": csv_language if csv_language else "English"
+                                "sentiment":
+                                csv_sentiment,
+                                "confidence":
+                                csv_confidence,
+                                "explanation":
+                                "Sentiment provided in CSV",
+                                "disasterType":
+                                csv_disaster if csv_disaster else
+                                self.extract_disaster_type(text),
+                                "location":
+                                csv_location if csv_location else
+                                self.extract_location(text),
+                                "language":
+                                csv_language if csv_language else "English"
                             }
                         else:
                             # Run sentiment analysis with persistent retry mechanism
                             max_retries = 5
                             retry_count = 0
                             analysis_success = False
-                            
+
                             while not analysis_success and retry_count < max_retries:
                                 try:
                                     # This calls the API with racing mechanism
-                                    analysis_result = self.analyze_sentiment(text)
+                                    analysis_result = self.analyze_sentiment(
+                                        text)
                                     analysis_success = True
                                 except Exception as analysis_err:
                                     retry_count += 1
-                                    logging.error(f"API analysis attempt {retry_count} failed: {str(analysis_err)}")
+                                    logging.error(
+                                        f"API analysis attempt {retry_count} failed: {str(analysis_err)}"
+                                    )
                                     if retry_count < max_retries:
-                                        logging.info(f"Retrying analysis (attempt {retry_count+1}/{max_retries})...")
-                                        time.sleep(2 * retry_count)  # Exponential backoff
+                                        logging.info(
+                                            f"Retrying analysis (attempt {retry_count+1}/{max_retries})..."
+                                        )
+                                        time.sleep(
+                                            2 *
+                                            retry_count)  # Exponential backoff
                                     else:
-                                        logging.error("Maximum retries reached, falling back to rule-based analysis")
+                                        logging.error(
+                                            "Maximum retries reached, falling back to rule-based analysis"
+                                        )
                                         # Create a fallback analysis
                                         analysis_result = {
-                                            "sentiment": "Neutral",
-                                            "confidence": 0.5,
-                                            "explanation": "Fallback after API failures",
-                                            "disasterType": self.extract_disaster_type(text),
-                                            "location": self.extract_location(text),
-                                            "language": "English"
+                                            "sentiment":
+                                            "Neutral",
+                                            "confidence":
+                                            0.5,
+                                            "explanation":
+                                            "Fallback after API failures",
+                                            "disasterType":
+                                            self.extract_disaster_type(text),
+                                            "location":
+                                            self.extract_location(text),
+                                            "language":
+                                            "English"
                                         }
 
                         # Store the processed result
                         processed_results.append({
-                            "text": text,
-                            "timestamp": timestamp,
-                            "source": source,
-                            "language": csv_language if csv_language else analysis_result.get("language", "English"),
-                            "sentiment": csv_sentiment if csv_sentiment else analysis_result.get("sentiment", "Neutral"),
-                            "confidence": analysis_result.get("confidence", 0.7),
-                            "explanation": analysis_result.get("explanation", ""),
-                            "disasterType": csv_disaster if csv_disaster else analysis_result.get("disasterType", "Not Specified"),
-                            "location": csv_location if csv_location else analysis_result.get("location")
+                            "text":
+                            text,
+                            "timestamp":
+                            timestamp,
+                            "source":
+                            source,
+                            "language":
+                            csv_language if csv_language else
+                            analysis_result.get("language", "English"),
+                            "sentiment":
+                            csv_sentiment if csv_sentiment else
+                            analysis_result.get("sentiment", "Neutral"),
+                            "confidence":
+                            analysis_result.get("confidence", 0.7),
+                            "explanation":
+                            analysis_result.get("explanation", ""),
+                            "disasterType":
+                            csv_disaster
+                            if csv_disaster else analysis_result.get(
+                                "disasterType", "Not Specified"),
+                            "location":
+                            csv_location if csv_location else
+                            analysis_result.get("location")
                         })
 
                         # Add a substantial delay for sequential processing
                         # Each record needs time to be displayed on the frontend
                         time.sleep(2)  # 2-second delay between records
-                        
+
                         # Report completed
                         processed_count += 1
                         report_progress(
                             progress_pct,
                             f"Completed record {record_num}/{total_records}",
-                            total_records
-                        )
+                            total_records)
 
                     except Exception as e:
                         logging.error(f"Error processing row {i}: {str(e)}")
                         # Add failed record to retry list
                         failed_records.append((i, row))
                         time.sleep(1.0)  # Wait 1 second before continuing
-                        
+
                 # Add delay between batches to prevent API rate limits
                 if batch_start + BATCH_SIZE < len(indices_to_process):
-                    logging.info(f"Completed batch {batch_start // BATCH_SIZE + 1} - pausing before next batch")
-                    report_progress(
-                        5 + int(((batch_start + BATCH_SIZE) / sample_size) * 90),
-                        f"Completed batch {batch_start // BATCH_SIZE + 1} - pausing before next batch",
-                        total_records
+                    logging.info(
+                        f"Completed batch {batch_start // BATCH_SIZE + 1} - pausing before next batch"
                     )
+                    report_progress(
+                        5 + int(
+                            ((batch_start + BATCH_SIZE) / sample_size) * 90),
+                        f"Completed batch {batch_start // BATCH_SIZE + 1} - pausing before next batch",
+                        total_records)
                     time.sleep(3)  # 3-second pause between batches
 
             # Retry failed records
             if failed_records:
-                logging.info(f"Retrying {len(failed_records)} failed records...")
+                logging.info(
+                    f"Retrying {len(failed_records)} failed records...")
                 for idx, (i, row) in enumerate(failed_records):
                     try:
                         report_progress(
                             95 + int((idx / len(failed_records)) * 5),
                             f"Retrying failed record {idx + 1}/{len(failed_records)}",
-                            total_records
-                        )
-                        
+                            total_records)
+
                         # Use the proper identified text column instead of hardcoded "text"
                         text = str(row.get(text_col, ""))
                         if not text.strip():
                             continue
 
                         timestamp = str(
-                            row.get(timestamp_col, datetime.now().isoformat())
+                            row.get(timestamp_col,
+                                    datetime.now().isoformat())
                         ) if timestamp_col else datetime.now().isoformat()
-                        
+
                         # Get source with same logic as before
-                        source = str(row.get(source_col, "CSV Import")) if source_col else "CSV Import"
-                        sentiment_values = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"]
-                        
+                        source = str(row.get(
+                            source_col,
+                            "CSV Import")) if source_col else "CSV Import"
+                        sentiment_values = [
+                            "Panic", "Fear/Anxiety", "Disbelief", "Resilience",
+                            "Neutral"
+                        ]
+
                         # Check if source is actually a sentiment value
                         if source in sentiment_values:
                             csv_sentiment = source
                             source = "CSV Import"  # Reset source to default
                         else:
                             csv_sentiment = None
-                        
+
                         # Detect social media platform from text content if source is just "CSV Import"
                         if source == "CSV Import" or not source.strip():
-                            detected_source = self.detect_social_media_source(text)
+                            detected_source = self.detect_social_media_source(
+                                text)
                             if detected_source != "Unknown Social Media":
                                 source = detected_source
-                            
-                        csv_location = str(row.get(location_col, "")) if location_col else None
-                        csv_disaster = str(row.get(disaster_col, "")) if disaster_col else None
-                        csv_language = str(row.get(language_col, "")) if language_col else None
 
-                        if csv_location and csv_location.lower() in ["nan", "none", ""]:
+                        csv_location = str(row.get(
+                            location_col, "")) if location_col else None
+                        csv_disaster = str(row.get(
+                            disaster_col, "")) if disaster_col else None
+                        csv_language = str(row.get(
+                            language_col, "")) if language_col else None
+
+                        if csv_location and csv_location.lower() in [
+                                "nan", "none", ""
+                        ]:
                             csv_location = None
-                            
-                        if csv_disaster and csv_disaster.lower() in ["nan", "none", ""]:
+
+                        if csv_disaster and csv_disaster.lower() in [
+                                "nan", "none", ""
+                        ]:
                             csv_disaster = None
-                        
+
                         # Check if disaster column contains full text (common error)
-                        if csv_disaster and len(csv_disaster) > 20 and text in csv_disaster:
+                        if csv_disaster and len(
+                                csv_disaster) > 20 and text in csv_disaster:
                             # The disaster column contains the full text, which is wrong
                             csv_disaster = None  # Reset and let our analyzer determine it
-                            
+
                         if csv_language:
-                            if csv_language.lower() in ["tagalog", "tl", "fil", "filipino"]:
+                            if csv_language.lower() in [
+                                    "tagalog", "tl", "fil", "filipino"
+                            ]:
                                 csv_language = "Filipino"
                             else:
                                 csv_language = "English"
@@ -976,53 +1163,86 @@ class DisasterSentimentBackend:
                         max_retries = 5
                         retry_count = 0
                         analysis_success = False
-                        
+
                         while not analysis_success and retry_count < max_retries:
                             try:
                                 analysis_result = self.analyze_sentiment(text)
                                 analysis_success = True
                             except Exception as analysis_err:
                                 retry_count += 1
-                                logging.error(f"API analysis retry attempt {retry_count} failed: {str(analysis_err)}")
+                                logging.error(
+                                    f"API analysis retry attempt {retry_count} failed: {str(analysis_err)}"
+                                )
                                 if retry_count < max_retries:
-                                    logging.info(f"Retrying failed record analysis (attempt {retry_count+1}/{max_retries})...")
-                                    time.sleep(3 * retry_count)  # Even longer backoff for previous failures
+                                    logging.info(
+                                        f"Retrying failed record analysis (attempt {retry_count+1}/{max_retries})..."
+                                    )
+                                    time.sleep(
+                                        3 * retry_count
+                                    )  # Even longer backoff for previous failures
                                 else:
-                                    logging.error("Maximum retries reached for failed record, falling back to neutral sentiment")
+                                    logging.error(
+                                        "Maximum retries reached for failed record, falling back to neutral sentiment"
+                                    )
                                     analysis_result = {
-                                        "sentiment": "Neutral",
-                                        "confidence": 0.5,
-                                        "explanation": "Failed after maximum retries",
-                                        "disasterType": self.extract_disaster_type(text),
-                                        "location": self.extract_location(text),
-                                        "language": "English"
+                                        "sentiment":
+                                        "Neutral",
+                                        "confidence":
+                                        0.5,
+                                        "explanation":
+                                        "Failed after maximum retries",
+                                        "disasterType":
+                                        self.extract_disaster_type(text),
+                                        "location":
+                                        self.extract_location(text),
+                                        "language":
+                                        "English"
                                     }
-                        
+
                         processed_results.append({
-                            "text": text,
-                            "timestamp": timestamp,
-                            "source": source,
-                            "language": csv_language if csv_language else analysis_result.get("language", "English"),
-                            "sentiment": analysis_result.get("sentiment", "Neutral"),
-                            "confidence": analysis_result.get("confidence", 0.7),
-                            "explanation": analysis_result.get("explanation", ""),
-                            "disasterType": csv_disaster if csv_disaster else analysis_result.get("disasterType", "Not Specified"),
-                            "location": csv_location if csv_location else analysis_result.get("location")
+                            "text":
+                            text,
+                            "timestamp":
+                            timestamp,
+                            "source":
+                            source,
+                            "language":
+                            csv_language if csv_language else
+                            analysis_result.get("language", "English"),
+                            "sentiment":
+                            analysis_result.get("sentiment", "Neutral"),
+                            "confidence":
+                            analysis_result.get("confidence", 0.7),
+                            "explanation":
+                            analysis_result.get("explanation", ""),
+                            "disasterType":
+                            csv_disaster
+                            if csv_disaster else analysis_result.get(
+                                "disasterType", "Not Specified"),
+                            "location":
+                            csv_location if csv_location else
+                            analysis_result.get("location")
                         })
 
                         time.sleep(1.0)  # Wait 1 second between retries
 
                     except Exception as e:
-                        logging.error(f"Failed to retry record {i} after multiple attempts: {str(e)}")
+                        logging.error(
+                            f"Failed to retry record {i} after multiple attempts: {str(e)}"
+                        )
 
             # Report completion with total records
             report_progress(100, "Analysis complete!", total_records)
 
             # Log stats
             loc_count = sum(1 for r in processed_results if r.get("location"))
-            disaster_count = sum(1 for r in processed_results if r.get("disasterType") != "Not Specified")
-            logging.info(f"Records with location: {loc_count}/{len(processed_results)}")
-            logging.info(f"Records with disaster type: {disaster_count}/{len(processed_results)}")
+            disaster_count = sum(1 for r in processed_results
+                                 if r.get("disasterType") != "Not Specified")
+            logging.info(
+                f"Records with location: {loc_count}/{len(processed_results)}")
+            logging.info(
+                f"Records with disaster type: {disaster_count}/{len(processed_results)}"
+            )
 
             return processed_results
 
@@ -1035,7 +1255,8 @@ class DisasterSentimentBackend:
         logging.info("Generating metrics from sentiment analysis")
 
         # Calculate average confidence
-        avg_confidence = sum(r.get("confidence", 0.7) for r in results) / max(1, len(results))
+        avg_confidence = sum(r.get("confidence", 0.7)
+                             for r in results) / max(1, len(results))
 
         # Generate metrics
         metrics = {
