@@ -177,3 +177,15 @@ export async function deleteAllData(): Promise<{
   const response = await apiRequest('DELETE', '/api/delete-all-data');
   return response.json();
 }
+
+// Interface for Python console messages
+export interface PythonConsoleMessage {
+  message: string;
+  timestamp: string;
+}
+
+// Get Python console messages
+export async function getPythonConsoleMessages(limit: number = 100): Promise<PythonConsoleMessage[]> {
+  const response = await apiRequest('GET', `/api/python-console-messages?limit=${limit}`);
+  return response.json();
+}

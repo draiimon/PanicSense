@@ -1,9 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, FileText, Database, ChevronRight } from "lucide-react";
+import { Loader2, FileText, Database, ChevronRight, Terminal } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useState } from "react";
+import { getPythonConsoleMessages, PythonConsoleMessage } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 
 // Animated number component for smooth transitions
 const AnimatedNumber = ({ value }: { value: number }) => (
@@ -21,6 +23,15 @@ const AnimatedNumber = ({ value }: { value: number }) => (
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress } = useDisasterContext();
+  const [activeTab, setActiveTab] = useState<'progress'|'console'>('progress');
+  
+  // Fetch Python console messages
+  const { data: consoleMessages = [], refetch: refetchConsoleMessages } = useQuery({
+    queryKey: ['/api/python-console-messages'],
+    queryFn: () => getPythonConsoleMessages(100),
+    refetchInterval: isUploading ? 500 : false, // Poll every 500ms while uploading
+    enabled: isUploading
+  });
 
   if (!isUploading) return null;
 
@@ -78,48 +89,87 @@ export function UploadProgressModal() {
           </div>
         </div>
 
-        {/* Detailed Progress Log */}
-        <ScrollArea className="h-[200px] rounded-md border p-4">
-          <div className="space-y-2">
-            {/* Loading Stage */}
-            <div className={`flex items-center gap-2 p-2 rounded-lg transition-colors
-              ${isLoading ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-500'}`}>
-              <FileText className="h-4 w-4" />
-              <span className="text-sm">Loading File</span>
-              {isLoading && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
-              {!isLoading && <ChevronRight className="h-4 w-4 ml-auto" />}
-            </div>
+        {/* Tab Navigation */}
+        <div className="flex mb-4 border-b">
+          <button 
+            onClick={() => setActiveTab('progress')} 
+            className={`flex items-center gap-1 px-4 py-2 border-b-2 transition-colors ${activeTab === 'progress' 
+              ? 'border-blue-500 text-blue-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            <Database className="h-4 w-4" />
+            <span>Progress</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('console')} 
+            className={`flex items-center gap-1 px-4 py-2 border-b-2 transition-colors ${activeTab === 'console' 
+              ? 'border-blue-500 text-blue-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            <Terminal className="h-4 w-4" />
+            <span>Console</span>
+          </button>
+        </div>
 
-            {/* Processing Stage */}
-            <div className={`flex items-center gap-2 p-2 rounded-lg transition-colors
-              ${isProcessing ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-500'}`}>
-              <Database className="h-4 w-4" />
-              <span className="text-sm">
-                {isProcessing && `Processing record ${processed} of ${total}`}
-                {!isProcessing && "Processing Records"}
-              </span>
-              {isProcessing && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
-              {!isProcessing && <ChevronRight className="h-4 w-4 ml-auto" />}
-            </div>
+        {activeTab === 'progress' && (
+          <ScrollArea className="h-[200px] rounded-md border p-4">
+            <div className="space-y-2">
+              {/* Loading Stage */}
+              <div className={`flex items-center gap-2 p-2 rounded-lg transition-colors
+                ${isLoading ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-500'}`}>
+                <FileText className="h-4 w-4" />
+                <span className="text-sm">Loading File</span>
+                {isLoading && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
+                {!isLoading && <ChevronRight className="h-4 w-4 ml-auto" />}
+              </div>
 
-            {/* Console Message */}
-            <div className="p-2 rounded-lg bg-gray-50">
-              <div className="text-sm font-mono text-gray-700 whitespace-pre-wrap overflow-x-auto">
-                {stage.includes("PROGRESS:") ? stage : stage.includes("Completed record") ? stage : "Processing..."}
+              {/* Processing Stage */}
+              <div className={`flex items-center gap-2 p-2 rounded-lg transition-colors
+                ${isProcessing ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-500'}`}>
+                <Database className="h-4 w-4" />
+                <span className="text-sm">
+                  {isProcessing && `Processing record ${processed} of ${total}`}
+                  {!isProcessing && "Processing Records"}
+                </span>
+                {isProcessing && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
+                {!isProcessing && <ChevronRight className="h-4 w-4 ml-auto" />}
+              </div>
+
+              {/* Console Message */}
+              <div className="p-2 rounded-lg bg-gray-50">
+                <div className="text-sm font-mono text-gray-700 whitespace-pre-wrap overflow-x-auto">
+                  {stage.includes("PROGRESS:") ? stage : stage.includes("Completed record") ? stage : "Processing..."}
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="p-2 rounded-lg bg-gray-50">
+                <div className="text-sm text-gray-600">
+                  <div>Successful: {processingStats.successCount}</div>
+                  <div>Errors: {processingStats.errorCount}</div>
+                  <div>Current Speed: {currentSpeed?.toFixed(1)} records/s</div>
+                  <div>Average Speed: {processingStats.averageSpeed?.toFixed(1)} records/s</div>
+                </div>
               </div>
             </div>
+          </ScrollArea>
+        )}
 
-            {/* Stats */}
-            <div className="p-2 rounded-lg bg-gray-50">
-              <div className="text-sm text-gray-600">
-                <div>Successful: {processingStats.successCount}</div>
-                <div>Errors: {processingStats.errorCount}</div>
-                <div>Current Speed: {currentSpeed?.toFixed(1)} records/s</div>
-                <div>Average Speed: {processingStats.averageSpeed?.toFixed(1)} records/s</div>
-              </div>
+        {activeTab === 'console' && (
+          <ScrollArea className="h-[200px] rounded-md border">
+            <div className="p-2 bg-black text-green-400 font-mono text-xs space-y-1">
+              {consoleMessages.length > 0 ? (
+                consoleMessages.map((msg, index) => (
+                  <div key={index} className="py-1">
+                    <span className="text-gray-500">[{new Date(msg.timestamp).toLocaleTimeString()}]</span> {msg.message}
+                  </div>
+                ))
+              ) : (
+                <div className="py-2 text-gray-500 italic">No console output available...</div>
+              )}
             </div>
-          </div>
-        </ScrollArea>
+          </ScrollArea>
+        )}
 
         {/* Download-style Progress Bar */}
         <div className="mt-6">
