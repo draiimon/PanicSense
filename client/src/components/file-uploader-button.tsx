@@ -36,9 +36,12 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       setUploadProgress({ 
         processed: 0, 
         total: 0, 
-        stage: '',
+        stage: 'Initializing...',
         currentSpeed: 0,
         timeRemaining: 0,
+        batchNumber: 0,
+        totalBatches: 0,
+        batchProgress: 0,
         processingStats: {
           successCount: 0,
           errorCount: 0,
@@ -47,31 +50,27 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       });
       await new Promise(resolve => setTimeout(resolve, 100));
       setIsUploading(true);
-      setUploadProgress({ 
-        processed: 0, 
-        total: 0, 
-        stage: 'Preparing to process your data...',
-        currentSpeed: 0,
-        timeRemaining: 0,
-        processingStats: {
-          successCount: 0,
-          errorCount: 0,
-          averageSpeed: 0
-        }
-      });
 
       const result = await uploadCSV(file, (progress) => {
-        setUploadProgress({
+        // Enhanced progress tracking
+        const currentProgress = {
           processed: Number(progress.processed) || 0,
           total: Number(progress.total) || 0,
           stage: progress.stage || 'Processing...',
-          batchNumber: progress.batchNumber,
-          totalBatches: progress.totalBatches,
-          batchProgress: progress.batchProgress,
-          currentSpeed: progress.currentSpeed,
-          timeRemaining: progress.timeRemaining,
-          processingStats: progress.processingStats
-        });
+          batchNumber: progress.batchNumber || 0,
+          totalBatches: progress.totalBatches || 0,
+          batchProgress: progress.batchProgress || 0,
+          currentSpeed: progress.currentSpeed || 0,
+          timeRemaining: progress.timeRemaining || 0,
+          processingStats: {
+            successCount: progress.processingStats?.successCount || 0,
+            errorCount: progress.processingStats?.errorCount || 0,
+            averageSpeed: progress.processingStats?.averageSpeed || 0
+          }
+        };
+
+        console.log('Progress update:', currentProgress);
+        setUploadProgress(currentProgress);
       });
 
       if (result?.file && result?.posts) {
@@ -100,7 +99,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     } finally {
       event.target.value = '';
 
-      // Keep progress visible briefly after completion
+      // Show completion for a moment before closing
       setTimeout(() => {
         setIsUploading(false);
         setUploadProgress({ 
@@ -109,6 +108,9 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           stage: '',
           currentSpeed: 0,
           timeRemaining: 0,
+          batchNumber: 0,
+          totalBatches: 0,
+          batchProgress: 0,
           processingStats: {
             successCount: 0,
             errorCount: 0,

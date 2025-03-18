@@ -66,7 +66,8 @@ export function UploadProgressModal() {
       averageSpeed: 0
     },
     currentSpeed = 0,
-    timeRemaining = 0
+    timeRemaining = 0,
+    batchProgress = 0
   } = uploadProgress;
 
   // Use the higher value between current processed and highest recorded
@@ -78,7 +79,7 @@ export function UploadProgressModal() {
   // Stage indication
   const isLoading = stage.toLowerCase().includes('initializing') || stage.toLowerCase().includes('loading');
   const isProcessing = stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record');
-  const isCompleted = stage.toLowerCase().includes('complete') || percentComplete === 100;
+  const isCompleted = percentComplete === 100; 
 
   return createPortal(
     <motion.div
@@ -134,7 +135,7 @@ export function UploadProgressModal() {
                 <span className="text-xs font-medium">Processing Speed</span>
               </div>
               <div className="text-sm font-semibold text-slate-700">
-                {formatSpeed(currentSpeed)}
+                {currentSpeed > 0 ? formatSpeed(currentSpeed) : `${processingStats.averageSpeed > 0 ? formatSpeed(processingStats.averageSpeed) : 'Starting...'}`}
               </div>
             </div>
 
@@ -145,7 +146,7 @@ export function UploadProgressModal() {
                 <span className="text-xs font-medium">Time Remaining</span>
               </div>
               <div className="text-sm font-semibold text-slate-700">
-                {formatTimeRemaining(timeRemaining)}
+                {isCompleted ? 'Completed!' : timeRemaining > 0 ? formatTimeRemaining(timeRemaining) : 'Starting...'}
               </div>
             </div>
           </div>
@@ -242,7 +243,7 @@ export function UploadProgressModal() {
               .bg-grid-slate-200\/50 {
                 background-size: 30px 30px;
                 background-image: linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
-                                linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+                                 linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
               }
             `}
           </style>
