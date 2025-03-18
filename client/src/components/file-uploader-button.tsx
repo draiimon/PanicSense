@@ -5,6 +5,7 @@ import { useDisasterContext } from '@/context/disaster-context';
 import { useToast } from '@/hooks/use-toast';
 import { uploadCSV } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
+import { SimpleProgress } from './simple-progress';
 
 interface FileUploaderButtonProps {
   onSuccess?: (data: any) => void;
@@ -13,14 +14,7 @@ interface FileUploaderButtonProps {
 
 export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonProps) {
   const { toast } = useToast();
-  const { 
-    setIsUploading,
-    updateUploadProgress,
-    resetUploadProgress
-  } = useDisasterContext();
-  const progressTimeout = useRef<NodeJS.Timeout>();
-
-  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const { setIsUploading, setUploadProgress } = useDisasterContext();
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -28,171 +22,83 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
     const file = files[0];
 
-    // Validate file format
     if (!file.name.toLowerCase().endsWith('.csv')) {
       toast({
         title: 'Invalid File Format',
-        description: 'Please upload a CSV file containing disaster-related data.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Check file size (max 50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      toast({
-        title: 'File Too Large',
-        description: 'Please upload a CSV file smaller than 50MB.',
+        description: 'Please upload a CSV file.',
         variant: 'destructive',
       });
       return;
     }
 
     try {
-      // Read file content to get line count
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const text = e.target?.result as string;
-          const lines = text.split('\n').length - 1;
+      setIsUploading(true);
+      console.log('Starting upload...');
 
-          console.log('Starting upload with', lines, 'records');
+      const result = await uploadCSV(file, (progress) => {
+        console.log('Progress Update:', progress);
 
-          // Start upload process
-          setIsUploading(true);
+        // Directly set the progress values from Python
+        setUploadProgress({
+          processed: progress.processed || 0,
+          total: progress.total || 0,
+          stage: progress.stage || 'Processing...'
+        });
+      });
 
-          // Initialize progress state
-          updateUploadProgress({
-            totalRecords: lines,
-            processedRecords: 0,
-            message: 'Starting analysis...',
-            status: 'uploading',
-            percentage: 0
-          });
+      if (result?.file && result?.posts) {
+        toast({
+          title: 'Upload Complete',
+          description: `Successfully analyzed ${result.posts.length} posts`,
+          duration: 5000,
+        });
 
-          // Ensure initial state is visible
-          await sleep(500);
+        // Refresh data
+        queryClient.invalidateQueries({ queryKey: ['/api/sentiment-posts'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/analyzed-files'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/disaster-events'] });
 
-          const result = await uploadCSV(file, async (progress) => {
-            console.log('Progress update:', progress); // Debug log
-
-            // Get the processed count directly from the progress object
-            const processedCount = progress.processed || 0;
-
-            // Update progress immediately
-            updateUploadProgress({
-              processedRecords: processedCount,
-              totalRecords: progress.total || lines,
-              percentage: progress.total ? Math.round((processedCount / progress.total) * 100) : 0,
-              message: progress.stage || 'Processing...',
-              status: progress.error ? 'error' : 'uploading'
-            });
-
-            if (progress.error) {
-              throw new Error(progress.error);
-            }
-
-            // Small delay for smoother UI updates
-            await sleep(50);
-          });
-
-          if (result?.file && result?.posts) {
-            // Show completion state
-            updateUploadProgress({
-              status: 'success',
-              message: 'Analysis Complete!',
-              percentage: 100,
-              processedRecords: lines,
-              totalRecords: lines
-            });
-
-            toast({
-              title: 'Upload Complete',
-              description: `Successfully analyzed ${result.posts.length} posts`,
-              duration: 5000,
-            });
-
-            // Refresh queries
-            queryClient.invalidateQueries({ queryKey: ['/api/sentiment-posts'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/analyzed-files'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/disaster-events'] });
-
-            if (onSuccess) {
-              onSuccess(result);
-            }
-
-            // Reset states after delays
-            progressTimeout.current = setTimeout(() => {
-              resetUploadProgress();
-              setTimeout(() => {
-                setIsUploading(false);
-              }, 2000);
-            }, 3000);
-          }
-        } catch (error) {
-          handleError(error);
+        if (onSuccess) {
+          onSuccess(result);
         }
-      };
-
-      reader.onerror = () => {
-        handleError(new Error('Failed to read file'));
-      };
-
-      reader.readAsText(file);
+      }
     } catch (error) {
-      handleError(error);
+      console.error('Upload error:', error);
+      toast({
+        title: 'Upload Failed',
+        description: error instanceof Error ? error.message : 'Failed to upload file',
+        variant: 'destructive',
+      });
     } finally {
       event.target.value = '';
+      setIsUploading(false);
+      setUploadProgress({ processed: 0, total: 0, stage: '' });
     }
   };
 
-  const handleError = (error: unknown) => {
-    console.error('Upload error:', error);
-
-    updateUploadProgress({
-      status: 'error',
-      message: error instanceof Error ? error.message : 'Upload failed',
-      percentage: 0,
-      processedRecords: 0,
-      totalRecords: 0
-    });
-
-    toast({
-      title: 'Upload Failed',
-      description: error instanceof Error ? error.message : 'An unexpected error occurred',
-      variant: 'destructive',
-      duration: 5000,
-    });
-
-    // Reset states after error
-    progressTimeout.current = setTimeout(() => {
-      resetUploadProgress();
-      setTimeout(() => {
-        setIsUploading(false);
-      }, 2000);
-    }, 3000);
-  };
-
   return (
-    <motion.label
-      className={`
-        inline-flex items-center justify-center px-6 py-3
-        bg-gradient-to-r from-blue-600 to-indigo-600
-        hover:from-blue-700 hover:to-indigo-700
-        text-white text-sm font-medium rounded-full
-        cursor-pointer transition-all duration-300
-        shadow-lg hover:shadow-xl transform hover:-translate-y-0.5
-        ${className}
-      `}
-    >
-      <Upload className="h-5 w-5 mr-2" />
-      Upload Dataset
-      <input 
-        type="file" 
-        className="hidden" 
-        accept=".csv" 
-        onChange={handleFileUpload}
-      />
-    </motion.label>
+    <>
+      <motion.label
+        className={`
+          inline-flex items-center justify-center px-6 py-3
+          bg-gradient-to-r from-blue-600 to-indigo-600
+          hover:from-blue-700 hover:to-indigo-700
+          text-white text-sm font-medium rounded-full
+          cursor-pointer transition-all duration-300
+          shadow-lg hover:shadow-xl transform hover:-translate-y-0.5
+          ${className}
+        `}
+      >
+        <Upload className="h-5 w-5 mr-2" />
+        Upload Dataset
+        <input 
+          type="file" 
+          className="hidden" 
+          accept=".csv" 
+          onChange={handleFileUpload}
+        />
+      </motion.label>
+      <SimpleProgress />
+    </>
   );
 }
