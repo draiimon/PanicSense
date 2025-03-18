@@ -57,7 +57,7 @@ export function SimpleProgress({ totalItems, isProcessing, onComplete, stage }: 
       />
       <div className="flex justify-between text-sm text-muted-foreground">
         <span>
-          {stage || `Completed record ${processedItems}/${totalItems}`}
+          {stage || ''}
         </span>
         <span>
           Average Speed: {avgSpeed} records/s
