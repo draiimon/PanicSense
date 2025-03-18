@@ -6,9 +6,10 @@ interface SimpleProgressProps {
   totalItems?: number;
   isProcessing: boolean;
   onComplete?: () => void;
+  currentProgress?: { processed: number; stage: string; total: number; } | null;
 }
 
-export function SimpleProgress({ totalItems = 20, isProcessing, onComplete }: SimpleProgressProps) {
+export function SimpleProgress({ totalItems = 20, isProcessing, onComplete, currentProgress }: SimpleProgressProps) {
   const [progress, setProgress] = useState(0);
   const [processedItems, setProcessedItems] = useState(0);
   const [avgSpeed, setAvgSpeed] = useState(0);
@@ -24,35 +25,23 @@ export function SimpleProgress({ totalItems = 20, isProcessing, onComplete }: Si
       return;
     }
 
-    // Simulate realistic progress with variable speeds
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsComplete(true);
-          onComplete?.();
-          return 100;
-        }
+    // Update based on actual progress from Python process
+    if (currentProgress) {
+      const progressPercent = (currentProgress.processed / currentProgress.total) * 100;
+      setProgress(progressPercent);
+      setProcessedItems(currentProgress.processed);
 
-        // Simulate varying speeds
-        const randomIncrement = Math.random() * 2 + 1; // 1-3% increment
-        const newProgress = Math.min(prev + randomIncrement, 100);
+      // Calculate real average speed
+      const elapsedSeconds = (Date.now() - startTime) / 1000;
+      const newSpeed = elapsedSeconds > 0 ? processedItems / elapsedSeconds : 0;
+      setAvgSpeed(Number(newSpeed.toFixed(1)));
 
-        // Update processed items based on progress
-        const newProcessedItems = Math.floor((newProgress / 100) * totalItems);
-        setProcessedItems(newProcessedItems);
-
-        // Calculate average speed
-        const elapsedSeconds = (Date.now() - startTime) / 1000;
-        const newSpeed = elapsedSeconds > 0 ? newProcessedItems / elapsedSeconds : 0;
-        setAvgSpeed(Number(newSpeed.toFixed(1)));
-
-        return newProgress;
-      });
-    }, 200); // Update every 200ms for smooth animation
-
-    return () => clearInterval(interval);
-  }, [isProcessing, totalItems, onComplete]);
+      if (progressPercent >= 100) {
+        setIsComplete(true);
+        onComplete?.();
+      }
+    }
+  }, [isProcessing, currentProgress, totalItems, onComplete, startTime, processedItems]);
 
   return (
     <div className="w-full space-y-2">
@@ -65,7 +54,7 @@ export function SimpleProgress({ totalItems = 20, isProcessing, onComplete }: Si
       />
       <div className="flex justify-between text-sm text-muted-foreground">
         <span>
-          Processed: {processedItems}/{totalItems}
+          {currentProgress?.stage || `Processed: ${processedItems}/${totalItems}`}
         </span>
         <span>
           Average Speed: {avgSpeed} records/s
