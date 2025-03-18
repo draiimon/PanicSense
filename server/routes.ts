@@ -35,12 +35,16 @@ const uploadProgressMap = new Map<string, {
 // Track connected WebSocket clients
 const connectedClients = new Set<WebSocket>();
 
-// Broadcast updates to all connected clients
+// Update the broadcastUpdate function to handle progress updates better
 function broadcastUpdate(data: any) {
   const message = JSON.stringify(data);
   connectedClients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
+      try {
+        client.send(message);
+      } catch (error) {
+        console.error('Failed to send WebSocket message:', error);
+      }
     }
   });
 }
@@ -399,9 +403,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             progress.error = error;
           }
 
+          // Log progress update
           console.log(`Progress update: ${processed}/${progress.total || 'unknown'} - ${stage}`);
 
-          // Broadcast progress to all connected clients with complete information
+          // Enhanced progress broadcast with more details
           broadcastUpdate({
             type: 'upload_progress',
             sessionId,
@@ -409,7 +414,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               processed: progress.processed,
               total: progress.total,
               stage: progress.stage,
-              error: progress.error
+              error: progress.error,
+              percentage: progress.total ? Math.round((progress.processed / progress.total) * 100) : 0
             }
           });
         }

@@ -19,10 +19,15 @@ const AnimatedNumber = ({ value }: { value: number }) => (
 export function UploadProgressModal() {
   const { isUploading, uploadProgress } = useDisasterContext();
 
-  // Calculate the actual percentage
+  // Calculate the actual percentage from the progress data
   const percentage = uploadProgress.totalRecords > 0 
     ? Math.round((uploadProgress.processedRecords / uploadProgress.totalRecords) * 100)
-    : uploadProgress.percentage;
+    : 0;
+
+  // Enhanced processing message
+  const processingMessage = uploadProgress.totalRecords > 0
+    ? `Processing record ${uploadProgress.processedRecords} of ${uploadProgress.totalRecords}`
+    : uploadProgress.message;
 
   return createPortal(
     <AnimatePresence mode="wait">
@@ -77,7 +82,7 @@ export function UploadProgressModal() {
                       : "text-blue-800"
                 }`}
               >
-                {uploadProgress.message}
+                {processingMessage}
               </span>
             </div>
 
@@ -104,38 +109,37 @@ export function UploadProgressModal() {
               </div>
             </div>
 
-            {uploadProgress.totalRecords > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ 
-                  duration: 0.2,
-                  delay: 0.1
-                }}
-                className="mt-4 flex flex-col items-center justify-center"
-              >
-                <div className="text-4xl font-bold text-blue-700 mb-2 tracking-tight tabular-nums flex items-center gap-1">
-                  <AnimatePresence mode="wait">
-                    <AnimatedNumber value={uploadProgress.processedRecords} />
-                  </AnimatePresence>
-                  <span>/</span>
-                  <AnimatePresence mode="wait">
-                    <AnimatedNumber value={uploadProgress.totalRecords} />
-                  </AnimatePresence>
-                </div>
+            {/* Progress Numbers */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ 
+                duration: 0.2,
+                delay: 0.1
+              }}
+              className="mt-4 flex flex-col items-center justify-center"
+            >
+              <div className="text-4xl font-bold text-blue-700 mb-2 tracking-tight tabular-nums flex items-center gap-1">
+                <AnimatePresence mode="wait">
+                  <AnimatedNumber value={uploadProgress.processedRecords} />
+                </AnimatePresence>
+                <span>/</span>
+                <AnimatePresence mode="wait">
+                  <AnimatedNumber value={uploadProgress.totalRecords} />
+                </AnimatePresence>
+              </div>
 
-                <div className="flex justify-between w-full text-sm text-slate-700">
-                  <span>Records processed</span>
-                  <span className="font-semibold tabular-nums">
-                    <AnimatePresence mode="wait">
-                      <AnimatedNumber value={percentage} />
-                    </AnimatePresence>
-                    %
-                  </span>
-                </div>
-              </motion.div>
-            )}
+              <div className="flex justify-between w-full text-sm text-slate-700">
+                <span>Records processed</span>
+                <span className="font-semibold tabular-nums">
+                  <AnimatePresence mode="wait">
+                    <AnimatedNumber value={percentage} />
+                  </AnimatePresence>
+                  %
+                </span>
+              </div>
+            </motion.div>
           </motion.div>
         </motion.div>
       )}
