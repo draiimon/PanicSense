@@ -21,35 +21,22 @@ const AnimatedNumber = ({ value }: { value: number }) => (
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress } = useDisasterContext();
-  const [simulatedProgress, setSimulatedProgress] = useState({
-    processed: 0,
-    successCount: 0,
-    averageSpeed: 0
-  });
-
-  // Simulate progress updates
-  useEffect(() => {
-    if (!isUploading) {
-      setSimulatedProgress({ processed: 0, successCount: 0, averageSpeed: 0 });
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setSimulatedProgress(prev => ({
-        processed: Math.min(prev.processed + 1, 20),
-        successCount: Math.min(prev.processed + 1, 20),
-        averageSpeed: Math.min(prev.averageSpeed + 0.5, 5)
-      }));
-    }, 300);
-
-    return () => clearInterval(interval);
-  }, [isUploading]);
 
   if (!isUploading) return null;
 
-  const { stage = 'Processing...' } = uploadProgress;
+  const { 
+    stage = 'Processing...', 
+    processed = 0, 
+    total = 100,
+    processingStats = {
+      successCount: 0,
+      errorCount: 0,
+      averageSpeed: 0
+    },
+    currentSpeed = 0
+  } = uploadProgress;
 
-  // Always show animation instead of actual percentage
+  // Stage indication
   const isLoading = stage.toLowerCase().includes('initializing') || stage.toLowerCase().includes('loading');
   const isProcessing = stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record');
   const isCompleted = stage.toLowerCase().includes('complete');
@@ -85,9 +72,9 @@ export function UploadProgressModal() {
             {stage}
           </h3>
           <div className="text-3xl font-bold text-blue-600 flex items-center justify-center gap-1">
-            <AnimatedNumber value={simulatedProgress.processed} />
+            <AnimatedNumber value={processed} />
             <span>/</span>
-            <AnimatedNumber value={20} />
+            <AnimatedNumber value={total} />
           </div>
         </div>
 
@@ -108,17 +95,27 @@ export function UploadProgressModal() {
               ${isProcessing ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-500'}`}>
               <Database className="h-4 w-4" />
               <span className="text-sm">
-                {isProcessing && `Processing record ${simulatedProgress.processed} of 20`}
+                {isProcessing && `Processing record ${processed} of ${total}`}
+                {!isProcessing && "Processing Records"}
               </span>
               {isProcessing && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
               {!isProcessing && <ChevronRight className="h-4 w-4 ml-auto" />}
             </div>
 
+            {/* Console Message */}
+            <div className="p-2 rounded-lg bg-gray-50">
+              <div className="text-sm font-mono text-gray-700 whitespace-pre-wrap overflow-x-auto">
+                {stage}
+              </div>
+            </div>
+
             {/* Stats */}
             <div className="p-2 rounded-lg bg-gray-50">
               <div className="text-sm text-gray-600">
-                <div>Successful: {simulatedProgress.successCount}</div>
-                <div>Average Speed: {simulatedProgress.averageSpeed.toFixed(1)} records/s</div>
+                <div>Successful: {processingStats.successCount}</div>
+                <div>Errors: {processingStats.errorCount}</div>
+                <div>Current Speed: {currentSpeed?.toFixed(1)} records/s</div>
+                <div>Average Speed: {processingStats.averageSpeed?.toFixed(1)} records/s</div>
               </div>
             </div>
           </div>
@@ -128,11 +125,12 @@ export function UploadProgressModal() {
         <div className="mt-6">
           <div className="flex justify-between text-sm text-slate-600 mb-1">
             <span>Overall Progress</span>
+            <span>{Math.round((processed / total) * 100)}%</span>
           </div>
           <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-blue-500 via-blue-600 to-blue-500" 
                  style={{
-                   width: `${(simulatedProgress.processed / 20) * 100}%`,
+                   width: `${(processed / total) * 100}%`,
                    backgroundSize: '200% 100%',
                    animation: 'download-progress 1.5s ease-in-out infinite'
                  }}
