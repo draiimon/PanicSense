@@ -34,10 +34,7 @@ export function UploadProgressModal() {
     processingStats 
   } = uploadProgress;
 
-  // Calculate percentage based on actual processed records
-  const percentage = total > 0 ? Math.round((processed / total) * 100) : 0;
-
-  // Determine stage status
+  // Always show animation instead of actual percentage
   const isLoading = stage.toLowerCase().includes('initializing') || stage.toLowerCase().includes('loading');
   const isProcessing = stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record');
   const isCompleted = stage.toLowerCase().includes('complete');
@@ -77,12 +74,7 @@ export function UploadProgressModal() {
             <span>/</span>
             <AnimatedNumber value={total} />
           </div>
-          {currentSpeed > 0 && (
-            <div className="text-sm text-slate-600 mt-2">
-              Processing {Math.round(currentSpeed)} records/second
-              {timeRemaining > 0 && ` • ${Math.round(timeRemaining)}s remaining`}
-            </div>
-          )}
+          {/* Removed currentSpeed and timeRemaining display */}
         </div>
 
         {/* Detailed Progress Log */}
@@ -123,21 +115,41 @@ export function UploadProgressModal() {
           </div>
         </ScrollArea>
 
-        {/* Progress Bar */}
+        {/* Download-style Progress Bar */}
         <div className="mt-6">
           <div className="flex justify-between text-sm text-slate-600 mb-1">
             <span>Overall Progress</span>
-            <span className="font-semibold">{percentage}%</span>
           </div>
           <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-blue-500"
-              initial={{ width: 0 }}
-              animate={{ width: `${percentage}%` }}
-              transition={{ duration: 0.3 }}
+            <div className="h-full bg-gradient-to-r from-blue-500 via-blue-600 to-blue-500" 
+                 style={{
+                   width: '100%',
+                   backgroundSize: '200% 100%',
+                   animation: 'download-progress 1.5s ease-in-out infinite'
+                 }}
             />
           </div>
         </div>
+
+        {/* Add keyframes for smooth download-style animation */}
+        <style>
+          {`
+            @keyframes download-progress {
+              0% {
+                background-position: 100% 0;
+                opacity: 0.5;
+              }
+              50% {
+                background-position: 0 0;
+                opacity: 1;
+              }
+              100% {
+                background-position: -100% 0;
+                opacity: 0.5;
+              }
+            }
+          `}
+        </style>
       </motion.div>
     </motion.div>,
     document.body
