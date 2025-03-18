@@ -37,7 +37,6 @@ const formatSpeed = (recordsPerSecond: number): string => {
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress } = useDisasterContext();
-  const [activeTab, setActiveTab] = useState<'progress'>('progress');
   const [highestProcessed, setHighestProcessed] = useState(0);
 
   // Effect to track the highest processed value
@@ -79,6 +78,7 @@ export function UploadProgressModal() {
   // Stage indication
   const isLoading = stage.toLowerCase().includes('initializing') || stage.toLowerCase().includes('loading');
   const isProcessing = stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record');
+  const hasError = stage.toLowerCase().includes('error');
 
   return createPortal(
     <motion.div
@@ -118,47 +118,58 @@ export function UploadProgressModal() {
           {/* Main Progress Display */}
           <div className="text-center">
             <h3 className="text-xl font-semibold text-slate-200 mb-2">
-              {stage.toLowerCase().includes('analysis complete') 
-                ? 'Analysis Complete!' 
-                : total > 0 
-                  ? `Processing ${total.toLocaleString()} records...` 
-                  : 'Preparing upload...'}
+              {hasError ? 'Upload Error' :
+                stage.toLowerCase().includes('analysis complete') 
+                  ? 'Analysis Complete!' 
+                  : total > 0 
+                    ? `Processing ${total.toLocaleString()} records...` 
+                    : 'Preparing upload...'}
             </h3>
-            <div className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent flex items-center justify-center gap-2">
-              <AnimatedNumber value={processed} />
-              <span className="text-slate-500">/</span>
-              <AnimatedNumber value={total} />
-            </div>
+            {!hasError && (
+              <div className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent flex items-center justify-center gap-2">
+                <AnimatedNumber value={processed} />
+                <span className="text-slate-500">/</span>
+                <AnimatedNumber value={total} />
+              </div>
+            )}
+            {hasError && (
+              <div className="mt-2 flex items-center justify-center gap-2 text-red-400">
+                <AlertTriangle className="h-5 w-5" />
+                <span className="text-sm">An error occurred during upload. Please try again.</span>
+              </div>
+            )}
           </div>
 
           {/* Enhanced Stats Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Processing Speed */}
-            {(currentSpeed > 0 || processingStats.averageSpeed > 0) && (
-              <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-sm rounded-xl p-4 border border-slate-600/50 shadow-lg">
-                <div className="flex items-center gap-2 text-blue-400 mb-2">
-                  <Activity className="h-4 w-4" />
-                  <span className="text-xs font-medium">Processing Speed</span>
+          {!hasError && (
+            <div className="grid grid-cols-2 gap-4">
+              {/* Processing Speed */}
+              {(currentSpeed > 0 || processingStats.averageSpeed > 0) && (
+                <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-sm rounded-xl p-4 border border-slate-600/50 shadow-lg">
+                  <div className="flex items-center gap-2 text-blue-400 mb-2">
+                    <Activity className="h-4 w-4" />
+                    <span className="text-xs font-medium">Processing Speed</span>
+                  </div>
+                  <div className="text-sm font-semibold text-slate-300">
+                    {currentSpeed > 0 ? formatSpeed(currentSpeed) : formatSpeed(processingStats.averageSpeed)}
+                  </div>
                 </div>
-                <div className="text-sm font-semibold text-slate-300">
-                  {currentSpeed > 0 ? formatSpeed(currentSpeed) : formatSpeed(processingStats.averageSpeed)}
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Time Remaining */}
-            {timeRemaining > 0 && !stage.toLowerCase().includes('analysis complete') && (
-              <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-sm rounded-xl p-4 border border-slate-600/50 shadow-lg">
-                <div className="flex items-center gap-2 text-blue-400 mb-2">
-                  <Clock className="h-4 w-4" />
-                  <span className="text-xs font-medium">Time Remaining</span>
+              {/* Time Remaining */}
+              {timeRemaining > 0 && !stage.toLowerCase().includes('analysis complete') && (
+                <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-sm rounded-xl p-4 border border-slate-600/50 shadow-lg">
+                  <div className="flex items-center gap-2 text-blue-400 mb-2">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-xs font-medium">Time Remaining</span>
+                  </div>
+                  <div className="text-sm font-semibold text-slate-300">
+                    {formatTimeRemaining(timeRemaining)}
+                  </div>
                 </div>
-                <div className="text-sm font-semibold text-slate-300">
-                  {formatTimeRemaining(timeRemaining)}
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Progress Stages */}
           <ScrollArea className="h-[180px] rounded-xl border border-slate-600/50 p-4 bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
@@ -198,16 +209,18 @@ export function UploadProgressModal() {
           <div>
             <div className="flex justify-between text-sm font-medium mb-2">
               <span className="text-slate-300">Overall Progress</span>
-              <span className={`transition-colors ${stage.toLowerCase().includes('analysis complete') ? 'text-green-400' : 'text-blue-400'}`}>
+              <span className={`transition-colors ${stage.toLowerCase().includes('analysis complete') ? 'text-green-400' : hasError ? 'text-red-400' : 'text-blue-400'}`}>
                 {percentComplete}%
               </span>
             </div>
             <div className="h-3 bg-slate-800/50 rounded-full overflow-hidden shadow-inner border border-slate-700/50">
               <motion.div 
                 className={`h-full transition-colors duration-300 ${
-                  stage.toLowerCase().includes('analysis complete')
-                    ? 'bg-gradient-to-r from-green-400 to-emerald-500' 
-                    : 'bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500'
+                  hasError 
+                    ? 'bg-gradient-to-r from-red-500 to-red-600'
+                    : stage.toLowerCase().includes('analysis complete')
+                      ? 'bg-gradient-to-r from-green-400 to-emerald-500' 
+                      : 'bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500'
                 }`}
                 initial={{ width: 0 }}
                 animate={{ 
@@ -268,7 +281,7 @@ export function UploadProgressModal() {
                 animation: gradient 8s ease infinite;
               }
 
-              .bg-grid-slate-700\/20 {
+              .bg-grid-slate-700/20 {
                 background-size: 30px 30px;
                 background-image: linear-gradient(to right, rgba(51, 65, 85, 0.1) 1px, transparent 1px),
                                  linear-gradient(to bottom, rgba(51, 65, 85, 0.1) 1px, transparent 1px);
