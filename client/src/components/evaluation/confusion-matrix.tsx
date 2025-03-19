@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useQuery } from '@tanstack/react-query';
 import { getSentimentPostsByFileId } from '@/lib/api';
 import { getSentimentColor } from '@/lib/colors';
-import { MetricsData } from './metrics-display';
 import { Badge } from '@/components/ui/badge';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ConfusionMatrixProps {
   fileId?: number;
@@ -13,7 +13,12 @@ interface ConfusionMatrixProps {
   title?: string;
   description?: string;
   allDatasets?: boolean;
-  metrics?: MetricsData;
+  metrics?: {
+    accuracy: number;
+    precision: number;
+    recall: number;
+    f1Score: number;
+  };
 }
 
 const defaultLabels = ['Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'];
@@ -36,6 +41,7 @@ export function ConfusionMatrix({
     confidence: number;
     mixedSentiments: Record<string, number>;
   }[]>([]);
+  const [metricsData, setMetricsData] = useState<any[]>([]);
 
   // Fetch sentiment posts if fileId is provided and not in allDatasets mode
   const { data: sentimentPosts, isLoading } = useQuery({
@@ -43,6 +49,32 @@ export function ConfusionMatrix({
     queryFn: () => getSentimentPostsByFileId(fileId as number),
     enabled: !!fileId && !initialMatrix && !allDatasets
   });
+
+  // Calculate metrics from matrix
+  const calculateMetrics = (matrix: number[][]) => {
+    const metrics = labels.map((_, idx) => {
+      const truePositive = matrix[idx][idx];
+      const rowSum = matrix[idx].reduce((sum, val) => sum + val, 0);
+      const colSum = matrix.reduce((sum, row) => sum + row[idx], 0);
+      const totalSum = matrix.reduce((sum, row) => sum + row.reduce((s, v) => s + v, 0), 0);
+
+      const precision = colSum === 0 ? 0 : truePositive / colSum;
+      const recall = rowSum === 0 ? 0 : truePositive / rowSum;
+      const f1 = precision + recall === 0 ? 0 : 2 * (precision * recall) / (precision + recall);
+      const accuracy = totalSum === 0 ? 0 : truePositive / totalSum;
+
+      return {
+        sentiment: labels[idx],
+        precision: precision * 100,
+        recall: recall * 100,
+        f1Score: f1 * 100,
+        accuracy: accuracy * 100
+      };
+    });
+
+    setMetricsData(metrics);
+    return metrics;
+  };
 
   // Process sentiment data and build confusion matrix
   useEffect(() => {
@@ -52,41 +84,32 @@ export function ConfusionMatrix({
     let newSentimentData: typeof sentimentData = [];
 
     if (initialMatrix) {
-      // Use provided matrix directly for all datasets view
       newMatrix = initialMatrix.map(row => [...row]);
     } else if (sentimentPosts && sentimentPosts.length > 0) {
       sentimentPosts.forEach(post => {
         const mainSentiment = post.sentiment;
         const confidence = post.confidence || 1;
 
-        // Find index of main sentiment
         const mainIdx = labels.findIndex(label => label === mainSentiment);
         if (mainIdx === -1) return;
 
-        // Track this post's sentiment data
         const postSentiments: Record<string, number> = {
           [mainSentiment]: confidence
         };
 
-        // Update matrix for main sentiment
         newMatrix[mainIdx][mainIdx] += confidence;
 
-        // If confidence < 1, distribute remaining confidence
         if (confidence < 1) {
           const remainingConfidence = 1 - confidence;
-
-          // Calculate distribution weights based on semantic similarity
           const weights = labels.map((_, idx) => {
             if (idx === mainIdx) return 0;
             const distance = Math.abs(idx - mainIdx);
             return remainingConfidence / (distance + 1);
           });
 
-          // Normalize weights
           const totalWeight = weights.reduce((sum, w) => sum + w, 0);
           const normalizedWeights = weights.map(w => w / totalWeight);
 
-          // Distribute remaining confidence
           labels.forEach((label, idx) => {
             if (idx !== mainIdx) {
               const secondaryConfidence = remainingConfidence * normalizedWeights[idx];
@@ -96,7 +119,6 @@ export function ConfusionMatrix({
           });
         }
 
-        // Store individual post data for detailed view (only for single dataset view)
         if (!allDatasets) {
           newSentimentData.push({
             id: post.id,
@@ -110,47 +132,10 @@ export function ConfusionMatrix({
 
     setMatrix(newMatrix);
     setSentimentData(newSentimentData);
+    calculateMetrics(newMatrix);
     setIsMatrixCalculated(true);
   }, [sentimentPosts, labels, initialMatrix, isLoading, allDatasets]);
 
-  // Calculate metrics
-  const calculateMetrics = () => {
-    const totals = {
-      accuracy: 0,
-      precision: 0,
-      recall: 0,
-      f1Score: 0
-    };
-
-    if (matrix.length === 0) return totals;
-
-    // Calculate true positives, false positives, and false negatives for each class
-    const metrics = labels.map((_, idx) => {
-      const truePositive = matrix[idx][idx];
-      const rowSum = matrix[idx].reduce((sum, val) => sum + val, 0);
-      const colSum = matrix.reduce((sum, row) => sum + row[idx], 0);
-
-      const precision = colSum === 0 ? 0 : truePositive / colSum;
-      const recall = rowSum === 0 ? 0 : truePositive / rowSum;
-      const f1 = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
-
-      return { precision, recall, f1 };
-    });
-
-    // Calculate macro averages
-    totals.precision = metrics.reduce((sum, m) => sum + m.precision, 0) / metrics.length;
-    totals.recall = metrics.reduce((sum, m) => sum + m.recall, 0) / metrics.length;
-    totals.f1Score = metrics.reduce((sum, m) => sum + m.f1, 0) / metrics.length;
-
-    // Calculate accuracy (sum of diagonal / total)
-    const totalSamples = matrix.reduce((sum, row) => sum + row.reduce((s, v) => s + v, 0), 0);
-    const correctPredictions = matrix.reduce((sum, row, idx) => sum + row[idx], 0);
-    totals.accuracy = totalSamples === 0 ? 0 : correctPredictions / totalSamples;
-
-    return totals;
-  };
-
-  // Calculate cell color based on value
   const getCellColor = (rowIdx: number, colIdx: number, value: number) => {
     const baseColor = getSentimentColor(labels[colIdx]);
     if (rowIdx === colIdx) {
@@ -163,11 +148,9 @@ export function ConfusionMatrix({
     };
   };
 
-  // Calculate row totals and metrics
   const rowTotals = matrix.map(row => row.reduce((sum, val) => sum + val, 0));
   const colTotals = labels.map((_, colIdx) => matrix.reduce((sum, row) => sum + row[colIdx], 0));
   const totalSamples = rowTotals.reduce((sum, val) => sum + val, 0);
-  const calculatedMetrics = calculateMetrics();
 
   if (isLoading || !isMatrixCalculated) {
     return (
@@ -192,148 +175,142 @@ export function ConfusionMatrix({
         <CardDescription className="text-sm text-slate-500">{description}</CardDescription>
       </CardHeader>
       <CardContent className="p-6">
-        {/* Performance Metrics Summary */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-slate-50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium text-slate-700 mb-2">Accuracy</h4>
-            <p className="text-2xl font-bold text-blue-600">
-              {(calculatedMetrics.accuracy * 100).toFixed(1)}%
-            </p>
-          </div>
-          <div className="bg-slate-50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium text-slate-700 mb-2">Precision</h4>
-            <p className="text-2xl font-bold text-green-600">
-              {(calculatedMetrics.precision * 100).toFixed(1)}%
-            </p>
-          </div>
-          <div className="bg-slate-50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium text-slate-700 mb-2">Recall</h4>
-            <p className="text-2xl font-bold text-purple-600">
-              {(calculatedMetrics.recall * 100).toFixed(1)}%
-            </p>
-          </div>
-          <div className="bg-slate-50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium text-slate-700 mb-2">F1 Score</h4>
-            <p className="text-2xl font-bold text-orange-600">
-              {(calculatedMetrics.f1Score * 100).toFixed(1)}%
-            </p>
-          </div>
-        </div>
-
-        {/* Matrix Display */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-slate-50">
-                <th className="px-4 py-2 text-left">True Sentiment</th>
-                {labels.map((label, idx) => (
-                  <th key={idx} className="px-4 py-2 text-center">{label}</th>
-                ))}
-                <th className="px-4 py-2 text-center">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {matrix.map((row, rowIdx) => (
-                <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                  <td className="px-4 py-2 font-medium">{labels[rowIdx]}</td>
-                  {row.map((value, colIdx) => {
-                    const { background, text } = getCellColor(rowIdx, colIdx, value);
-                    const percentage = (value / rowTotals[rowIdx] * 100) || 0;
-
-                    // Find posts that contribute to this cell (only for single dataset view)
-                    const relevantPosts = !allDatasets ? sentimentData.filter(post => 
-                      post.mainSentiment === labels[rowIdx] && 
-                      post.mixedSentiments[labels[colIdx]] > 0
-                    ) : [];
-
-                    return (
-                      <td
-                        key={colIdx}
-                        className={`px-4 py-2 relative ${!allDatasets ? 'hover:bg-slate-50' : ''}`}
-                        onMouseEnter={() => !allDatasets && setHoveredCell({ row: rowIdx, col: colIdx })}
-                        onMouseLeave={() => !allDatasets && setHoveredCell(null)}
-                      >
-                        <div
-                          className="rounded p-2 text-center"
-                          style={{ backgroundColor: background, color: text }}
-                        >
-                          <div className="font-bold">{value.toFixed(2)}</div>
-                          <div className="text-xs">{percentage.toFixed(1)}%</div>
-                        </div>
-
-                        {/* Detailed tooltip - only show for single dataset view */}
-                        {!allDatasets && hoveredCell?.row === rowIdx && hoveredCell?.col === colIdx && relevantPosts.length > 0 && (
-                          <div className="absolute z-50 bg-white p-3 rounded-lg shadow-lg border border-gray-200 min-w-[250px] -translate-y-full left-1/2 -translate-x-1/2">
-                            <div className="font-medium mb-2">Sentiment Distribution</div>
-                            <div className="space-y-2">
-                              {relevantPosts.map((post, i) => (
-                                <div key={post.id} className="text-xs">
-                                  <div className="font-medium text-slate-700 mb-1">Sample {i + 1}</div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {Object.entries(post.mixedSentiments).map(([sentiment, conf]) => (
-                                      <Badge
-                                        key={sentiment}
-                                        variant="outline"
-                                        className="text-xs"
-                                        style={{
-                                          borderColor: getSentimentColor(sentiment),
-                                          color: getSentimentColor(sentiment)
-                                        }}
-                                      >
-                                        {sentiment}: {(conf * 100).toFixed(1)}%
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
-                  <td className="px-4 py-2 text-center font-medium">{rowTotals[rowIdx].toFixed(2)}</td>
-                </tr>
-              ))}
-              <tr className="bg-slate-100 font-medium">
-                <td className="px-4 py-2">Total</td>
-                {colTotals.map((total, idx) => (
-                  <td key={idx} className="px-4 py-2 text-center">{total.toFixed(2)}</td>
-                ))}
-                <td className="px-4 py-2 text-center">{totalSamples.toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Legend and Information */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-slate-50 p-4 rounded-lg">
-            <h3 className="text-sm font-medium mb-2">Sentiment Legend</h3>
-            <div className="flex flex-wrap gap-2">
-              {labels.map((label) => (
-                <Badge
-                  key={label}
-                  variant="outline"
-                  className="flex items-center gap-1"
-                  style={{
-                    borderColor: getSentimentColor(label),
-                    color: getSentimentColor(label)
-                  }}
-                >
-                  {label}
-                </Badge>
-              ))}
+        <div className="space-y-6">
+          {/* Metrics Visualization */}
+          <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+            <h3 className="text-lg font-semibold mb-4">Performance Metrics</h3>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={metricsData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="sentiment" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="precision" stroke="#22c55e" name="Precision" />
+                  <Line type="monotone" dataKey="recall" stroke="#8b5cf6" name="Recall" />
+                  <Line type="monotone" dataKey="f1Score" stroke="#f97316" name="F1 Score" />
+                  <Line type="monotone" dataKey="accuracy" stroke="#3b82f6" name="Accuracy" />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-lg">
-            <h3 className="text-sm font-medium mb-2">Matrix Information</h3>
-            <div className="space-y-1 text-sm">
-              <p>• Numbers show actual sentiment counts from data</p>
-              <p>• Diagonal cells show primary sentiment confidence</p>
-              <p>• Off-diagonal cells show mixed sentiment distribution</p>
-              <p>• {allDatasets ? 'Showing aggregated data from all datasets' : 'Hover for detailed confidence breakdown per sample'}</p>
+          {/* Matrix Display */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50">
+                  <th className="px-4 py-2 text-left">True Sentiment</th>
+                  {labels.map((label, idx) => (
+                    <th key={idx} className="px-4 py-2 text-center">{label}</th>
+                  ))}
+                  <th className="px-4 py-2 text-center">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {matrix.map((row, rowIdx) => (
+                  <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                    <td className="px-4 py-2 font-medium">{labels[rowIdx]}</td>
+                    {row.map((value, colIdx) => {
+                      const { background, text } = getCellColor(rowIdx, colIdx, value);
+                      const percentage = (value / rowTotals[rowIdx] * 100) || 0;
+
+                      // Find posts that contribute to this cell (only for single dataset view)
+                      const relevantPosts = !allDatasets ? sentimentData.filter(post => 
+                        post.mainSentiment === labels[rowIdx] && 
+                        post.mixedSentiments[labels[colIdx]] > 0
+                      ) : [];
+
+                      return (
+                        <td
+                          key={colIdx}
+                          className={`px-4 py-2 relative ${!allDatasets ? 'hover:bg-slate-50' : ''}`}
+                          onMouseEnter={() => !allDatasets && setHoveredCell({ row: rowIdx, col: colIdx })}
+                          onMouseLeave={() => !allDatasets && setHoveredCell(null)}
+                        >
+                          <div
+                            className="rounded p-2 text-center"
+                            style={{ backgroundColor: background, color: text }}
+                          >
+                            <div className="font-bold">{value.toFixed(2)}</div>
+                            <div className="text-xs">{percentage.toFixed(1)}%</div>
+                          </div>
+
+                          {/* Detailed tooltip - only show for single dataset view */}
+                          {!allDatasets && hoveredCell?.row === rowIdx && hoveredCell?.col === colIdx && relevantPosts.length > 0 && (
+                            <div className="absolute z-50 bg-white p-3 rounded-lg shadow-lg border border-gray-200 min-w-[250px] -translate-y-full left-1/2 -translate-x-1/2">
+                              <div className="font-medium mb-2">Sentiment Distribution</div>
+                              <div className="space-y-2">
+                                {relevantPosts.map((post, i) => (
+                                  <div key={post.id} className="text-xs">
+                                    <div className="font-medium text-slate-700 mb-1">Sample {i + 1}</div>
+                                    <div className="flex flex-wrap gap-1">
+                                      {Object.entries(post.mixedSentiments).map(([sentiment, conf]) => (
+                                        <Badge
+                                          key={sentiment}
+                                          variant="outline"
+                                          className="text-xs"
+                                          style={{
+                                            borderColor: getSentimentColor(sentiment),
+                                            color: getSentimentColor(sentiment)
+                                          }}
+                                        >
+                                          {sentiment}: {(conf * 100).toFixed(1)}%
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td className="px-4 py-2 text-center font-medium">{rowTotals[rowIdx].toFixed(2)}</td>
+                  </tr>
+                ))}
+                <tr className="bg-slate-100 font-medium">
+                  <td className="px-4 py-2">Total</td>
+                  {colTotals.map((total, idx) => (
+                    <td key={idx} className="px-4 py-2 text-center">{total.toFixed(2)}</td>
+                  ))}
+                  <td className="px-4 py-2 text-center">{totalSamples.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Legend and Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <h3 className="text-sm font-medium mb-2">Sentiment Legend</h3>
+              <div className="flex flex-wrap gap-2">
+                {labels.map((label) => (
+                  <Badge
+                    key={label}
+                    variant="outline"
+                    className="flex items-center gap-1"
+                    style={{
+                      borderColor: getSentimentColor(label),
+                      color: getSentimentColor(label)
+                    }}
+                  >
+                    {label}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <h3 className="text-sm font-medium mb-2">Matrix Information</h3>
+              <div className="space-y-1 text-sm">
+                <p>• Numbers show actual sentiment counts from data</p>
+                <p>• Diagonal cells show primary sentiment confidence</p>
+                <p>• Off-diagonal cells show mixed sentiment distribution</p>
+                <p>• {allDatasets ? 'Showing aggregated data from all datasets' : 'Hover for detailed confidence breakdown per sample'}</p>
+              </div>
             </div>
           </div>
         </div>
