@@ -98,29 +98,26 @@ export function ConfusionMatrix({
       });
     }
 
-    // Enhanced metrics calculation
+    // Calculate metrics based on actual confusion matrix values
     const metrics = labels.map((_, idx) => {
       const truePositive = newMatrix[idx][idx];
       const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
       const colSum = newMatrix.reduce((sum, row) => sum + row[idx], 0);
       const totalSum = newMatrix.reduce((sum, row) => sum + row.reduce((s, v) => s + v, 0), 0);
 
-      // Adjusted calculations with normalization
       const precision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
       const recall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
       const f1 = precision + recall === 0 ? 0 : (2 * (precision * recall) / (precision + recall));
 
-      // Enhanced accuracy calculation that considers partial matches
-      const accuracy = totalSum === 0 ? 0 : ((truePositive + 
-        newMatrix[idx].reduce((acc, val, i) => 
-          acc + (i === idx ? 0 : val * 0.5), 0)) / totalSum) * 100;
+      // Calculate accuracy considering the primary predictions
+      const accuracy = totalSum === 0 ? 0 : (truePositive / totalSum) * 100;
 
       return {
         sentiment: labels[idx],
-        precision: Math.min(100, precision * 1.1), // Slight boost with cap at 100%
-        recall: Math.min(100, recall * 1.1),
-        f1Score: Math.min(100, f1 * 1.1),
-        accuracy: Math.min(100, accuracy * 1.1)
+        precision: precision,
+        recall: recall,
+        f1Score: f1,
+        accuracy: accuracy
       };
     });
 
@@ -176,7 +173,7 @@ export function ConfusionMatrix({
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="sentiment" angle={-45} textAnchor="end" height={100} />
                     <YAxis domain={[0, 100]} />
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value) => [`${Number(value).toFixed(1)}%`]}
                       contentStyle={{ background: 'white', border: '1px solid #e2e8f0' }}
                     />
