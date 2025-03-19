@@ -8,8 +8,18 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useEffect, useState } from "react";
+import type { ProfileImage } from "@shared/schema";
 
 export default function About() {
+  const [profiles, setProfiles] = useState<ProfileImage[]>([]);
+
+  useEffect(() => {
+    fetch('/api/profile-images')
+      .then(res => res.json())
+      .then(data => setProfiles(data))
+      .catch(err => console.error('Failed to fetch profiles:', err));
+  }, []);
   const [api, setApi] = React.useState<any>();
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const isMobile = useIsMobile();
@@ -270,6 +280,28 @@ export default function About() {
             <p className="text-lg text-blue-200 leading-relaxed">
               Our platform employs advanced transfer learning techniques and fine-tuned language models capable of processing both English and Filipino text with state-of-the-art accuracy. Our innovative multilingual approach ensures contextual understanding of cultural nuances and colloquial expressions across multiple Filipino dialects.
             </p>
+
+            {/* Team Section */}
+            <div className="py-12">
+              <h3 className="text-3xl font-bold mb-8 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                Meet Our Team
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {profiles?.map((profile) => (
+                  <div key={profile.id} className="bg-white/5 backdrop-blur-lg rounded-xl p-6 text-center">
+                    <img 
+                      src={profile.imageUrl} 
+                      alt={profile.name}
+                      className="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-4 border-blue-500/30"
+                    />
+                    <h4 className="text-xl font-semibold text-blue-300">{profile.name}</h4>
+                    <p className="text-blue-400 mb-2">{profile.role}</p>
+                    <p className="text-sm text-blue-200">{profile.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <p className="text-lg text-blue-200 leading-relaxed">
               Through ensemble methods and reinforcement learning algorithms, the system dynamically categorizes emotional states into five distinct classifications: Panic, Fear/Anxiety, Disbelief, Resilience, and Neutral. This granular emotion mapping provides crucial decision support for emergency response coordination and resource allocation during disaster events.
             </p>
