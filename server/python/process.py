@@ -201,7 +201,7 @@ class DisasterSentimentBackend:
                 "fire truck", "burning", "call 911", "spread to", "emergency",
                 "burning smell"
             ],
-            "Volcano": [
+            "Volcanic Eruptions": [
                 "alert level", "evacuate area", "danger zone",
                 "eruption warning", "exclusion zone", "kilometer radius",
                 "volcanic activity", "ash covered", "masks", "respiratory"
@@ -234,10 +234,10 @@ class DisasterSentimentBackend:
         if "building" in text_lower and "collapse" in text_lower:
             scores["Earthquake"] += 2
         if "ash" in text_lower and "fall" in text_lower:
-            scores["Volcano"] += 2
+            scores["Volcanic Eruptions"] += 2
         if "evacuate" in text_lower and "alert" in text_lower:
             # General emergency context - look for specific type
-            for d_type in ["Volcano", "Fire", "Flood", "Typhoon"]:
+            for d_type in ["Volcanic Eruptions", "Fire", "Flood", "Typhoon"]:
                 if any(k in text_lower for k in disaster_types[d_type]):
                     scores[d_type] += 1
 
