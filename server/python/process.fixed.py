@@ -861,21 +861,22 @@ class DisasterSentimentBackend:
             # Process all records without limitation
             sample_size = len(df)
 
-            # Set batch size to 20 as per requirements
-            BATCH_SIZE = 20
+            # Set batch size to 30 as per requirements
+            BATCH_SIZE = 30
+            BATCH_COOLDOWN = 60  # 60-second cooldown between batches of 30 records
 
             # Report column identification progress
             report_progress(5, "Identified data columns", total_records)
 
-            # Process data in batches of 20
+            # Process data in batches of 30
             processed_count = 0
 
             # Get all indices that we'll process
             indices_to_process = df.head(sample_size).index.tolist()
 
-            # Process data in batches of 20
+            # Process data in batches of 30
             for batch_start in range(0, len(indices_to_process), BATCH_SIZE):
-                # Get indices for this batch (up to 20 items)
+                # Get indices for this batch (up to 30 items)
                 batch_indices = indices_to_process[batch_start:batch_start +
                                                    BATCH_SIZE]
 
@@ -1094,7 +1095,7 @@ class DisasterSentimentBackend:
                             ((batch_start + BATCH_SIZE) / sample_size) * 90),
                         f"Completed batch {batch_start // BATCH_SIZE + 1} - pausing before next batch",
                         total_records)
-                    time.sleep(3)  # 3-second pause between batches
+                    time.sleep(60)  # 60-second pause between batches
 
             # Retry failed records
             if failed_records:
