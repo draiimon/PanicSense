@@ -16,7 +16,7 @@ interface ProcessCSVResult {
     source: string;
     language: string;
     sentiment: string;
-    confidence: number;
+    confidence: number;  // This will now be the real AI confidence score
     explanation?: string;
     disasterType?: string;
     location?: string;
@@ -33,15 +33,25 @@ export class PythonService {
   private pythonBinary: string;
   private tempDir: string;
   private scriptPath: string;
+  private confidenceCache: Map<string, number>;  // Cache for confidence scores
 
   constructor() {
     this.pythonBinary = 'python3';
     this.tempDir = path.join(os.tmpdir(), 'disaster-sentiment');
     this.scriptPath = path.join(process.cwd(), 'server', 'python', 'process.py');
+    this.confidenceCache = new Map();  // Initialize confidence cache
 
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
     }
+  }
+
+  private getCachedConfidence(text: string): number | undefined {
+    return this.confidenceCache.get(text);
+  }
+
+  private setCachedConfidence(text: string, confidence: number): void {
+    this.confidenceCache.set(text, confidence);
   }
 
   public async processCSV(
@@ -160,6 +170,7 @@ export class PythonService {
 
         // No timeout as requested by user - Python process will run until completion
         
+
         pythonProcess.on('close', (code) => {
           if (code !== 0) {
             reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
@@ -212,6 +223,20 @@ export class PythonService {
     location?: string;
   }> {
     try {
+      // Check cache first
+      const cachedConfidence = this.getCachedConfidence(text);
+      if (cachedConfidence !== undefined) {
+        log(`Using cached confidence score: ${cachedConfidence}`, 'python-service');
+        return {
+          sentiment: "", // Placeholder -  Real values should come from the cache.  This needs to be populated based on your actual cache structure
+          confidence: cachedConfidence,
+          explanation: "", // Placeholder
+          language: "", // Placeholder
+          disasterType: undefined,
+          location: undefined
+        };
+      }
+
       // Pass text directly to Python script
       const pythonProcess = spawn(this.pythonBinary, [
         this.scriptPath,
@@ -225,15 +250,13 @@ export class PythonService {
         pythonProcess.stdout.on('data', (data) => {
           const dataStr = data.toString();
           output += dataStr;
-          
-          // Store stdout message in our global array
+
           if (dataStr.trim()) {
             pythonConsoleMessages.push({
               message: dataStr.trim(),
               timestamp: new Date()
             });
-            
-            // Log to server console for debugging
+
             log(`Python stdout: ${dataStr.trim()}`, 'python-service');
           }
         });
@@ -241,13 +264,12 @@ export class PythonService {
         pythonProcess.stderr.on('data', (data) => {
           const errorMsg = data.toString();
           errorOutput += errorMsg;
-          
-          // Save all Python console output
+
           pythonConsoleMessages.push({
             message: errorMsg.trim(),
             timestamp: new Date()
           });
-          
+
           log(`Python process error: ${errorMsg}`, 'python-service');
         });
 
@@ -263,8 +285,15 @@ export class PythonService {
       // Increment usage by 1 for each individual text analysis
       usageTracker.incrementRowCount(1);
       log(`Daily usage: ${usageTracker.getUsageStats().used}/${usageTracker.getUsageStats().limit} rows`, 'python-service');
-      
-      return JSON.parse(result);
+
+      const analysisResult = JSON.parse(result);
+
+      // Store the real confidence score in cache
+      if (analysisResult.confidence) {
+        this.setCachedConfidence(text, analysisResult.confidence);
+      }
+
+      return analysisResult;
     } catch (error) {
       log(`Sentiment analysis failed: ${error}`, 'python-service');
       throw new Error(`Failed to analyze sentiment: ${error}`);

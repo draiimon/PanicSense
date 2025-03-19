@@ -29,6 +29,7 @@ parser.add_argument('--text', type=str, help='Text to analyze')
 parser.add_argument('--file', type=str, help='CSV file to process')
 
 
+
 def report_progress(processed: int, stage: str, total: int = None):
     """Print progress in a format that can be parsed by the Node.js service"""
     progress_data = {"processed": processed, "stage": stage}
@@ -469,42 +470,37 @@ class DisasterSentimentBackend:
                 # Construct different prompts based on language
                 if language == "Filipino":
                     system_message = """Ikaw ay isang dalubhasa sa pagsusuri ng damdamin sa panahon ng sakuna sa Pilipinas. 
-                    Ang iyong tungkulin ay suriin ang damdamin ng isang tao sa isang teksto at iuri ito sa isa sa mga sumusunod: 
-                    'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', o 'Neutral'.
-                    Pumili ng ISANG kategorya lamang at magbigay ng kumpiyansa sa score (0.0-1.0) at maikling paliwanag.
-                    
-                    Suriin din kung anong uri ng sakuna ang nabanggit STRICTLY sa listahang ito at may malaking letra sa unang titik:
-                    - Flood
-                    - Typhoon
-                    - Fire
-                    - Volcanic Eruptions
-                    - Earthquake
-                    - Landslide
-                    
-                    Tukuyin din ang lokasyon kung mayroon man, na may malaking letra din sa unang titik.
-                    
-                    Tumugon lamang sa JSON format: {"sentiment": "kategorya", "confidence": score, "explanation": "paliwanag", "disasterType": "uri", "location": "lokasyon"}"""
+                    Suriin ang teksto at magbigay ng:
+                    1. Damdamin (Panic/Fear/Anxiety/Disbelief/Resilience/Neutral)
+                    2. Confidence score (0.0-1.0)
+                    3. Paliwanag
+                    4. Uri ng sakuna
+                    5. Lokasyon
+
+                    Magbigay ng TOTOONG confidence score batay sa:
+                    - Kalinawan ng damdamin sa texto
+                    - Katiyakan ng konteksto
+                    - Pagiging nauugnay sa sakuna
+
+                    Tumugon sa JSON format: {"sentiment": "", "confidence": 0.0, "explanation": "", "disasterType": "", "location": ""}"""
                 else:
                     system_message = """You are a disaster sentiment analysis expert for the Philippines.
-                    Your task is to analyze the sentiment in text and categorize it into one of: 
-                    'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', or 'Neutral'.
-                    Choose ONLY ONE category and provide a confidence score (0.0-1.0) and brief explanation.
-                    
-                    Also identify what type of disaster is mentioned STRICTLY from this list with capitalized first letter:
-                    - Flood
-                    - Typhoon
-                    - Fire
-                    - Volcanic Eruptions
-                    - Earthquake
-                    - Landslide
-                    
-                    Extract any location if present, also with first letter capitalized.
-                    
-                    Respond ONLY in JSON format: {"sentiment": "category", "confidence": score, "explanation": "explanation", "disasterType": "type", "location": "location"}"""
+                    Analyze the text and provide:
+                    1. Sentiment (Panic/Fear/Anxiety/Disbelief/Resilience/Neutral)
+                    2. Confidence score (0.0-1.0)
+                    3. Explanation
+                    4. Disaster type
+                    5. Location
+
+                    Provide REAL confidence scores based on:
+                    - Clarity of sentiment in text
+                    - Certainty of context
+                    - Relevance to disaster
+
+                    Respond in JSON format: {"sentiment": "", "confidence": 0.0, "explanation": "", "disasterType": "", "location": ""}"""
 
                 data = {
-                    "model":
-                    "gemma2-9b-it",
+                    "model": "gemma2-9b-it",
                     "messages": [{
                         "role": "system",
                         "content": system_message
@@ -512,20 +508,16 @@ class DisasterSentimentBackend:
                         "role": "user",
                         "content": text
                     }],
-                    "temperature":
-                    0.1,
-                    "max_tokens":
-                    500,
-                    "top_p":
-                    1,
-                    "stream":
-                    False
+                    "temperature": 0.1,
+                    "max_tokens": 500,
+                    "top_p": 1,
+                    "stream": False
                 }
 
                 response = requests.post(url,
-                                         headers=headers,
-                                         json=data,
-                                         timeout=15)
+                                      headers=headers,
+                                      json=data,
+                                      timeout=15)
                 response.raise_for_status()
 
                 # Parse response from API
@@ -536,8 +528,7 @@ class DisasterSentimentBackend:
 
                     # Extract JSON from the content
                     import re
-                    json_match = re.search(r'```json(.*?)```', content,
-                                           re.DOTALL)
+                    json_match = re.search(r'```json(.*?)```', content, re.DOTALL)
 
                     if json_match:
                         json_str = json_match.group(1)
@@ -553,85 +544,56 @@ class DisasterSentimentBackend:
                                 try:
                                     result = json.loads(json_match.group(0))
                                 except:
-                                    raise ValueError(
-                                        "Could not parse JSON from response")
+                                    raise ValueError("Could not parse JSON from response")
                             else:
-                                raise ValueError(
-                                    "No valid JSON found in response")
+                                raise ValueError("No valid JSON found in response")
 
-                    # Add required fields if missing
-                    if "sentiment" not in result:
-                        result["sentiment"] = "Neutral"
-                    if "confidence" not in result:
-                        result["confidence"] = 0.7
-                    if "explanation" not in result:
-                        result["explanation"] = "No explanation provided"
-                    if "disasterType" not in result:
-                        result["disasterType"] = self.extract_disaster_type(
-                            text)
-                    if "location" not in result:
-                        result["location"] = self.extract_location(text)
-                    if "language" not in result:
-                        result["language"] = language
-
-                    logging.info(
-                        f"API key {key_index + 1} racing win (successes: {self.key_success_count[key_index]})"
-                    )
-                    return result
+                    # Store the AI's verdict exactly as received
+                    return {
+                        "sentiment": result.get("sentiment", "Neutral"),
+                        "confidence": float(result.get("confidence", 0.5)),  # Keep original confidence
+                        "explanation": result.get("explanation", "No explanation provided"),
+                        "disasterType": result.get("disasterType", self.extract_disaster_type(text)),
+                        "location": result.get("location", self.extract_location(text)),
+                        "language": language
+                    }
 
                 else:
                     raise ValueError("No valid JSON found in response")
 
             except Exception as e:
-                # This key failed but others might succeed
-                logging.error(
-                    f"API key {key_index + 1} racing request failed: {str(e)}")
+                logging.error(f"API key {key_index + 1} racing request failed: {str(e)}")
                 self.failed_keys.add(key_index)
                 return None
 
         # Run requests in parallel for all available keys
         results = []
-        with concurrent.futures.ThreadPoolExecutor(
-                max_workers=len(self.groq_api_keys)) as executor:
-            # Submit all API calls in parallel
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.groq_api_keys)) as executor:
             future_to_key = {
                 executor.submit(make_api_request, i): i
                 for i in range(len(self.groq_api_keys))
             }
 
-            # Get the first successful result (racing)
             for future in concurrent.futures.as_completed(future_to_key):
                 key_index = future_to_key[future]
                 try:
                     result = future.result()
                     if result is not None:
                         results.append(result)
-                        # We got our first successful result, cancel remaining futures
                         for f in future_to_key:
                             if f != future and not f.done():
                                 f.cancel()
                         break
                 except Exception as e:
-                    logging.error(
-                        f"Error getting result from key {key_index + 1}: {str(e)}"
-                    )
+                    logging.error(f"Error getting result from key {key_index + 1}: {str(e)}")
 
-        # Check if we got any results from the API
+        # Return the first successful result or fallback to rule-based
         if results:
-            # Increment success counter for the key that succeeded
-            for future, key_index in future_to_key.items():
-                if future.done() and not future.cancelled() and future.result(
-                ) is not None:
-                    self.key_success_count[
-                        key_index] = self.key_success_count.get(key_index,
-                                                                0) + 1
-
             return results[0]
 
-        # If all API calls failed, fallback to rule-based analysis
+        # If API calls fail, use rule-based analysis with lower confidence
         fallback_result = self._rule_based_sentiment_analysis(text, language)
-
-        # Add extracted metadata
+        fallback_result["confidence"] = 0.3  # Lower confidence for rule-based
         fallback_result["disasterType"] = self.extract_disaster_type(text)
         fallback_result["location"] = self.extract_location(text)
         fallback_result["language"] = language
@@ -724,11 +686,11 @@ class DisasterSentimentBackend:
 
         return {
             "sentiment":
-            sentiment,
+                sentiment,
             "confidence":
-            confidence,
+                confidence,
             "explanation":
-            f"Rule-based analysis detected {sentiment.lower()} indicators"
+                f"Rule-based analysis detected {sentiment.lower()} indicators"
         }
 
     def process_csv(self, file_path):
@@ -815,7 +777,7 @@ class DisasterSentimentBackend:
                 col for col in columns
                 if any(dis_word in col.lower() for dis_word in [
                     'disaster', 'type', 'event', 'category', 'calamity',
-                    'hazard'
+                    ''hazard'
                 ])
             ]
             if disaster_candidates:
@@ -983,19 +945,19 @@ class DisasterSentimentBackend:
                             # Skip API analysis if sentiment is already provided
                             analysis_result = {
                                 "sentiment":
-                                csv_sentiment,
+                                    csv_sentiment,
                                 "confidence":
-                                csv_confidence,
+                                    csv_confidence,
                                 "explanation":
-                                "Sentiment provided in CSV",
+                                    "Sentiment provided in CSV",
                                 "disasterType":
-                                csv_disaster if csv_disaster else
-                                self.extract_disaster_type(text),
+                                    csv_disaster if csv_disaster else
+                                    self.extract_disaster_type(text),
                                 "location":
-                                csv_location if csv_location else
-                                self.extract_location(text),
+                                    csv_location if csv_location else
+                                    self.extract_location(text),
                                 "language":
-                                csv_language if csv_language else "English"
+                                    csv_language if csv_language else "English"
                             }
                         else:
                             # Run sentiment analysis with persistent retry mechanism
@@ -1028,44 +990,44 @@ class DisasterSentimentBackend:
                                         # Create a fallback analysis
                                         analysis_result = {
                                             "sentiment":
-                                            "Neutral",
+                                                "Neutral",
                                             "confidence":
-                                            0.5,
+                                                0.5,
                                             "explanation":
-                                            "Fallback after API failures",
+                                                "Fallback after API failures",
                                             "disasterType":
-                                            self.extract_disaster_type(text),
+                                                self.extract_disaster_type(text),
                                             "location":
-                                            self.extract_location(text),
+                                                self.extract_location(text),
                                             "language":
-                                            "English"
+                                                "English"
                                         }
 
                         # Store the processed result
                         processed_results.append({
                             "text":
-                            text,
+                                text,
                             "timestamp":
-                            timestamp,
+                                timestamp,
                             "source":
-                            source,
+                                source,
                             "language":
-                            csv_language if csv_language else
-                            analysis_result.get("language", "English"),
+                                csv_language if csv_language else
+                                analysis_result.get("language", "English"),
                             "sentiment":
-                            csv_sentiment if csv_sentiment else
-                            analysis_result.get("sentiment", "Neutral"),
+                                csv_sentiment if csv_sentiment else
+                                analysis_result.get("sentiment", "Neutral"),
                             "confidence":
-                            analysis_result.get("confidence", 0.7),
+                                analysis_result.get("confidence", 0.7),
                             "explanation":
-                            analysis_result.get("explanation", ""),
+                                analysis_result.get("explanation", ""),
                             "disasterType":
-                            csv_disaster
-                            if csv_disaster else analysis_result.get(
-                                "disasterType", "Not Specified"),
+                                csv_disaster
+                                if csv_disaster else analysis_result.get(
+                                    "disasterType", "Not Specified"),
                             "location":
-                            csv_location if csv_location else
-                            analysis_result.get("location")
+                                csv_location if csv_location else
+                                analysis_result.get("location")
                         })
 
                         # Add a substantial delay for sequential processing
@@ -1199,42 +1161,42 @@ class DisasterSentimentBackend:
                                     )
                                     analysis_result = {
                                         "sentiment":
-                                        "Neutral",
+                                            "Neutral",
                                         "confidence":
-                                        0.5,
+                                            0.5,
                                         "explanation":
-                                        "Failed after maximum retries",
+                                            "Failed after maximum retries",
                                         "disasterType":
-                                        self.extract_disaster_type(text),
+                                            self.extract_disaster_type(text),
                                         "location":
-                                        self.extract_location(text),
+                                            self.extract_location(text),
                                         "language":
-                                        "English"
+                                            "English"
                                     }
 
                         processed_results.append({
                             "text":
-                            text,
+                                text,
                             "timestamp":
-                            timestamp,
+                                timestamp,
                             "source":
-                            source,
+                                source,
                             "language":
-                            csv_language if csv_language else
-                            analysis_result.get("language", "English"),
+                                csv_language if csv_language else
+                                analysis_result.get("language", "English"),
                             "sentiment":
-                            analysis_result.get("sentiment", "Neutral"),
+                                analysis_result.get("sentiment", "Neutral"),
                             "confidence":
-                            analysis_result.get("confidence", 0.7),
+                                analysis_result.get("confidence", 0.7),
                             "explanation":
-                            analysis_result.get("explanation", ""),
+                                analysis_result.get("explanation", ""),
                             "disasterType":
-                            csv_disaster
-                            if csv_disaster else analysis_result.get(
-                                "disasterType", "Not Specified"),
+                                csv_disaster
+                                if csv_disaster else analysis_result.get(
+                                    "disasterType", "Not Specified"),
                             "location":
-                            csv_location if csv_location else
-                            analysis_result.get("location")
+                                csv_location if csv_location else
+                                analysis_result.get("location")
                         })
 
                         time.sleep(1.0)  # Wait 1 second between retries
