@@ -74,26 +74,7 @@ export default function About() {
     return () => clearInterval(interval);
   }, [isMobile, api, isPaused]); // isPaused added to dependency array
 
-  const founders = [
-    {
-      name: "Mark Andrei R. Castillo",
-      role: "Core System Architecture & Machine Learning",
-      image: "/assets/drei.jpg",
-      description: "Leads the development of our advanced ML pipelines and system architecture"
-    },
-    {
-      name: "Ivahnn B. Garcia",
-      role: "Frontend Development & User Experience",
-      image: "/assets/van.jpg",
-      description: "Creates intuitive and responsive user interfaces for seamless interaction"
-    },
-    {
-      name: "Julia Daphne Ngan-Gatdula",
-      role: "Data Resources & Information Engineering",
-      image: "/assets/julia.jpg",
-      description: "Manages data infrastructure and information processing systems"
-    }
-  ];
+  // Founders section is now handled by profile_images database
 
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100 via-indigo-50 to-white">
@@ -308,11 +289,17 @@ export default function About() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {profiles?.map((profile) => (
                   <div key={profile.id} className="bg-white/5 backdrop-blur-lg rounded-xl p-6 text-center">
-                    <img 
-                      src={profile.imageUrl} 
-                      alt={profile.name}
-                      className="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-4 border-blue-500/30"
-                    />
+                    <div className="relative w-32 h-32 mx-auto mb-4">
+                      <img 
+                        src={profile.imageUrl} 
+                        alt={profile.name}
+                        className="absolute inset-0 w-full h-full rounded-full object-cover border-4 border-blue-500/30"
+                        onError={(e) => {
+                          console.error(`Failed to load image: ${profile.imageUrl}`);
+                          e.currentTarget.src = '/placeholder-profile.jpg';
+                        }}
+                      />
+                    </div>
                     <h4 className="text-xl font-semibold text-blue-300">{profile.name}</h4>
                     <p className="text-blue-400 mb-2">{profile.role}</p>
                     <p className="text-sm text-blue-200">{profile.description}</p>
