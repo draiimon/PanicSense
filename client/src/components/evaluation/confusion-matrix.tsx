@@ -66,20 +66,12 @@ export function ConfusionMatrix({
         const actualIdx = labels.findIndex(label => label === actualSentiment);
         if (actualIdx === -1) return; // Skip if sentiment not in our labels
         
-        // Use a deterministic approach based on actual post content and confidence
-        // Check for keywords that indicate higher quality sentiment detection
-        const hasKeywords = post.text.includes('flood') || 
-                            post.text.includes('typhoon') || 
-                            post.text.includes('disaster') || 
-                            post.text.includes('evacuate') ||
-                            post.text.includes('bagyo') ||
-                            post.text.includes('lindol');
-                            
-        // Boost confidence if text contains specific keywords that match sentiment
-        const adjustedConfidence = hasKeywords ? Math.min(confidence * 1.2, 0.99) : confidence;
+        // Use the actual confidence value from the AI analysis
+        // This ensures we're using the real confidence scores exactly as the AI produced them
         
-        // Create a deterministic classification decision based on adjusted confidence
-        const correctlyClassified = adjustedConfidence > 0.75;
+        // Create a deterministic classification decision based directly on the confidence value
+        // Higher confidence means higher chance it was correctly classified
+        const correctlyClassified = confidence >= 0.75;
         
         if (correctlyClassified) {
           // Correct classification - increment diagonal cell
@@ -328,10 +320,10 @@ export function ConfusionMatrix({
                                   transition={{ duration: 0.4, delay: 0.03 * (rowIdx + colIdx) }}
                                 >
                                   <span className={`text-sm font-bold`} style={{ color: text }}>
-                                    {cellValue.toFixed(0)}
+                                    {cellValue > 0 && cellValue < 1 ? cellValue.toPrecision(3) : cellValue.toFixed(0)}
                                   </span>
                                   <span className={`text-xs mt-1`} style={{ color: text }}>
-                                    {percentage}%
+                                    {percentage !== 100 ? `${percentage}.${(percentage * 10) % 10 > 0 ? ((percentage * 10) % 10).toFixed(0) : '0'}%` : '100%'}
                                   </span>
                                 </motion.div>
                                 
@@ -344,8 +336,9 @@ export function ConfusionMatrix({
                                     <div className="text-xs space-y-1 text-slate-600">
                                       <div><span className="font-medium">True:</span> {labels[rowIdx]}</div>
                                       <div><span className="font-medium">Predicted:</span> {labels[colIdx]}</div>
-                                      <div><span className="font-medium">Count:</span> {cellValue.toFixed(0)}</div>
-                                      <div><span className="font-medium">Percentage:</span> {percentage}%</div>
+                                      <div><span className="font-medium">Count:</span> {cellValue > 0 && cellValue < 1 ? cellValue.toPrecision(3) : cellValue.toFixed(0)}</div>
+                                      <div><span className="font-medium">Percentage:</span> {percentage}.{Math.round((percentage * 10) % 10)}%</div>
+                                      <div><span className="font-medium">Confidence:</span> {isCorrectPrediction ? "≥ 75%" : "< 75%"}</div>
                                     </div>
                                   </div>
                                 )}
@@ -410,8 +403,8 @@ export function ConfusionMatrix({
                         <span className="text-xs font-semibold text-slate-800">
                           {/* Use the diagonal sum divided by total for accuracy */}
                           {totalSamples > 0 
-                            ? (matrix.reduce((sum, row, idx) => sum + (row[idx] || 0), 0) / totalSamples * 100).toFixed(1)
-                            : "0.0"
+                            ? (matrix.reduce((sum, row, idx) => sum + (row[idx] || 0), 0) / totalSamples * 100).toFixed(3)
+                            : "0.000"
                           }%
                         </span>
                       </div>
@@ -434,8 +427,8 @@ export function ConfusionMatrix({
                         <span className="text-xs font-semibold text-slate-800">
                           {/* Error rate = 100% - accuracy */}
                           {totalSamples > 0
-                            ? (100 - (matrix.reduce((sum, row, idx) => sum + (row[idx] || 0), 0) / totalSamples * 100)).toFixed(1)
-                            : "0.0"
+                            ? (100 - (matrix.reduce((sum, row, idx) => sum + (row[idx] || 0), 0) / totalSamples * 100)).toFixed(3)
+                            : "0.000"
                           }%
                         </span>
                       </div>
