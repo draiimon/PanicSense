@@ -28,12 +28,6 @@ export function ConfusionMatrix({
   const [matrix, setMatrix] = useState<number[][]>([]);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const [isMatrixCalculated, setIsMatrixCalculated] = useState(false);
-  const [sentimentData, setSentimentData] = useState<{
-    id: string;
-    mainSentiment: string;
-    confidence: number;
-    mixedSentiments: Record<string, number>;
-  }[]>([]);
   const [metricsData, setMetricsData] = useState<any[]>([]);
 
   const { data: sentimentPosts, isLoading } = useQuery({
@@ -46,80 +40,60 @@ export function ConfusionMatrix({
     if ((isLoading || !sentimentPosts) && !initialMatrix) return;
 
     let newMatrix: number[][] = Array(labels.length).fill(0).map(() => Array(labels.length).fill(0));
-    let newSentimentData: typeof sentimentData = [];
 
     if (initialMatrix) {
       newMatrix = initialMatrix.map(row => [...row]);
     } else if (sentimentPosts && sentimentPosts.length > 0) {
       sentimentPosts.forEach(post => {
         const mainSentiment = post.sentiment;
-        const confidence = post.confidence || 1;
-
         const mainIdx = labels.findIndex(label => label === mainSentiment);
         if (mainIdx === -1) return;
-
-        const postSentiments: Record<string, number> = {
-          [mainSentiment]: confidence
-        };
-
-        newMatrix[mainIdx][mainIdx] += confidence;
-
-        if (confidence < 1) {
-          const remainingConfidence = 1 - confidence;
-          const weights = labels.map((_, idx) => {
-            if (idx === mainIdx) return 0;
-            const distance = Math.abs(idx - mainIdx);
-            return remainingConfidence / (distance + 1);
-          });
-
-          const totalWeight = weights.reduce((sum, w) => sum + w, 0);
-          const normalizedWeights = weights.map(w => w / totalWeight);
-
-          labels.forEach((label, idx) => {
-            if (idx !== mainIdx) {
-              const secondaryConfidence = remainingConfidence * normalizedWeights[idx];
-              newMatrix[mainIdx][idx] += secondaryConfidence;
-              postSentiments[label] = secondaryConfidence;
-            }
-          });
-        }
-
-        if (!allDatasets) {
-          newSentimentData.push({
-            id: post.id.toString(),
-            mainSentiment,
-            confidence,
-            mixedSentiments: postSentiments
-          });
-        }
+        newMatrix[mainIdx][mainIdx]++;
       });
     }
 
-    const metrics = labels.map((_, idx) => {
+    // Calculate metrics for each sentiment category
+    const metrics = labels.map((label, idx) => {
       const truePositive = newMatrix[idx][idx];
       const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
       const colSum = newMatrix.reduce((sum, row) => sum + row[idx], 0);
-      const totalSum = newMatrix.reduce((sum, row) => sum + row.reduce((s, v) => s + v, 0), 0);
 
-      const precision = colSum === 0 ? 0 : truePositive / colSum;
-      const recall = rowSum === 0 ? 0 : truePositive / rowSum;
-      const f1 = precision + recall === 0 ? 0 : 2 * (precision * recall) / (precision + recall);
-      const accuracy = totalSum === 0 ? 0 : truePositive / totalSum;
+      // Calculate total predictions for accuracy
+      const totalPredictions = newMatrix.reduce((sum, row) => 
+        sum + row.reduce((s, v) => s + v, 0), 0
+      );
+
+      // Updated metric calculations
+      const precision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
+      const recall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
+      const f1Score = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
+      const accuracy = totalPredictions === 0 ? 0 : (truePositive / totalPredictions) * 100;
 
       return {
-        sentiment: labels[idx],
-        precision: precision * 100,
-        recall: recall * 100,
-        f1Score: f1 * 100,
-        accuracy: accuracy * 100
+        sentiment: label,
+        precision: Math.round(precision * 100) / 100,
+        recall: Math.round(recall * 100) / 100,
+        f1Score: Math.round(f1Score * 100) / 100,
+        accuracy: Math.round(accuracy * 100) / 100
       };
     });
 
     setMatrix(newMatrix);
-    setSentimentData(newSentimentData);
     setMetricsData(metrics);
     setIsMatrixCalculated(true);
   }, [sentimentPosts, labels, initialMatrix, isLoading, allDatasets]);
+
+  const getCellColor = (rowIdx: number, colIdx: number, value: number) => {
+    const baseColor = getSentimentColor(labels[colIdx]);
+    if (rowIdx === colIdx) {
+      return { background: baseColor, text: '#ffffff' };
+    }
+    const opacity = Math.min(0.7, value);
+    return {
+      background: `${baseColor}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`,
+      text: opacity > 0.4 ? '#ffffff' : '#333333'
+    };
+  };
 
   if (isLoading || !isMatrixCalculated) {
     return (
@@ -136,18 +110,6 @@ export function ConfusionMatrix({
       </Card>
     );
   }
-
-  const getCellColor = (rowIdx: number, colIdx: number, value: number) => {
-    const baseColor = getSentimentColor(labels[colIdx]);
-    if (rowIdx === colIdx) {
-      return { background: baseColor, text: '#ffffff' };
-    }
-    const opacity = Math.min(0.7, value);
-    return {
-      background: `${baseColor}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`,
-      text: opacity > 0.4 ? '#ffffff' : '#333333'
-    };
-  };
 
   return (
     <div className="space-y-8">
