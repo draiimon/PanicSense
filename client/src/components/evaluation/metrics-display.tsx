@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Chart from 'chart.js/auto';
 
-interface MetricsData {
+// Export the MetricsData interface so it can be used in other components
+export interface MetricsData {
   accuracy: number;
   precision: number;
   recall: number;

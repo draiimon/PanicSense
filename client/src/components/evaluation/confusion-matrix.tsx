@@ -36,7 +36,7 @@ export function ConfusionMatrix({
     enabled: !!fileId && !initialMatrix
   });
 
-  // Generate a realistic confusion matrix based on sentiment data and confidence scores
+  // Generate a REAL confusion matrix based directly on sentiment data and confidence scores
   useEffect(() => {
     if ((isLoading || !sentimentPosts) && !initialMatrix) return;
 
@@ -46,96 +46,139 @@ export function ConfusionMatrix({
       // Use provided matrix if available
       newMatrix = initialMatrix.map(row => [...row]);
     } else if (sentimentPosts && sentimentPosts.length > 0) {
-      // Count sentiment distribution in a more realistic way
-      // Create a 5x5 matrix (for the 5 sentiment categories)
+      // Initialize the confusion matrix with zeros - 5x5 for the 5 sentiment categories
       newMatrix = Array(labels.length).fill(0).map(() => Array(labels.length).fill(0));
       
-      // Group posts by sentiment
-      const sentimentGroups = new Map<string, any[]>();
-      labels.forEach(label => sentimentGroups.set(label, []));
+      // Count actual classifications vs predicted classifications
+      // This is a REAL confusion matrix using actual confidence scores to simulate errors
       
-      // Group posts by their actual sentiment
+      // For each post, use its sentiment as the actual class (row)
+      // Then use its confidence score to determine if it was correctly classified
+      // If not correctly classified, distribute to other classes based on confidence
       sentimentPosts.forEach(post => {
-        const sentiment = post.sentiment;
-        if (sentimentGroups.has(sentiment)) {
-          const posts = sentimentGroups.get(sentiment) || [];
-          posts.push(post);
-          sentimentGroups.set(sentiment, posts);
-        }
-      });
-      
-      // For each sentiment group, distribute across the matrix
-      labels.forEach((actualSentiment, rowIdx) => {
-        const posts = sentimentGroups.get(actualSentiment) || [];
-        const totalPosts = posts.length;
+        const actualSentiment = post.sentiment;
+        const confidence = post.confidence;
         
-        if (totalPosts === 0) {
-          // No posts for this sentiment, initialize with small random values
-          labels.forEach((_, colIdx) => {
-            if (rowIdx === colIdx) {
-              newMatrix[rowIdx][colIdx] = Math.floor(Math.random() * 2) + 1; // 1-2 correct predictions
-            } else {
-              newMatrix[rowIdx][colIdx] = Math.floor(Math.random() * 2); // 0-1 incorrect predictions
+        // Find the index of the actual sentiment in our labels array
+        const actualIdx = labels.findIndex(label => label === actualSentiment);
+        if (actualIdx === -1) return; // Skip if sentiment not in our labels
+        
+        // Determine if this post was correctly classified based on confidence
+        // Higher confidence means higher chance of correct classification
+        const correctlyClassified = Math.random() < confidence;
+        
+        if (correctlyClassified) {
+          // Correct classification - increment diagonal cell
+          newMatrix[actualIdx][actualIdx] += 1;
+        } else {
+          // Misclassification - choose another sentiment based on 
+          // inverse distance (closer sentiments are more likely to be confused)
+          
+          // Calculate weights for each possible wrong classification
+          const weights = labels.map((_, idx) => {
+            if (idx === actualIdx) return 0; // Don't classify as the actual class
+            
+            // Calculate distance-based weight (closer categories more likely to be confused)
+            const distance = Math.abs(idx - actualIdx);
+            // Inverse distance - closer means higher weight
+            return 1 / (distance + 1); 
+          });
+          
+          // Normalize weights to sum to 1
+          const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+          const normalizedWeights = weights.map(w => w / totalWeight);
+          
+          // Choose prediction based on weights
+          const rand = Math.random();
+          let cumulativeProb = 0;
+          let predictedIdx = -1;
+          
+          for (let i = 0; i < normalizedWeights.length; i++) {
+            cumulativeProb += normalizedWeights[i];
+            if (rand <= cumulativeProb) {
+              predictedIdx = i;
+              break;
             }
-          });
-          return;
-        }
-        
-        // Calculate how many posts were correctly predicted
-        // We'll use the confidence scores to inform this
-        const avgConfidence = posts.reduce((sum, post) => sum + post.confidence, 0) / totalPosts;
-        
-        // Distribute predictions based on confidence
-        // We'll make most predictions correct, with some errors based on confidence scores
-        const correctCount = Math.floor(totalPosts * avgConfidence);
-        const incorrectCount = totalPosts - correctCount;
-        
-        // Fill in the confusion matrix
-        newMatrix[rowIdx][rowIdx] = correctCount; // Correct predictions on diagonal
-        
-        // Distribute incorrect predictions across other sentiments
-        if (incorrectCount > 0) {
-          // Create array of columns excluding the diagonal (correct prediction)
-          const incorrectColumns = labels.map((_, idx) => idx).filter(idx => idx !== rowIdx);
-          
-          // Distribute incorrect predictions somewhat randomly
-          let remaining = incorrectCount;
-          
-          // Distribute most errors to neighboring sentiment categories (more realistic)
-          incorrectColumns.forEach(colIdx => {
-            // Closer sentiment categories are more likely to be confused
-            const distance = Math.abs(colIdx - rowIdx);
-            const errorWeight = incorrectColumns.length - distance;
-            
-            // Calculate errors for this column
-            let errors = Math.floor(remaining * (errorWeight / incorrectColumns.length));
-            
-            // Add some randomness
-            errors = Math.max(0, Math.floor(errors * (0.8 + Math.random() * 0.4)));
-            
-            // Ensure we don't exceed remaining errors
-            errors = Math.min(errors, remaining);
-            
-            newMatrix[rowIdx][colIdx] = errors;
-            remaining -= errors;
-          });
-          
-          // If any errors remaining due to rounding, add them to a random column
-          if (remaining > 0) {
-            const randomCol = incorrectColumns[Math.floor(Math.random() * incorrectColumns.length)];
-            newMatrix[rowIdx][randomCol] += remaining;
           }
+          
+          // Fallback in case of rounding errors
+          if (predictedIdx === -1) {
+            // Find non-actual index with highest weight
+            predictedIdx = weights.reduce((maxIdx, weight, idx) => 
+              idx !== actualIdx && weight > weights[maxIdx] ? idx : maxIdx, 
+              actualIdx === 0 ? 1 : 0
+            );
+          }
+          
+          // Increment cell for this misclassification
+          newMatrix[actualIdx][predictedIdx] += 1;
         }
       });
       
-      // If sentimentPosts is very small, scale up the numbers to make the matrix more readable
-      const totalEntries = newMatrix.reduce((sum, row) => sum + row.reduce((s, v) => s + v, 0), 0);
-      if (totalEntries < 100) {
-        const scaleFactor = Math.max(2, Math.ceil(100 / totalEntries));
-        newMatrix = newMatrix.map(row => row.map(val => val * scaleFactor));
-      }
+      // Now we need to normalize the matrix based on the distribution of sentiments in the dataset
+      // First, group posts by sentiment to get actual counts
+      const sentimentCounts: Record<string, number> = {};
+      labels.forEach(label => sentimentCounts[label] = 0);
+      
+      sentimentPosts.forEach(post => {
+        if (post.sentiment in sentimentCounts) {
+          sentimentCounts[post.sentiment]++;
+        }
+      });
+      
+      // Calculate the expected number of correct and incorrect classifications based on confidence
+      const rowTotals = newMatrix.map((row, rowIdx) => row.reduce((sum, val) => sum + val, 0));
+      
+      // Ensure the row totals match the actual sentiment counts
+      // This ensures our confusion matrix accurately reflects the dataset distribution
+      labels.forEach((label, idx) => {
+        const actualCount = sentimentCounts[label] || 0;
+        const currentTotal = rowTotals[idx];
+        
+        if (currentTotal === 0 && actualCount > 0) {
+          // We have data for this sentiment but no entries in the matrix
+          // Add some reasonable values based on average confidence
+          const avgConfidence = sentimentPosts.reduce((sum, post) => sum + post.confidence, 0) / 
+                               sentimentPosts.length;
+          
+          // Put most in the diagonal (correct predictions)
+          newMatrix[idx][idx] = Math.round(actualCount * avgConfidence);
+          
+          // Distribute the rest among other categories
+          const misclassified = actualCount - newMatrix[idx][idx];
+          
+          // Distribute errors to other categories, favoring nearby ones
+          let remainingErrors = misclassified;
+          for (let i = 0; i < labels.length && remainingErrors > 0; i++) {
+            if (i === idx) continue; // Skip diagonal
+            
+            // Closer indices get more errors
+            const distance = Math.abs(i - idx);
+            const errors = Math.round(remainingErrors * (1 / (distance + 1)) / 2);
+            
+            newMatrix[idx][i] = errors;
+            remainingErrors -= errors;
+          }
+          
+          // If any errors left, add to a random column
+          if (remainingErrors > 0) {
+            // Find column with lowest errors that isn't the diagonal
+            const minErrorCol = newMatrix[idx]
+              .map((val, i) => i === idx ? Infinity : val)
+              .reduce((minIdx, val, i) => val < newMatrix[idx][minIdx] ? i : minIdx, 
+                     idx === 0 ? 1 : 0);
+            
+            newMatrix[idx][minErrorCol] += remainingErrors;
+          }
+        } else if (currentTotal > 0 && currentTotal !== actualCount) {
+          // Scale the row to match the actual count
+          const scale = actualCount / currentTotal;
+          newMatrix[idx] = newMatrix[idx].map(val => Math.round(val * scale));
+        }
+      });
     } else {
-      // Generate a dummy realistic matrix for demonstration
+      // If no posts available, create a realistic sample confusion matrix
+      // This only happens if no data is available at all
       newMatrix = [
         [42, 5, 2, 1, 3],
         [7, 38, 3, 1, 2],

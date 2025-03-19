@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDisasterContext } from "@/context/disaster-context";
 import { getAnalyzedFile, getSentimentPostsByFileId, getSentimentPosts } from "@/lib/api";
-import { MetricsDisplay } from "@/components/evaluation/metrics-display";
+import { MetricsDisplay, type MetricsData } from "@/components/evaluation/metrics-display";
 import { ConfusionMatrix } from "@/components/evaluation/confusion-matrix";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -93,15 +93,23 @@ export default function Evaluation() {
   const getDisplayData = () => {
     if (selectedFileId === "all") {
       return {
-        metrics: calculateAverageMetrics(),
+        metrics: calculateAverageMetrics() as MetricsData | undefined,
         posts: allData || allSentimentPosts || [],
         name: "All Datasets",
         isAll: true
       };
     }
     
+    // Convert the evaluationMetrics to match the MetricsData interface
+    const fileMetrics = selectedFile?.evaluationMetrics ? {
+      accuracy: selectedFile.evaluationMetrics.accuracy,
+      precision: selectedFile.evaluationMetrics.precision,
+      recall: selectedFile.evaluationMetrics.recall,
+      f1Score: selectedFile.evaluationMetrics.f1Score
+    } as MetricsData : undefined;
+    
     return {
-      metrics: selectedFile?.evaluationMetrics,
+      metrics: fileMetrics,
       posts: sentimentPosts || [],
       name: selectedFile?.originalName || "",
       isAll: false
