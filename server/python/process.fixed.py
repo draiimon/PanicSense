@@ -115,7 +115,7 @@ class DisasterSentimentBackend:
 
         text_lower = text.lower()
 
-        # Only use these 6 specific disaster types:
+        # STRICTLY use these 6 specific disaster types with capitalized first letter:
         disaster_types = {
             "Earthquake": [
                 "earthquake", "quake", "tremor", "seismic", "lindol",
@@ -142,7 +142,7 @@ class DisasterSentimentBackend:
                 "fire fighter", "building fire", "fire alarm", "burning",
                 "nagliliyab", "sinusunog", "smoke", "usok"
             ],
-            "Volcano": [
+            "Volcanic Eruptions": [
                 "volcano", "eruption", "lava", "ash", "bulkan", "ashfall",
                 "magma", "volcanic", "bulkang", "active volcano",
                 "phivolcs alert", "taal", "mayon", "pinatubo",
@@ -201,7 +201,7 @@ class DisasterSentimentBackend:
                 "fire truck", "burning", "call 911", "spread to", "emergency",
                 "burning smell"
             ],
-            "Volcano": [
+            "Volcanic Eruptions": [
                 "alert level", "evacuate area", "danger zone",
                 "eruption warning", "exclusion zone", "kilometer radius",
                 "volcanic activity", "ash covered", "masks", "respiratory"
@@ -234,10 +234,10 @@ class DisasterSentimentBackend:
         if "building" in text_lower and "collapse" in text_lower:
             scores["Earthquake"] += 2
         if "ash" in text_lower and "fall" in text_lower:
-            scores["Volcano"] += 2
+            scores["Volcanic Eruptions"] += 2
         if "evacuate" in text_lower and "alert" in text_lower:
             # General emergency context - look for specific type
-            for d_type in ["Volcano", "Fire", "Flood", "Typhoon"]:
+            for d_type in ["Volcanic Eruptions", "Fire", "Flood", "Typhoon"]:
                 if any(k in text_lower for k in disaster_types[d_type]):
                     scores[d_type] += 1
 
@@ -256,9 +256,9 @@ class DisasterSentimentBackend:
         if len(top_disasters) == 1:
             return top_disasters[0]
         else:
-            # In case of tie, use order of priority for Philippines (typhoon > flood > earthquake > volcano > fire > landslide)
+            # In case of tie, use order of priority for Philippines (typhoon > flood > earthquake > volcanic eruptions > fire > landslide)
             priority_order = [
-                "Typhoon", "Flood", "Earthquake", "Volcano", "Fire",
+                "Typhoon", "Flood", "Earthquake", "Volcanic Eruptions", "Fire",
                 "Landslide"
             ]
             for disaster in priority_order:
@@ -472,14 +472,34 @@ class DisasterSentimentBackend:
                     Ang iyong tungkulin ay suriin ang damdamin ng isang tao sa isang teksto at iuri ito sa isa sa mga sumusunod: 
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', o 'Neutral'.
                     Pumili ng ISANG kategorya lamang at magbigay ng kumpiyansa sa score (0.0-1.0) at maikling paliwanag.
-                    Suriin din kung anong uri ng sakuna ang nabanggit at tukuyin ang lokasyon kung mayroon man.
+                    
+                    Suriin din kung anong uri ng sakuna ang nabanggit STRICTLY sa listahang ito at may malaking letra sa unang titik:
+                    - Flood
+                    - Typhoon
+                    - Fire
+                    - Volcanic Eruptions
+                    - Earthquake
+                    - Landslide
+                    
+                    Tukuyin din ang lokasyon kung mayroon man, na may malaking letra din sa unang titik.
+                    
                     Tumugon lamang sa JSON format: {"sentiment": "kategorya", "confidence": score, "explanation": "paliwanag", "disasterType": "uri", "location": "lokasyon"}"""
                 else:
                     system_message = """You are a disaster sentiment analysis expert for the Philippines.
                     Your task is to analyze the sentiment in text and categorize it into one of: 
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', or 'Neutral'.
                     Choose ONLY ONE category and provide a confidence score (0.0-1.0) and brief explanation.
-                    Also identify what type of disaster is mentioned and extract any location if present.
+                    
+                    Also identify what type of disaster is mentioned STRICTLY from this list with capitalized first letter:
+                    - Flood
+                    - Typhoon
+                    - Fire
+                    - Volcanic Eruptions
+                    - Earthquake
+                    - Landslide
+                    
+                    Extract any location if present, also with first letter capitalized.
+                    
                     Respond ONLY in JSON format: {"sentiment": "category", "confidence": score, "explanation": "explanation", "disasterType": "type", "location": "location"}"""
 
                 data = {

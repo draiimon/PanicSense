@@ -487,7 +487,17 @@ class DisasterSentimentBackend:
                     Ang iyong tungkulin ay suriin ang damdamin ng isang tao sa isang teksto at iuri ito sa isa sa mga sumusunod: 
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', o 'Neutral'.
                     Pumili ng ISANG kategorya lamang at magbigay ng kumpiyansa sa score (0.0-1.0) at maikling paliwanag.
-                    Suriin din kung anong uri ng sakuna ang nabanggit at tukuyin ang lokasyon kung mayroon man.
+                    
+                    Suriin din kung anong uri ng sakuna ang nabanggit STRICTLY sa listahang ito at may malaking letra sa unang titik:
+                    - Flood
+                    - Typhoon
+                    - Fire
+                    - Volcanic Eruptions
+                    - Earthquake
+                    - Landslide
+                    
+                    Tukuyin din ang lokasyon kung mayroon man, na may malaking letra din sa unang titik.
+                    
                     Tumugon lamang sa JSON format: {"sentiment": "kategorya", "confidence": score, "explanation": "paliwanag", "disasterType": "uri", "location": "lokasyon"}"""
                 else:
                     system_message = """You are a disaster sentiment analysis expert for the Philippines.
