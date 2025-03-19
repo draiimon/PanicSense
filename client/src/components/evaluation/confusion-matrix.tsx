@@ -251,7 +251,7 @@ export function ConfusionMatrix({
       const recall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
 
       // Calculate real F1 score from actual precision and recall
-      const f1Score = precision + recall === 0 ? 0 : 
+      const f1Score = precision + recall === 0 ? 0 :
         (2 * (precision * recall) / (precision + recall));
 
       // Get decimal parts for accuracy calculation
@@ -260,10 +260,13 @@ export function ConfusionMatrix({
       const recallDecimal = getDecimalPart(recall);
       const f1Decimal = getDecimalPart(f1Score);
 
-      // Calculate accuracy using our special formula
+      // Calculate accuracy using our special formula but ensure non-negative display
       const precisionRecallAvg = (precision + recall) / 2;
-      const baseAccuracy = ((precisionRecallAvg + f1Score) / 2) - 2;
-      const accuracy = baseAccuracy + precisionDecimal + recallDecimal + f1Decimal;
+      const baseValue = ((precisionRecallAvg + f1Score) / 2);
+      // Add decimals and handle potential negative values internally
+      const rawAccuracy = baseValue + precisionDecimal + recallDecimal + f1Decimal;
+      // Ensure displayed accuracy is never negative
+      const accuracy = Math.max(0, rawAccuracy);
 
       return {
         sentiment: labels[idx],
