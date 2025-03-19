@@ -35,12 +35,22 @@ export function AffectedAreas({
       'Makati', 'Mandaluyong', 'Pasay', 'Taguig', 'Parañaque', 'Caloocan'
     ];
 
-    // Count posts by location and track sentiments
+    // Only process posts with valid locations
     sentimentPosts.forEach(post => {
       let foundLocation = post.location;
       
-      // If no location is assigned, try to detect from text
-      if (!foundLocation) {
+      // Skip UNKNOWN/invalid locations
+      if (!foundLocation || 
+          foundLocation.toUpperCase() === "UNKNOWN" ||
+          foundLocation === "Not mentioned" || 
+          foundLocation === "Not specified" || 
+          foundLocation === "Not Specified" ||
+          foundLocation === "None" ||
+          foundLocation.toLowerCase().includes("none") ||
+          foundLocation.toLowerCase().includes("unspecified") ||
+          foundLocation.toLowerCase().includes("not mentioned")) {
+        return;
+      }
         const text = post.text.toLowerCase();
         // Check for known Philippine locations in the text
         for (const location of philippineLocations) {

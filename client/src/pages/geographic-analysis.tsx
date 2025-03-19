@@ -262,7 +262,13 @@ export default function GeographicAnalysis() {
     
     // Process posts to populate the map with the exact location names
     for (const post of sentimentPosts) {
-      if (!post.location) continue;
+      if (!post.location || 
+          post.location.toUpperCase() === "UNKNOWN" ||
+          post.location === "None" ||
+          post.location === "Not specified" ||
+          post.location === "Not Specified" ||
+          post.location.toLowerCase().includes("none") ||
+          post.location.toLowerCase().includes("unspecified")) continue;
       
       const location = post.location; // Exact match - no trim or other processing
       
