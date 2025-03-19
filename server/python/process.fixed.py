@@ -861,21 +861,21 @@ class DisasterSentimentBackend:
             # Process all records without limitation
             sample_size = len(df)
 
-            # Set batch size to 6 as requested
-            BATCH_SIZE = 6
+            # Set batch size to 20 as per requirements
+            BATCH_SIZE = 20
 
             # Report column identification progress
             report_progress(5, "Identified data columns", total_records)
 
-            # Process data in batches of 6
+            # Process data in batches of 20
             processed_count = 0
 
             # Get all indices that we'll process
             indices_to_process = df.head(sample_size).index.tolist()
 
-            # Process data in batches of 6
+            # Process data in batches of 20
             for batch_start in range(0, len(indices_to_process), BATCH_SIZE):
-                # Get indices for this batch (up to 6 items)
+                # Get indices for this batch (up to 20 items)
                 batch_indices = indices_to_process[batch_start:batch_start +
                                                    BATCH_SIZE]
 

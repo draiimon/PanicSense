@@ -496,7 +496,7 @@ class DisasterSentimentBackend:
                     - Earthquake
                     - Landslide
                     
-                    Tukuyin din ang lokasyon kung mayroon man, na may malaking letra din sa unang titik.
+                    Tukuyin din ang lokasyon kung mayroon man, na may malaking letra din sa unang titik at sa Pilipinas lamang!.
                     
                     Tumugon lamang sa JSON format: {"sentiment": "kategorya", "confidence": score, "explanation": "paliwanag", "disasterType": "uri", "location": "lokasyon"}"""
                 else:
@@ -513,7 +513,7 @@ class DisasterSentimentBackend:
                     - Earthquake
                     - Landslide
                     
-                    Extract any location if present, also with first letter capitalized.
+                    Extract any location if present, also with first letter capitalized only on Philippine area not neighbor not streets UF UNKNOWN OR NOT SPECIFIED "UNKNOWN".
                     
                     Respond ONLY in JSON format: {"sentiment": "category", "confidence": score, "explanation": "explanation", "disasterType": "type", "location": "location"}"""
 
@@ -856,7 +856,6 @@ class DisasterSentimentBackend:
             # Set batch size to 20 as per requirements
             BATCH_SIZE = 30
             BATCH_COOLDOWN = 60  # 60-second cooldown between batches
-            
 
             # Report column identification progress
             report_progress(5, "Identified data columns", total_records)
