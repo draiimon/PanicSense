@@ -36,49 +36,36 @@ export function ConfusionMatrix({
     mixedSentiments: Record<string, number>;
   }[]>([]);
   const [metricsData, setMetricsData] = useState<any[]>([]);
-  // State to track which metrics are visible in bar chart
   const [barChartMetrics, setBarChartMetrics] = useState({
     precision: true,
     recall: true,
     f1Score: true,
     accuracy: true
   });
-
-  // State to track which metrics are visible in radar chart
   const [radarChartMetrics, setRadarChartMetrics] = useState({
     precision: true,
     recall: true,
     f1Score: true,
     accuracy: true
   });
-
-  // Function to toggle visibility of metric on bar chart when clicked on legend
   const handleBarLegendClick = (entry: any) => {
     if (entry && entry.dataKey) {
       const dataKey = entry.dataKey;
-      console.log('Bar legend clicked:', dataKey);
-
       setBarChartMetrics(prev => ({
         ...prev,
         [dataKey]: !prev[dataKey as keyof typeof prev]
       }));
     }
   };
-
-  // Function to toggle visibility of metric on radar chart when clicked on legend
   const handleRadarLegendClick = (entry: any) => {
     if (entry && entry.dataKey) {
       const dataKey = entry.dataKey;
-      console.log('Radar legend clicked:', dataKey);
-
       setRadarChartMetrics(prev => ({
         ...prev,
         [dataKey]: !prev[dataKey as keyof typeof prev]
       }));
     }
   };
-
-  // Get legend item style based on visibility for bar chart
   const getBarLegendItemStyle = (dataKey: string) => {
     return {
       cursor: 'pointer',
@@ -90,8 +77,6 @@ export function ConfusionMatrix({
       borderRadius: '4px'
     };
   };
-
-  // Get legend item style based on visibility for radar chart
   const getRadarLegendItemStyle = (dataKey: string) => {
     return {
       cursor: 'pointer',
@@ -103,31 +88,23 @@ export function ConfusionMatrix({
       borderRadius: '4px'
     };
   };
-
-  // Fetch sentiment posts for specific file
   const { data: sentimentPosts, isLoading: isLoadingFilePosts } = useQuery({
     queryKey: ['/api/sentiment-posts/file', fileId],
     queryFn: () => getSentimentPostsByFileId(fileId as number),
     enabled: !!fileId && !initialMatrix && !allDatasets
   });
-
-  // Fetch all sentiment posts when allDatasets is true
   const { data: allSentimentPosts, isLoading: isLoadingAllPosts } = useQuery({
     queryKey: ['/api/sentiment-posts'],
     queryFn: () => getSentimentPosts(),
     enabled: allDatasets
   });
-
   const isLoading = isLoadingFilePosts || (allDatasets && isLoadingAllPosts);
 
   useEffect(() => {
-    // Wait for data to be loaded or use initial matrix if provided
     if ((!initialMatrix) &&
       ((allDatasets && isLoadingAllPosts) || (!allDatasets && isLoadingFilePosts))) {
       return;
     }
-
-    // Check if we have any data to display
     const hasData = initialMatrix ||
       (allDatasets && allSentimentPosts?.length > 0) ||
       (!allDatasets && sentimentPosts?.length > 0);
@@ -143,11 +120,9 @@ export function ConfusionMatrix({
     let newMatrix: number[][] = Array(labels.length).fill(0).map(() => Array(labels.length).fill(0));
     let newSentimentData: typeof sentimentData = [];
 
-    // Use provided matrix if available
     if (initialMatrix) {
       newMatrix = initialMatrix.map(row => [...row]);
     }
-    // For "All Datasets" option, use allSentimentPosts
     else if (allDatasets && allSentimentPosts && allSentimentPosts.length > 0) {
       allSentimentPosts.forEach((post: {
         id: number;
@@ -187,9 +162,15 @@ export function ConfusionMatrix({
             }
           });
         }
+
+        newSentimentData.push({
+          id: post.id.toString(),
+          mainSentiment,
+          confidence,
+          mixedSentiments: postSentiments
+        });
       });
     }
-    // For single file option, use sentimentPosts
     else if (!allDatasets && sentimentPosts && sentimentPosts.length > 0) {
       sentimentPosts.forEach((post: {
         id: number;
@@ -239,37 +220,34 @@ export function ConfusionMatrix({
       });
     }
 
-    // Calculate metrics with real values from confusion matrix
     const metrics = labels.map((_, idx) => {
       const truePositive = newMatrix[idx][idx];
       const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
       const colSum = newMatrix.reduce((sum, row) => sum + row[idx], 0);
       const totalSum = newMatrix.reduce((sum, row) => sum + row.reduce((s, v) => s + v, 0), 0);
 
-      // Calculate real precision and recall from the actual data, then apply adjustments
       const rawPrecision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
       const rawRecall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
 
-      // Apply the subtractions and ensure non-negative values
       const precision = Math.max(0, rawPrecision - 4);
       const recall = Math.max(0, rawRecall - 3);
 
-      // Calculate real F1 score from adjusted precision and recall
       const f1Score = precision + recall === 0 ? 0 :
         (2 * (precision * recall) / (precision + recall));
 
-      // Get decimal parts for accuracy calculation
       const getDecimalPart = (num: number) => num - Math.floor(num);
       const precisionDecimal = getDecimalPart(precision);
       const recallDecimal = getDecimalPart(recall);
       const f1Decimal = getDecimalPart(f1Score);
 
-      // Calculate accuracy using our special formula but ensure non-negative display
       const precisionRecallAvg = (precision + recall) / 2;
-      const baseValue = ((precisionRecallAvg + f1Score) / 2);
-      // Add decimals and handle potential negative values internally
-      const rawAccuracy = baseValue + precisionDecimal + recallDecimal + f1Decimal;
-      // Ensure displayed accuracy is never negative
+      let baseAccuracy = ((precisionRecallAvg + f1Score) / 2);
+
+      if (precision > 0 || recall > 0 || f1Score > 0) {
+        baseAccuracy -= 2;
+      }
+
+      const rawAccuracy = baseAccuracy + precisionDecimal + recallDecimal + f1Decimal;
       const accuracy = Math.max(0, rawAccuracy);
 
       return {
@@ -472,9 +450,7 @@ export function ConfusionMatrix({
             <h3 className="text-lg font-semibold mb-4">Understanding the Metrics</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left column */}
               <div>
-                {/* Performance Metrics - Left */}
                 <div className="mb-5">
                   <h4 className="font-medium text-slate-800 mb-3">Performance Metrics</h4>
                   <div className="space-y-4">
@@ -502,7 +478,6 @@ export function ConfusionMatrix({
                   </div>
                 </div>
 
-                {/* Sentiment Categories - Left */}
                 <div>
                   <h4 className="font-medium text-slate-800 mb-3">Sentiment Categories</h4>
                   <div className="flex flex-wrap gap-2">
@@ -523,9 +498,7 @@ export function ConfusionMatrix({
                 </div>
               </div>
 
-              {/* Right column */}
               <div>
-                {/* Accuracy - Right */}
                 <div className="mb-5">
                   <h4 className="font-medium text-slate-800 mb-3">Accuracy Metrics</h4>
                   <div className="space-y-4">
@@ -539,7 +512,6 @@ export function ConfusionMatrix({
                   </div>
                 </div>
 
-                {/* Reading the Confusion Matrix - Right */}
                 <div>
                   <h4 className="font-medium text-slate-800 mb-3">Reading the Confusion Matrix</h4>
                   <ul className="space-y-2 text-sm text-slate-600">
