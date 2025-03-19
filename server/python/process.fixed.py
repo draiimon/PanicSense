@@ -1088,12 +1088,12 @@ class DisasterSentimentBackend:
                 # Add delay between batches to prevent API rate limits
                 if batch_start + BATCH_SIZE < len(indices_to_process):
                     logging.info(
-                        f"Completed batch {batch_start // BATCH_SIZE + 1} - pausing before next batch"
+                        f"60-second pause between batches. Completed batch {batch_start // BATCH_SIZE + 1} of {len(indices_to_process) // BATCH_SIZE + 1}"
                     )
                     report_progress(
                         5 + int(
                             ((batch_start + BATCH_SIZE) / sample_size) * 90),
-                        f"Completed batch {batch_start // BATCH_SIZE + 1} - pausing before next batch",
+                        f"60-second pause between batches. Completed batch {batch_start // BATCH_SIZE + 1} of {len(indices_to_process) // BATCH_SIZE + 1}.",
                         total_records)
                     time.sleep(60)  # 60-second pause between batches
 
