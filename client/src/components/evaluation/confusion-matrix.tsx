@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getSentimentPostsByFileId } from '@/lib/api';
 import { getSentimentColor } from '@/lib/colors';
 import { Badge } from '@/components/ui/badge';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ConfusionMatrixProps {
   fileId?: number;
@@ -43,14 +43,12 @@ export function ConfusionMatrix({
   }[]>([]);
   const [metricsData, setMetricsData] = useState<any[]>([]);
 
-  // Fetch sentiment posts if fileId is provided and not in allDatasets mode
   const { data: sentimentPosts, isLoading } = useQuery({
     queryKey: ['/api/sentiment-posts/file', fileId],
     queryFn: () => getSentimentPostsByFileId(fileId as number),
     enabled: !!fileId && !initialMatrix && !allDatasets
   });
 
-  // Calculate metrics from matrix
   const calculateMetrics = (matrix: number[][]) => {
     const metrics = labels.map((_, idx) => {
       const truePositive = matrix[idx][idx];
@@ -76,7 +74,6 @@ export function ConfusionMatrix({
     return metrics;
   };
 
-  // Process sentiment data and build confusion matrix
   useEffect(() => {
     if ((isLoading || !sentimentPosts) && !initialMatrix) return;
 
@@ -176,23 +173,63 @@ export function ConfusionMatrix({
       </CardHeader>
       <CardContent className="p-6">
         <div className="space-y-6">
-          {/* Metrics Visualization */}
+          {/* Model Insights */}
           <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
-            <h3 className="text-lg font-semibold mb-4">Performance Metrics</h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={metricsData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="sentiment" />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="precision" stroke="#22c55e" name="Precision" />
-                  <Line type="monotone" dataKey="recall" stroke="#8b5cf6" name="Recall" />
-                  <Line type="monotone" dataKey="f1Score" stroke="#f97316" name="F1 Score" />
-                  <Line type="monotone" dataKey="accuracy" stroke="#3b82f6" name="Accuracy" />
-                </LineChart>
-              </ResponsiveContainer>
+            <h3 className="text-lg font-semibold mb-2">Model Insights</h3>
+            <p className="text-sm text-slate-600 mb-4">Understanding the sentiment analysis model performance</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Metrics Visualization */}
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={metricsData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="sentiment" />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="precision" fill="#22c55e" name="Precision" />
+                    <Bar dataKey="recall" fill="#8b5cf6" name="Recall" />
+                    <Bar dataKey="f1Score" fill="#f97316" name="F1 Score" />
+                    <Bar dataKey="accuracy" fill="#3b82f6" name="Accuracy" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Metrics Explanation */}
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-slate-800 mb-1">Accuracy</h4>
+                  <p className="text-sm text-slate-600">The proportion of total predictions that were correct. Higher is better.</p>
+                  <p className="text-2xl font-bold text-blue-600 mt-1">
+                    {metricsData[0]?.accuracy.toFixed(1)}%
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-slate-800 mb-1">Precision</h4>
+                  <p className="text-sm text-slate-600">Of all predicted positive instances, how many were actually positive. Measures false positive rate.</p>
+                  <p className="text-2xl font-bold text-green-600 mt-1">
+                    {metricsData[0]?.precision.toFixed(1)}%
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-slate-800 mb-1">Recall</h4>
+                  <p className="text-sm text-slate-600">Of all actual positive instances, how many were predicted as positive. Measures false negative rate.</p>
+                  <p className="text-2xl font-bold text-purple-600 mt-1">
+                    {metricsData[0]?.recall.toFixed(1)}%
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-slate-800 mb-1">F1 Score</h4>
+                  <p className="text-sm text-slate-600">The harmonic mean of precision and recall. Balances both metrics for an overall performance measure.</p>
+                  <p className="text-2xl font-bold text-orange-600 mt-1">
+                    {metricsData[0]?.f1Score.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -216,9 +253,8 @@ export function ConfusionMatrix({
                       const { background, text } = getCellColor(rowIdx, colIdx, value);
                       const percentage = (value / rowTotals[rowIdx] * 100) || 0;
 
-                      // Find posts that contribute to this cell (only for single dataset view)
-                      const relevantPosts = !allDatasets ? sentimentData.filter(post => 
-                        post.mainSentiment === labels[rowIdx] && 
+                      const relevantPosts = !allDatasets ? sentimentData.filter(post =>
+                        post.mainSentiment === labels[rowIdx] &&
                         post.mixedSentiments[labels[colIdx]] > 0
                       ) : [];
 
@@ -237,7 +273,6 @@ export function ConfusionMatrix({
                             <div className="text-xs">{percentage.toFixed(1)}%</div>
                           </div>
 
-                          {/* Detailed tooltip - only show for single dataset view */}
                           {!allDatasets && hoveredCell?.row === rowIdx && hoveredCell?.col === colIdx && relevantPosts.length > 0 && (
                             <div className="absolute z-50 bg-white p-3 rounded-lg shadow-lg border border-gray-200 min-w-[250px] -translate-y-full left-1/2 -translate-x-1/2">
                               <div className="font-medium mb-2">Sentiment Distribution</div>
