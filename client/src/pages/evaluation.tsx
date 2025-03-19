@@ -35,12 +35,13 @@ export default function Evaluation() {
     enabled: !!selectedFileId && selectedFileId !== "all"
   });
 
-  // Fetch all sentiment posts if "All Datasets" is selected
+  // Fetch all sentiment posts if "All Datasets" is selected 
+  // Using the correct query key to match the one in the API
   const {
     data: allData,
     isLoading: isLoadingAllData
   } = useQuery({
-    queryKey: ['/api/sentiment-posts/all'],
+    queryKey: ['/api/sentiment-posts'],
     queryFn: () => getSentimentPosts(),
     enabled: selectedFileId === "all"
   });

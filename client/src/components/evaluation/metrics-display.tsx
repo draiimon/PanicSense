@@ -41,7 +41,7 @@ export function MetricsDisplay({
         data: {
           labels: ['Accuracy', 'Precision', 'Recall', 'F1 Score'],
           datasets: [{
-            data: [data.accuracy, data.precision, data.recall, data.f1Score],
+            data: [data.accuracy/100, data.precision/100, data.recall/100, data.f1Score/100],
             backgroundColor: ['#4299e1', '#48bb78', '#ed8936', '#9f7aea'],
             borderWidth: 0
           }]
@@ -67,7 +67,7 @@ export function MetricsDisplay({
             tooltip: {
               callbacks: {
                 label: function(context) {
-                  return (context.raw as number * 100).toFixed(1) + '%';
+                  return (context.raw as number * 100).toFixed(2) + '%';
                 }
               }
             }
@@ -114,25 +114,25 @@ export function MetricsDisplay({
           <div className="text-center p-3 bg-slate-50 rounded-lg">
             <p className="text-sm text-slate-500">Accuracy</p>
             <p className="text-xl font-bold text-slate-800">
-              {(data.accuracy * 100).toFixed(1)}%
+              {data.accuracy.toFixed(2)}%
             </p>
           </div>
           <div className="text-center p-3 bg-slate-50 rounded-lg">
             <p className="text-sm text-slate-500">Precision</p>
             <p className="text-xl font-bold text-slate-800">
-              {(data.precision * 100).toFixed(1)}%
+              {data.precision.toFixed(2)}%
             </p>
           </div>
           <div className="text-center p-3 bg-slate-50 rounded-lg">
             <p className="text-sm text-slate-500">Recall</p>
             <p className="text-xl font-bold text-slate-800">
-              {(data.recall * 100).toFixed(1)}%
+              {data.recall.toFixed(2)}%
             </p>
           </div>
           <div className="text-center p-3 bg-slate-50 rounded-lg">
             <p className="text-sm text-slate-500">F1 Score</p>
             <p className="text-xl font-bold text-slate-800">
-              {(data.f1Score * 100).toFixed(1)}%
+              {data.f1Score.toFixed(2)}%
             </p>
           </div>
         </div>
