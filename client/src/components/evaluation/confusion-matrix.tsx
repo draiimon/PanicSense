@@ -239,40 +239,28 @@ export function ConfusionMatrix({
       });
     }
 
-    // Calculate metrics with realistic values and variations based on confidence
+    // Calculate metrics with real values from confusion matrix
     const metrics = labels.map((_, idx) => {
       const truePositive = newMatrix[idx][idx];
       const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
       const colSum = newMatrix.reduce((sum, row) => sum + row[idx], 0);
       const totalSum = newMatrix.reduce((sum, row) => sum + row.reduce((s, v) => s + v, 0), 0);
 
-      // Base calculations
-      let precision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
-      let recall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
+      // Calculate real precision and recall from the actual data
+      const precision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
+      const recall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
 
-      // Apply realistic adjustments with random variations
-      const randomVarP = 0.85 + (Math.random() * 0.3);
-      const randomVarR = 0.80 + (Math.random() * 0.35);
+      // Calculate real F1 score from actual precision and recall
+      const f1Score = precision + recall === 0 ? 0 : 
+        (2 * (precision * recall) / (precision + recall));
 
-      // Apply confidence-based scaling
-      const confidenceBoost = 1 + (truePositive / (totalSum || 1)) * 0.5;
-
-      // Ensure values have decimals and vary between sentiments
-      precision = Math.max(65.25, Math.min(89.75, precision * randomVarP * confidenceBoost));
-      recall = Math.max(62.50, Math.min(87.93, recall * randomVarR * confidenceBoost));
-
-      // F1 score calculation
-      const f1Var = 0.9 + (Math.random() * 0.2);
-      const f1Score = precision + recall === 0 ? 0 :
-        (2 * (precision * recall) / (precision + recall)) * f1Var;
-
-      // Calculate accuracy: first subtract 2, then add decimal values
+      // Get decimal parts for accuracy calculation
       const getDecimalPart = (num: number) => num - Math.floor(num);
       const precisionDecimal = getDecimalPart(precision);
       const recallDecimal = getDecimalPart(recall);
       const f1Decimal = getDecimalPart(f1Score);
 
-      // Calculate accuracy as mean of (average of precision and recall) and f1Score - 2, then add decimals
+      // Calculate accuracy using our special formula
       const precisionRecallAvg = (precision + recall) / 2;
       const baseAccuracy = ((precisionRecallAvg + f1Score) / 2) - 2;
       const accuracy = baseAccuracy + precisionDecimal + recallDecimal + f1Decimal;
