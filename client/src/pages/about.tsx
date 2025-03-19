@@ -45,15 +45,26 @@ export default function About() {
     return () => clearInterval(interval);
   }, [isMobile, api, isPaused]); // isPaused added to dependency array
 
-  // Fetch profiles from database
-  const [profiles, setProfiles] = React.useState([]);
-
-  React.useEffect(() => {
-    fetch('/api/profile-images')
-      .then(res => res.json())
-      .then(data => setProfiles(data))
-      .catch(err => console.error('Failed to fetch profiles:', err));
-  }, []);
+  const founders = [
+    {
+      name: "Mark Andrei R. Castillo",
+      role: "Core System Architecture & Machine Learning",
+      image: "https://raw.githubusercontent.com/draiimon/PanicSense/main/client/public/images/drei.jpg",
+      description: "Leads the development of our advanced ML pipelines and system architecture"
+    },
+    {
+      name: "Ivahnn B. Garcia",
+      role: "Frontend Development & User Experience",
+      image: "https://raw.githubusercontent.com/draiimon/PanicSense/main/client/public/images/van.jpg",
+      description: "Creates intuitive and responsive user interfaces for seamless interaction"
+    },
+    {
+      name: "Julia Daphne Ngan-Gatdula",
+      role: "Data Resources & Information Engineering",
+      image: "https://raw.githubusercontent.com/draiimon/PanicSense/main/client/public/images/julia.jpg",
+      description: "Manages data infrastructure and information processing systems"
+    }
+  ];
 
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100 via-indigo-50 to-white">
@@ -110,8 +121,8 @@ export default function About() {
               className="w-full overflow-hidden"
             >
               <CarouselContent>
-                {profiles.map((profile, index) => (
-                  <CarouselItem key={profile.id} className="md:basis-1/2 lg:basis-1/3">
+                {founders.map((founder, index) => (
+                  <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -123,11 +134,11 @@ export default function About() {
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
                       <div className="relative">
                         <div className="aspect-square bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-xl flex items-center justify-center mb-4 overflow-hidden">
-                          <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover rounded-xl"/>
+                          <img src={founder.image} alt={founder.name} className="w-full h-full object-cover rounded-xl"/>
                         </div>
-                        <h3 className="text-xl font-bold text-blue-300 mb-2">{profile.name}</h3>
-                        <p className="text-blue-200 mb-3">{profile.role}</p>
-                        <p className="text-sm text-blue-100/80">{profile.description}</p>
+                        <h3 className="text-xl font-bold text-blue-300 mb-2">{founder.name}</h3>
+                        <p className="text-blue-200 mb-3">{founder.role}</p>
+                        <p className="text-sm text-blue-100/80">{founder.description}</p>
                       </div>
                     </motion.div>
                   </CarouselItem>
