@@ -77,18 +77,25 @@ export function UploadProgressModal() {
   // Stage indication
   const isLoading = stage.toLowerCase().includes('loading');
   const isProcessing = stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record');
-  const isCooldown = stage.toLowerCase().includes('cooldown') || stage.toLowerCase().includes('pausing');
+  const isCooldown = stage.toLowerCase().includes('cooldown') || stage.toLowerCase().includes('pausing') || stage.toLowerCase().includes('pause between batches');
   const hasError = stage.toLowerCase().includes('error');
   const isComplete = stage.toLowerCase().includes('analysis complete');
   
   // Extract cooldown time remaining if applicable
   const cooldownTimeRemaining = (() => {
     if (isCooldown) {
-      // Try to extract the seconds remaining from the cooldown message - more flexible regex
+      // First check for explicit cooldown time in message
       const match = stage.match(/Cooldown: (\d+) seconds? remaining/i) || 
-                    stage.match(/(\d+) seconds? remaining/i);
+                    stage.match(/(\d+) seconds? remaining/i) ||
+                    stage.match(/(\d+)-second pause/i);
+      
       if (match && match[1]) {
         return parseInt(match[1]);
+      }
+      
+      // If it's a cooldown but no time specified, default to 60 seconds
+      if (stage.toLowerCase().includes('pause between batches')) {
+        return 60;
       }
     }
     return null;

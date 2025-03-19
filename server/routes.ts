@@ -581,10 +581,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       uploadProgressMap.set(sessionId, {
         processed: 0,
         total: totalRecords,
-        stage: `Initializing analysis for ${totalRecords} records...`,
+        stage: `Preparing to process ${totalRecords} records in batches of 30...`,
         timestamp: Date.now(),
         batchNumber: 0,
-        totalBatches: Math.ceil(totalRecords / 6), 
+        totalBatches: Math.ceil(totalRecords / 30), 
         batchProgress: 0,
         currentSpeed: 0,
         timeRemaining: 0,
