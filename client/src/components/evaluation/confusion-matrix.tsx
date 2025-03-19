@@ -36,32 +36,61 @@ export function ConfusionMatrix({
     mixedSentiments: Record<string, number>;
   }[]>([]);
   const [metricsData, setMetricsData] = useState<any[]>([]);
-  // State to track which metrics are visible in charts
-  const [visibleMetrics, setVisibleMetrics] = useState({
+  // State to track which metrics are visible in bar chart
+  const [barChartMetrics, setBarChartMetrics] = useState({
     precision: true,
     recall: true,
     f1Score: true,
     accuracy: true
   });
   
-  // Function to toggle visibility of metric on chart when clicked on legend
-  const handleLegendClick = (entry: any) => {
+  // State to track which metrics are visible in radar chart
+  const [radarChartMetrics, setRadarChartMetrics] = useState({
+    precision: true,
+    recall: true,
+    f1Score: true,
+    accuracy: true
+  });
+  
+  // Function to toggle visibility of metric on bar chart when clicked on legend
+  const handleBarLegendClick = (entry: any) => {
     if (entry && entry.dataKey) {
       const dataKey = entry.dataKey;
-      console.log('Legend clicked:', dataKey);
-      setVisibleMetrics(prev => ({
+      console.log('Bar legend clicked:', dataKey);
+      setBarChartMetrics(prev => ({
         ...prev,
         [dataKey]: !prev[dataKey as keyof typeof prev]
       }));
     }
   };
   
-  // Get legend item style based on visibility
-  const getLegendItemStyle = (dataKey: string) => {
+  // Function to toggle visibility of metric on radar chart when clicked on legend
+  const handleRadarLegendClick = (entry: any) => {
+    if (entry && entry.dataKey) {
+      const dataKey = entry.dataKey;
+      console.log('Radar legend clicked:', dataKey);
+      setRadarChartMetrics(prev => ({
+        ...prev,
+        [dataKey]: !prev[dataKey as keyof typeof prev]
+      }));
+    }
+  };
+  
+  // Get legend item style based on visibility for bar chart
+  const getBarLegendItemStyle = (dataKey: string) => {
     return {
       cursor: 'pointer',
-      opacity: visibleMetrics[dataKey as keyof typeof visibleMetrics] ? 1 : 0.5,
-      textDecoration: visibleMetrics[dataKey as keyof typeof visibleMetrics] ? 'none' : 'line-through'
+      opacity: barChartMetrics[dataKey as keyof typeof barChartMetrics] ? 1 : 0.5,
+      textDecoration: barChartMetrics[dataKey as keyof typeof barChartMetrics] ? 'none' : 'line-through'
+    };
+  };
+  
+  // Get legend item style based on visibility for radar chart
+  const getRadarLegendItemStyle = (dataKey: string) => {
+    return {
+      cursor: 'pointer',
+      opacity: radarChartMetrics[dataKey as keyof typeof radarChartMetrics] ? 1 : 0.5,
+      textDecoration: radarChartMetrics[dataKey as keyof typeof radarChartMetrics] ? 'none' : 'line-through'
     };
   };
 
@@ -291,8 +320,7 @@ export function ConfusionMatrix({
             <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
               <h3 className="text-lg font-semibold mb-2">Performance Metrics</h3>
               <p className="text-sm text-slate-600 mb-4">
-                Performance metrics by sentiment category 
-                <span className="ml-1 text-blue-600 font-medium">(click legend items to hide/show)</span>
+                Performance metrics by sentiment category
               </p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
@@ -309,23 +337,23 @@ export function ConfusionMatrix({
                       layout="horizontal" 
                       verticalAlign="bottom" 
                       wrapperStyle={{ paddingTop: "10px" }}
-                      onClick={(entry) => handleLegendClick(entry)}
+                      onClick={(entry) => handleBarLegendClick(entry)}
                       formatter={(value, entry) => (
-                        <span style={getLegendItemStyle(entry.dataKey as string)}>
+                        <span style={getBarLegendItemStyle(entry.dataKey as string)}>
                           {value}
                         </span>
                       )}
                     />
-                    {visibleMetrics.precision && (
+                    {barChartMetrics.precision && (
                       <Bar dataKey="precision" name="Precision" fill="#22c55e" legendType="circle" />
                     )}
-                    {visibleMetrics.recall && (
+                    {barChartMetrics.recall && (
                       <Bar dataKey="recall" name="Recall" fill="#8b5cf6" legendType="circle" />
                     )}
-                    {visibleMetrics.f1Score && (
+                    {barChartMetrics.f1Score && (
                       <Bar dataKey="f1Score" name="F1 Score" fill="#f97316" legendType="circle" />
                     )}
-                    {visibleMetrics.accuracy && (
+                    {barChartMetrics.accuracy && (
                       <Bar dataKey="accuracy" name="Accuracy" fill="#3b82f6" legendType="circle" />
                     )}
                   </BarChart>
@@ -337,7 +365,6 @@ export function ConfusionMatrix({
               <h3 className="text-lg font-semibold mb-2">Metric Balance</h3>
               <p className="text-sm text-slate-600 mb-4">
                 Comparative view across sentiments
-                <span className="ml-1 text-blue-600 font-medium">(click legend items to hide/show)</span>
               </p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
@@ -345,16 +372,16 @@ export function ConfusionMatrix({
                     <PolarGrid />
                     <PolarAngleAxis dataKey="sentiment" />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    {visibleMetrics.precision && (
+                    {radarChartMetrics.precision && (
                       <Radar name="Precision" dataKey="precision" stroke="#22c55e" fill="#22c55e" fillOpacity={0.6} />
                     )}
-                    {visibleMetrics.recall && (
+                    {radarChartMetrics.recall && (
                       <Radar name="Recall" dataKey="recall" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
                     )}
-                    {visibleMetrics.f1Score && (
+                    {radarChartMetrics.f1Score && (
                       <Radar name="F1 Score" dataKey="f1Score" stroke="#f97316" fill="#f97316" fillOpacity={0.6} />
                     )}
-                    {visibleMetrics.accuracy && (
+                    {radarChartMetrics.accuracy && (
                       <Radar name="Accuracy" dataKey="accuracy" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
                     )}
                     <Legend 
@@ -363,9 +390,9 @@ export function ConfusionMatrix({
                       verticalAlign="bottom" 
                       align="center" 
                       wrapperStyle={{ cursor: "pointer" }}
-                      onClick={(entry) => handleLegendClick(entry)}
+                      onClick={(entry) => handleRadarLegendClick(entry)}
                       formatter={(value, entry) => (
-                        <span style={getLegendItemStyle(entry.dataKey as string)}>
+                        <span style={getRadarLegendItemStyle(entry.dataKey as string)}>
                           {value}
                         </span>
                       )}
