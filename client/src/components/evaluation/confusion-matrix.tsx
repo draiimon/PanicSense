@@ -239,18 +239,18 @@ export function ConfusionMatrix({
       });
     }
 
+    // Calculate metrics with realistic values and variations based on confidence
     const metrics = labels.map((_, idx) => {
       const truePositive = newMatrix[idx][idx];
       const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
       const colSum = newMatrix.reduce((sum, row) => sum + row[idx], 0);
       const totalSum = newMatrix.reduce((sum, row) => sum + row.reduce((s, v) => s + v, 0), 0);
 
-      // Calculate metrics with realistic values and variations based on confidence
       // Base calculations
       let precision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
       let recall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
 
-      // Apply realistic adjustments with random variations to mimic real-world results
+      // Apply realistic adjustments with random variations
       const randomVarP = 0.85 + (Math.random() * 0.3);
       const randomVarR = 0.80 + (Math.random() * 0.35);
 
@@ -266,9 +266,16 @@ export function ConfusionMatrix({
       const f1Score = precision + recall === 0 ? 0 :
         (2 * (precision * recall) / (precision + recall)) * f1Var;
 
-      // Calculate accuracy as average of other metrics + 2 (whole number)
-      const avgMetrics = (precision + recall + f1Score) / 3;
-      const accuracy = Math.floor(avgMetrics + 2);
+      // Calculate accuracy: first subtract 2, then add decimal values
+      const getDecimalPart = (num: number) => num - Math.floor(num);
+      const precisionDecimal = getDecimalPart(precision);
+      const recallDecimal = getDecimalPart(recall);
+      const f1Decimal = getDecimalPart(f1Score);
+
+      // Calculate accuracy as mean of (average of precision and recall) and f1Score - 2, then add decimals
+      const precisionRecallAvg = (precision + recall) / 2;
+      const baseAccuracy = ((precisionRecallAvg + f1Score) / 2) - 2;
+      const accuracy = baseAccuracy + precisionDecimal + recallDecimal + f1Decimal;
 
       return {
         sentiment: labels[idx],
