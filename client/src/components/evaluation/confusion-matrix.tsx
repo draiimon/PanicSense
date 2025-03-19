@@ -246,11 +246,15 @@ export function ConfusionMatrix({
       const colSum = newMatrix.reduce((sum, row) => sum + row[idx], 0);
       const totalSum = newMatrix.reduce((sum, row) => sum + row.reduce((s, v) => s + v, 0), 0);
 
-      // Calculate real precision and recall from the actual data
-      const precision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
-      const recall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
+      // Calculate real precision and recall from the actual data, then apply adjustments
+      const rawPrecision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
+      const rawRecall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
 
-      // Calculate real F1 score from actual precision and recall
+      // Apply the subtractions and ensure non-negative values
+      const precision = Math.max(0, rawPrecision - 4);
+      const recall = Math.max(0, rawRecall - 3);
+
+      // Calculate real F1 score from adjusted precision and recall
       const f1Score = precision + recall === 0 ? 0 :
         (2 * (precision * recall) / (precision + recall));
 
