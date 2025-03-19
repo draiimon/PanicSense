@@ -46,29 +46,14 @@ export default function About() {
   }, [isMobile, api, isPaused]); // isPaused added to dependency array
 
   // Fetch profiles from database
-  const [profiles, setProfiles] = React.useState([
-    {
-      id: 1,
-      name: "Mark Andrei R. Castillo",
-      role: "Core System Architecture & Machine Learning",
-      imageUrl: "/assets/drei.jpg",
-      description: "Leads the development of our advanced ML pipelines and system architecture"
-    },
-    {
-      id: 2,
-      name: "Ivahnn B. Garcia",
-      role: "Frontend Development & User Experience", 
-      imageUrl: "/assets/van.jpg",
-      description: "Creates intuitive and responsive user interfaces for seamless interaction"
-    },
-    {
-      id: 3,
-      name: "Julia Daphne Ngan-Gatdula",
-      role: "Data Resources & Information Engineering",
-      imageUrl: "/assets/julia.jpg", 
-      description: "Manages data infrastructure and information processing systems"
-    }
-  ]);
+  const [profiles, setProfiles] = React.useState([]);
+
+  React.useEffect(() => {
+    fetch('/api/profile-images')
+      .then(res => res.json())
+      .then(data => setProfiles(data))
+      .catch(err => console.error('Failed to fetch profiles:', err));
+  }, []);
 
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100 via-indigo-50 to-white">
