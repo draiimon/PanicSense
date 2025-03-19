@@ -56,13 +56,11 @@ export function ConfusionMatrix({
   );
 
   const handleSentimentLegendClick = (sentiment: string) => {
-    // Check if this would hide all sentiments
     const wouldHideAll =
       Object.entries(visibleSentiments)
         .filter(([key, value]) => key !== sentiment && value)
         .length === 0 && visibleSentiments[sentiment];
 
-    // Only toggle if it won't hide all sentiments
     if (!wouldHideAll) {
       setVisibleSentiments(prev => ({
         ...prev,
@@ -176,10 +174,10 @@ export function ConfusionMatrix({
     let newMatrix: number[][] = Array(labels.length).fill(0).map(() => Array(labels.length).fill(0));
     let newSentimentData: typeof sentimentData = [];
 
+    // Calculate matrix data
     if (initialMatrix) {
       newMatrix = initialMatrix.map(row => [...row]);
-    }
-    else if (allDatasets && allSentimentPosts && allSentimentPosts.length > 0) {
+    } else if (allDatasets && allSentimentPosts && allSentimentPosts.length > 0) {
       allSentimentPosts.forEach((post: {
         id: number;
         text: string;
@@ -219,8 +217,7 @@ export function ConfusionMatrix({
           });
         }
       });
-    }
-    else if (!allDatasets && sentimentPosts && sentimentPosts.length > 0) {
+    } else if (!allDatasets && sentimentPosts && sentimentPosts.length > 0) {
       sentimentPosts.forEach((post: {
         id: number;
         text: string;
@@ -269,7 +266,16 @@ export function ConfusionMatrix({
       });
     }
 
-    const metrics = labels.map((_, idx) => {
+    // Get the sentiments that actually have data
+    const activeSentiments = labels.filter((_, idx) => {
+      const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
+      const colSum = newMatrix.reduce((sum, row) => sum + row[idx], 0);
+      return rowSum > 0 || colSum > 0;
+    });
+
+    // Calculate metrics only for active sentiments
+    const metrics = activeSentiments.map((sentiment) => {
+      const idx = labels.indexOf(sentiment);
       const truePositive = newMatrix[idx][idx];
       const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
       const colSum = newMatrix.reduce((sum, row) => sum + row[idx], 0);
@@ -294,7 +300,7 @@ export function ConfusionMatrix({
       const accuracy = Math.floor(avgMetrics + 2);
 
       return {
-        sentiment: labels[idx],
+        sentiment,
         precision,
         recall,
         f1Score,
@@ -302,7 +308,16 @@ export function ConfusionMatrix({
       };
     });
 
-    if (fileId && !allDatasets) {
+    // Save metrics only for active sentiments
+    setMetricsData(metrics);
+
+    // Update matrix and sentiment data
+    setMatrix(newMatrix);
+    setSentimentData(newSentimentData);
+    setIsMatrixCalculated(true);
+
+    // Update file metrics if needed
+    if (fileId && !allDatasets && metrics.length > 0) {
       const evaluationMetrics = {
         accuracy: metrics.reduce((sum, m) => sum + m.accuracy, 0) / metrics.length,
         precision: metrics.reduce((sum, m) => sum + m.precision, 0) / metrics.length,
@@ -314,11 +329,6 @@ export function ConfusionMatrix({
       apiRequest('PATCH', `/api/analyzed-files/${fileId}/metrics`, evaluationMetrics)
         .catch(console.error);
     }
-
-    setMatrix(newMatrix);
-    setSentimentData(newSentimentData);
-    setMetricsData(metrics);
-    setIsMatrixCalculated(true);
   }, [sentimentPosts, labels, initialMatrix, isLoading, allDatasets, fileId]);
 
   if (isLoading) {
