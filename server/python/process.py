@@ -611,7 +611,7 @@ class DisasterSentimentBackend:
                         key_index] = self.key_success_count.get(key_index,
                                                                 0) + 1
                     logging.info(
-                        f"API key {key_index + 1} succeeded (successes: {self.key_success_count[key_index]})"
+                        f"LABELING {key_index + 1}SUCCEEDED💙 (SUCCESSES: {self.key_success_count[key_index]})"
                     )
 
                     return result
@@ -620,13 +620,14 @@ class DisasterSentimentBackend:
 
             except Exception as e:
                 logging.error(
-                    f"API key {key_index + 1} request failed: {str(e)}")
+                    f"Labeling {key_index + 1} request failed: {str(e)}")
                 if "rate limit" in str(e).lower() or "429" in str(e):
                     logging.warning(f"Rate limit detected, trying next key")
                     continue
 
         # All attempts failed, use rule-based fallback
-        logging.warning("All API attempts failed, using rule-based fallback")
+        logging.warning(
+            "All Labeling attempts failed, using rule-based fallback")
         fallback_result = self._rule_based_sentiment_analysis(text, language)
 
         # Add extracted metadata
