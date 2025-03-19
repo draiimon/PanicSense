@@ -15,10 +15,21 @@ export default function About() {
   const [profiles, setProfiles] = useState<ProfileImage[]>([]);
 
   useEffect(() => {
-    fetch('/api/profile-images')
-      .then(res => res.json())
-      .then(data => setProfiles(data))
-      .catch(err => console.error('Failed to fetch profiles:', err));
+    const loadProfiles = async () => {
+      try {
+        const res = await fetch('/api/profile-images');
+        if (!res.ok) throw new Error('Failed to fetch profiles');
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setProfiles(data);
+        } else {
+          console.warn('No profile data received');
+        }
+      } catch (err) {
+        console.error('Failed to fetch profiles:', err);
+      }
+    };
+    loadProfiles();
   }, []);
   const [api, setApi] = React.useState<any>();
   const [currentSlide, setCurrentSlide] = React.useState(0);
