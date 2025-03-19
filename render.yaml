@@ -1,0 +1,13 @@
+services:
+  - name: panic-sense-backend
+    type: web
+    runtime: node
+    repo: https://github.com/draiimon/PanicSense
+    branch: main
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+    buildCommand: pnpm install
+    startCommand: pnpm dev
+    healthCheckPath: /health
+    autoDeploy: true
