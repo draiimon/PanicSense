@@ -71,32 +71,22 @@ class DisasterSentimentBackend:
         # Default keys if none provided
         if not self.api_keys:
             self.api_keys = [
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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"
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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",
+                "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"
             ]
             self.groq_api_keys = self.api_keys.copy()
 
@@ -494,7 +484,7 @@ class DisasterSentimentBackend:
 
                 data = {
                     "model":
-                    "llama3-8b-8192",
+                    "gemma2-9b-it",
                     "messages": [{
                         "role": "system",
                         "content": system_message
@@ -1059,7 +1049,7 @@ class DisasterSentimentBackend:
 
                         # Add a substantial delay for sequential processing
                         # Each record needs time to be displayed on the frontend
-                        time.sleep(2)  # 2-second delay between records
+                        time.sleep(3)  # 2-second delay between records
 
                         # Report completed
                         processed_count += 1
