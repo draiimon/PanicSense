@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
-import { getSentimentPostsByFileId } from '@/lib/api';
+import { getSentimentPostsByFileId, getSentimentPosts, SentimentPost } from '@/lib/api';
 import { getSentimentColor } from '@/lib/colors';
 import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
@@ -54,15 +54,70 @@ export function ConfusionMatrix({
   const isLoading = isLoadingFilePosts || (allDatasets && isLoadingAllPosts);
 
   useEffect(() => {
-    if ((isLoading || !sentimentPosts) && !initialMatrix) return;
+    // Wait for data to be loaded or use initial matrix if provided
+    if ((!initialMatrix) && 
+        ((allDatasets && isLoadingAllPosts) || (!allDatasets && isLoadingFilePosts))) {
+      return;
+    }
 
     let newMatrix: number[][] = Array(labels.length).fill(0).map(() => Array(labels.length).fill(0));
     let newSentimentData: typeof sentimentData = [];
-
+    
+    // Use provided matrix if available
     if (initialMatrix) {
       newMatrix = initialMatrix.map(row => [...row]);
-    } else if (sentimentPosts && sentimentPosts.length > 0) {
-      sentimentPosts.forEach(post => {
+    } 
+    // For "All Datasets" option, use allSentimentPosts 
+    else if (allDatasets && allSentimentPosts && allSentimentPosts.length > 0) {
+      allSentimentPosts.forEach((post: {
+        id: number;
+        text: string;
+        sentiment: string;
+        confidence: number;
+        timestamp: string;
+      }) => {
+        const mainSentiment = post.sentiment;
+        const confidence = post.confidence || 1;
+
+        const mainIdx = labels.findIndex(label => label === mainSentiment);
+        if (mainIdx === -1) return;
+
+        const postSentiments: Record<string, number> = {
+          [mainSentiment]: confidence
+        };
+
+        newMatrix[mainIdx][mainIdx] += confidence * 1.2;
+
+        if (confidence < 1) {
+          const remainingConfidence = 1 - confidence;
+          const weights = labels.map((_, idx) => {
+            if (idx === mainIdx) return 0;
+            const distance = Math.abs(idx - mainIdx);
+            return remainingConfidence / (distance + 1.5);
+          });
+
+          const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+          const normalizedWeights = weights.map(w => w / totalWeight);
+
+          labels.forEach((label, idx) => {
+            if (idx !== mainIdx) {
+              const secondaryConfidence = remainingConfidence * normalizedWeights[idx] * 0.8;
+              newMatrix[mainIdx][idx] += secondaryConfidence;
+              postSentiments[label] = secondaryConfidence;
+            }
+          });
+        }
+      });
+    } 
+    // For single file option, use sentimentPosts
+    else if (!allDatasets && sentimentPosts && sentimentPosts.length > 0) {
+      sentimentPosts.forEach((post: {
+        id: number;
+        text: string;
+        sentiment: string;
+        confidence: number;
+        timestamp: string;
+      }) => {
         const mainSentiment = post.sentiment;
         const confidence = post.confidence || 1;
 
@@ -95,14 +150,12 @@ export function ConfusionMatrix({
           });
         }
 
-        if (!allDatasets) {
-          newSentimentData.push({
-            id: post.id.toString(),
-            mainSentiment,
-            confidence,
-            mixedSentiments: postSentiments
-          });
-        }
+        newSentimentData.push({
+          id: post.id.toString(),
+          mainSentiment,
+          confidence,
+          mixedSentiments: postSentiments
+        });
       });
     }
 
@@ -280,66 +333,84 @@ export function ConfusionMatrix({
           <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
             <h3 className="text-lg font-semibold mb-4">Understanding the Metrics</h3>
 
-            <div className="mb-6">
-              <h4 className="font-medium text-slate-800 mb-3">Performance Metrics</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-3 h-3 mt-1.5 rounded-full bg-[#22c55e]" />
-                  <div>
-                    <p className="font-medium text-slate-700">Precision</p>
-                    <p className="text-sm text-slate-600">When the model predicts a sentiment, how often is it correct? Higher precision means fewer false positives.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left column */}
+              <div>
+                {/* Performance Metrics - Left */}
+                <div className="mb-5">
+                  <h4 className="font-medium text-slate-800 mb-3">Performance Metrics</h4>
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-3 h-3 mt-1.5 rounded-full bg-[#22c55e]" />
+                      <div>
+                        <p className="font-medium text-slate-700">Precision</p>
+                        <p className="text-sm text-slate-600">When the model predicts a sentiment, how often is it correct? Higher precision means fewer false positives.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-3 h-3 mt-1.5 rounded-full bg-[#8b5cf6]" />
+                      <div>
+                        <p className="font-medium text-slate-700">Recall</p>
+                        <p className="text-sm text-slate-600">Of all actual instances of a sentiment, how many did we catch? Higher recall means fewer false negatives.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-3 h-3 mt-1.5 rounded-full bg-[#f97316]" />
+                      <div>
+                        <p className="font-medium text-slate-700">F1 Score</p>
+                        <p className="text-sm text-slate-600">The harmonic mean of precision and recall. A balanced measure that considers both false positives and negatives.</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-3 h-3 mt-1.5 rounded-full bg-[#8b5cf6]" />
-                  <div>
-                    <p className="font-medium text-slate-700">Recall</p>
-                    <p className="text-sm text-slate-600">Of all actual instances of a sentiment, how many did we catch? Higher recall means fewer false negatives.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-3 h-3 mt-1.5 rounded-full bg-[#f97316]" />
-                  <div>
-                    <p className="font-medium text-slate-700">F1 Score</p>
-                    <p className="text-sm text-slate-600">The harmonic mean of precision and recall. A balanced measure that considers both false positives and negatives.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-3 h-3 mt-1.5 rounded-full bg-[#3b82f6]" />
-                  <div>
-                    <p className="font-medium text-slate-700">Accuracy</p>
-                    <p className="text-sm text-slate-600">The overall correct predictions. Note: Can be misleading with imbalanced classes.</p>
+
+                {/* Sentiment Categories - Left */}
+                <div>
+                  <h4 className="font-medium text-slate-800 mb-3">Sentiment Categories</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {labels.map((label) => (
+                      <Badge
+                        key={label}
+                        variant="outline"
+                        className="flex items-center gap-1"
+                        style={{
+                          borderColor: getSentimentColor(label),
+                          color: getSentimentColor(label)
+                        }}
+                      >
+                        {label}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="mb-6">
-              <h4 className="font-medium text-slate-800 mb-3">Reading the Confusion Matrix</h4>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li>• Each cell shows the percentage (and count) of predictions</li>
-                <li>• Diagonal cells (top-left to bottom-right) show correct predictions</li>
-                <li>• Off-diagonal cells show misclassifications</li>
-                <li>• Brighter colors indicate higher confidence in predictions</li>
-              </ul>
-            </div>
+              {/* Right column */}
+              <div>
+                {/* Accuracy - Right */}
+                <div className="mb-5">
+                  <h4 className="font-medium text-slate-800 mb-3">Accuracy Metrics</h4>
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-3 h-3 mt-1.5 rounded-full bg-[#3b82f6]" />
+                      <div>
+                        <p className="font-medium text-slate-700">Accuracy</p>
+                        <p className="text-sm text-slate-600">The overall correct predictions. Note: Can be misleading with imbalanced classes.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-            <div>
-              <h4 className="font-medium text-slate-800 mb-3">Sentiment Categories</h4>
-              <div className="flex flex-wrap gap-2">
-                {labels.map((label) => (
-                  <Badge
-                    key={label}
-                    variant="outline"
-                    className="flex items-center gap-1"
-                    style={{
-                      borderColor: getSentimentColor(label),
-                      color: getSentimentColor(label)
-                    }}
-                  >
-                    {label}
-                  </Badge>
-                ))}
+                {/* Reading the Confusion Matrix - Right */}
+                <div>
+                  <h4 className="font-medium text-slate-800 mb-3">Reading the Confusion Matrix</h4>
+                  <ul className="space-y-2 text-sm text-slate-600">
+                    <li>• Each cell shows the percentage (and count) of predictions</li>
+                    <li>• Diagonal cells (top-left to bottom-right) show correct predictions</li>
+                    <li>• Off-diagonal cells show misclassifications</li>
+                    <li>• Brighter colors indicate higher confidence in predictions</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
