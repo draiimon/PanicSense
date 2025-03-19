@@ -63,9 +63,9 @@ export function ConfusionMatrix({
         const actualIdx = labels.findIndex(label => label === actualSentiment);
         if (actualIdx === -1) return; // Skip if sentiment not in our labels
         
-        // Determine if this post was correctly classified based on confidence
-        // Higher confidence means higher chance of correct classification
-        const correctlyClassified = Math.random() < confidence;
+        // Use a deterministic approach based on post ID and confidence
+        // This ensures consistent results on refresh
+        const correctlyClassified = confidence > 0.75;
         
         if (correctlyClassified) {
           // Correct classification - increment diagonal cell
@@ -88,16 +88,15 @@ export function ConfusionMatrix({
           const totalWeight = weights.reduce((sum, w) => sum + w, 0);
           const normalizedWeights = weights.map(w => w / totalWeight);
           
-          // Choose prediction based on weights
-          const rand = Math.random();
-          let cumulativeProb = 0;
+          // Use a deterministic approach based on the actual index
+          // Choose the label with the highest weight (nearest to actual sentiment)
           let predictedIdx = -1;
+          let highestWeight = -1;
           
           for (let i = 0; i < normalizedWeights.length; i++) {
-            cumulativeProb += normalizedWeights[i];
-            if (rand <= cumulativeProb) {
+            if (normalizedWeights[i] > highestWeight) {
+              highestWeight = normalizedWeights[i];
               predictedIdx = i;
-              break;
             }
           }
           
@@ -160,15 +159,12 @@ export function ConfusionMatrix({
             remainingErrors -= errors;
           }
           
-          // If any errors left, add to a random column
+          // If any errors left, distribute them systematically
           if (remainingErrors > 0) {
-            // Find column with lowest errors that isn't the diagonal
-            const minErrorCol = newMatrix[idx]
-              .map((val, i) => i === idx ? Infinity : val)
-              .reduce((minIdx, val, i) => val < newMatrix[idx][minIdx] ? i : minIdx, 
-                     idx === 0 ? 1 : 0);
-            
-            newMatrix[idx][minErrorCol] += remainingErrors;
+            // Find the next nearest sentiment (cyclically) to distribute errors to
+            // This ensures consistent distribution of remaining errors
+            const nextIdx = (idx + 1) % labels.length;
+            newMatrix[idx][nextIdx] += remainingErrors;
           }
         } else if (currentTotal > 0 && currentTotal !== actualCount) {
           // Scale the row to match the actual count
@@ -389,20 +385,45 @@ export function ConfusionMatrix({
                   </div>
                 </div>
                 
-                {/* Model Accuracy */}
+                {/* Model Accuracy - Using metrics from selected file */}
                 <div className="bg-white px-4 py-3 rounded-md shadow-sm border border-slate-200">
                   <h4 className="text-xs font-semibold text-slate-700 mb-2">Model Performance</h4>
                   <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+                    {/* Metrics from file if available, otherwise calculate from matrix */}
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-slate-600">Accuracy:</span>
                       <span className="text-xs font-semibold text-slate-800">
-                        {(matrix.reduce((sum, row, idx) => sum + (row[idx] || 0), 0) / totalSamples * 100).toFixed(1)}%
+                        {metrics?.accuracy 
+                          ? (metrics.accuracy * 100).toFixed(1) 
+                          : (matrix.reduce((sum, row, idx) => sum + (row[idx] || 0), 0) / totalSamples * 100).toFixed(1)
+                        }%
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-600">Error Rate:</span>
+                      <span className="text-xs text-slate-600">Precision:</span>
                       <span className="text-xs font-semibold text-slate-800">
-                        {(100 - (matrix.reduce((sum, row, idx) => sum + (row[idx] || 0), 0) / totalSamples * 100)).toFixed(1)}%
+                        {metrics?.precision 
+                          ? (metrics.precision * 100).toFixed(1) 
+                          : "N/A"
+                        }%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-slate-600">Recall:</span>
+                      <span className="text-xs font-semibold text-slate-800">
+                        {metrics?.recall 
+                          ? (metrics.recall * 100).toFixed(1) 
+                          : "N/A"
+                        }%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-slate-600">F1 Score:</span>
+                      <span className="text-xs font-semibold text-slate-800">
+                        {metrics?.f1Score 
+                          ? (metrics.f1Score * 100).toFixed(1) 
+                          : "N/A"
+                        }%
                       </span>
                     </div>
                   </div>
