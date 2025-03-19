@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDisasterContext } from "@/context/disaster-context";
 import { getAnalyzedFile, getSentimentPostsByFileId, getSentimentPosts } from "@/lib/api";
@@ -6,15 +6,13 @@ import { ConfusionMatrix } from "@/components/evaluation/confusion-matrix";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileUploader } from "@/components/file-uploader";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { DatabaseIcon, BarChart3Icon, FileTextIcon } from "lucide-react";
+import { DatabaseIcon, FileTextIcon } from "lucide-react";
 
 export default function Evaluation() {
   const { analyzedFiles, isLoadingAnalyzedFiles, sentimentPosts: allSentimentPosts } = useDisasterContext();
   const [selectedFileId, setSelectedFileId] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<string>("confusion");
   const [totalRecords, setTotalRecords] = useState<number>(0);
 
   // Fetch metrics for selected file
@@ -46,15 +44,6 @@ export default function Evaluation() {
     queryFn: () => getSentimentPosts(),
     enabled: selectedFileId === "all"
   });
-
-  // Calculate total records analyzed
-  useEffect(() => {
-    if (selectedFileId === "all") {
-      setTotalRecords(allSentimentPosts?.length || 0);
-    } else if (selectedFile) {
-      setTotalRecords(selectedFile.recordCount);
-    }
-  }, [selectedFileId, selectedFile, allSentimentPosts]);
 
   const isLoading = 
     isLoadingAnalyzedFiles || 
@@ -136,7 +125,7 @@ export default function Evaluation() {
                 <SelectContent>
                   <SelectItem value="all" className="font-medium text-blue-600">
                     <div className="flex items-center">
-                      <BarChart3Icon className="h-4 w-4 mr-2" />
+                      <DatabaseIcon className="h-4 w-4 mr-2" />
                       All Datasets ({allSentimentPosts?.length || 0} total records)
                     </div>
                   </SelectItem>
@@ -148,68 +137,28 @@ export default function Evaluation() {
                   ))}
                 </SelectContent>
               </Select>
-
-              {selectedFileId && (
-                <motion.div 
-                  className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg shadow-sm border border-blue-100">
-                    <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">Dataset</p>
-                    <p className="text-sm font-medium text-slate-800 truncate mt-1">
-                      {isAll ? "Combined Analysis (All Datasets)" : name}
-                    </p>
-                  </div>
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg shadow-sm border border-green-100">
-                    <p className="text-xs text-green-600 font-medium uppercase tracking-wide">Records</p>
-                    <p className="text-sm font-medium text-slate-800 mt-1">{totalRecords} entries</p>
-                  </div>
-                  <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 p-4 rounded-lg shadow-sm border border-purple-100">
-                    <p className="text-xs text-purple-600 font-medium uppercase tracking-wide">Analysis Type</p>
-                    <p className="text-sm font-medium text-slate-800 mt-1">
-                      {isAll 
-                        ? "Aggregate sentiment analysis across all files" 
-                        : `Individual file analysis (${new Date(selectedFile?.timestamp || "").toLocaleDateString()})`
-                      }
-                    </p>
-                  </div>
-                </motion.div>
-              )}
             </div>
           )}
         </CardContent>
       </Card>
 
       {selectedFileId && (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-1 w-full max-w-md mx-auto bg-slate-100 p-1 rounded-lg">
-            <TabsTrigger value="confusion" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm">
-              Performance Matrix & Metrics
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="confusion">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              {/* Dynamic Confusion Matrix */}
-              <ConfusionMatrix 
-                fileId={selectedFileId !== "all" ? parseInt(selectedFileId) : undefined}
-                confusionMatrix={selectedFile?.evaluationMetrics?.confusionMatrix}
-                title={isAll ? "Aggregate Sentiment Analysis Performance" : "Sentiment Analysis Performance"}
-                description={isAll 
-                  ? "Detailed model prediction accuracy and metrics across all datasets" 
-                  : `Detailed model prediction accuracy and metrics for ${name}`
-                }
-                allDatasets={selectedFileId === "all"}
-              />
-            </motion.div>
-          </TabsContent>
-        </Tabs>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <ConfusionMatrix 
+            fileId={selectedFileId !== "all" ? parseInt(selectedFileId) : undefined}
+            confusionMatrix={selectedFile?.evaluationMetrics?.confusionMatrix}
+            title={isAll ? "Sentiment Analysis Performance" : "Sentiment Analysis Performance"}
+            description={isAll 
+              ? "Detailed model prediction accuracy and metrics across all datasets" 
+              : `Detailed model prediction accuracy and metrics for ${name}`
+            }
+            allDatasets={selectedFileId === "all"}
+          />
+        </motion.div>
       )}
     </div>
   );
