@@ -58,21 +58,18 @@ export function ConfusionMatrix({
         const mainIdx = labels.findIndex(label => label === mainSentiment);
         if (mainIdx === -1) return;
 
-        // Enhanced confidence calculation for mixed sentiments
         const postSentiments: Record<string, number> = {
           [mainSentiment]: confidence
         };
 
-        // Weight the primary sentiment more heavily
-        newMatrix[mainIdx][mainIdx] += confidence * 1.2; // Boost correct predictions
+        newMatrix[mainIdx][mainIdx] += confidence * 1.2;
 
         if (confidence < 1) {
           const remainingConfidence = 1 - confidence;
-          // Improved distribution for secondary sentiments
           const weights = labels.map((_, idx) => {
             if (idx === mainIdx) return 0;
             const distance = Math.abs(idx - mainIdx);
-            return remainingConfidence / (distance + 1.5); // Adjusted weight distribution
+            return remainingConfidence / (distance + 1.5);
           });
 
           const totalWeight = weights.reduce((sum, w) => sum + w, 0);
@@ -80,7 +77,7 @@ export function ConfusionMatrix({
 
           labels.forEach((label, idx) => {
             if (idx !== mainIdx) {
-              const secondaryConfidence = remainingConfidence * normalizedWeights[idx] * 0.8; // Reduced impact of secondary sentiments
+              const secondaryConfidence = remainingConfidence * normalizedWeights[idx] * 0.8;
               newMatrix[mainIdx][idx] += secondaryConfidence;
               postSentiments[label] = secondaryConfidence;
             }
@@ -98,7 +95,6 @@ export function ConfusionMatrix({
       });
     }
 
-    // Calculate metrics based on actual confusion matrix values
     const metrics = labels.map((_, idx) => {
       const truePositive = newMatrix[idx][idx];
       const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
@@ -108,24 +104,35 @@ export function ConfusionMatrix({
       const precision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
       const recall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
       const f1 = precision + recall === 0 ? 0 : (2 * (precision * recall) / (precision + recall));
-
-      // Calculate accuracy considering the primary predictions
       const accuracy = totalSum === 0 ? 0 : (truePositive / totalSum) * 100;
 
       return {
         sentiment: labels[idx],
-        precision: precision,
-        recall: recall,
+        precision,
+        recall,
         f1Score: f1,
-        accuracy: accuracy
+        accuracy
       };
     });
+
+    if (fileId && !allDatasets) {
+      const evaluationMetrics = {
+        accuracy: metrics.reduce((sum, m) => sum + m.accuracy, 0) / metrics.length,
+        precision: metrics.reduce((sum, m) => sum + m.precision, 0) / metrics.length,
+        recall: metrics.reduce((sum, m) => sum + m.recall, 0) / metrics.length,
+        f1Score: metrics.reduce((sum, m) => sum + m.f1Score, 0) / metrics.length,
+        confusionMatrix: newMatrix
+      };
+
+      apiRequest('PATCH', `/api/analyzed-files/${fileId}/metrics`, evaluationMetrics)
+        .catch(console.error);
+    }
 
     setMatrix(newMatrix);
     setSentimentData(newSentimentData);
     setMetricsData(metrics);
     setIsMatrixCalculated(true);
-  }, [sentimentPosts, labels, initialMatrix, isLoading, allDatasets]);
+  }, [sentimentPosts, labels, initialMatrix, isLoading, allDatasets, fileId]);
 
   if (isLoading || !isMatrixCalculated) {
     return (

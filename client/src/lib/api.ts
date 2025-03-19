@@ -24,19 +24,21 @@ export interface DisasterEvent {
   sentimentImpact: string | null;
 }
 
+interface EvaluationMetrics {
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1Score: number;
+  confusionMatrix: number[][];
+}
+
 export interface AnalyzedFile {
   id: number;
   originalName: string;
   storedName: string;
   timestamp: string;
   recordCount: number;
-  evaluationMetrics: {
-    accuracy: number;
-    precision: number;
-    recall: number;
-    f1Score: number;
-    confusionMatrix: number[][];
-  } | null;
+  evaluationMetrics: EvaluationMetrics | null;
 }
 
 export interface UploadProgress {

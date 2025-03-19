@@ -38,7 +38,8 @@ export interface IStorage {
   createAnalyzedFile(file: InsertAnalyzedFile): Promise<AnalyzedFile>;
   deleteAnalyzedFile(id: number): Promise<void>;
   deleteAllAnalyzedFiles(): Promise<void>;
-  
+  updateFileMetrics(fileId: number, metrics: any): Promise<void>;
+
   // Delete All Data
   deleteAllData(): Promise<void>;
 }
@@ -124,12 +125,12 @@ export class DatabaseStorage implements IStorage {
       .values(posts)
       .returning();
   }
-  
+
   async deleteSentimentPost(id: number): Promise<void> {
     await db.delete(sentimentPosts)
       .where(eq(sentimentPosts.id, id));
   }
-  
+
   async deleteSentimentPostsByFileId(fileId: number): Promise<void> {
     await db.delete(sentimentPosts)
       .where(eq(sentimentPosts.fileId, fileId));
@@ -161,35 +162,41 @@ export class DatabaseStorage implements IStorage {
 
   async createAnalyzedFile(file: InsertAnalyzedFile): Promise<AnalyzedFile> {
     const [result] = await db.insert(analyzedFiles)
-      .values(file)
+      .values({
+        ...file,
+        evaluationMetrics: JSON.stringify(file.evaluationMetrics || null)
+      })
       .returning();
     return result;
   }
-  
+
   async deleteAnalyzedFile(id: number): Promise<void> {
-    // First delete all sentiment posts associated with this file
     await this.deleteSentimentPostsByFileId(id);
-    
-    // Then delete the analyzed file
     await db.delete(analyzedFiles)
       .where(eq(analyzedFiles.id, id));
   }
-  
+  async updateFileMetrics(fileId: number, metrics: any): Promise<void> {
+    await db.update(analyzedFiles)
+      .set({
+        evaluationMetrics: JSON.stringify(metrics)
+      })
+      .where(eq(analyzedFiles.id, fileId));
+  }
+
   // Delete functions
   async deleteAllSentimentPosts(): Promise<void> {
     await db.delete(sentimentPosts);
   }
-  
+
   async deleteAllDisasterEvents(): Promise<void> {
     await db.delete(disasterEvents);
   }
-  
+
   async deleteAllAnalyzedFiles(): Promise<void> {
     await db.delete(analyzedFiles);
   }
-  
+
   async deleteAllData(): Promise<void> {
-    // Delete in order to respect foreign key constraints
     await this.deleteAllSentimentPosts();
     await this.deleteAllDisasterEvents();
     await this.deleteAllAnalyzedFiles();
