@@ -1,4 +1,3 @@
-
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
@@ -56,14 +55,4 @@ CREATE TABLE IF NOT EXISTS analyzed_files (
   record_count INTEGER NOT NULL,
   evaluation_metrics JSON,
   uploaded_by INTEGER REFERENCES users(id)
-);
-
--- Create profile_images table
-CREATE TABLE IF NOT EXISTS profile_images (
-  id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  role TEXT NOT NULL,
-  image_url TEXT NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
