@@ -256,9 +256,9 @@ class DisasterSentimentBackend:
         if len(top_disasters) == 1:
             return top_disasters[0]
         else:
-            # In case of tie, use order of priority for Philippines (typhoon > flood > earthquake > volcano > fire > landslide)
+            # In case of tie, use order of priority for Philippines (typhoon > flood > earthquake > volcanic eruptions > fire > landslide)
             priority_order = [
-                "Typhoon", "Flood", "Earthquake", "Volcano", "Fire",
+                "Typhoon", "Flood", "Earthquake", "Volcanic Eruptions", "Fire",
                 "Landslide"
             ]
             for disaster in priority_order:
@@ -494,7 +494,17 @@ class DisasterSentimentBackend:
                     Your task is to analyze the sentiment in text and categorize it into one of: 
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', or 'Neutral'.
                     Choose ONLY ONE category and provide a confidence score (0.0-1.0) and brief explanation.
-                    Also identify what type of disaster is mentioned and extract any location if present.
+                    
+                    Also identify what type of disaster is mentioned STRICTLY from this list with capitalized first letter:
+                    - Flood
+                    - Typhoon
+                    - Fire
+                    - Volcanic Eruptions
+                    - Earthquake
+                    - Landslide
+                    
+                    Extract any location if present, also with first letter capitalized.
+                    
                     Respond ONLY in JSON format: {"sentiment": "category", "confidence": score, "explanation": "explanation", "disasterType": "type", "location": "location"}"""
 
                 data = {
