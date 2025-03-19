@@ -39,11 +39,13 @@ export function ConfusionMatrix({
   useEffect(() => {
     if ((isLoading || !sentimentPosts) && !initialMatrix) return;
 
-    let newMatrix: number[][] = Array(labels.length).fill(0).map(() => Array(labels.length).fill(0));
+    // Initialize confusion matrix
+    let newMatrix: number[][] = initialMatrix 
+      ? initialMatrix.map(row => [...row])
+      : Array(labels.length).fill(0).map(() => Array(labels.length).fill(0));
 
-    if (initialMatrix) {
-      newMatrix = initialMatrix.map(row => [...row]);
-    } else if (sentimentPosts && sentimentPosts.length > 0) {
+    // If we have sentiment posts, build the matrix
+    if (!initialMatrix && sentimentPosts && sentimentPosts.length > 0) {
       sentimentPosts.forEach(post => {
         const mainSentiment = post.sentiment;
         const mainIdx = labels.findIndex(label => label === mainSentiment);
@@ -52,29 +54,38 @@ export function ConfusionMatrix({
       });
     }
 
-    // Calculate metrics for each sentiment category
+    // Calculate metrics directly from confusion matrix
     const metrics = labels.map((label, idx) => {
+      // True positives are diagonal elements
       const truePositive = newMatrix[idx][idx];
+
+      // Row sum represents actual instances of this class
       const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
+
+      // Column sum represents predicted instances of this class
       const colSum = newMatrix.reduce((sum, row) => sum + row[idx], 0);
 
-      // Calculate total predictions for accuracy
-      const totalPredictions = newMatrix.reduce((sum, row) => 
+      // Calculate total samples
+      const totalSamples = newMatrix.reduce((sum, row) => 
         sum + row.reduce((s, v) => s + v, 0), 0
       );
 
-      // Updated metric calculations
+      // Calculate metrics
       const precision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
       const recall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
       const f1Score = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
-      const accuracy = totalPredictions === 0 ? 0 : (truePositive / totalPredictions) * 100;
+      const accuracy = totalSamples === 0 ? 0 : 
+        ((newMatrix[idx][idx] + // True Positives
+          newMatrix.reduce((sum, row, i) => // True Negatives
+            sum + (i !== idx ? row.reduce((s, v, j) => s + (j !== idx ? v : 0), 0) : 0), 0)
+        ) / totalSamples) * 100;
 
       return {
         sentiment: label,
-        precision: Math.round(precision * 100) / 100,
-        recall: Math.round(recall * 100) / 100,
-        f1Score: Math.round(f1Score * 100) / 100,
-        accuracy: Math.round(accuracy * 100) / 100
+        precision: Math.round(precision * 10) / 10,
+        recall: Math.round(recall * 10) / 10,
+        f1Score: Math.round(f1Score * 10) / 10,
+        accuracy: Math.round(accuracy * 10) / 10
       };
     });
 
@@ -97,7 +108,7 @@ export function ConfusionMatrix({
 
   if (isLoading || !isMatrixCalculated) {
     return (
-      <Card className="bg-white rounded-lg shadow-md">
+      <Card className="bg-white rounded-lg shadow">
         <CardContent className="p-6 text-center">
           <div className="flex items-center justify-center h-40">
             <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -113,7 +124,7 @@ export function ConfusionMatrix({
 
   return (
     <div className="space-y-8">
-      {/* Performance Trends Chart */}
+      {/* Performance Metrics Bar Chart */}
       <Card className="bg-white rounded-lg shadow-md">
         <CardHeader className="px-6 py-4 border-b border-gray-200">
           <CardTitle className="text-lg font-semibold text-slate-800">Performance Metrics Bar Chart</CardTitle>
@@ -128,7 +139,9 @@ export function ConfusionMatrix({
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="sentiment" />
                 <YAxis domain={[0, 100]} />
-                <Tooltip />
+                <Tooltip 
+                  formatter={(value: number) => [`${value.toFixed(1)}%`]}
+                />
                 <Legend />
                 <Bar dataKey="precision" fill="#22c55e" name="Precision" />
                 <Bar dataKey="recall" fill="#8b5cf6" name="Recall" />
@@ -179,7 +192,7 @@ export function ConfusionMatrix({
                             style={{ backgroundColor: background, color: text }}
                           >
                             <div className="text-lg font-bold">{percentage.toFixed(1)}%</div>
-                            <div className="text-xs opacity-75">({value.toFixed(2)})</div>
+                            <div className="text-xs opacity-75">({value})</div>
                           </div>
                         </td>
                       );
@@ -192,83 +205,78 @@ export function ConfusionMatrix({
         </CardContent>
       </Card>
 
-      {/* Explanations Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Performance Metrics Explanation */}
+      {/* Metrics Understanding */}
+      <div className="grid grid-cols-1 gap-6">
         <Card className="bg-white rounded-lg shadow-md">
           <CardHeader className="px-6 py-4 border-b border-gray-200">
-            <CardTitle className="text-lg font-semibold text-slate-800">Understanding Performance Metrics</CardTitle>
+            <CardTitle className="text-lg font-semibold text-slate-800">Understanding the Metrics</CardTitle>
             <CardDescription className="text-sm text-slate-600">
-              How to interpret the performance trends chart
+              How to interpret the confusion matrix and performance metrics
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-3 h-3 rounded-full bg-[#22c55e] mt-1.5" />
-                <div>
-                  <p className="font-medium text-slate-800">Precision</p>
-                  <p className="text-sm text-slate-600">Of all predicted instances for each sentiment, what percentage was correct</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h3 className="font-medium text-slate-800">Performance Metrics</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-3 h-3 rounded-full bg-[#22c55e] mt-1.5" />
+                    <div>
+                      <p className="font-medium text-slate-800">Precision</p>
+                      <p className="text-sm text-slate-600">Of all predicted instances for each sentiment, what percentage was correct</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-3 h-3 rounded-full bg-[#8b5cf6] mt-1.5" />
+                    <div>
+                      <p className="font-medium text-slate-800">Recall</p>
+                      <p className="text-sm text-slate-600">Of all actual instances of each sentiment, what percentage was correctly identified</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-3 h-3 rounded-full bg-[#f97316] mt-1.5" />
+                    <div>
+                      <p className="font-medium text-slate-800">F1 Score</p>
+                      <p className="text-sm text-slate-600">Balanced measure between precision and recall (higher is better)</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-3 h-3 rounded-full bg-[#3b82f6] mt-1.5" />
+                    <div>
+                      <p className="font-medium text-slate-800">Accuracy</p>
+                      <p className="text-sm text-slate-600">Overall correct predictions for each sentiment category</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="w-3 h-3 rounded-full bg-[#8b5cf6] mt-1.5" />
-                <div>
-                  <p className="font-medium text-slate-800">Recall</p>
-                  <p className="text-sm text-slate-600">Of all actual instances of each sentiment, what percentage was correctly identified</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-3 h-3 rounded-full bg-[#f97316] mt-1.5" />
-                <div>
-                  <p className="font-medium text-slate-800">F1 Score</p>
-                  <p className="text-sm text-slate-600">Balanced measure between precision and recall (higher is better)</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-3 h-3 rounded-full bg-[#3b82f6] mt-1.5" />
-                <div>
-                  <p className="font-medium text-slate-800">Accuracy</p>
-                  <p className="text-sm text-slate-600">Overall correct predictions for each sentiment category</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Confusion Matrix Explanation */}
-        <Card className="bg-white rounded-lg shadow-md">
-          <CardHeader className="px-6 py-4 border-b border-gray-200">
-            <CardTitle className="text-lg font-semibold text-slate-800">Reading the Confusion Matrix</CardTitle>
-            <CardDescription className="text-sm text-slate-600">
-              How to interpret the sentiment confusion matrix
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-slate-800 mb-2">Sentiment Categories</h4>
-                <div className="flex flex-wrap gap-2">
-                  {labels.map((label) => (
-                    <Badge
-                      key={label}
-                      variant="outline"
-                      className="flex items-center gap-1"
-                      style={{
-                        borderColor: getSentimentColor(label),
-                        color: getSentimentColor(label)
-                      }}
-                    >
-                      {label}
-                    </Badge>
-                  ))}
+              <div className="space-y-4">
+                <h3 className="font-medium text-slate-800">Confusion Matrix</h3>
+                <div className="space-y-2">
+                  <p className="text-sm text-slate-600">• Each cell shows the percentage and count of predictions</p>
+                  <p className="text-sm text-slate-600">• The rows represent the true (actual) sentiment</p>
+                  <p className="text-sm text-slate-600">• The columns show what the model predicted</p>
+                  <p className="text-sm text-slate-600">• Diagonal cells (darker colors) show correct predictions</p>
+                  <p className="text-sm text-slate-600">• Higher percentages in diagonal cells indicate better performance</p>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-slate-600">• The matrix shows the relationship between predicted and actual sentiments</p>
-                <p className="text-sm text-slate-600">• Each cell shows the percentage (and count) of predictions</p>
-                <p className="text-sm text-slate-600">• Diagonal cells (darker colors) represent correct predictions</p>
-                <p className="text-sm text-slate-600">• Off-diagonal cells show misclassifications</p>
+                <div className="mt-4">
+                  <h4 className="font-medium text-slate-800 mb-2">Sentiment Categories</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {labels.map((label) => (
+                      <Badge
+                        key={label}
+                        variant="outline"
+                        className="flex items-center gap-1"
+                        style={{
+                          borderColor: getSentimentColor(label),
+                          color: getSentimentColor(label)
+                        }}
+                      >
+                        {label}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
