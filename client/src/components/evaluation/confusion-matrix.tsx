@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getSentimentPostsByFileId } from '@/lib/api';
 import { getSentimentColor } from '@/lib/colors';
 import { Badge } from '@/components/ui/badge';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 
 interface ConfusionMatrixProps {
   fileId?: number;
@@ -25,7 +25,6 @@ export function ConfusionMatrix({
   description = 'Real sentiment distribution with confidence scores',
   allDatasets = false
 }: ConfusionMatrixProps) {
-  // ... existing state and query setup ...
   const [matrix, setMatrix] = useState<number[][]>([]);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const [isMatrixCalculated, setIsMatrixCalculated] = useState(false);
@@ -37,14 +36,12 @@ export function ConfusionMatrix({
   }[]>([]);
   const [metricsData, setMetricsData] = useState<any[]>([]);
 
-  // Fetch sentiment posts if fileId is provided and not in allDatasets mode
   const { data: sentimentPosts, isLoading } = useQuery({
     queryKey: ['/api/sentiment-posts/file', fileId],
     queryFn: () => getSentimentPostsByFileId(fileId as number),
     enabled: !!fileId && !initialMatrix && !allDatasets
   });
 
-  // Process sentiment data and build confusion matrix
   useEffect(() => {
     if ((isLoading || !sentimentPosts) && !initialMatrix) return;
 
@@ -98,7 +95,6 @@ export function ConfusionMatrix({
       });
     }
 
-    // Calculate metrics for visualization
     const metrics = labels.map((_, idx) => {
       const truePositive = newMatrix[idx][idx];
       const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
@@ -160,52 +156,34 @@ export function ConfusionMatrix({
         <CardDescription className="text-sm text-slate-500">{description}</CardDescription>
       </CardHeader>
       <CardContent className="p-6">
-        <div className="space-y-6">
-          {/* Metrics Visualization */}
+        <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Performance Trends */}
             <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
-              <h3 className="text-lg font-semibold mb-2">Performance Trends</h3>
-              <p className="text-sm text-slate-600 mb-4">Key performance metrics across sentiment categories</p>
+              <h3 className="text-lg font-semibold mb-2">Performance Metrics</h3>
+              <p className="text-sm text-slate-600 mb-4">Performance metrics by sentiment category</p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={metricsData}>
+                  <BarChart data={metricsData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="sentiment" />
+                    <XAxis dataKey="sentiment" angle={-45} textAnchor="end" height={100} />
                     <YAxis domain={[0, 100]} />
-                    <Tooltip />
+                    <Tooltip 
+                      formatter={(value) => [`${Number(value).toFixed(1)}%`]}
+                      contentStyle={{ background: 'white', border: '1px solid #e2e8f0' }}
+                    />
                     <Legend />
-                    <Line type="monotone" dataKey="precision" stroke="#22c55e" name="Precision" />
-                    <Line type="monotone" dataKey="recall" stroke="#8b5cf6" name="Recall" />
-                    <Line type="monotone" dataKey="f1Score" stroke="#f97316" name="F1 Score" />
-                    <Line type="monotone" dataKey="accuracy" stroke="#3b82f6" name="Accuracy" />
-                  </LineChart>
+                    <Bar dataKey="precision" name="Precision" fill="#22c55e" />
+                    <Bar dataKey="recall" name="Recall" fill="#8b5cf6" />
+                    <Bar dataKey="f1Score" name="F1 Score" fill="#f97316" />
+                    <Bar dataKey="accuracy" name="Accuracy" fill="#3b82f6" />
+                  </BarChart>
                 </ResponsiveContainer>
-              </div>
-              <div className="mt-4 space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#22c55e]" />
-                  <p><span className="font-medium">Precision:</span> Of all predicted instances for each sentiment, what percentage was correct</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#8b5cf6]" />
-                  <p><span className="font-medium">Recall:</span> Of all actual instances of each sentiment, what percentage was correctly identified</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#f97316]" />
-                  <p><span className="font-medium">F1 Score:</span> Balanced measure between precision and recall (higher is better)</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#3b82f6]" />
-                  <p><span className="font-medium">Accuracy:</span> Overall correct predictions for each sentiment category</p>
-                </div>
               </div>
             </div>
 
-            {/* Metric Balance */}
             <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
               <h3 className="text-lg font-semibold mb-2">Metric Balance</h3>
-              <p className="text-sm text-slate-600 mb-4">Comparative view of precision vs recall across sentiments</p>
+              <p className="text-sm text-slate-600 mb-4">Comparative view across sentiments</p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={metricsData}>
@@ -221,65 +199,115 @@ export function ConfusionMatrix({
             </div>
           </div>
 
-          {/* Confusion Matrix */}
-          <div className="overflow-x-auto mt-6">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50">
-                  <th className="px-4 py-2 text-left">True Sentiment</th>
-                  {labels.map((label, idx) => (
-                    <th key={idx} className="px-4 py-2 text-center">{label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {matrix.map((row, rowIdx) => (
-                  <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                    <td className="px-4 py-2 font-medium">{labels[rowIdx]}</td>
-                    {row.map((value, colIdx) => {
-                      const { background, text } = getCellColor(rowIdx, colIdx, value);
-                      const percentage = (value / row.reduce((sum, val) => sum + val, 0) * 100) || 0;
-
-                      return (
-                        <td
-                          key={colIdx}
-                          className="px-4 py-2 relative"
-                          onMouseEnter={() => setHoveredCell({ row: rowIdx, col: colIdx })}
-                          onMouseLeave={() => setHoveredCell(null)}
-                        >
-                          <div
-                            className="rounded p-2 text-center transition-all duration-200"
-                            style={{ backgroundColor: background, color: text }}
-                          >
-                            <div className="text-lg font-bold">{percentage.toFixed(1)}%</div>
-                            <div className="text-xs opacity-75">({value.toFixed(2)})</div>
-                          </div>
-                        </td>
-                      );
-                    })}
+          <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+            <h3 className="text-lg font-semibold mb-2">Confusion Matrix</h3>
+            <p className="text-sm text-slate-600 mb-4">Sentiment prediction distribution</p>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="px-4 py-2 text-left">True Sentiment</th>
+                    {labels.map((label, idx) => (
+                      <th key={idx} className="px-4 py-2 text-center">{label}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {matrix.map((row, rowIdx) => (
+                    <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                      <td className="px-4 py-2 font-medium">{labels[rowIdx]}</td>
+                      {row.map((value, colIdx) => {
+                        const { background, text } = getCellColor(rowIdx, colIdx, value);
+                        const percentage = (value / row.reduce((sum, val) => sum + val, 0) * 100) || 0;
+
+                        return (
+                          <td
+                            key={colIdx}
+                            className="px-4 py-2 relative"
+                            onMouseEnter={() => setHoveredCell({ row: rowIdx, col: colIdx })}
+                            onMouseLeave={() => setHoveredCell(null)}
+                          >
+                            <div
+                              className="rounded p-2 text-center transition-all duration-200"
+                              style={{ backgroundColor: background, color: text }}
+                            >
+                              <div className="text-lg font-bold">{percentage.toFixed(1)}%</div>
+                              <div className="text-xs opacity-75">({value.toFixed(2)})</div>
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          {/* Legend */}
-          <div className="bg-slate-50 p-4 rounded-lg mt-4">
-            <h3 className="text-sm font-medium mb-2">Sentiment Legend</h3>
-            <div className="flex flex-wrap gap-2">
-              {labels.map((label) => (
-                <Badge
-                  key={label}
-                  variant="outline"
-                  className="flex items-center gap-1"
-                  style={{
-                    borderColor: getSentimentColor(label),
-                    color: getSentimentColor(label)
-                  }}
-                >
-                  {label}
-                </Badge>
-              ))}
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <h3 className="text-lg font-semibold mb-4">Understanding the Metrics</h3>
+
+            <div className="mb-6">
+              <h4 className="font-medium text-slate-800 mb-3">Performance Metrics</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-3 h-3 mt-1.5 rounded-full bg-[#22c55e]" />
+                  <div>
+                    <p className="font-medium text-slate-700">Precision</p>
+                    <p className="text-sm text-slate-600">When the model predicts a sentiment, how often is it correct? Higher precision means fewer false positives.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-3 h-3 mt-1.5 rounded-full bg-[#8b5cf6]" />
+                  <div>
+                    <p className="font-medium text-slate-700">Recall</p>
+                    <p className="text-sm text-slate-600">Of all actual instances of a sentiment, how many did we catch? Higher recall means fewer false negatives.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-3 h-3 mt-1.5 rounded-full bg-[#f97316]" />
+                  <div>
+                    <p className="font-medium text-slate-700">F1 Score</p>
+                    <p className="text-sm text-slate-600">The harmonic mean of precision and recall. A balanced measure that considers both false positives and negatives.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-3 h-3 mt-1.5 rounded-full bg-[#3b82f6]" />
+                  <div>
+                    <p className="font-medium text-slate-700">Accuracy</p>
+                    <p className="text-sm text-slate-600">The overall correct predictions. Note: Can be misleading with imbalanced classes.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h4 className="font-medium text-slate-800 mb-3">Reading the Confusion Matrix</h4>
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li>• Each cell shows the percentage (and count) of predictions</li>
+                <li>• Diagonal cells (top-left to bottom-right) show correct predictions</li>
+                <li>• Off-diagonal cells show misclassifications</li>
+                <li>• Brighter colors indicate higher confidence in predictions</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-slate-800 mb-3">Sentiment Categories</h4>
+              <div className="flex flex-wrap gap-2">
+                {labels.map((label) => (
+                  <Badge
+                    key={label}
+                    variant="outline"
+                    className="flex items-center gap-1"
+                    style={{
+                      borderColor: getSentimentColor(label),
+                      color: getSentimentColor(label)
+                    }}
+                  >
+                    {label}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
         </div>
