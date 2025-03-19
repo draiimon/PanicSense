@@ -115,7 +115,7 @@ class DisasterSentimentBackend:
 
         text_lower = text.lower()
 
-        # Only use these 6 specific disaster types:
+        # STRICTLY use these 6 specific disaster types with capitalized first letter:
         disaster_types = {
             "Earthquake": [
                 "earthquake", "quake", "tremor", "seismic", "lindol",
@@ -142,7 +142,7 @@ class DisasterSentimentBackend:
                 "fire fighter", "building fire", "fire alarm", "burning",
                 "nagliliyab", "sinusunog", "smoke", "usok"
             ],
-            "Volcano": [
+            "Volcanic Eruptions": [
                 "volcano", "eruption", "lava", "ash", "bulkan", "ashfall",
                 "magma", "volcanic", "bulkang", "active volcano",
                 "phivolcs alert", "taal", "mayon", "pinatubo",
