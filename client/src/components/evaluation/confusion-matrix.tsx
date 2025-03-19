@@ -45,8 +45,10 @@ export function ConfusionMatrix({
   });
   
   // Function to toggle visibility of metric on chart when clicked on legend
-  const handleLegendClick = (dataKey: any) => {
-    if (typeof dataKey === 'string') {
+  const handleLegendClick = (entry: any) => {
+    if (entry && entry.dataKey) {
+      const dataKey = entry.dataKey;
+      console.log('Legend clicked:', dataKey);
       setVisibleMetrics(prev => ({
         ...prev,
         [dataKey]: !prev[dataKey as keyof typeof prev]
@@ -307,7 +309,7 @@ export function ConfusionMatrix({
                       layout="horizontal" 
                       verticalAlign="bottom" 
                       wrapperStyle={{ paddingTop: "10px" }}
-                      onClick={(dataKey) => handleLegendClick(dataKey.dataKey)}
+                      onClick={(entry) => handleLegendClick(entry)}
                       formatter={(value, entry) => (
                         <span style={getLegendItemStyle(entry.dataKey as string)}>
                           {value}
@@ -361,7 +363,7 @@ export function ConfusionMatrix({
                       verticalAlign="bottom" 
                       align="center" 
                       wrapperStyle={{ cursor: "pointer" }}
-                      onClick={(dataKey) => handleLegendClick(dataKey.dataKey)}
+                      onClick={(entry) => handleLegendClick(entry)}
                       formatter={(value, entry) => (
                         <span style={getLegendItemStyle(entry.dataKey as string)}>
                           {value}
