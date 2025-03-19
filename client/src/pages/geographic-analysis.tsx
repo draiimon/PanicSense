@@ -296,10 +296,17 @@ export default function GeographicAnalysis() {
     return data;
   }, [sentimentPosts, detectedLocations]);
 
-  // Convert location data to regions for map, excluding UNKNOWN
+  // Convert location data to regions for map, include UNKNOWN if it has valid sentiment
   const regions = useMemo((): Region[] => {
     return Object.entries(locationData)
-      .filter(([name]) => name !== "UNKNOWN" && name !== "Unknown")
+      .filter(([name, data]) => {
+        // Include if location is known
+        if (name !== "UNKNOWN" && name !== "Unknown") return true;
+        
+        // Or include if it has valid sentiment data (like Panic)
+        const hasSentiment = Object.values(data.sentiments).some(count => count > 0);
+        return hasSentiment;
+      })
       .map(([name, data]) => {
       // Find dominant sentiment
       let maxCount = 0;
