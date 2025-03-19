@@ -392,9 +392,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/sentiment-posts', async (req: Request, res: Response) => {
     try {
       const posts = await storage.getSentimentPosts();
-      
-      // Send all posts without filtering
-      res.json(posts);
+      const filteredPosts = posts.filter(post => 
+        post.location !== "UNKNOWN" && 
+        post.location !== "Unknown" &&
+        post.disasterType !== "UNKNOWN" &&
+        post.disasterType !== "Not Specified"
+      );
+      res.json(filteredPosts);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch sentiment posts" });
     }
