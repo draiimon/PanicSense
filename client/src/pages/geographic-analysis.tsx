@@ -296,9 +296,11 @@ export default function GeographicAnalysis() {
     return data;
   }, [sentimentPosts, detectedLocations]);
 
-  // Convert location data to regions for map
+  // Convert location data to regions for map, excluding UNKNOWN
   const regions = useMemo((): Region[] => {
-    return Object.entries(locationData).map(([name, data]) => {
+    return Object.entries(locationData)
+      .filter(([name]) => name !== "UNKNOWN" && name !== "Unknown")
+      .map(([name, data]) => {
       // Find dominant sentiment
       let maxCount = 0;
       let dominantSentiment = "Neutral";
