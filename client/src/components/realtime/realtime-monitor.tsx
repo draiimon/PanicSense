@@ -319,7 +319,7 @@ export function RealtimeMonitor() {
                   </div>
 
                   <div className="mt-2 flex justify-between text-xs text-slate-500">
-                    <span>Confidence: {(item.confidence * 100).toFixed(1)}%</span>
+                    <span>Confidence: {(item.confidence * 100).toFixed(3)}%</span>
                     <span>{item.timestamp.toLocaleTimeString()}</span>
                   </div>
 
@@ -387,7 +387,7 @@ export function RealtimeMonitor() {
                 const text = analyzedTexts
                   .map(
                     (item) =>
-                      `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(1)}%) - Language: ${item.language === "tl" ? "Filipino" : "English"}`,
+                      `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(3)}%) - Language: ${item.language === "tl" ? "Filipino" : "English"}`,
                   )
                   .join("\n");
                 navigator.clipboard.writeText(text);
