@@ -2,7 +2,8 @@ import { users, type User, type InsertUser,
   sentimentPosts, type SentimentPost, type InsertSentimentPost,
   disasterEvents, type DisasterEvent, type InsertDisasterEvent,
   analyzedFiles, type AnalyzedFile, type InsertAnalyzedFile,
-  sessions, type LoginUser
+  sessions, type LoginUser,
+  profileImages, type ProfileImage, type InsertProfileImage
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -39,6 +40,10 @@ export interface IStorage {
   deleteAnalyzedFile(id: number): Promise<void>;
   deleteAllAnalyzedFiles(): Promise<void>;
   updateFileMetrics(fileId: number, metrics: any): Promise<void>;
+
+  // Profile Images
+  getProfileImages(): Promise<ProfileImage[]>;
+  createProfileImage(profile: InsertProfileImage): Promise<ProfileImage>;
 
   // Delete All Data
   deleteAllData(): Promise<void>;
@@ -194,6 +199,18 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAllAnalyzedFiles(): Promise<void> {
     await db.delete(analyzedFiles);
+  }
+
+  // Profile Images
+  async getProfileImages(): Promise<ProfileImage[]> {
+    return db.select().from(profileImages);
+  }
+
+  async createProfileImage(profile: InsertProfileImage): Promise<ProfileImage> {
+    const [result] = await db.insert(profileImages)
+      .values(profile)
+      .returning();
+    return result;
   }
 
   async deleteAllData(): Promise<void> {

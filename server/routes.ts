@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import path from "path";
 import multer from "multer";
+import fs from "fs";
 import { pythonService, pythonConsoleMessages } from "./python-service";
 import { insertSentimentPostSchema, insertAnalyzedFileSchema } from "@shared/schema";
 import { usageTracker } from "./utils/usage-tracker";
@@ -988,6 +989,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add CSV export endpoint with formatted columns
+  // Profile Image Routes
+  app.get('/api/profile-images', async (req: Request, res: Response) => {
+    try {
+      const profiles = await storage.getProfileImages();
+      res.json(profiles);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch profile images" });
+    }
+  });
+
+  app.post('/api/profile-images', upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image uploaded" });
+      }
+
+      const { name, role, description } = req.body;
+      
+      // Save image to attached_assets
+      const fileName = `profile-${Date.now()}-${req.file.originalname}`;
+      const filePath = path.join(process.cwd(), 'attached_assets', fileName);
+      fs.writeFileSync(filePath, req.file.buffer);
+
+      const profile = await storage.createProfileImage({
+        name,
+        role,
+        imageUrl: `/assets/${fileName}`,
+        description
+      });
+
+      res.json(profile);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create profile image" });
+    }
+  });
+
   app.get('/api/export-csv', async (req: Request, res: Response) => {
     try {
       const posts = await storage.getSentimentPosts();

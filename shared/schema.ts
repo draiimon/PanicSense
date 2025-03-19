@@ -2,6 +2,20 @@ import { pgTable, text, serial, integer, boolean, timestamp, real, json } from "
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Profile Images Table
+export const profileImages = pgTable("profile_images", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  role: text("role").notNull(),
+  imageUrl: text("image_url").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const insertProfileImageSchema = createInsertSchema(profileImages);
+export type ProfileImage = typeof profileImages.$inferSelect;
+export type InsertProfileImage = z.infer<typeof insertProfileImageSchema>;
+
 // Authentication Tables
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
