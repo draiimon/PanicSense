@@ -57,10 +57,20 @@ export function ConfusionMatrix({
     if (entry && entry.dataKey) {
       const dataKey = entry.dataKey;
       console.log('Bar legend clicked:', dataKey);
-      setBarChartMetrics(prev => ({
-        ...prev,
-        [dataKey]: !prev[dataKey as keyof typeof prev]
-      }));
+      
+      // DO NOT HIDE ELEMENTS - only adjust their opacity
+      // Always keep at least one metric visible
+      const wouldHideAll = 
+        Object.entries(barChartMetrics)
+          .filter(([key, value]) => key !== dataKey && value)
+          .length === 0 && barChartMetrics[dataKey as keyof typeof barChartMetrics];
+      
+      if (!wouldHideAll) {
+        setBarChartMetrics(prev => ({
+          ...prev,
+          [dataKey]: !prev[dataKey as keyof typeof prev]
+        }));
+      }
     }
   };
   
@@ -69,10 +79,20 @@ export function ConfusionMatrix({
     if (entry && entry.dataKey) {
       const dataKey = entry.dataKey;
       console.log('Radar legend clicked:', dataKey);
-      setRadarChartMetrics(prev => ({
-        ...prev,
-        [dataKey]: !prev[dataKey as keyof typeof prev]
-      }));
+      
+      // DO NOT HIDE ELEMENTS - only adjust their opacity
+      // Always keep at least one metric visible
+      const wouldHideAll = 
+        Object.entries(radarChartMetrics)
+          .filter(([key, value]) => key !== dataKey && value)
+          .length === 0 && radarChartMetrics[dataKey as keyof typeof radarChartMetrics];
+      
+      if (!wouldHideAll) {
+        setRadarChartMetrics(prev => ({
+          ...prev,
+          [dataKey]: !prev[dataKey as keyof typeof prev]
+        }));
+      }
     }
   };
   
@@ -81,7 +101,11 @@ export function ConfusionMatrix({
     return {
       cursor: 'pointer',
       opacity: barChartMetrics[dataKey as keyof typeof barChartMetrics] ? 1 : 0.5,
-      textDecoration: barChartMetrics[dataKey as keyof typeof barChartMetrics] ? 'none' : 'line-through'
+      fontWeight: barChartMetrics[dataKey as keyof typeof barChartMetrics] ? 'bold' : 'normal',
+      textDecoration: barChartMetrics[dataKey as keyof typeof barChartMetrics] ? 'none' : 'line-through',
+      background: barChartMetrics[dataKey as keyof typeof barChartMetrics] ? 'transparent' : '#f0f0f0',
+      padding: '2px 8px',
+      borderRadius: '4px'
     };
   };
   
@@ -90,7 +114,11 @@ export function ConfusionMatrix({
     return {
       cursor: 'pointer',
       opacity: radarChartMetrics[dataKey as keyof typeof radarChartMetrics] ? 1 : 0.5,
-      textDecoration: radarChartMetrics[dataKey as keyof typeof radarChartMetrics] ? 'none' : 'line-through'
+      fontWeight: radarChartMetrics[dataKey as keyof typeof radarChartMetrics] ? 'bold' : 'normal',
+      textDecoration: radarChartMetrics[dataKey as keyof typeof radarChartMetrics] ? 'none' : 'line-through',
+      background: radarChartMetrics[dataKey as keyof typeof radarChartMetrics] ? 'transparent' : '#f0f0f0',
+      padding: '2px 8px',
+      borderRadius: '4px'
     };
   };
 
