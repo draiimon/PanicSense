@@ -24,7 +24,7 @@ export function ConfusionMatrix({
   confusionMatrix: initialMatrix,
   labels = defaultLabels,
   title = 'Confusion Matrix',
-  description = 'Real sentiment distribution based on data analysis',
+  description = 'Real sentiment distribution with confidence scores',
   allDatasets = false,
   metrics
 }: ConfusionMatrixProps) {
@@ -32,7 +32,7 @@ export function ConfusionMatrix({
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const [isMatrixCalculated, setIsMatrixCalculated] = useState(false);
   const [sentimentData, setSentimentData] = useState<{
-    id: number;
+    id: string;
     mainSentiment: string;
     confidence: number;
     mixedSentiments: Record<string, number>;
@@ -57,41 +57,27 @@ export function ConfusionMatrix({
       // Use provided matrix directly
       newMatrix = initialMatrix.map(row => [...row]);
     } else if (sentimentPosts && sentimentPosts.length > 0) {
-      // Create counts for each sentiment
-      const sentimentCounts: Record<string, number> = {};
-      labels.forEach(label => {
-        sentimentCounts[label] = 0;
-      });
-
-      // First pass: Count total occurrences of each sentiment
       sentimentPosts.forEach(post => {
         const mainSentiment = post.sentiment;
-        if (mainSentiment in sentimentCounts) {
-          sentimentCounts[mainSentiment]++;
-        }
-      });
+        const confidence = post.confidence || 1;
 
-      // Second pass: Build the matrix and track mixed sentiments
-      sentimentPosts.forEach(post => {
-        const mainSentiment = post.sentiment;
+        // Find index of main sentiment
         const mainIdx = labels.findIndex(label => label === mainSentiment);
         if (mainIdx === -1) return;
 
-        const confidence = post.confidence || 1;
-
-        // For primary sentiment, always count as 1 (real count)
-        newMatrix[mainIdx][mainIdx]++;
-
-        // Track mixed sentiments for visualization
-        const mixedSentiments: Record<string, number> = {
+        // Track this post's sentiment data
+        const postSentiments: Record<string, number> = {
           [mainSentiment]: confidence
         };
 
-        // If confidence < 1, distribute remaining for visualization
+        // Update main sentiment in matrix
+        newMatrix[mainIdx][mainIdx] += confidence;
+
+        // If confidence < 1, distribute remaining confidence
         if (confidence < 1) {
           const remainingConfidence = 1 - confidence;
 
-          // Calculate distribution weights
+          // Calculate distribution weights based on semantic similarity
           const weights = labels.map((_, idx) => {
             if (idx === mainIdx) return 0;
             const distance = Math.abs(idx - mainIdx);
@@ -102,21 +88,22 @@ export function ConfusionMatrix({
           const totalWeight = weights.reduce((sum, w) => sum + w, 0);
           const normalizedWeights = weights.map(w => w / totalWeight);
 
-          // Distribute remaining confidence for mixed sentiment display
+          // Distribute remaining confidence
           labels.forEach((label, idx) => {
             if (idx !== mainIdx) {
               const secondaryConfidence = remainingConfidence * normalizedWeights[idx];
-              mixedSentiments[label] = secondaryConfidence;
+              newMatrix[mainIdx][idx] += secondaryConfidence;
+              postSentiments[label] = secondaryConfidence;
             }
           });
         }
 
-        // Store sentiment data for hover details
+        // Store individual post data for detailed view
         newSentimentData.push({
           id: post.id,
           mainSentiment,
           confidence,
-          mixedSentiments
+          mixedSentiments: postSentiments
         });
       });
     }
@@ -132,14 +119,14 @@ export function ConfusionMatrix({
     if (rowIdx === colIdx) {
       return { background: baseColor, text: '#ffffff' };
     }
-    const opacity = Math.min(0.7, value / Math.max(...matrix[rowIdx], 1));
+    const opacity = Math.min(0.7, value);
     return {
       background: `${baseColor}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`,
       text: opacity > 0.4 ? '#ffffff' : '#333333'
     };
   };
 
-  // Calculate totals
+  // Calculate row totals (should sum to number of posts)
   const rowTotals = matrix.map(row => row.reduce((sum, val) => sum + val, 0));
   const colTotals = labels.map((_, colIdx) => matrix.reduce((sum, row) => sum + row[colIdx], 0));
   const totalSamples = rowTotals.reduce((sum, val) => sum + val, 0);
@@ -147,6 +134,10 @@ export function ConfusionMatrix({
   if (isLoading || !isMatrixCalculated) {
     return (
       <Card className="bg-white rounded-lg shadow-md">
+        <CardHeader className="px-6 py-4 border-b border-gray-200">
+          <CardTitle className="text-lg font-semibold text-slate-800">{title}</CardTitle>
+          <CardDescription className="text-sm text-slate-500">{description}</CardDescription>
+        </CardHeader>
         <CardContent className="p-6 text-center">
           <div className="flex items-center justify-center h-40">
             <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -185,7 +176,13 @@ export function ConfusionMatrix({
                   <td className="px-4 py-2 font-medium">{labels[rowIdx]}</td>
                   {row.map((value, colIdx) => {
                     const { background, text } = getCellColor(rowIdx, colIdx, value);
-                    const percentage = rowTotals[rowIdx] ? (value / rowTotals[rowIdx] * 100) : 0;
+                    const percentage = (value / rowTotals[rowIdx] * 100) || 0;
+
+                    // Find posts that contribute to this cell
+                    const relevantPosts = sentimentData.filter(post => {
+                      return post.mainSentiment === labels[rowIdx] && 
+                             post.mixedSentiments[labels[colIdx]] > 0;
+                    });
 
                     return (
                       <td
@@ -198,54 +195,51 @@ export function ConfusionMatrix({
                           className="rounded p-2 text-center"
                           style={{ backgroundColor: background, color: text }}
                         >
-                          <div className="font-bold">{value}</div>
+                          <div className="font-bold">{value.toFixed(2)}</div>
                           <div className="text-xs">{percentage.toFixed(1)}%</div>
                         </div>
 
-                        {/* Tooltip */}
-                        {hoveredCell?.row === rowIdx && hoveredCell?.col === colIdx && (
+                        {/* Detailed tooltip */}
+                        {hoveredCell?.row === rowIdx && hoveredCell?.col === colIdx && relevantPosts.length > 0 && (
                           <div className="absolute z-50 bg-white p-3 rounded-lg shadow-lg border border-gray-200 min-w-[250px] -translate-y-full left-1/2 -translate-x-1/2">
                             <div className="font-medium mb-2">Sentiment Distribution</div>
                             <div className="space-y-2">
-                              {sentimentData
-                                .filter(data => data.mainSentiment === labels[rowIdx])
-                                .slice(0, 5)
-                                .map((post, i) => (
-                                  <div key={post.id} className="text-xs">
-                                    <div className="font-medium text-slate-700 mb-1">Sample {i + 1}</div>
-                                    <div className="flex flex-wrap gap-1">
-                                      {Object.entries(post.mixedSentiments).map(([sentiment, conf]) => (
-                                        <Badge
-                                          key={sentiment}
-                                          variant="outline"
-                                          className="text-xs"
-                                          style={{
-                                            borderColor: getSentimentColor(sentiment),
-                                            color: getSentimentColor(sentiment)
-                                          }}
-                                        >
-                                          {sentiment}: {(conf * 100).toFixed(1)}%
-                                        </Badge>
-                                      ))}
-                                    </div>
+                              {relevantPosts.map((post, i) => (
+                                <div key={post.id} className="text-xs">
+                                  <div className="font-medium text-slate-700 mb-1">Sample {i + 1}</div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {Object.entries(post.mixedSentiments).map(([sentiment, conf]) => (
+                                      <Badge
+                                        key={sentiment}
+                                        variant="outline"
+                                        className="text-xs"
+                                        style={{
+                                          borderColor: getSentimentColor(sentiment),
+                                          color: getSentimentColor(sentiment)
+                                        }}
+                                      >
+                                        {sentiment}: {(conf * 100).toFixed(1)}%
+                                      </Badge>
+                                    ))}
                                   </div>
-                                ))}
+                                </div>
+                              ))}
                             </div>
                           </div>
                         )}
                       </td>
                     );
                   })}
-                  <td className="px-4 py-2 text-center font-medium">{rowTotals[rowIdx]}</td>
+                  <td className="px-4 py-2 text-center font-medium">{rowTotals[rowIdx].toFixed(2)}</td>
                 </tr>
               ))}
               {/* Totals row */}
               <tr className="bg-slate-100 font-medium">
                 <td className="px-4 py-2">Total</td>
                 {colTotals.map((total, idx) => (
-                  <td key={idx} className="px-4 py-2 text-center">{total}</td>
+                  <td key={idx} className="px-4 py-2 text-center">{total.toFixed(2)}</td>
                 ))}
-                <td className="px-4 py-2 text-center">{totalSamples}</td>
+                <td className="px-4 py-2 text-center">{totalSamples.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
@@ -276,9 +270,9 @@ export function ConfusionMatrix({
             <h3 className="text-sm font-medium mb-2">Matrix Information</h3>
             <div className="space-y-1 text-sm">
               <p>• Numbers show actual sentiment counts from data</p>
-              <p>• Main diagonal shows primary sentiment counts</p>
-              <p>• Hover over cells to see confidence distribution</p>
-              <p>• Totals show overall sentiment distribution</p>
+              <p>• Diagonal cells show primary sentiment confidence</p>
+              <p>• Off-diagonal cells show mixed sentiment distribution</p>
+              <p>• Hover for detailed confidence breakdown per sample</p>
             </div>
           </div>
         </div>
