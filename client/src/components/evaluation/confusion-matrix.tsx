@@ -36,6 +36,32 @@ export function ConfusionMatrix({
     mixedSentiments: Record<string, number>;
   }[]>([]);
   const [metricsData, setMetricsData] = useState<any[]>([]);
+  // State to track which metrics are visible in charts
+  const [visibleMetrics, setVisibleMetrics] = useState({
+    precision: true,
+    recall: true,
+    f1Score: true,
+    accuracy: true
+  });
+  
+  // Function to toggle visibility of metric on chart when clicked on legend
+  const handleLegendClick = (dataKey: any) => {
+    if (typeof dataKey === 'string') {
+      setVisibleMetrics(prev => ({
+        ...prev,
+        [dataKey]: !prev[dataKey as keyof typeof prev]
+      }));
+    }
+  };
+  
+  // Get legend item style based on visibility
+  const getLegendItemStyle = (dataKey: string) => {
+    return {
+      cursor: 'pointer',
+      opacity: visibleMetrics[dataKey as keyof typeof visibleMetrics] ? 1 : 0.5,
+      textDecoration: visibleMetrics[dataKey as keyof typeof visibleMetrics] ? 'none' : 'line-through'
+    };
+  };
 
   // Fetch sentiment posts for specific file
   const { data: sentimentPosts, isLoading: isLoadingFilePosts } = useQuery({
@@ -262,7 +288,10 @@ export function ConfusionMatrix({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
               <h3 className="text-lg font-semibold mb-2">Performance Metrics</h3>
-              <p className="text-sm text-slate-600 mb-4">Performance metrics by sentiment category</p>
+              <p className="text-sm text-slate-600 mb-4">
+                Performance metrics by sentiment category 
+                <span className="ml-1 text-blue-600 font-medium">(click legend items to hide/show)</span>
+              </p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={metricsData}>
@@ -278,11 +307,25 @@ export function ConfusionMatrix({
                       layout="horizontal" 
                       verticalAlign="bottom" 
                       wrapperStyle={{ paddingTop: "10px" }}
+                      onClick={(dataKey) => handleLegendClick(dataKey.dataKey)}
+                      formatter={(value, entry) => (
+                        <span style={getLegendItemStyle(entry.dataKey as string)}>
+                          {value}
+                        </span>
+                      )}
                     />
-                    <Bar dataKey="precision" name="Precision" fill="#22c55e" legendType="circle" />
-                    <Bar dataKey="recall" name="Recall" fill="#8b5cf6" legendType="circle" />
-                    <Bar dataKey="f1Score" name="F1 Score" fill="#f97316" legendType="circle" />
-                    <Bar dataKey="accuracy" name="Accuracy" fill="#3b82f6" legendType="circle" />
+                    {visibleMetrics.precision && (
+                      <Bar dataKey="precision" name="Precision" fill="#22c55e" legendType="circle" />
+                    )}
+                    {visibleMetrics.recall && (
+                      <Bar dataKey="recall" name="Recall" fill="#8b5cf6" legendType="circle" />
+                    )}
+                    {visibleMetrics.f1Score && (
+                      <Bar dataKey="f1Score" name="F1 Score" fill="#f97316" legendType="circle" />
+                    )}
+                    {visibleMetrics.accuracy && (
+                      <Bar dataKey="accuracy" name="Accuracy" fill="#3b82f6" legendType="circle" />
+                    )}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -290,18 +333,41 @@ export function ConfusionMatrix({
 
             <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
               <h3 className="text-lg font-semibold mb-2">Metric Balance</h3>
-              <p className="text-sm text-slate-600 mb-4">Comparative view across sentiments</p>
+              <p className="text-sm text-slate-600 mb-4">
+                Comparative view across sentiments
+                <span className="ml-1 text-blue-600 font-medium">(click legend items to hide/show)</span>
+              </p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={metricsData}>
                     <PolarGrid />
                     <PolarAngleAxis dataKey="sentiment" />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    <Radar name="Precision" dataKey="precision" stroke="#22c55e" fill="#22c55e" fillOpacity={0.6} />
-                    <Radar name="Recall" dataKey="recall" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
-                    <Radar name="F1 Score" dataKey="f1Score" stroke="#f97316" fill="#f97316" fillOpacity={0.6} />
-                    <Radar name="Accuracy" dataKey="accuracy" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
-                    <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" align="center" />
+                    {visibleMetrics.precision && (
+                      <Radar name="Precision" dataKey="precision" stroke="#22c55e" fill="#22c55e" fillOpacity={0.6} />
+                    )}
+                    {visibleMetrics.recall && (
+                      <Radar name="Recall" dataKey="recall" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
+                    )}
+                    {visibleMetrics.f1Score && (
+                      <Radar name="F1 Score" dataKey="f1Score" stroke="#f97316" fill="#f97316" fillOpacity={0.6} />
+                    )}
+                    {visibleMetrics.accuracy && (
+                      <Radar name="Accuracy" dataKey="accuracy" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
+                    )}
+                    <Legend 
+                      iconType="circle" 
+                      layout="horizontal" 
+                      verticalAlign="bottom" 
+                      align="center" 
+                      wrapperStyle={{ cursor: "pointer" }}
+                      onClick={(dataKey) => handleLegendClick(dataKey.dataKey)}
+                      formatter={(value, entry) => (
+                        <span style={getLegendItemStyle(entry.dataKey as string)}>
+                          {value}
+                        </span>
+                      )}
+                    />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
