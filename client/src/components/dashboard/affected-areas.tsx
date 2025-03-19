@@ -23,25 +23,9 @@ export function AffectedAreas({
 
   // Calculate affected areas from actual sentiment posts with enhanced detection
   const areas = useMemo(() => {
-    // First, group by sentiment regardless of location
-    const sentimentCounts = new Map<string, number>();
+    const locationCounts = new Map<string, { total: number; sentiments: Map<string, number> }>();
     
-    sentimentPosts.forEach(post => {
-      const sentiment = post.sentiment || 'Neutral';
-      sentimentCounts.set(sentiment, (sentimentCounts.get(sentiment) || 0) + 1);
-    });
-
-    // Create sentiment-based areas without location
-    const sentimentAreas = Array.from(sentimentCounts.entries())
-      .map(([sentiment, count]) => ({
-        name: sentiment,
-        count,
-        percentage: (count / sentimentPosts.length) * 100,
-        sentiment
-      }))
-      .sort((a, b) => b.count - a.count);
-
-    return sentimentAreas;
+    // List of Philippine locations to detect in text
     const philippineLocations = [
       'Manila', 'Quezon City', 'Cebu', 'Davao', 'Mindanao', 'Luzon',
       'Visayas', 'Palawan', 'Boracay', 'Baguio', 'Bohol', 'Iloilo',
