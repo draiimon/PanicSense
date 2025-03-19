@@ -13,6 +13,7 @@ import type { ProfileImage } from "@shared/schema";
 
 export default function About() {
   const [profiles, setProfiles] = useState<ProfileImage[]>([]);
+  const [imageLoadErrors, setImageLoadErrors] = useState<{[key: string]: boolean}>({});
 
   useEffect(() => {
     const loadProfiles = async () => {
@@ -22,8 +23,15 @@ export default function About() {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           setProfiles(data);
-        } else {
-          console.warn('No profile data received');
+          // Pre-load images
+          data.forEach(profile => {
+            const img = new Image();
+            img.src = profile.imageUrl;
+            img.onerror = () => {
+              console.error(`Failed to load image: ${profile.imageUrl}`);
+              setImageLoadErrors(prev => ({...prev, [profile.imageUrl]: true}));
+            };
+          });
         }
       } catch (err) {
         console.error('Failed to fetch profiles:', err);
