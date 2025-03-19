@@ -33,12 +33,12 @@ export function SentimentLegend({
     { name: 'Neutral', color: '#6b7280' }
   ];
 
-  // Disaster types
+  // Disaster types - standardized to use "Volcanic Eruption"
   const disasterTypes = [
     { name: 'Flood', color: '#3b82f6' },
     { name: 'Typhoon', color: '#6b7280' },
     { name: 'Fire', color: '#f97316' },
-    { name: 'Volcanic Eruptions', color: '#ef4444' },
+    { name: 'Volcanic Eruption', color: '#ef4444' }, // Standardized name
     { name: 'Earthquake', color: '#92400e' },
     { name: 'Landslide', color: '#78350f' }
   ];
@@ -114,44 +114,49 @@ export function SentimentLegend({
               </Badge>
             </div>
             <div className="space-y-2">
-              {mostAffectedAreas.map((area, index) => (
-                <div 
-                  key={index}
-                  onClick={() => area.coordinates && onAreaClick?.(area.coordinates)}
-                  className="bg-white p-2 rounded-md border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer active:bg-slate-100"
-                  title="Click to zoom to location"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-slate-800 truncate max-w-[70%]">
-                      {area.name}
-                    </span>
-                    <span className="text-xs text-slate-500">#{index + 1}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    <Badge 
-                      variant="outline"
-                      className="text-xs"
-                      style={{ 
-                        borderColor: getSentimentColor(area.sentiment),
-                        color: getSentimentColor(area.sentiment)
-                      }}
-                    >
-                      {area.sentiment}
-                    </Badge>
-                    {area.disasterType && (
-                      <Badge
+              {mostAffectedAreas.map((area, index) => {
+                // Standardize disaster type display
+                const displayDisasterType = area.disasterType === 'Volcano' ? 'Volcanic Eruption' : area.disasterType;
+
+                return (
+                  <div 
+                    key={index}
+                    onClick={() => area.coordinates && onAreaClick?.(area.coordinates)}
+                    className="bg-white p-2 rounded-md border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer active:bg-slate-100"
+                    title="Click to zoom to location"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-slate-800 truncate max-w-[70%]">
+                        {area.name}
+                      </span>
+                      <span className="text-xs text-slate-500">#{index + 1}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      <Badge 
+                        variant="outline"
                         className="text-xs"
-                        style={{
-                          backgroundColor: getDisasterTypeColor(area.disasterType),
-                          color: 'white'
+                        style={{ 
+                          borderColor: getSentimentColor(area.sentiment),
+                          color: getSentimentColor(area.sentiment)
                         }}
                       >
-                        {area.disasterType}
+                        {area.sentiment}
                       </Badge>
-                    )}
+                      {displayDisasterType && (
+                        <Badge
+                          className="text-xs"
+                          style={{
+                            backgroundColor: getDisasterTypeColor(displayDisasterType),
+                            color: 'white'
+                          }}
+                        >
+                          {displayDisasterType}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
