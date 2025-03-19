@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getSentimentPostsByFileId } from '@/lib/api';
 import { getSentimentColor } from '@/lib/colors';
 import { Badge } from '@/components/ui/badge';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 
 interface ConfusionMatrixProps {
   fileId?: number;
@@ -25,6 +25,7 @@ export function ConfusionMatrix({
   description = 'Real sentiment distribution with confidence scores',
   allDatasets = false
 }: ConfusionMatrixProps) {
+  // ... existing state and query setup ...
   const [matrix, setMatrix] = useState<number[][]>([]);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const [isMatrixCalculated, setIsMatrixCalculated] = useState(false);
@@ -140,6 +141,18 @@ export function ConfusionMatrix({
     );
   }
 
+  const getCellColor = (rowIdx: number, colIdx: number, value: number) => {
+    const baseColor = getSentimentColor(labels[colIdx]);
+    if (rowIdx === colIdx) {
+      return { background: baseColor, text: '#ffffff' };
+    }
+    const opacity = Math.min(0.7, value);
+    return {
+      background: `${baseColor}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`,
+      text: opacity > 0.4 ? '#ffffff' : '#333333'
+    };
+  };
+
   return (
     <Card className="bg-white rounded-lg shadow-md">
       <CardHeader className="px-6 py-4 border-b border-gray-200">
@@ -148,11 +161,12 @@ export function ConfusionMatrix({
       </CardHeader>
       <CardContent className="p-6">
         <div className="space-y-6">
-          {/* Enhanced Metrics Visualization */}
+          {/* Metrics Visualization */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Performance Metrics Line Chart */}
+            {/* Performance Trends */}
             <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
-              <h3 className="text-lg font-semibold mb-4">Performance Trends</h3>
+              <h3 className="text-lg font-semibold mb-2">Performance Trends</h3>
+              <p className="text-sm text-slate-600 mb-4">Key performance metrics across sentiment categories</p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={metricsData}>
@@ -168,11 +182,30 @@ export function ConfusionMatrix({
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#22c55e]" />
+                  <p><span className="font-medium">Precision:</span> Of all predicted instances for each sentiment, what percentage was correct</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#8b5cf6]" />
+                  <p><span className="font-medium">Recall:</span> Of all actual instances of each sentiment, what percentage was correctly identified</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#f97316]" />
+                  <p><span className="font-medium">F1 Score:</span> Balanced measure between precision and recall (higher is better)</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#3b82f6]" />
+                  <p><span className="font-medium">Accuracy:</span> Overall correct predictions for each sentiment category</p>
+                </div>
+              </div>
             </div>
 
-            {/* Radar Chart for Balanced View */}
+            {/* Metric Balance */}
             <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
-              <h3 className="text-lg font-semibold mb-4">Metric Balance</h3>
+              <h3 className="text-lg font-semibold mb-2">Metric Balance</h3>
+              <p className="text-sm text-slate-600 mb-4">Comparative view of precision vs recall across sentiments</p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={metricsData}>
@@ -188,7 +221,7 @@ export function ConfusionMatrix({
             </div>
           </div>
 
-          {/* Confusion Matrix Table */}
+          {/* Confusion Matrix */}
           <div className="overflow-x-auto mt-6">
             <table className="w-full">
               <thead>
@@ -204,7 +237,7 @@ export function ConfusionMatrix({
                   <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                     <td className="px-4 py-2 font-medium">{labels[rowIdx]}</td>
                     {row.map((value, colIdx) => {
-                      const color = getSentimentColor(labels[colIdx]);
+                      const { background, text } = getCellColor(rowIdx, colIdx, value);
                       const percentage = (value / row.reduce((sum, val) => sum + val, 0) * 100) || 0;
 
                       return (
@@ -216,13 +249,10 @@ export function ConfusionMatrix({
                         >
                           <div
                             className="rounded p-2 text-center transition-all duration-200"
-                            style={{
-                              backgroundColor: `${color}${Math.floor(percentage).toString(16).padStart(2, '0')}`,
-                              color: percentage > 40 ? '#ffffff' : '#333333'
-                            }}
+                            style={{ backgroundColor: background, color: text }}
                           >
-                            <div className="font-bold">{value.toFixed(2)}</div>
-                            <div className="text-xs">{percentage.toFixed(1)}%</div>
+                            <div className="text-lg font-bold">{percentage.toFixed(1)}%</div>
+                            <div className="text-xs opacity-75">({value.toFixed(2)})</div>
                           </div>
                         </td>
                       );
