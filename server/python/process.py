@@ -1109,7 +1109,7 @@ class DisasterSentimentBackend:
                                 5 + int((
                                     (batch_start + BATCH_SIZE) / sample_size) *
                                         90),
-                                f"Cooldown: {actual_remaining} seconds remaining until next batch. Completed {batch_number} of {len(indices_to_process) // BATCH_SIZE + 1} batches.",
+                                f"60-second pause between batches: {actual_remaining} seconds remaining. Completed batch {batch_number} of {len(indices_to_process) // BATCH_SIZE + 1}.",
                                 total_records)
 
                             # Only sleep if we haven't already exceeded the interval
@@ -1120,7 +1120,7 @@ class DisasterSentimentBackend:
                             5 + int(
                                 ((batch_start + BATCH_SIZE) / sample_size) *
                                 90),
-                            f"Cooldown complete. Starting next batch.",
+                            f"60-second pause complete. Starting next batch of 30 records.",
                             total_records)
 
             # Retry failed records

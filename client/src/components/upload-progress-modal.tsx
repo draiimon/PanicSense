@@ -75,9 +75,9 @@ export function UploadProgressModal() {
   const percentComplete = Math.min(Math.round((processed / total) * 100), 100);
 
   // Stage indication
-  const isLoading = stage.toLowerCase().includes('initializing') || stage.toLowerCase().includes('loading');
+  const isLoading = stage.toLowerCase().includes('loading');
   const isProcessing = stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record');
-  const isCooldown = stage.toLowerCase().includes('cooldown');
+  const isCooldown = stage.toLowerCase().includes('cooldown') || stage.toLowerCase().includes('pausing');
   const hasError = stage.toLowerCase().includes('error');
   const isComplete = stage.toLowerCase().includes('analysis complete');
   
@@ -193,8 +193,8 @@ export function UploadProgressModal() {
                 </div>
                 
                 <div className="mt-3 text-xs text-amber-300/70 italic text-center">
-                  Limiting API requests to prevent rate limiting<br />
-                  <span className="font-semibold">20 records per minute rate limit</span>
+                  Required 60-second pause between batches<br />
+                  <span className="font-semibold">Processing in batches of 30 records</span>
                 </div>
               </div>
             </div>
