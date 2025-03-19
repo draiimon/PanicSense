@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { getSentimentPostsByFileId } from '@/lib/api';
 import { getSentimentColor } from '@/lib/colors';
@@ -49,7 +48,6 @@ export function ConfusionMatrix({
   useEffect(() => {
     if ((isLoading || !sentimentPosts) && !initialMatrix) return;
 
-    // Initialize matrix with zeros
     let newMatrix: number[][] = Array(labels.length).fill(0).map(() => Array(labels.length).fill(0));
     let newSentimentData: typeof sentimentData = [];
 
@@ -251,9 +249,9 @@ export function ConfusionMatrix({
                     return (
                       <td
                         key={colIdx}
-                        className="px-4 py-2 relative"
-                        onMouseEnter={() => setHoveredCell({ row: rowIdx, col: colIdx })}
-                        onMouseLeave={() => setHoveredCell(null)}
+                        className={`px-4 py-2 relative ${!allDatasets ? 'hover:bg-slate-50' : ''}`}
+                        onMouseEnter={() => !allDatasets && setHoveredCell({ row: rowIdx, col: colIdx })}
+                        onMouseLeave={() => !allDatasets && setHoveredCell(null)}
                       >
                         <div
                           className="rounded p-2 text-center"
