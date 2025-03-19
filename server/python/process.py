@@ -855,7 +855,7 @@ class DisasterSentimentBackend:
 
             # Set batch size to 20 as per requirements
             BATCH_SIZE = 30
-            BATCH_COOLDOWN = 60  # 60-second cooldown between batches
+            BATCH_COOLDOWN = 60  # 60-second cooldown between batches of 30 records
 
             # Report column identification progress
             report_progress(5, "Identified data columns", total_records)
@@ -1062,7 +1062,7 @@ class DisasterSentimentBackend:
 
                         # Add a substantial delay for sequential processing
                         # Each record needs time to be displayed on the frontend
-                        time.sleep(2)  # 2-second delay between records
+                        time.sleep(3)  # 3-second delay between records
 
                         # Report completed
                         processed_count += 1

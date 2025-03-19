@@ -1069,7 +1069,7 @@ class DisasterSentimentBackend:
 
                         # Add a substantial delay for sequential processing
                         # Each record needs time to be displayed on the frontend
-                        time.sleep(3)  # 2-second delay between records
+                        time.sleep(3)  # 3-second delay between records
 
                         # Report completed
                         processed_count += 1
