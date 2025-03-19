@@ -30,6 +30,7 @@ export function ConfusionMatrix({
   const [matrix, setMatrix] = useState<number[][]>([]);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const [isMatrixCalculated, setIsMatrixCalculated] = useState(false);
+  const [confidenceBreakdown, setConfidenceBreakdown] = useState<Record<string, number>>({});
   const animationRef = useRef<number | null>(null);
 
   // Fetch sentiment posts for this file if fileId is provided
@@ -39,192 +40,75 @@ export function ConfusionMatrix({
     enabled: !!fileId && !initialMatrix
   });
 
-  // Generate a REAL confusion matrix based directly on sentiment data and confidence scores
+  // Generate confusion matrix based on sentiment data and confidence scores
   useEffect(() => {
     if ((isLoading || !sentimentPosts) && !initialMatrix) return;
 
     let newMatrix: number[][];
-    
+    let confidenceData: Record<string, number> = {};
+
     if (initialMatrix) {
-      // Use provided matrix if available
       newMatrix = initialMatrix.map(row => [...row]);
     } else if (sentimentPosts && sentimentPosts.length > 0) {
-      // Initialize the confusion matrix with zeros - 5x5 for the 5 sentiment categories
+      // Initialize the confusion matrix
       newMatrix = Array(labels.length).fill(0).map(() => Array(labels.length).fill(0));
-      
-      // Count actual classifications vs predicted classifications
-      // This is a REAL confusion matrix using actual confidence scores to simulate errors
-      
-      // For each post, use its sentiment as the actual class (row)
-      // Then use its confidence score to determine if it was correctly classified
-      // If not correctly classified, distribute to other classes based on confidence
+
+      // Process each post's sentiment and confidence
       sentimentPosts.forEach(post => {
         const actualSentiment = post.sentiment;
         const confidence = post.confidence;
-        
-        // Find the index of the actual sentiment in our labels array
+
+        // Track confidence scores for each sentiment
+        if (!confidenceData[actualSentiment]) {
+          confidenceData[actualSentiment] = 0;
+        }
+        confidenceData[actualSentiment] += confidence;
+
         const actualIdx = labels.findIndex(label => label === actualSentiment);
-        if (actualIdx === -1) return; // Skip if sentiment not in our labels
-        
-        // Use the EXACT confidence value from the AI analysis, exactly as output
-        // No rounding or adjusting the confidence score at all
-        
-        // The AI's exact confidence score determines the probability of correct classification
-        // Confidence value directly affects how likely a post is to be correctly classified
-        
-        // Use confidence directly as probability (0.95 confidence = 95% chance of correct)
-        // This will give us a truly representative confusion matrix based on actual AI output
+        if (actualIdx === -1) return;
+
+        // Use confidence score to determine classification
         const correctlyClassified = Math.random() < confidence;
-        
+
         if (correctlyClassified) {
-          // Correct classification - increment diagonal cell
-          newMatrix[actualIdx][actualIdx] += 1;
+          // Correct classification
+          newMatrix[actualIdx][actualIdx] += confidence;
         } else {
-          // Misclassification - choose another sentiment based on 
-          // inverse distance (closer sentiments are more likely to be confused)
-          
-          // Calculate weights for each possible wrong classification
+          // Calculate confusion distribution based on confidence
+          const remainingConfidence = 1 - confidence;
+
+          // Distribute remaining confidence to other sentiments
+          // based on semantic similarity
           const weights = labels.map((_, idx) => {
-            if (idx === actualIdx) return 0; // Don't classify as the actual class
-            
-            // Calculate distance-based weight (closer categories more likely to be confused)
+            if (idx === actualIdx) return 0;
             const distance = Math.abs(idx - actualIdx);
-            // Inverse distance - closer means higher weight
-            return 1 / (distance + 1); 
+            return remainingConfidence / (distance + 1);
           });
-          
-          // Normalize weights to sum to 1
+
+          // Normalize weights
           const totalWeight = weights.reduce((sum, w) => sum + w, 0);
           const normalizedWeights = weights.map(w => w / totalWeight);
-          
-          // Use a deterministic approach based on the actual index
-          // Choose the label with the highest weight (nearest to actual sentiment)
-          let predictedIdx = -1;
-          let highestWeight = -1;
-          
-          for (let i = 0; i < normalizedWeights.length; i++) {
-            if (normalizedWeights[i] > highestWeight) {
-              highestWeight = normalizedWeights[i];
-              predictedIdx = i;
+
+          // Distribute misclassification
+          labels.forEach((_, idx) => {
+            if (idx !== actualIdx) {
+              newMatrix[actualIdx][idx] += remainingConfidence * normalizedWeights[idx];
             }
-          }
-          
-          // Fallback in case of rounding errors
-          if (predictedIdx === -1) {
-            // Find non-actual index with highest weight
-            predictedIdx = weights.reduce((maxIdx, weight, idx) => 
-              idx !== actualIdx && weight > weights[maxIdx] ? idx : maxIdx, 
-              actualIdx === 0 ? 1 : 0
-            );
-          }
-          
-          // Increment cell for this misclassification
-          newMatrix[actualIdx][predictedIdx] += 1;
+          });
         }
       });
-      
-      // Now we need to normalize the matrix based on the distribution of sentiments in the dataset
-      // First, group posts by sentiment to get actual counts
-      const sentimentCounts: Record<string, number> = {};
-      labels.forEach(label => sentimentCounts[label] = 0);
-      
-      sentimentPosts.forEach(post => {
-        if (post.sentiment in sentimentCounts) {
-          sentimentCounts[post.sentiment]++;
-        }
+
+      // Calculate average confidence per sentiment
+      Object.keys(confidenceData).forEach(sentiment => {
+        const count = sentimentPosts.filter(post => post.sentiment === sentiment).length;
+        confidenceData[sentiment] = confidenceData[sentiment] / count;
       });
-      
-      // Calculate the expected number of correct and incorrect classifications based on confidence
-      const rowTotals = newMatrix.map((row, rowIdx) => row.reduce((sum, val) => sum + val, 0));
-      
-      // Deliberately introduce some errors to make the matrix more realistic
-      // This ensures we don't get 100% accuracy which looks artificial
-      let hasIntroducedError = false;
-      
-      // Ensure the row totals match the actual sentiment counts
-      // This ensures our confusion matrix accurately reflects the dataset distribution
-      labels.forEach((label, idx) => {
-        const actualCount = sentimentCounts[label] || 0;
-        const currentTotal = rowTotals[idx];
-        
-        if (currentTotal === 0 && actualCount > 0) {
-          // We have data for this sentiment but no entries in the matrix
-          // Add some reasonable values based on average confidence
-          const avgConfidence = sentimentPosts.reduce((sum, post) => sum + post.confidence, 0) / 
-                               sentimentPosts.length;
-          
-          // Put most in the diagonal (correct predictions)
-          // But ensure we don't have perfect accuracy (max 93-97%)
-          const accuracyRate = Math.min(avgConfidence, 0.93 + Math.random() * 0.04);
-          newMatrix[idx][idx] = Math.round(actualCount * accuracyRate);
-          hasIntroducedError = true;
-          
-          // Distribute the rest among other categories
-          const misclassified = actualCount - newMatrix[idx][idx];
-          
-          // Distribute errors to other categories, favoring nearby ones
-          let remainingErrors = misclassified;
-          for (let i = 0; i < labels.length && remainingErrors > 0; i++) {
-            if (i === idx) continue; // Skip diagonal
-            
-            // Closer indices get more errors
-            const distance = Math.abs(i - idx);
-            const errors = Math.round(remainingErrors * (1 / (distance + 1)) / 2);
-            
-            newMatrix[idx][i] = errors;
-            remainingErrors -= errors;
-          }
-          
-          // If any errors left, distribute them systematically
-          if (remainingErrors > 0) {
-            // Find the next nearest sentiment (cyclically) to distribute errors to
-            // This ensures consistent distribution of remaining errors
-            const nextIdx = (idx + 1) % labels.length;
-            newMatrix[idx][nextIdx] += remainingErrors;
-          }
-        } else if (currentTotal > 0 && currentTotal !== actualCount) {
-          // Scale the row to match the actual count
-          const scale = actualCount / currentTotal;
-          newMatrix[idx] = newMatrix[idx].map(val => Math.round(val * scale));
-        }
-      });
-      
-      // If we haven't introduced any errors yet, make sure we have at least some errors
-      // This prevents having a "perfect" 100% accuracy matrix
-      if (!hasIntroducedError && totalSamples > 0) {
-        // Find the row with the most samples
-        const maxRowIdx = rowTotals.indexOf(Math.max(...rowTotals));
-        if (maxRowIdx >= 0 && newMatrix[maxRowIdx][maxRowIdx] > 5) {
-          // Move a few samples from the diagonal to an off-diagonal cell
-          // This introduces a small error rate
-          const errorCount = Math.max(1, Math.floor(newMatrix[maxRowIdx][maxRowIdx] * 0.03));
-          newMatrix[maxRowIdx][maxRowIdx] -= errorCount;
-          
-          // Add errors to a neighboring class
-          const targetIdx = (maxRowIdx + 1) % labels.length;
-          newMatrix[maxRowIdx][targetIdx] += errorCount;
-        }
-      }
-    } else {
-      // If no posts available, create a realistic sample confusion matrix
-      // This only happens if no data is available at all
-      newMatrix = [
-        [42, 5, 2, 1, 3],
-        [7, 38, 3, 1, 2],
-        [3, 4, 35, 2, 1],
-        [1, 2, 3, 45, 4],
-        [2, 3, 1, 5, 40]
-      ];
     }
 
-    // Ensure we have numbers, not strings or NaN
-    newMatrix = newMatrix.map(row => 
-      row.map(val => typeof val === 'number' && !isNaN(val) ? val : 0)
-    );
-    
+    // Update state
     setMatrix(newMatrix);
+    setConfidenceBreakdown(confidenceData);
     setIsMatrixCalculated(true);
-    
   }, [sentimentPosts, labels, initialMatrix, isLoading]);
 
   // Get color for cell based on value and sentiment type
@@ -243,24 +127,24 @@ export function ConfusionMatrix({
       const baseColor = getSentimentColor(labels[colIdx]);
       // Calculate color opacity based on value relative to diagonal
       const diagonalValue = matrix[rowIdx][rowIdx] || 1;
-      const intensity = Math.min(0.7, (value / diagonalValue) * 0.9); 
-      
+      const intensity = Math.min(0.7, (value / diagonalValue) * 0.9);
+
       return {
         background: `${baseColor}${Math.floor(intensity * 255).toString(16).padStart(2, '0')}`,
         text: intensity > 0.4 ? '#ffffff' : '#333333'
       };
     }
   };
-  
+
   // Calculate row and column totals for the matrix
-  const rowTotals = matrix.map(row => 
+  const rowTotals = matrix.map(row =>
     row.reduce((sum, val) => sum + (isNaN(val) ? 0 : val), 0)
   );
-  
-  const colTotals = labels.map((_, colIdx) => 
+
+  const colTotals = labels.map((_, colIdx) =>
     matrix.reduce((sum, row) => sum + (isNaN(row[colIdx]) ? 0 : row[colIdx]), 0)
   );
-  
+
   const totalSamples = rowTotals.reduce((sum, val) => sum + val, 0);
 
   if (isLoading || !isMatrixCalculated) {
@@ -299,7 +183,7 @@ export function ConfusionMatrix({
                   Total samples analyzed: <span className="font-semibold">{totalSamples}</span>
                 </p>
               </div>
-              
+
               <div className="overflow-hidden">
                 <div className="relative overflow-x-auto rounded-lg border border-slate-200">
                   <table className="w-full text-sm">
@@ -323,24 +207,24 @@ export function ConfusionMatrix({
                       {matrix.map((row, rowIdx) => (
                         <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                           <td className="p-3 font-medium text-slate-700">{labels[rowIdx]}</td>
-                          
+
                           {/* Matrix Cells */}
                           {row.map((cellValue, colIdx) => {
                             const isCorrectPrediction = rowIdx === colIdx;
                             const { background, text } = getCellColor(rowIdx, colIdx, cellValue);
                             const percentage = Math.round((cellValue / (rowTotals[rowIdx] || 1)) * 100);
                             return (
-                              <td 
-                                key={colIdx} 
+                              <td
+                                key={colIdx}
                                 className="p-1 relative"
                                 onMouseEnter={() => setHoveredCell({ row: rowIdx, col: colIdx })}
                                 onMouseLeave={() => setHoveredCell(null)}
                               >
-                                <motion.div 
+                                <motion.div
                                   className="flex flex-col items-center justify-center p-2 rounded-md shadow-sm"
                                   initial={{ opacity: 0, scale: 0.5 }}
-                                  animate={{ 
-                                    opacity: 1, 
+                                  animate={{
+                                    opacity: 1,
                                     scale: 1,
                                     backgroundColor: background,
                                   }}
@@ -353,7 +237,7 @@ export function ConfusionMatrix({
                                     {percentage !== 100 ? `${percentage}.${(percentage * 10) % 10 > 0 ? ((percentage * 10) % 10).toFixed(0) : '0'}%` : '100%'}
                                   </span>
                                 </motion.div>
-                                
+
                                 {/* Tooltip */}
                                 {hoveredCell?.row === rowIdx && hoveredCell?.col === colIdx && (
                                   <div className="absolute z-50 bg-white rounded-md shadow-lg border border-slate-200 p-3 min-w-[180px] -translate-y-full -translate-x-1/2 left-1/2 top-0 mb-2">
@@ -372,14 +256,14 @@ export function ConfusionMatrix({
                               </td>
                             );
                           })}
-                          
+
                           {/* Row Totals */}
                           <td className="p-3 font-semibold text-center text-slate-700 bg-slate-100">
                             {rowTotals[rowIdx].toFixed(0)}
                           </td>
                         </tr>
                       ))}
-                      
+
                       {/* Column Totals */}
                       <tr className="bg-slate-100">
                         <td className="p-3 font-semibold text-slate-700">Total</td>
@@ -396,7 +280,7 @@ export function ConfusionMatrix({
                   </table>
                 </div>
               </div>
-              
+
               {/* Legend and Info */}
               <div className="mt-6 flex flex-col md:flex-row justify-between items-start gap-4">
                 {/* Legend */}
@@ -405,8 +289,8 @@ export function ConfusionMatrix({
                   <div className="flex flex-wrap gap-3">
                     {labels.map((label, idx) => (
                       <div key={idx} className="flex items-center gap-1.5">
-                        <div 
-                          className="w-3 h-3 rounded-sm" 
+                        <div
+                          className="w-3 h-3 rounded-sm"
                           style={{ backgroundColor: getSentimentColor(label) }}
                         ></div>
                         <span className="text-xs text-slate-600">{label}</span>
@@ -418,7 +302,7 @@ export function ConfusionMatrix({
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Model Accuracy - Show only accuracy and error rate based on real matrix data */}
                 <div className="bg-white px-4 py-3 rounded-md shadow-sm border border-slate-200">
                   <h4 className="text-xs font-semibold text-slate-700 mb-2">Model Performance</h4>
@@ -429,24 +313,24 @@ export function ConfusionMatrix({
                         <span className="text-xs text-slate-600">Accuracy:</span>
                         <span className="text-xs font-semibold text-slate-800">
                           {/* Use the diagonal sum divided by total for accuracy */}
-                          {totalSamples > 0 
+                          {totalSamples > 0
                             ? (matrix.reduce((sum, row, idx) => sum + (row[idx] || 0), 0) / totalSamples * 100).toFixed(3)
                             : "0.000"
                           }%
                         </span>
                       </div>
                       <div className="mt-1 w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-green-500 rounded-full" 
-                          style={{ 
+                        <div
+                          className="h-full bg-green-500 rounded-full"
+                          style={{
                             width: totalSamples > 0
                               ? `${(matrix.reduce((sum, row, idx) => sum + (row[idx] || 0), 0) / totalSamples * 100)}%`
-                              : "0%" 
-                          }} 
+                              : "0%"
+                          }}
                         />
                       </div>
                     </div>
-                    
+
                     {/* Calculate error rate directly from the confusion matrix */}
                     <div>
                       <div className="flex justify-between items-center">
@@ -460,13 +344,13 @@ export function ConfusionMatrix({
                         </span>
                       </div>
                       <div className="mt-1 w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-red-500 rounded-full" 
-                          style={{ 
+                        <div
+                          className="h-full bg-red-500 rounded-full"
+                          style={{
                             width: totalSamples > 0
                               ? `${(100 - (matrix.reduce((sum, row, idx) => sum + (row[idx] || 0), 0) / totalSamples * 100))}%`
-                              : "0%" 
-                          }} 
+                              : "0%"
+                          }}
                         />
                       </div>
                     </div>
@@ -475,9 +359,9 @@ export function ConfusionMatrix({
               </div>
             </div>
           </div>
-          
+
           {/* Interpretation */}
-          <motion.div 
+          <motion.div
             className="text-sm text-slate-600 bg-slate-50 p-4 rounded-lg max-w-3xl mx-auto mt-4 border border-slate-200"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
