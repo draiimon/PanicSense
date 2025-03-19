@@ -273,11 +273,16 @@ export function ConfusionMatrix({
                       formatter={(value) => [`${Number(value).toFixed(2)}%`]}
                       contentStyle={{ background: 'white', border: '1px solid #e2e8f0' }}
                     />
-                    <Legend />
-                    <Bar dataKey="precision" name="Precision" fill="#22c55e" />
-                    <Bar dataKey="recall" name="Recall" fill="#8b5cf6" />
-                    <Bar dataKey="f1Score" name="F1 Score" fill="#f97316" />
-                    <Bar dataKey="accuracy" name="Accuracy" fill="#3b82f6" />
+                    <Legend 
+                      iconType="circle" 
+                      layout="horizontal" 
+                      verticalAlign="bottom" 
+                      wrapperStyle={{ paddingTop: "10px" }}
+                    />
+                    <Bar dataKey="precision" name="Precision" fill="#22c55e" legendType="circle" />
+                    <Bar dataKey="recall" name="Recall" fill="#8b5cf6" legendType="circle" />
+                    <Bar dataKey="f1Score" name="F1 Score" fill="#f97316" legendType="circle" />
+                    <Bar dataKey="accuracy" name="Accuracy" fill="#3b82f6" legendType="circle" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -295,7 +300,8 @@ export function ConfusionMatrix({
                     <Radar name="Precision" dataKey="precision" stroke="#22c55e" fill="#22c55e" fillOpacity={0.6} />
                     <Radar name="Recall" dataKey="recall" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
                     <Radar name="F1 Score" dataKey="f1Score" stroke="#f97316" fill="#f97316" fillOpacity={0.6} />
-                    <Legend />
+                    <Radar name="Accuracy" dataKey="accuracy" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
+                    <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" align="center" />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
