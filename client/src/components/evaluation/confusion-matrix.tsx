@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { getSentimentPostsByFileId } from '@/lib/api';
 import { getSentimentColor } from '@/lib/colors';
+import { MetricsData } from './metrics-display';
 
 interface ConfusionMatrixProps {
   fileId?: number;
@@ -12,6 +13,7 @@ interface ConfusionMatrixProps {
   title?: string;
   description?: string;
   allDatasets?: boolean;
+  metrics?: MetricsData;
 }
 
 const defaultLabels = ['Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'];
@@ -22,7 +24,8 @@ export function ConfusionMatrix({
   labels = defaultLabels,
   title = 'Confusion Matrix',
   description = 'True vs Predicted sentiments',
-  allDatasets = false
+  allDatasets = false,
+  metrics
 }: ConfusionMatrixProps) {
   const [matrix, setMatrix] = useState<number[][]>([]);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);

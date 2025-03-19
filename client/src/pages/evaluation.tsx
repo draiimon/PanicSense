@@ -387,6 +387,7 @@ export default function Evaluation() {
                   : `Detailed model prediction accuracy for ${name}`
                 }
                 allDatasets={selectedFileId === "all"}
+                metrics={metrics}
               />
             </motion.div>
           </TabsContent>
