@@ -1,19 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from "framer-motion";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useEffect, useState } from "react";
 import type { ProfileImage } from "@shared/schema";
 
 export default function About() {
   const [profiles, setProfiles] = useState<ProfileImage[]>([]);
-  const [imageLoadErrors, setImageLoadErrors] = useState<{[key: string]: boolean}>({});
+  const [api, setApi] = React.useState<any>();
+  const [currentSlide, setCurrentSlide] = React.useState(0);
+  const isMobile = useIsMobile();
+  const [isPaused, setIsPaused] = React.useState(false);
 
   useEffect(() => {
     const loadProfiles = async () => {
@@ -21,60 +17,31 @@ export default function About() {
         const res = await fetch('/api/profile-images');
         if (!res.ok) throw new Error('Failed to fetch profiles');
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setProfiles(data);
-          // Pre-load images
-          data.forEach(profile => {
-            const img = new Image();
-            img.src = profile.imageUrl;
-            img.onerror = () => {
-              console.error(`Failed to load image: ${profile.imageUrl}`);
-              setImageLoadErrors(prev => ({...prev, [profile.imageUrl]: true}));
-            };
-          });
-        }
+        setProfiles(data);
       } catch (err) {
         console.error('Failed to fetch profiles:', err);
       }
     };
     loadProfiles();
   }, []);
-  const [api, setApi] = React.useState<any>();
-  const [currentSlide, setCurrentSlide] = React.useState(0);
-  const isMobile = useIsMobile();
-  const [isPaused, setIsPaused] = React.useState(false); // Added state for pause
 
-  // Hook to track slide changes
   React.useEffect(() => {
     if (!api) return;
-
-    // Set up slide change detection
-    const handleSelect = () => {
-      const selectedIndex = api.selectedScrollSnap();
-      setCurrentSlide(selectedIndex);
-    };
-
-    api.on('select', handleSelect);
-    return () => {
-      api.off('select', handleSelect);
-    };
+    api.on('select', () => {
+      setCurrentSlide(api.selectedScrollSnap());
+    });
   }, [api]);
 
-  // Auto-rotate carousel on mobile, with pause functionality
   React.useEffect(() => {
     if (!isMobile || !api) return;
-
     let interval;
     if (!isPaused) {
       interval = setInterval(() => {
         api.scrollNext();
       }, 3000);
     }
-
     return () => clearInterval(interval);
-  }, [isMobile, api, isPaused]); // isPaused added to dependency array
-
-  // Founders section is now handled by profile_images database
+  }, [isMobile, api, isPaused]);
 
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100 via-indigo-50 to-white">
@@ -84,14 +51,14 @@ export default function About() {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/50 via-indigo-900/50 to-purple-900/50" />
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
         className="relative w-full space-y-16 py-12 px-4"
       >
         {/* Hero Section */}
-        <motion.div 
+        <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
@@ -131,7 +98,8 @@ export default function About() {
               className="w-full overflow-hidden"
             >
               <CarouselContent>
-                {founders.map((founder, index) => (
+                {/* This part remains largely unchanged from the original */}
+                {profiles.map((profile, index) => (
                   <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
@@ -144,11 +112,11 @@ export default function About() {
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
                       <div className="relative">
                         <div className="aspect-square bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-xl flex items-center justify-center mb-4 overflow-hidden">
-                          <img src={founder.image} alt={founder.name} className="w-full h-full object-cover rounded-xl"/>
+                          <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover rounded-xl" />
                         </div>
-                        <h3 className="text-xl font-bold text-blue-300 mb-2">{founder.name}</h3>
-                        <p className="text-blue-200 mb-3">{founder.role}</p>
-                        <p className="text-sm text-blue-100/80">{founder.description}</p>
+                        <h3 className="text-xl font-bold text-blue-300">{profile.name}</h3>
+                        <p className="text-blue-200 mb-3">{profile.role}</p>
+                        <p className="text-sm text-blue-100/80">{profile.description}</p>
                       </div>
                     </motion.div>
                   </CarouselItem>
@@ -174,8 +142,8 @@ export default function About() {
                       }
                     }}
                     className={`w-2 h-2 rounded-full transition-all ${
-                      currentSlide === index 
-                        ? "bg-blue-400 w-4" 
+                      currentSlide === index
+                        ? "bg-blue-400 w-4"
                         : "bg-blue-400/40"
                     }`}
                     aria-label={`Go to slide ${index + 1}`}
@@ -188,7 +156,7 @@ export default function About() {
 
         {/* Technology Stack & Features */}
         <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto px-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
@@ -225,7 +193,7 @@ export default function About() {
             </ul>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
@@ -263,12 +231,12 @@ export default function About() {
           </motion.div>
         </div>
 
-        {/* About Section */}
+        {/* About Section -  REPLACED with edited content */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-4xl mx-auto px-4 space-y-8 text-center"
+          className="w-full max-w-4xl mx-auto px-4 space-y-8 text-center relative z-10"
         >
           <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             About PanicSense PH
@@ -280,38 +248,51 @@ export default function About() {
             <p className="text-lg text-blue-200 leading-relaxed">
               Our platform employs advanced transfer learning techniques and fine-tuned language models capable of processing both English and Filipino text with state-of-the-art accuracy. Our innovative multilingual approach ensures contextual understanding of cultural nuances and colloquial expressions across multiple Filipino dialects.
             </p>
+          </div>
 
-            {/* Team Section */}
-            <div className="py-12">
-              <h3 className="text-3xl font-bold mb-8 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Meet Our Team
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {profiles?.map((profile) => (
-                  <div key={profile.id} className="bg-white/5 backdrop-blur-lg rounded-xl p-6 text-center">
-                    <div className="relative w-32 h-32 mx-auto mb-4">
-                      <img 
-                        src={profile.imageUrl} 
-                        alt={profile.name}
-                        className="absolute inset-0 w-full h-full rounded-full object-cover border-4 border-blue-500/30"
-                        onError={(e) => {
-                          console.error(`Failed to load image: ${profile.imageUrl}`);
-                          e.currentTarget.src = '/placeholder-profile.jpg';
-                        }}
-                      />
-                    </div>
-                    <h4 className="text-xl font-semibold text-blue-300">{profile.name}</h4>
-                    <p className="text-blue-400 mb-2">{profile.role}</p>
-                    <p className="text-sm text-blue-200">{profile.description}</p>
-                  </div>
-                ))}
+          <div className="py-12">
+            <h3 className="text-3xl font-bold mb-8 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Meet Our Team
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 text-center">
+                <img
+                  src="/assets/julia.jpg"
+                  alt="Julia Daphne"
+                  className="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-4 border-blue-500/30"
+                />
+                <h4 className="text-xl font-semibold text-blue-300">Julia Daphne</h4>
+                <p className="text-blue-400 mb-2">Data Resources & Information Engineering</p>
+                <p className="text-sm text-blue-200">Manages data infrastructure and information processing systems</p>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 text-center">
+                <img
+                  src="/assets/drei.jpg"
+                  alt="Mark Andrei"
+                  className="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-4 border-blue-500/30"
+                />
+                <h4 className="text-xl font-semibold text-blue-300">Mark Andrei</h4>
+                <p className="text-blue-400 mb-2">Core System Architecture & Machine Learning</p>
+                <p className="text-sm text-blue-200">Leads the development of our advanced ML pipelines and system architecture</p>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 text-center">
+                <img
+                  src="/assets/van.jpg"
+                  alt="Ivahnn"
+                  className="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-4 border-blue-500/30"
+                />
+                <h4 className="text-xl font-semibold text-blue-300">Ivahnn</h4>
+                <p className="text-blue-400 mb-2">Frontend Development & User Experience</p>
+                <p className="text-sm text-blue-200">Creates intuitive and responsive user interfaces for seamless interaction</p>
               </div>
             </div>
-
-            <p className="text-lg text-blue-200 leading-relaxed">
-              Through ensemble methods and reinforcement learning algorithms, the system dynamically categorizes emotional states into five distinct classifications: Panic, Fear/Anxiety, Disbelief, Resilience, and Neutral. This granular emotion mapping provides crucial decision support for emergency response coordination and resource allocation during disaster events.
-            </p>
           </div>
+
+          <p className="text-lg text-blue-200 leading-relaxed">
+            Through ensemble methods and reinforcement learning algorithms, the system dynamically categorizes emotional states into five distinct classifications: Panic, Fear/Anxiety, Disbelief, Resilience, and Neutral. This granular emotion mapping provides crucial decision support for emergency response coordination and resource allocation during disaster events.
+          </p>
         </motion.div>
       </motion.div>
     </div>
