@@ -446,6 +446,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch analyzed file" });
     }
   });
+  
+  // Update file metrics
+  app.patch('/api/analyzed-files/:id/metrics', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const metrics = req.body;
+      
+      // Validate if file exists
+      const file = await storage.getAnalyzedFile(id);
+      if (!file) {
+        return res.status(404).json({ error: "Analyzed file not found" });
+      }
+      
+      // Update metrics
+      await storage.updateFileMetrics(id, metrics);
+      
+      res.json({ success: true, message: "Metrics updated successfully" });
+    } catch (error) {
+      console.error("Error updating file metrics:", error);
+      res.status(500).json({ 
+        error: "Failed to update file metrics",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   // Enhanced file upload endpoint
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
