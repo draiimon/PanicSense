@@ -62,3 +62,9 @@ If previews don't appear correctly:
 - Check that all file paths are correct
 
 Your site should now have professional social sharing previews on every platform!
+
+## Additional Instructions for GitHub
+- After pushing, make sure to clear browser cache when viewing the icon
+- The brain circuit icon will be perfectly round in modern browsers
+- CSS masks and SVG clipping ensure perfect roundness
+

@@ -1,0 +1,19 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Define a clipPath for perfect circle -->
+  <defs>
+    <clipPath id="circleClip">
+      <circle cx="32" cy="32" r="32" />
+    </clipPath>
+  </defs>
+  
+  <!-- Background with gradient -->
+  <circle cx="32" cy="32" r="32" fill="#4f46e5" />
+  
+  <!-- Image content clipped to circle -->
+  <image 
+    href="panicsense-icon.png"
+    width="64" 
+    height="64"
+    clip-path="url(#circleClip)" 
+  />
+</svg>
