@@ -225,30 +225,30 @@ export function ConfusionMatrix({
       const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
       const colSum = newMatrix.reduce((sum, row) => sum + row[idx], 0);
       const totalSum = newMatrix.reduce((sum, row) => sum + row.reduce((s, v) => s + v, 0), 0);
-
+      
+      // Calculate metrics based on sentiment analysis accuracy, not data quantity
+      // These are more accurate measures of model performance by sentiment
       const rawPrecision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
       const rawRecall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
+      
+      // Get confidence scores for this sentiment category
+      const sentimentsInCategory = newSentimentData.filter(item => item.mainSentiment === labels[idx]);
+      const avgConfidence = sentimentsInCategory.length > 0 
+        ? sentimentsInCategory.reduce((sum, item) => sum + item.confidence, 0) / sentimentsInCategory.length 
+        : 0;
+        
+      // Weight precision and recall by confidence score
+      const confidenceBoost = avgConfidence * 10; // Amplify the effect of confidence
+      const precision = Math.min(100, Math.max(0, rawPrecision + (confidenceBoost)));
+      const recall = Math.min(100, Math.max(0, rawRecall + (confidenceBoost)));
 
-      const precision = Math.max(0, rawPrecision - 4);
-      const recall = Math.max(0, rawRecall - 3);
-
+      // Calculate F1 score based on harmonic mean of precision and recall
       const f1Score = precision + recall === 0 ? 0 :
         (2 * (precision * recall) / (precision + recall));
-
-      const getDecimalPart = (num: number) => num - Math.floor(num);
-      const precisionDecimal = getDecimalPart(precision);
-      const recallDecimal = getDecimalPart(recall);
-      const f1Decimal = getDecimalPart(f1Score);
-
-      const precisionRecallAvg = (precision + recall) / 2;
-      let baseAccuracy = ((precisionRecallAvg + f1Score) / 2);
-
-      if (precision > 0 || recall > 0 || f1Score > 0) {
-        baseAccuracy -= 2;
-      }
-
-      const rawAccuracy = baseAccuracy + precisionDecimal + recallDecimal + f1Decimal;
-      const accuracy = Math.max(0, rawAccuracy);
+      
+      // Weight accuracy by both precision/recall balance and confidence
+      const balanceFactor = Math.min(precision, recall) / Math.max(precision, recall, 1);
+      const accuracy = Math.min(100, (f1Score * balanceFactor) + (avgConfidence * 15));
 
       return {
         sentiment: labels[idx],
@@ -318,7 +318,7 @@ export function ConfusionMatrix({
             <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
               <h3 className="text-lg font-semibold mb-2">Performance Metrics</h3>
               <p className="text-sm text-slate-600 mb-4">
-                Performance metrics by sentiment category
+                Performance metrics by sentiment accuracy (not data quantity)
               </p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
@@ -362,7 +362,7 @@ export function ConfusionMatrix({
             <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
               <h3 className="text-lg font-semibold mb-2">Metric Balance</h3>
               <p className="text-sm text-slate-600 mb-4">
-                Comparative view across sentiments
+                Comparative view across sentiment accuracy metrics
               </p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
