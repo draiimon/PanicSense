@@ -49,19 +49,19 @@ export default function About() {
     {
       name: "Mark Andrei R. Castillo",
       role: "Core System Architecture & Machine Learning",
-      image: "https://raw.githubusercontent.com/draiimon/PanicSense/main/client/public/images/drei.jpg",
+      image: "https://github.com/draiimon/PanicSense/blob/main/backup_files/images/drei.jpg",
       description: "Leads the development of our advanced ML pipelines and system architecture"
     },
     {
       name: "Ivahnn B. Garcia",
       role: "Frontend Development & User Experience",
-      image: "https://raw.githubusercontent.com/draiimon/PanicSense/main/client/public/images/van.jpg",
+      image: "https://github.com/draiimon/PanicSense/blob/main/backup_files/images/van.jpg",
       description: "Creates intuitive and responsive user interfaces for seamless interaction"
     },
     {
       name: "Julia Daphne Ngan-Gatdula",
       role: "Data Resources & Information Engineering",
-      image: "https://raw.githubusercontent.com/draiimon/PanicSense/main/client/public/images/julia.jpg",
+      image: "https://github.com/draiimon/PanicSense/blob/main/backup_files/images/julia.jpg",
       description: "Manages data infrastructure and information processing systems"
     }
   ];
