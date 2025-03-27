@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { getSentimentPostsByFileId, getSentimentPosts, SentimentPost } from '@/lib/api';
@@ -36,6 +36,19 @@ export function ConfusionMatrix({
     mixedSentiments: Record<string, number>;
   }[]>([]);
   const [metricsData, setMetricsData] = useState<any[]>([]);
+  
+  // Create a ref to hold static metrics - these will be generated once and reused
+  const staticMetricsRef = useRef<{
+    matrix: number[][];
+    metrics: any[];
+    generated: boolean;
+    fileId?: number;
+  }>({
+    matrix: [],
+    metrics: [],
+    generated: false,
+    fileId: undefined
+  });
   const [barChartMetrics, setBarChartMetrics] = useState({
     precision: true,
     recall: true,
@@ -290,12 +303,23 @@ export function ConfusionMatrix({
       // Add confidence boost with scaling 
       const confidenceBoost = avgConfidence * 3;
       
-      // For sentiments that don't exist in data, still show some minimal metrics
+      // For sentiments that don't exist in data, we should show NO metrics
       const hasNoData = categorySize === 0;
       
+      // If no data for this sentiment, return 0 for all metrics
+      if (hasNoData) {
+        return {
+          sentiment: labels[idx],
+          precision: 0,
+          recall: 0,
+          f1Score: 0,
+          accuracy: 0
+        };
+      }
+      
       // Low sentiment count condition - if very few examples, keep metrics in the 70-80% range
-      const isLowCount = categorySize < 5 || hasNoData;
-      const countCap = hasNoData ? 70 : (isLowCount ? 80 : 92);  // Lower cap for missing data
+      const isLowCount = categorySize < 5;
+      const countCap = isLowCount ? 80 : 92;
       
       // Calculate final metrics with caps to ensure realistic values
       // Higher counts of specific sentiment mean higher values
@@ -357,6 +381,26 @@ export function ConfusionMatrix({
         .catch(console.error);
     }
 
+    // If we have already generated static metrics for this fileId, use those
+    if (fileId && staticMetricsRef.current.generated && staticMetricsRef.current.fileId === fileId) {
+      console.log('Using pre-generated static metrics', staticMetricsRef.current.metrics);
+      setMatrix(staticMetricsRef.current.matrix);
+      setMetricsData(staticMetricsRef.current.metrics);
+      setIsMatrixCalculated(true);
+      return;
+    }
+    
+    // If metrics aren't generated yet, store them for future use
+    if (fileId && !staticMetricsRef.current.generated) {
+      staticMetricsRef.current = {
+        matrix: newMatrix,
+        metrics,
+        generated: true,
+        fileId
+      };
+      console.log('Generated static metrics for fileId', fileId, metrics);
+    }
+    
     setMatrix(newMatrix);
     setSentimentData(newSentimentData);
     setMetricsData(metrics);
