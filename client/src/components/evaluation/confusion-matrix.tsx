@@ -101,13 +101,16 @@ export function ConfusionMatrix({
   const isLoading = isLoadingFilePosts || (allDatasets && isLoadingAllPosts);
 
   useEffect(() => {
+    // First, check if we should return early (loading or no data)
     if ((!initialMatrix) &&
       ((allDatasets && isLoadingAllPosts) || (!allDatasets && isLoadingFilePosts))) {
       return;
     }
+    
+    // Check for data availability with proper array checks
     const hasData = initialMatrix ||
-      (allDatasets && allSentimentPosts?.length > 0) ||
-      (!allDatasets && sentimentPosts?.length > 0);
+      (allDatasets && Array.isArray(allSentimentPosts) && allSentimentPosts.length > 0) ||
+      (!allDatasets && Array.isArray(sentimentPosts) && sentimentPosts.length > 0);
 
     if (!hasData) {
       setMatrix([]);
@@ -117,13 +120,16 @@ export function ConfusionMatrix({
       return;
     }
 
+    // Initialize matrix and data arrays
     let newMatrix: number[][] = Array(labels.length).fill(0).map(() => Array(labels.length).fill(0));
     let newSentimentData: typeof sentimentData = [];
 
+    // Handle pre-calculated confusion matrix
     if (initialMatrix) {
-      newMatrix = initialMatrix.map(row => [...row]);
+      newMatrix = Array.isArray(initialMatrix) ? initialMatrix.map(row => [...row]) : newMatrix;
     }
-    else if (allDatasets && allSentimentPosts && allSentimentPosts.length > 0) {
+    // Process data for all datasets
+    else if (allDatasets && Array.isArray(allSentimentPosts) && allSentimentPosts.length > 0) {
       allSentimentPosts.forEach((post: {
         id: number;
         text: string;
@@ -131,6 +137,8 @@ export function ConfusionMatrix({
         confidence: number;
         timestamp: string;
       }) => {
+        if (!post || !post.sentiment) return;
+        
         const mainSentiment = post.sentiment;
         const confidence = post.confidence || 1;
 
@@ -171,7 +179,8 @@ export function ConfusionMatrix({
         });
       });
     }
-    else if (!allDatasets && sentimentPosts && sentimentPosts.length > 0) {
+    // Process data for individual dataset
+    else if (!allDatasets && Array.isArray(sentimentPosts) && sentimentPosts.length > 0) {
       sentimentPosts.forEach((post: {
         id: number;
         text: string;
@@ -179,6 +188,8 @@ export function ConfusionMatrix({
         confidence: number;
         timestamp: string;
       }) => {
+        if (!post || !post.sentiment) return;
+        
         const mainSentiment = post.sentiment;
         const confidence = post.confidence || 1;
 

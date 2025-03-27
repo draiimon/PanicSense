@@ -54,16 +54,26 @@ export default function Evaluation() {
 
   const getDisplayData = () => {
     if (selectedFileId === "all") {
+      // Make sure we have valid array data with safety checks
+      const safeAllData = Array.isArray(allData) ? allData : [];
+      const safeAllSentimentPosts = Array.isArray(allSentimentPosts) ? allSentimentPosts : [];
+      
+      // Use the first available array data
+      const posts = safeAllData.length > 0 ? safeAllData : safeAllSentimentPosts;
+      
       return {
-        posts: allData || allSentimentPosts || [],
+        posts: posts,
         name: "All Datasets",
         isAll: true
       };
     }
 
+    // Make sure we have valid array data for individual dataset
+    const safeSentimentPosts = Array.isArray(sentimentPosts) ? sentimentPosts : [];
+    
     return {
-      posts: sentimentPosts || [],
-      name: selectedFile?.originalName || "",
+      posts: safeSentimentPosts,
+      name: selectedFile?.originalName || "Selected Dataset",
       isAll: false
     };
   };
@@ -104,7 +114,7 @@ export default function Evaluation() {
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             </div>
-          ) : analyzedFiles.length === 0 ? (
+          ) : !Array.isArray(analyzedFiles) || analyzedFiles.length === 0 ? (
             <div className="text-center py-6 border border-dashed border-slate-300 rounded-lg">
               <DatabaseIcon className="h-10 w-10 text-slate-400 mx-auto mb-2" />
               <p className="text-slate-600 font-medium">No analyzed files available</p>
