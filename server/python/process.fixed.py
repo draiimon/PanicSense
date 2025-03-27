@@ -416,7 +416,7 @@ class DisasterSentimentBackend:
         if "Posted by u/" in text:
             return "Reddit"
 
-        return "Unknown Social Media"
+        return "Social Media"
 
     def analyze_sentiment(self, text):
         """Analyze sentiment in text"""
@@ -482,6 +482,8 @@ class DisasterSentimentBackend:
                     - Katiyakan ng konteksto
                     - Pagiging nauugnay sa sakuna
 
+                    Para sa lokasyon, magbigay ng tamang lokasyon sa Pilipinas kung nabanggit o mag-return ng null kung hindi alam o hindi matukoy ang lokasyon. Huwag ibalik ang "Unknown" o "Hindi tinukoy" bilang lokasyon.
+                    
                     Tumugon sa JSON format: {"sentiment": "", "confidence": 0.0, "explanation": "", "disasterType": "", "location": ""}"""
                 else:
                     system_message = """You are a disaster sentiment analysis expert for the Philippines.
@@ -497,6 +499,8 @@ class DisasterSentimentBackend:
                     - Certainty of context
                     - Relevance to disaster
 
+                    For location field, provide a valid Philippine location if mentioned or return null if location is unknown or cannot be determined. Do not return "Unknown" or "Not specified" as the location.
+                    
                     Respond in JSON format: {"sentiment": "", "confidence": 0.0, "explanation": "", "disasterType": "", "location": ""}"""
 
                 data = {
@@ -777,7 +781,7 @@ class DisasterSentimentBackend:
                 col for col in columns
                 if any(dis_word in col.lower() for dis_word in [
                     'disaster', 'type', 'event', 'category', 'calamity',
-                    ''hazard'
+                    'hazard'
                 ])
             ]
             if disaster_candidates:
@@ -898,7 +902,7 @@ class DisasterSentimentBackend:
                         if source == "CSV Import" or not source.strip():
                             detected_source = self.detect_social_media_source(
                                 text)
-                            if detected_source != "Unknown Social Media":
+                            if detected_source != "Social Media":
                                 source = detected_source
 
                         # Extract location and disaster type from CSV if available
@@ -1100,7 +1104,7 @@ class DisasterSentimentBackend:
                         if source == "CSV Import" or not source.strip():
                             detected_source = self.detect_social_media_source(
                                 text)
-                            if detected_source != "Unknown Social Media":
+                            if detected_source != "Social Media":
                                 source = detected_source
 
                         csv_location = str(row.get(
