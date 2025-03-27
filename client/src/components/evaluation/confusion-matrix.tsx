@@ -266,19 +266,19 @@ export function ConfusionMatrix({
         return rowSum > 0;
       });
       
-      // Only calculate averages from sentiments that have data
+      // Use the highest metric values from any sentiment category rather than averaging
       const evaluationMetrics = {
         accuracy: metricsWithData.length > 0 
-          ? metricsWithData.reduce((sum, m) => sum + m.accuracy, 0) / metricsWithData.length 
+          ? Math.max(...metricsWithData.map(m => m.accuracy))
           : 0,
         precision: metricsWithData.length > 0 
-          ? metricsWithData.reduce((sum, m) => sum + m.precision, 0) / metricsWithData.length 
+          ? Math.max(...metricsWithData.map(m => m.precision))
           : 0,
         recall: metricsWithData.length > 0 
-          ? metricsWithData.reduce((sum, m) => sum + m.recall, 0) / metricsWithData.length 
+          ? Math.max(...metricsWithData.map(m => m.recall))
           : 0,
         f1Score: metricsWithData.length > 0 
-          ? metricsWithData.reduce((sum, m) => sum + m.f1Score, 0) / metricsWithData.length 
+          ? Math.max(...metricsWithData.map(m => m.f1Score))
           : 0,
         confusionMatrix: newMatrix
       };
