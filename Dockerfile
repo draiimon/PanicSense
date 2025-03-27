@@ -15,7 +15,11 @@ COPY . .
 RUN npm run build
 
 # Expose the port the app runs on
-EXPOSE 3000
+EXPOSE 5000
+
+# Environment variables
+ENV PORT=5000
+ENV NODE_ENV=production
 
 # Command to run the application
 CMD ["node", "dist/index.js"]
