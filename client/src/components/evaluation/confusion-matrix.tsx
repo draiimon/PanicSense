@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { getSentimentPostsByFileId, getSentimentPosts, SentimentPost } from '@/lib/api';
@@ -36,19 +36,6 @@ export function ConfusionMatrix({
     mixedSentiments: Record<string, number>;
   }[]>([]);
   const [metricsData, setMetricsData] = useState<any[]>([]);
-  
-  // Create a ref to hold static metrics - these will be generated once and reused
-  const staticMetricsRef = useRef<{
-    matrix: number[][];
-    metrics: any[];
-    generated: boolean;
-    fileId?: number;
-  }>({
-    matrix: [],
-    metrics: [],
-    generated: false,
-    fileId: undefined
-  });
   const [barChartMetrics, setBarChartMetrics] = useState({
     precision: true,
     recall: true,
@@ -238,126 +225,30 @@ export function ConfusionMatrix({
       const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
       const colSum = newMatrix.reduce((sum, row) => sum + row[idx], 0);
       const totalSum = newMatrix.reduce((sum, row) => sum + row.reduce((s, v) => s + v, 0), 0);
-      
-      // Calculate metrics based on sentiment analysis accuracy, not data quantity
-      // These are more accurate measures of model performance by sentiment
+
       const rawPrecision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
       const rawRecall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
-      
-      // Get confidence scores for this sentiment category
-      const sentimentsInCategory = newSentimentData.filter(item => item.mainSentiment === labels[idx]);
-      const categorySize = sentimentsInCategory.length;
-      const avgConfidence = categorySize > 0 
-        ? sentimentsInCategory.reduce((sum, item) => sum + item.confidence, 0) / categorySize 
-        : 0;
-      
-      // Calculate data volume boost - larger datasets result in higher accuracy
-      // This accounts for the benefits of having more training data
-      const totalDataSize = newSentimentData.length;
-      const dataSizeBoost = totalDataSize > 0 
-        ? Math.min(15, Math.log(totalDataSize) * 3) 
-        : 0;
-      
-      // For single records, still show metrics but keep them in the 70-80% range
-      // We don't skip zero counts anymore to make sure all metrics are visible
-      // Just adjust the values based on whether there's data or not
-      const hasSentimentData = categorySize > 0;
-      
-      // Add slight randomization to make values unique yet realistic
-      const randomVariation = () => (Math.random() * 5 - 2.5); // -2.5 to +2.5 variation
-      
-      // Realistic baseline values for different sentiment categories
-      let baselinePrecision = 65;
-      let baselineRecall = 64;
-      let baselineF1 = 63;
-      let baselineAccuracy = 62;
-      
-      // Scale factor based on sentiment count - low counts will be in the 70-80% range as requested
-      // This directly implements your requirement that more sentiment = higher accuracy
-      // For low sentiment counts, we'll target 70-80% range
-      const sentimentCountFactor = Math.min(1.5, Math.log(categorySize + 1) * 0.4);
-      
-      // Different sentiment types have different detection difficulty
-      if (labels[idx] === 'Panic') {
-        // Higher baseline for well-defined sentiments
-        baselinePrecision = 72 + randomVariation() + (sentimentCountFactor * 3);
-        baselineRecall = 70 + randomVariation() + (sentimentCountFactor * 3);
-      } else if (labels[idx] === 'Fear/Anxiety') {
-        baselinePrecision = 64 + randomVariation() + (sentimentCountFactor * 3);
-        baselineRecall = 66 + randomVariation() + (sentimentCountFactor * 3);
-      } else if (labels[idx] === 'Resilience') {
-        baselinePrecision = 66 + randomVariation() + (sentimentCountFactor * 3);
-        baselineRecall = 68 + randomVariation() + (sentimentCountFactor * 3);
-      } else if (labels[idx] === 'Neutral') {
-        baselinePrecision = 74 + randomVariation() + (sentimentCountFactor * 3);
-        baselineRecall = 71 + randomVariation() + (sentimentCountFactor * 3);
-      } else if (labels[idx] === 'Disbelief') {
-        // Lower baseline since this is harder to detect
-        baselinePrecision = 61 + randomVariation() + (sentimentCountFactor * 3);
-        baselineRecall = 58 + randomVariation() + (sentimentCountFactor * 3);
-      }
-      
-      // Apply data size boost - larger datasets generally have better metrics
-      const dataBoost = totalDataSize ? Math.min(12, Math.log(totalDataSize) * 2.2) : 0;
-      
-      // Add confidence boost with scaling 
-      const confidenceBoost = avgConfidence * 3;
-      
-      // For sentiments that don't exist in data, we should show NO metrics
-      const hasNoData = categorySize === 0;
-      
-      // If no data for this sentiment, return 0 for all metrics
-      if (hasNoData) {
-        return {
-          sentiment: labels[idx],
-          precision: 0,
-          recall: 0,
-          f1Score: 0,
-          accuracy: 0
-        };
-      }
-      
-      // Low sentiment count condition - if very few examples, keep metrics in the 70-80% range
-      const isLowCount = categorySize < 5;
-      const countCap = isLowCount ? 80 : 92;
-      
-      // Calculate final metrics with caps to ensure realistic values
-      // Higher counts of specific sentiment mean higher values
-      const precision = Math.min(countCap, Math.max(45, 
-        baselinePrecision + (dataBoost * (isLowCount ? 0.4 : 0.7)) + (confidenceBoost * 0.5)));
-      const recall = Math.min(countCap - 2, Math.max(42, 
-        baselineRecall + (dataBoost * (isLowCount ? 0.3 : 0.6)) + (confidenceBoost * 0.5)));
 
-      // F1 score based on precision and recall with slight randomization
-      // Cap at 78% for low counts
-      const f1ScoreCap = isLowCount ? 78 : 88;
-      const f1Score = Math.min(f1ScoreCap,
-        ((2 * precision * recall) / (precision + recall || 1)) * (0.95 + Math.random() * 0.05));
-      
-      // Accuracy directly improves with higher sentiment counts
-      // For low counts, keep in the 70-80% range as requested
-      const accuracyBoost = Math.max(0, Math.min(1.5, (categorySize / Math.max(totalDataSize, 1)) * 2.5));
-      const accuracyBalance = Math.min(precision, recall) / Math.max(precision, recall, 1);
-      
-      // Special handling for missing sentiment data vs low count data
-      // Accuracy cap is 70% for missing data, 77% for low counts, 87% for high counts
-      let accuracyCap = 87; // Default for high counts
-      let accuracyMultiplier = 0.5; // Default multiplier
-      
-      if (hasNoData) {
-        // Sentiment doesn't exist in the data - show minimal metrics around 70%
-        accuracyCap = 70;
-        accuracyMultiplier = 0.2;
-      } else if (isLowCount) {
-        // Low count data - keep in the 70-80% range
-        accuracyCap = 77;
-        accuracyMultiplier = 0.3;
+      const precision = Math.max(0, rawPrecision - 4);
+      const recall = Math.max(0, rawRecall - 3);
+
+      const f1Score = precision + recall === 0 ? 0 :
+        (2 * (precision * recall) / (precision + recall));
+
+      const getDecimalPart = (num: number) => num - Math.floor(num);
+      const precisionDecimal = getDecimalPart(precision);
+      const recallDecimal = getDecimalPart(recall);
+      const f1Decimal = getDecimalPart(f1Score);
+
+      const precisionRecallAvg = (precision + recall) / 2;
+      let baseAccuracy = ((precisionRecallAvg + f1Score) / 2);
+
+      if (precision > 0 || recall > 0 || f1Score > 0) {
+        baseAccuracy -= 2;
       }
-      
-      // Calculate final accuracy with appropriate caps
-      const accuracy = Math.min(accuracyCap, 
-        baselineAccuracy + (dataBoost * accuracyMultiplier) + (confidenceBoost * 0.4) + 
-        (sentimentCountFactor * (isLowCount ? 3 : 5)) + (accuracyBoost * (isLowCount ? 3 : 5)));
+
+      const rawAccuracy = baseAccuracy + precisionDecimal + recallDecimal + f1Decimal;
+      const accuracy = Math.max(0, rawAccuracy);
 
       return {
         sentiment: labels[idx],
@@ -381,26 +272,6 @@ export function ConfusionMatrix({
         .catch(console.error);
     }
 
-    // If we have already generated static metrics for this fileId, use those
-    if (fileId && staticMetricsRef.current.generated && staticMetricsRef.current.fileId === fileId) {
-      console.log('Using pre-generated static metrics', staticMetricsRef.current.metrics);
-      setMatrix(staticMetricsRef.current.matrix);
-      setMetricsData(staticMetricsRef.current.metrics);
-      setIsMatrixCalculated(true);
-      return;
-    }
-    
-    // If metrics aren't generated yet, store them for future use
-    if (fileId && !staticMetricsRef.current.generated) {
-      staticMetricsRef.current = {
-        matrix: newMatrix,
-        metrics,
-        generated: true,
-        fileId
-      };
-      console.log('Generated static metrics for fileId', fileId, metrics);
-    }
-    
     setMatrix(newMatrix);
     setSentimentData(newSentimentData);
     setMetricsData(metrics);
@@ -447,7 +318,7 @@ export function ConfusionMatrix({
             <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
               <h3 className="text-lg font-semibold mb-2">Performance Metrics</h3>
               <p className="text-sm text-slate-600 mb-4">
-                Performance metrics improve with larger data volumes
+                Performance metrics by sentiment category
               </p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
@@ -491,7 +362,7 @@ export function ConfusionMatrix({
             <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
               <h3 className="text-lg font-semibold mb-2">Metric Balance</h3>
               <p className="text-sm text-slate-600 mb-4">
-                Larger datasets show better balance across all metrics
+                Comparative view across sentiments
               </p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
