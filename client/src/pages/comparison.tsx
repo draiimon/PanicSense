@@ -115,13 +115,12 @@ export default function Comparison() {
       
       const lowerType = type.toLowerCase();
       
-      // Filter out placeholder values, "Tsunami", and long phrases
+      // Filter out placeholder values and long phrases
       return !(
         lowerType === "not specified" || 
         lowerType === "not mentioned" || 
         lowerType === "unspecified" || 
         lowerType === "none" ||
-        lowerType === "tsunami" ||  // Exclude Tsunami as per request
         lowerType.includes("none specifically mentioned") ||
         lowerType.includes("but it implies") ||
         type.length > 40  // Filter out very long descriptions which are likely placeholders
@@ -192,9 +191,9 @@ export default function Comparison() {
       if (post.disasterType) disasterTypes.add(post.disasterType);
     });
 
-    // If no disaster types found, show default categories (excluding Tsunami)
+    // If no disaster types found, show default categories
     const categories = disasterTypes.size > 0 
-      ? Array.from(disasterTypes).filter(type => type.toLowerCase() !== 'tsunami')
+      ? Array.from(disasterTypes) 
       : ['Typhoon', 'Flood', 'Earthquake', 'Fire'];
 
     // Calculate response effectiveness metrics for each disaster type

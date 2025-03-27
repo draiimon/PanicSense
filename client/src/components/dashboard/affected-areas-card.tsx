@@ -67,9 +67,6 @@ export function AffectedAreasCard({ sentimentPosts, isLoading = false }: Affecte
 
     sentimentPosts.forEach(post => {
       if (!post.location) return;
-      
-      // Skip posts with "UNKNOWN" location
-      if (post.location.toUpperCase() === "UNKNOWN") return;
 
       const location = post.location;
 
