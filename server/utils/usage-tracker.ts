@@ -11,7 +11,7 @@ interface UsageData {
 
 class UsageTracker {
   private dataPath: string;
-  private dailyLimit: number = 1000;
+  private dailyLimit: number = 10000;
   
   constructor() {
     const dataDir = path.join(os.tmpdir(), 'disaster-sentiment');

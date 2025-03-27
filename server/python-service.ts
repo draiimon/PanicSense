@@ -78,7 +78,7 @@ export class PythonService {
       
       // Check if we can process this file based on the daily limit
       if (usageTracker.hasReachedDailyLimit()) {
-        throw new Error('Daily processing limit of 1,000 rows has been reached. Please try again tomorrow.');
+        throw new Error('Daily processing limit of 10,000 rows has been reached. Please try again tomorrow.');
       }
       
       // Calculate how many rows we can process

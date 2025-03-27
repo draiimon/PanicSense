@@ -169,7 +169,7 @@ export default function Dashboard() {
               <div>
                 <h3 className="font-semibold text-gray-800 text-lg mb-1">Upload Disaster Data</h3>
                 <p className="text-sm text-gray-600">
-                  Upload CSV files for sentiment analysis and disaster monitoring. Files are processed in batches of 20 rows with a daily limit of 1,000 rows. Small files (under 20 rows) are processed instantly.
+                  Upload CSV files for sentiment analysis and disaster monitoring. Files are processed in batches of 30 rows with a daily limit of 10,000 rows. Small files (under 30 rows) are processed instantly.
                 </p>
               </div>
             </div>

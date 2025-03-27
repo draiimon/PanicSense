@@ -1088,16 +1088,16 @@ class DisasterSentimentBackend:
                 if batch_start + BATCH_SIZE < len(indices_to_process):
                     batch_number = batch_start // BATCH_SIZE + 1
 
-                    # Skip cooldown for small files (under 20 rows)
-                    if sample_size <= 20:
+                    # Skip cooldown for small files (under 30 rows)
+                    if sample_size <= 30:
                         logging.info(
-                            f"Small file detected (≤20 rows). Skipping cooldown period."
+                            f"Small file detected (≤30 rows). Skipping cooldown period."
                         )
                         report_progress(
                             5 + int(
                                 ((batch_start + BATCH_SIZE) / sample_size) *
                                 90),
-                            f"Small file detected (≤20 rows). Processing without cooldown restrictions.",
+                            f"Small file detected (≤30 rows). Processing without cooldown restrictions.",
                             total_records)
                     else:
                         logging.info(
