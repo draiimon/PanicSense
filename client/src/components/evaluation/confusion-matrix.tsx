@@ -260,11 +260,26 @@ export function ConfusionMatrix({
     });
 
     if (fileId && !allDatasets) {
+      // Filter out sentiments with no data (row sum = 0)
+      const metricsWithData = metrics.filter((_, idx) => {
+        const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
+        return rowSum > 0;
+      });
+      
+      // Only calculate averages from sentiments that have data
       const evaluationMetrics = {
-        accuracy: metrics.reduce((sum, m) => sum + m.accuracy, 0) / metrics.length,
-        precision: metrics.reduce((sum, m) => sum + m.precision, 0) / metrics.length,
-        recall: metrics.reduce((sum, m) => sum + m.recall, 0) / metrics.length,
-        f1Score: metrics.reduce((sum, m) => sum + m.f1Score, 0) / metrics.length,
+        accuracy: metricsWithData.length > 0 
+          ? metricsWithData.reduce((sum, m) => sum + m.accuracy, 0) / metricsWithData.length 
+          : 0,
+        precision: metricsWithData.length > 0 
+          ? metricsWithData.reduce((sum, m) => sum + m.precision, 0) / metricsWithData.length 
+          : 0,
+        recall: metricsWithData.length > 0 
+          ? metricsWithData.reduce((sum, m) => sum + m.recall, 0) / metricsWithData.length 
+          : 0,
+        f1Score: metricsWithData.length > 0 
+          ? metricsWithData.reduce((sum, m) => sum + m.f1Score, 0) / metricsWithData.length 
+          : 0,
         confusionMatrix: newMatrix
       };
 
