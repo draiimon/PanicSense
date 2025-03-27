@@ -101,19 +101,18 @@ export function DataTable({
   const paginatedData = filteredData.slice(startIndex, startIndex + rowsPerPage);
 
   return (
-    <Card className="bg-white rounded-lg shadow border border-slate-200">
-      <CardHeader className="p-4 lg:p-6 border-b border-slate-200">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+    <Card className="bg-white/90 rounded-xl shadow-lg border border-slate-200/60 overflow-hidden">
+      <CardHeader className="p-5 bg-gradient-to-r from-purple-50 to-blue-50">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
           <div>
-            <CardTitle className="text-xl font-semibold text-slate-800">
+            <CardTitle className="text-xl font-semibold bg-gradient-to-r from-purple-700 to-blue-600 bg-clip-text text-transparent">
               {title}
             </CardTitle>
-            <CardDescription className="text-sm text-slate-600">{description}</CardDescription>
+            <CardDescription className="text-sm text-slate-600 mt-1">{description}</CardDescription>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4">
-            
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 group-hover:text-blue-500 transition-colors duration-200" />
                 <Input
                   placeholder="Search in all columns..."
                   value={searchTerm}
@@ -121,7 +120,9 @@ export function DataTable({
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="pl-9 w-full sm:w-64 bg-white border-slate-200 focus:border-blue-500"
+                  className="pl-9 w-full sm:w-64 bg-white/80 backdrop-blur-sm border-slate-200/80 rounded-lg 
+                            focus:border-blue-400 focus:ring-1 focus:ring-blue-300 shadow-sm
+                            transition-all duration-200"
                 />
               </div>
             <Select
@@ -131,13 +132,13 @@ export function DataTable({
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="w-[180px] bg-white border-slate-200">
-                <Filter className="h-4 w-4 mr-2" />
+              <SelectTrigger className="w-[180px] bg-white/80 backdrop-blur-sm border-slate-200/80 rounded-lg shadow-sm">
+                <Filter className="h-4 w-4 mr-2 text-slate-500" />
                 <SelectValue placeholder="Filter by emotion" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-lg border-slate-200/80 shadow-md">
                 {EMOTIONS.map((emotion) => (
-                  <SelectItem key={emotion} value={emotion}>
+                  <SelectItem key={emotion} value={emotion} className="focus:bg-blue-50">
                     {emotion}
                   </SelectItem>
                 ))}
@@ -147,35 +148,45 @@ export function DataTable({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto border-b border-slate-200">
+        <div className="overflow-x-auto">
           <Table className="w-full">
             <TableHeader>
-              <TableRow className="bg-slate-50 hover:bg-slate-50">
-                <TableHead className="w-[30%] font-medium">Text</TableHead>
-                <TableHead className="font-medium">Timestamp</TableHead>
-                <TableHead className="font-medium">Source</TableHead>
-                <TableHead className="font-medium">Location</TableHead>
-                <TableHead className="font-medium">Disaster</TableHead>
-                <TableHead className="font-medium">Sentiment</TableHead>
-                <TableHead className="font-medium">Confidence</TableHead>
-                <TableHead className="font-medium">Language</TableHead>
-                <TableHead className="w-10 font-medium">Actions</TableHead>
+              <TableRow className="bg-gradient-to-r from-slate-50 to-blue-50/30 hover:bg-slate-50">
+                <TableHead className="w-[30%] font-semibold text-slate-700">Text</TableHead>
+                <TableHead className="font-semibold text-slate-700">Timestamp</TableHead>
+                <TableHead className="font-semibold text-slate-700">Source</TableHead>
+                <TableHead className="font-semibold text-slate-700">Location</TableHead>
+                <TableHead className="font-semibold text-slate-700">Disaster</TableHead>
+                <TableHead className="font-semibold text-slate-700">Sentiment</TableHead>
+                <TableHead className="font-semibold text-slate-700">Confidence</TableHead>
+                <TableHead className="font-semibold text-slate-700">Language</TableHead>
+                <TableHead className="w-10 font-semibold text-slate-700">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
                 {paginatedData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12 text-slate-500">
-                      {searchTerm || selectedSentiment !== "All"
-                        ? "No results match your search criteria" 
-                        : "No data available"}
+                    <TableCell colSpan={9} className="text-center py-16 text-slate-500">
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <Search className="h-10 w-10 text-slate-300" />
+                        <p className="text-lg font-medium">
+                          {searchTerm || selectedSentiment !== "All"
+                            ? "No results match your search criteria" 
+                            : "No data available"}
+                        </p>
+                        <p className="text-sm text-slate-400">
+                          {searchTerm || selectedSentiment !== "All" 
+                            ? "Try adjusting your search or filters" 
+                            : "Upload some data to get started"}
+                        </p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   paginatedData.map((item) => (
                     <TableRow
                       key={item.id}
-                      className="border-t border-slate-200 hover:bg-slate-50"
+                      className="border-b border-slate-100 hover:bg-blue-50/30 transition-colors"
                     >
                       <TableCell className="font-medium text-sm text-slate-700">
                         {item.text}
@@ -195,6 +206,7 @@ export function DataTable({
                       <TableCell>
                         <Badge 
                           variant={getSentimentVariant(item.sentiment) as any}
+                          className="shadow-sm"
                         >
                           {item.sentiment}
                         </Badge>
@@ -211,16 +223,16 @@ export function DataTable({
                             <Button 
                               variant="ghost" 
                               size="icon"
-                              className="h-8 w-8 text-slate-400 hover:text-red-600"
+                              className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors rounded-full"
                               onClick={() => setPostToDelete(item.id)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                          <AlertDialogContent className="rounded-xl border-slate-200/80 shadow-xl backdrop-blur-sm bg-white/95">
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete this post?</AlertDialogTitle>
-                              <AlertDialogDescription>
+                              <AlertDialogTitle className="text-xl">Delete this post?</AlertDialogTitle>
+                              <AlertDialogDescription className="text-slate-600">
                                 This will permanently delete this sentiment post from the database.
                                 This action cannot be undone.
                               </AlertDialogDescription>
@@ -228,13 +240,14 @@ export function DataTable({
                             <AlertDialogFooter>
                               <AlertDialogCancel 
                                 onClick={() => setPostToDelete(null)}
+                                className="rounded-lg border-slate-200 hover:bg-slate-100 transition-colors"
                               >
                                 Cancel
                               </AlertDialogCancel>
                               <AlertDialogAction 
                                 disabled={isDeleting}
                                 onClick={() => postToDelete && handleDeletePost(postToDelete)}
-                                className="bg-red-600 hover:bg-red-700"
+                                className="rounded-lg bg-red-500 hover:bg-red-600 transition-colors shadow-md"
                               >
                                 {isDeleting ? "Deleting..." : "Delete Post"}
                               </AlertDialogAction>
@@ -249,67 +262,52 @@ export function DataTable({
           </Table>
         </div>
 
-        {/* Pagination */}
+        {/* Modern Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between py-3 px-4">
-            <div className="hidden sm:flex text-sm text-slate-600 font-medium">
-              Showing <span className="font-semibold mx-1">{startIndex + 1}-{Math.min(startIndex + rowsPerPage, filteredData.length)}</span> of <span className="font-semibold mx-1">{filteredData.length}</span> results
+          <div className="flex items-center justify-between py-4 px-6 bg-gradient-to-r from-slate-50 to-blue-50/30">
+            <div className="hidden sm:flex items-center space-x-1 text-sm text-slate-600">
+              <span className="font-medium">Showing</span>
+              <span className="px-2 py-0.5 rounded-md bg-white shadow-sm border border-slate-200/60 font-semibold text-blue-600">
+                {startIndex + 1}-{Math.min(startIndex + rowsPerPage, filteredData.length)}
+              </span>
+              <span className="font-medium">of</span>
+              <span className="px-2 py-0.5 rounded-md bg-white shadow-sm border border-slate-200/60 font-semibold text-blue-600">
+                {filteredData.length}
+              </span>
+              <span className="font-medium">results</span>
             </div>
-            <div className="flex sm:justify-end w-full sm:w-auto gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded bg-white"
-              >
-                Previous
-              </Button>
-              {/* Page numbers - show first, current ±1, and last */}
-              {[...Array(totalPages)].map((_, i) => {
-                const pageNum = i + 1;
-                // Only show first, last, current, and pages within distance 1 of current
-                if (pageNum === 1 || pageNum === totalPages || 
-                    Math.abs(pageNum - currentPage) <= 1) {
-                  return (
-                    <Button
-                      key={pageNum}
-                      variant={pageNum === currentPage ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`px-3 py-1.5 rounded min-w-[2rem] ${
-                        pageNum === currentPage ? "bg-blue-600 text-white" : "bg-white"
-                      }`}
-                    >
-                      {pageNum}
-                    </Button>
-                  );
-                }
-                // Show dots for gaps
-                else if (Math.abs(pageNum - currentPage) === 2) {
-                  return (
-                    <Button
-                      key={`gap-${pageNum}`}
-                      variant="outline"
-                      size="sm"
-                      disabled
-                      className="px-1.5 py-1.5 bg-white cursor-default"
-                    >
-                      ...
-                    </Button>
-                  );
-                }
-                return null;
-              })}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded bg-white"
-              >
-                Next
-              </Button>
+            <div className="flex w-full justify-end sm:w-auto">
+              <div className="flex items-center rounded-full bg-white p-1 shadow-md border border-slate-200/60">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="h-9 w-9 rounded-full transition-all duration-200 hover:bg-blue-100 disabled:opacity-50"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                    <path d="m15 18-6-6 6-6"/>
+                  </svg>
+                  <span className="sr-only">Previous</span>
+                </Button>
+
+                <div className="px-3 font-medium text-blue-800">
+                  {currentPage} <span className="text-slate-400">/</span> {totalPages}
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="h-9 w-9 rounded-full transition-all duration-200 hover:bg-blue-100 disabled:opacity-50"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                    <path d="m9 18 6-6-6-6"/>
+                  </svg>
+                  <span className="sr-only">Next</span>
+                </Button>
+              </div>
             </div>
           </div>
         )}
