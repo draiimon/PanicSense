@@ -456,10 +456,10 @@ export default function RawData() {
       </Card>
 
       {/* Data Table - Main Focus */}
-      <div className="w-full overflow-hidden p-1">
-        <div className="relative w-full max-w-[110%] mx-auto transform -translate-x-[5%] overflow-visible">
+      <div className="w-full p-1">
+        <div className="relative w-full mx-auto">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-200/10 via-blue-200/5 to-white/0 rounded-3xl blur-xl"></div>
-          <div className="relative p-1">
+          <div className="relative">
             <DataTable
               data={transformedPosts}
               title={

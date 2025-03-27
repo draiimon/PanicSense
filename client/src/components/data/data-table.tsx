@@ -247,7 +247,7 @@ export function DataTable({
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
                         {item.disasterType ? (
-                          <div className="inline-flex items-center px-2 py-0.5 rounded bg-amber-50 border border-amber-100 text-amber-700">
+                          <div className={`inline-flex items-center px-2 py-0.5 rounded shadow-sm ${getDisasterTypeStyles(item.disasterType)}`}>
                             {item.disasterType}
                           </div>
                         ) : (
@@ -274,7 +274,7 @@ export function DataTable({
                         </div>
                       </TableCell>
                       <TableCell className="text-sm">
-                        <div className="inline-flex items-center px-2 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-indigo-700">
+                        <div className="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700">
                           {item.language}
                         </div>
                       </TableCell>
@@ -404,5 +404,33 @@ const getConfidenceColor = (confidence: number) => {
     return 'bg-gradient-to-r from-yellow-500 to-amber-500';
   } else {
     return 'bg-gradient-to-r from-red-500 to-rose-500';
+  }
+};
+
+const getDisasterTypeStyles = (disasterType: string) => {
+  // Using the same colors as in the geographic indicators
+  switch (disasterType.toLowerCase()) {
+    case 'fire':
+    case 'sunog':
+      return 'bg-gradient-to-r from-red-600 to-orange-500 text-white border border-red-700/20';
+    case 'flood':
+    case 'baha':
+      return 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white border border-blue-700/20';
+    case 'earthquake':
+    case 'lindol':
+      return 'bg-gradient-to-r from-amber-600 to-yellow-500 text-white border border-amber-700/20';
+    case 'typhoon':
+    case 'bagyo':
+      return 'bg-gradient-to-r from-teal-600 to-emerald-500 text-white border border-teal-700/20';
+    case 'tsunami':
+      return 'bg-gradient-to-r from-indigo-600 to-blue-500 text-white border border-indigo-700/20';
+    case 'landslide':
+    case 'pagguho':
+      return 'bg-gradient-to-r from-amber-700 to-yellow-600 text-white border border-amber-800/20';
+    case 'volcanic eruption':
+    case 'bulkang pagputok':
+      return 'bg-gradient-to-r from-stone-600 to-slate-500 text-white border border-stone-700/20';
+    default:
+      return 'bg-gradient-to-r from-purple-600 to-violet-500 text-white border border-purple-700/20';
   }
 };
