@@ -64,53 +64,57 @@ export default function Comparison() {
       // Tsunami has been completely removed as requested
     };
     
-    // Add standard disaster types from disasterEvents
-    disasterEvents.forEach(event => {
-      if (event.type && 
-          event.type !== "Not Specified" && 
-          event.type !== "null" && 
-          event.type !== "undefined" &&
-          event.type.toLowerCase() !== "none") {
-        disasterTypeSet.add(event.type);
-      }
-    });
+    // Add standard disaster types from disasterEvents with array check
+    if (Array.isArray(disasterEvents)) {
+      disasterEvents.forEach(event => {
+        if (event.type && 
+            event.type !== "Not Specified" && 
+            event.type !== "null" && 
+            event.type !== "undefined" &&
+            event.type.toLowerCase() !== "none") {
+          disasterTypeSet.add(event.type);
+        }
+      });
+    }
     
-    // Add standardized disaster types from posts
-    sentimentPosts.forEach(post => {
-      if (!post.disasterType) return;
-      if (post.disasterType === "Not Specified" || 
-          post.disasterType === "NONE" || 
-          post.disasterType === "None" || 
-          post.disasterType === "null" || 
-          post.disasterType === "undefined") {
-        return;
-      }
-      
-      // Try to standardize the disaster type
-      const postDisasterType = post.disasterType.trim();
-      const normalized = postDisasterType.toLowerCase();
-      
-      // Check if this is already a standardized type name (exact match)
-      // Note: Tsunami has been completely removed from this list
-      if (["Earthquake", "Flood", "Typhoon", "Fire", "Volcano", "Landslide", "Drought"].includes(postDisasterType)) {
-        disasterTypeSet.add(postDisasterType);
-      } else {
-        // Look for keywords to standardize
-        let matched = false;
-        for (const [keyword, standardType] of Object.entries(standardDisasterTypes)) {
-          if (normalized.includes(keyword)) {
-            disasterTypeSet.add(standardType);
-            matched = true;
-            break;
-          }
+    // Add standardized disaster types from posts with array check
+    if (Array.isArray(sentimentPosts)) {
+      sentimentPosts.forEach(post => {
+        if (!post.disasterType) return;
+        if (post.disasterType === "Not Specified" || 
+            post.disasterType === "NONE" || 
+            post.disasterType === "None" || 
+            post.disasterType === "null" || 
+            post.disasterType === "undefined") {
+          return;
         }
         
-        // If no match found but not a generic term, add as-is
-        if (!matched && postDisasterType.length < 30) {
+        // Try to standardize the disaster type
+        const postDisasterType = post.disasterType.trim();
+        const normalized = postDisasterType.toLowerCase();
+        
+        // Check if this is already a standardized type name (exact match)
+        // Note: Tsunami has been completely removed from this list
+        if (["Earthquake", "Flood", "Typhoon", "Fire", "Volcano", "Landslide", "Drought"].includes(postDisasterType)) {
           disasterTypeSet.add(postDisasterType);
+        } else {
+          // Look for keywords to standardize
+          let matched = false;
+          for (const [keyword, standardType] of Object.entries(standardDisasterTypes)) {
+            if (normalized.includes(keyword)) {
+              disasterTypeSet.add(standardType);
+              matched = true;
+              break;
+            }
+          }
+          
+          // If no match found but not a generic term, add as-is
+          if (!matched && postDisasterType.length < 30) {
+            disasterTypeSet.add(postDisasterType);
+          }
         }
-      }
-    });
+      });
+    }
     
     // Filter out generic unknown values for more professional presentation
     const validDisasterTypes = Array.from(disasterTypeSet).filter(type => {
@@ -131,38 +135,40 @@ export default function Comparison() {
     });
 
     return validDisasterTypes.map(type => {
-      // Find posts for this disaster type including partial matches
-      const postsForType = sentimentPosts.filter(post => {
-        if (!post.disasterType) return false;
-        
-        // Handle exact matches
-        if (post.disasterType === type) return true;
-        
-        // Handle partial/similar matches based on keywords
-        const disasterLower = post.disasterType.toLowerCase();
-        const typeLower = type.toLowerCase();
-        
-        // Check if the disaster type is part of the post disaster type or has similar keywords
-        if (disasterLower.includes(typeLower)) return true;
-        
-        // Check specific keyword matches by disaster type
-        switch (type) {
-          case "Earthquake":
-            return disasterLower.includes("quake") || disasterLower.includes("lindol") || disasterLower.includes("linog");
-          case "Flood":
-            return disasterLower.includes("baha") || disasterLower.includes("tubig") || disasterLower.includes("inundation");
-          case "Typhoon":
-            return disasterLower.includes("bagyo") || disasterLower.includes("storm") || disasterLower.includes("hurricane");
-          case "Fire":
-            return disasterLower.includes("sunog") || disasterLower.includes("apoy") || disasterLower.includes("burning");
-          case "Volcano":
-            return disasterLower.includes("bulkan") || disasterLower.includes("eruption") || disasterLower.includes("lahar");
-          case "Landslide":
-            return disasterLower.includes("guho") || disasterLower.includes("mudslide") || disasterLower.includes("avalanche");
-          default:
-            return false;
-        }
-      });
+      // Find posts for this disaster type including partial matches with array check
+      const postsForType = Array.isArray(sentimentPosts) 
+        ? sentimentPosts.filter(post => {
+            if (!post.disasterType) return false;
+            
+            // Handle exact matches
+            if (post.disasterType === type) return true;
+            
+            // Handle partial/similar matches based on keywords
+            const disasterLower = post.disasterType.toLowerCase();
+            const typeLower = type.toLowerCase();
+            
+            // Check if the disaster type is part of the post disaster type or has similar keywords
+            if (disasterLower.includes(typeLower)) return true;
+            
+            // Check specific keyword matches by disaster type
+            switch (type) {
+              case "Earthquake":
+                return disasterLower.includes("quake") || disasterLower.includes("lindol") || disasterLower.includes("linog");
+              case "Flood":
+                return disasterLower.includes("baha") || disasterLower.includes("tubig") || disasterLower.includes("inundation");
+              case "Typhoon":
+                return disasterLower.includes("bagyo") || disasterLower.includes("storm") || disasterLower.includes("hurricane");
+              case "Fire":
+                return disasterLower.includes("sunog") || disasterLower.includes("apoy") || disasterLower.includes("burning");
+              case "Volcano":
+                return disasterLower.includes("bulkan") || disasterLower.includes("eruption") || disasterLower.includes("lahar");
+              case "Landslide":
+                return disasterLower.includes("guho") || disasterLower.includes("mudslide") || disasterLower.includes("avalanche");
+              default:
+                return false;
+            }
+          })
+        : [];
       
       const totalPosts = postsForType.length;
 
@@ -188,11 +194,13 @@ export default function Comparison() {
 
   // Process data for disaster response effectiveness
   const processResponseEffectivenessData = () => {
-    // Get all disaster types from posts
+    // Get all disaster types from posts with array check
     const disasterTypes = new Set<string>();
-    sentimentPosts.forEach(post => {
-      if (post.disasterType && post.disasterType.toLowerCase() !== 'tsunami') disasterTypes.add(post.disasterType);
-    });
+    if (Array.isArray(sentimentPosts)) {
+      sentimentPosts.forEach(post => {
+        if (post.disasterType && post.disasterType.toLowerCase() !== 'tsunami') disasterTypes.add(post.disasterType);
+      });
+    }
 
     // If no disaster types found, show default categories
     const categories = disasterTypes.size > 0 
@@ -201,10 +209,12 @@ export default function Comparison() {
 
     // Calculate response effectiveness metrics for each disaster type
     const values = categories.map(disasterType => {
-      // Get posts for this disaster type
-      const postsForType = sentimentPosts.filter(post => 
-        post.disasterType && post.disasterType.toLowerCase().includes(disasterType.toLowerCase())
-      );
+      // Get posts for this disaster type with array check
+      const postsForType = Array.isArray(sentimentPosts) 
+        ? sentimentPosts.filter(post => 
+            post.disasterType && post.disasterType.toLowerCase().includes(disasterType.toLowerCase())
+          )
+        : [];
       
       if (postsForType.length === 0) return 75; // Default value if no posts
 
