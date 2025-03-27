@@ -1,50 +1,29 @@
-# Social Media Sharing Setup for PANICSENSE PH
+# Social Media Sharing Guide for PanicSense PH
 
-## What was added
+## How Social Media Sharing Works
 
-1. **Page Title**: Added "PANICSENSE PH" as the title that appears in browser tabs
-2. **Favicon**: Added a favicon for browser tabs at `/client/public/images/favicon.png`
-3. **OpenGraph Images**: Added preview images for social media at `/client/public/images/og-image.png`
-4. **Meta Tags**: Added proper OpenGraph and Twitter card meta tags for social media sharing
+When you share a link to PanicSense PH on social media platforms or messaging apps like Facebook, Twitter, Instagram, or Messenger, they will display a preview card with:
 
-## How it works
+1. The title: "PanicSense PH"
+2. The description: "Disaster sentiment analysis platform for monitoring and responding to disasters in the Philippines"
+3. The image: A blue-to-purple gradient background with "PanicSense PH" text
 
-When someone shares your site link on platforms like:
-- Facebook
-- Messenger
-- Twitter
-- LinkedIn
-- Discord
+## Testing Sharing
 
-The platform will fetch the meta tags from your HTML and display:
-- The title "PANICSENSE PH"
-- The description about disaster sentiment analysis
-- The preview image you provided
+To test how your link will appear when shared:
 
-## GitHub Integration
+- **Facebook Sharing Debugger**: Visit [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/) and enter your website URL
+- **Twitter Card Validator**: Visit [Twitter Card Validator](https://cards-dev.twitter.com/validator) and enter your website URL
+- **LinkedIn Post Inspector**: Visit [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/) and enter your website URL
 
-The image URLs in the HTML now reference:
-```
-https://raw.githubusercontent.com/draiimon/PanicSense/main/client/public/images/og-image.png
-```
+## Troubleshooting
 
-This means:
-1. When you push to GitHub, make sure the images are included in your repository
-2. Social media platforms will fetch the images directly from GitHub (not your deployment)
+If the preview doesn't appear correctly after uploading to GitHub:
 
-## Important when pushing to GitHub
+1. **Clear the Cache**: Use the debugging tools mentioned above to fetch the latest version of your page
+2. **Check Image Dimensions**: The ideal image size for social sharing is 1200×630 pixels
+3. **Verify URLs**: Make sure all image URLs in your meta tags are accessible publicly
 
-Make sure these files are pushed:
-- `/client/public/images/favicon.png`
-- `/client/public/images/og-image.png`
-- `/client/public/images/logo.png` (optional)
-- `/client/index.html` (with the updated meta tags)
+## Preview Should Look Like:
 
-## Testing social media cards
-
-You can test your social media preview cards using:
-- [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/)
-- [Twitter Card Validator](https://cards-dev.twitter.com/validator)
-- [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/)
-
-Simply enter your deployed URL and these tools will show you how your links will appear when shared.
+When sharing your site, you should see the blue/purple gradient with "PanicSense PH" text as the preview image.
