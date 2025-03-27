@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { DataTable } from "@/components/data/data-table";
 import { FileUploader } from "@/components/file-uploader";
@@ -43,8 +43,8 @@ const languageMap: Record<string, string> = {
 export default function RawData() {
   const { toast } = useToast();
   const {
-    sentimentPosts,
-    analyzedFiles,
+    sentimentPosts = [],
+    analyzedFiles = [],
     isLoadingSentimentPosts,
     isLoadingAnalyzedFiles,
     refreshData,
@@ -52,6 +52,14 @@ export default function RawData() {
   const [selectedFileId, setSelectedFileId] = useState<string>("all");
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletingFileId, setDeletingFileId] = useState<number | null>(null);
+  const [isPageReady, setIsPageReady] = useState(false);
+  
+  // When the component mounts, mark it as ready after data loads
+  useEffect(() => {
+    if (!isLoadingSentimentPosts && !isLoadingAnalyzedFiles) {
+      setIsPageReady(true);
+    }
+  }, [isLoadingSentimentPosts, isLoadingAnalyzedFiles]);
 
   const handleDeleteAllData = async () => {
     try {
