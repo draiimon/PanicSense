@@ -123,26 +123,26 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
   return (
     <motion.label
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.97 }}
       className={`
-        relative inline-flex items-center justify-center px-6 py-3
-        bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600
-        hover:from-blue-700 hover:via-indigo-700 hover:to-blue-700
+        relative inline-flex items-center justify-center px-5 py-2.5 h-10
+        bg-gradient-to-r from-purple-600 to-blue-600
+        hover:from-purple-700 hover:to-blue-700
         text-white text-sm font-medium rounded-full
         cursor-pointer transition-all duration-300
-        shadow-lg hover:shadow-xl
+        shadow-md hover:shadow-lg
         overflow-hidden
         ${className}
       `}
     >
-      {/* Animated background */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-indigo-400/20 to-blue-400/20 animate-gradient-x" />
+      {/* Animated shimmer effect */}
+      <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-white/0 via-white/25 to-white/0 animate-shimmer -translate-x-full"></div>
 
       {/* Content */}
-      <div className="relative flex items-center">
-        <Upload className="h-5 w-5 mr-2" />
-        Upload Dataset
+      <div className="relative flex items-center justify-center">
+        <Upload className="h-4 w-4 mr-2" />
+        <span>Upload Dataset</span>
       </div>
 
       <input 
@@ -154,20 +154,16 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
       <style>
         {`
-          @keyframes gradient-x {
+          @keyframes shimmer {
             0% {
-              background-position: 0% 50%;
-            }
-            50% {
-              background-position: 100% 50%;
+              transform: translateX(-100%);
             }
             100% {
-              background-position: 0% 50%;
+              transform: translateX(200%);
             }
           }
-          .animate-gradient-x {
-            animation: gradient-x 3s ease infinite;
-            background-size: 200% 100%;
+          .animate-shimmer {
+            animation: shimmer 2.5s infinite;
           }
         `}
       </style>

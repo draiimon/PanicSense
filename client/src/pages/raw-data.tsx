@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { DataTable } from "@/components/data/data-table";
 import { FileUploader } from "@/components/file-uploader";
+import { motion } from "framer-motion";
 import {
   Select,
   SelectContent,
@@ -120,160 +121,247 @@ export default function RawData() {
 
   return (
     <div className="space-y-6">
-      {/* Study Significance Section */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-none">
-        <CardHeader>
-          <div className="flex items-start space-x-2">
-            <AlertCircle className="h-5 w-5 text-blue-600 mt-1" />
+      {/* Study Significance Section - Enhanced Design */}
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 shadow-lg bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-100 via-blue-50 to-white">
+        {/* Animated background elements */}
+        <div className="absolute top-0 left-0 w-40 h-40 bg-purple-300/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-60 h-60 bg-blue-300/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-indigo-300/30 rounded-full blur-2xl"></div>
+        
+        <div className="relative p-6 z-10">
+          <div className="flex items-start gap-4">
+            <div className="hidden sm:flex h-12 w-12 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 items-center justify-center shadow-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                <path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/>
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </div>
             <div>
-              <CardTitle className="text-xl text-blue-900">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-blue-600 bg-clip-text text-transparent">
                 Disaster Sentiment Analysis
-              </CardTitle>
-              <CardDescription className="text-sm text-blue-800 mt-2 leading-relaxed">
-                This analysis system examines bilingual (English and Filipino)
+              </h2>
+              <p className="mt-3 text-base text-slate-700 leading-relaxed">
+                This advanced analysis system examines bilingual (English and Filipino)
                 social media data during natural disasters, providing real-time
                 insights into public emotional responses. The data helps
                 disaster management teams understand and respond to public
                 sentiment patterns, enabling better crisis communication and
                 response strategies.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div className="bg-white/80 backdrop-blur-sm p-5 rounded-xl shadow-sm border border-slate-200/60">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                    <path d="M18 6 7 12l11 6z"/>
+                    <path d="m7 12 11 6"/>
+                  </svg>
+                </div>
+                <h3 className="font-semibold text-lg text-slate-800">Primary Focus</h3>
+              </div>
+              <p className="text-slate-600 leading-relaxed">
+                Analyzing social media responses to map emotional patterns
+                during disasters, helping authorities better understand and
+                respond to public needs in real-time through advanced sentiment analysis.
+              </p>
+            </div>
+            
+            <div className="bg-white/80 backdrop-blur-sm p-5 rounded-xl shadow-sm border border-slate-200/60">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                </div>
+                <h3 className="font-semibold text-lg text-slate-800">Key Beneficiaries</h3>
+              </div>
+              <ul className="space-y-2 text-slate-600">
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+                  <span>NDRRMC & Disaster Response Teams</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500"></span>
+                  <span>Public Information & Media Agencies</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
+                  <span>Local Government Units & Community Leaders</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Raw Data Header with Enhanced Design */}
+      <div className="relative mb-8 overflow-hidden p-6 bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 rounded-2xl shadow-md border border-slate-200/60">
+        <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative z-10">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-blue-600 bg-clip-text text-transparent">
+              Raw Data Analysis
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              View and analyze bilingual sentiment data from social media during disasters
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap gap-3 mt-2 md:mt-0">
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={async () => {
+                try {
+                  const response = await fetch("/api/export-csv");
+                  if (!response.ok) throw new Error("Failed to download data");
+
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "disaster-sentiments.csv";
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+
+                  toast({
+                    title: "Success",
+                    description: "Data exported successfully",
+                    variant: "default",
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Error",
+                    description: "Failed to export data",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              className="relative inline-flex items-center justify-center px-5 py-2.5 h-10 rounded-full bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-md hover:shadow-lg overflow-hidden"
+            >
+              {/* Animated shimmer effect */}
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-white/0 via-white/25 to-white/0 animate-shimmer -translate-x-full"></div>
+              {/* Content */}
+              <div className="flex items-center justify-center">
+                <Download className="h-4 w-4 mr-2" />
+                <span>Download CSV</span>
+              </div>
+            </motion.button>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  disabled={isDeleting}
+                  className="relative inline-flex items-center justify-center px-5 py-2.5 h-10 rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md hover:shadow-lg overflow-hidden"
+                >
+                  {/* Animated shimmer effect */}
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-white/0 via-white/25 to-white/0 animate-shimmer -translate-x-full"></div>
+                  {/* Content */}
+                  <div className="flex items-center justify-center">
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <span>Deleting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        <span>Delete All Data</span>
+                      </>
+                    )}
+                  </div>
+                </motion.button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-white/95 backdrop-blur-sm border-slate-200/60 rounded-xl shadow-xl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-xl">Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-slate-600">
+                    This action will permanently delete all sentiment posts,
+                    disaster events, and analyzed files from the database. This
+                    action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="rounded-full hover:bg-slate-100">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteAllData}
+                    className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-md"
+                  >
+                    Yes, Delete All Data
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <FileUploader className="w-auto" />
+          </div>
+        </div>
+      </div>
+
+      {/* CSS for Grid Pattern */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .bg-grid-pattern {
+          background-image: 
+            linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px);
+          background-size: 20px 20px;
+        }
+        
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(200%);
+          }
+        }
+        .animate-shimmer {
+          animation: shimmer 2.5s infinite;
+        }
+      `}} />
+
+      {/* Filter Controls - Enhanced Design */}
+      <Card className="bg-white/90 rounded-xl shadow-lg border border-slate-200/60 overflow-hidden">
+        <CardHeader className="p-5 bg-gradient-to-r from-slate-50 to-indigo-50/50">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-md">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            </div>
+            <div>
+              <CardTitle className="text-lg bg-gradient-to-r from-indigo-700 to-blue-600 bg-clip-text text-transparent">Data Filters</CardTitle>
+              <CardDescription className="text-slate-600 mt-1">
+                Filter and analyze specific datasets
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div className="bg-white/50 p-4 rounded-lg">
-              <h3 className="font-medium text-blue-900">Primary Focus</h3>
-              <p className="mt-1 text-blue-800">
-                Analyzing social media responses to map emotional patterns
-                during disasters, helping authorities better understand and
-                respond to public needs.
-              </p>
-            </div>
-            <div className="bg-white/50 p-4 rounded-lg">
-              <h3 className="font-medium text-blue-900">Key Beneficiaries</h3>
-              <p className="mt-1 text-blue-800">
-                NDRRMC, Public Information Agencies, Local Government Units, and
-                Community Leaders
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Raw Data Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">
-            Raw Data Analysis
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            View and analyze bilingual sentiment data from social media during
-            disasters
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 mt-4 sm:mt-0">
-          <Button
-            onClick={async () => {
-              try {
-                const response = await fetch("/api/export-csv");
-                if (!response.ok) throw new Error("Failed to download data");
-
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "disaster-sentiments.csv";
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-
-                toast({
-                  title: "Success",
-                  description: "Data exported successfully",
-                  variant: "default",
-                });
-              } catch (error) {
-                toast({
-                  title: "Error",
-                  description: "Failed to export data",
-                  variant: "destructive",
-                });
-              }
-            }}
-            className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
-          >
-            <Download className="h-5 w-5 mr-2" />
-            Download CSV
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-5 w-5 mr-2" />
-                    Delete All Data
-                  </>
-                )}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="bg-white/95 backdrop-blur-sm border-slate-200">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action will permanently delete all sentiment posts,
-                  disaster events, and analyzed files from the database. This
-                  action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="rounded-full">
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteAllData}
-                  className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700"
-                >
-                  Yes, Delete All Data
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          <FileUploader className="w-auto" />
-        </div>
-      </div>
-
-      {/* Filter Controls */}
-      <Card className="bg-white shadow">
-        <CardHeader className="border-b border-gray-100">
-          <CardTitle className="text-lg">Data Filters</CardTitle>
-          <CardDescription>
-            Filter and analyze specific datasets
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+        <CardContent className="p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5">
             <div className="flex-grow">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Filter by Dataset
               </label>
               <Select value={selectedFileId} onValueChange={setSelectedFileId}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full bg-white/80 backdrop-blur-sm border-slate-200/80 rounded-lg shadow-sm">
                   <SelectValue placeholder="All datasets" />
                 </SelectTrigger>
-                <SelectContent className="min-w-[350px]">
-                  <SelectItem value="all">All datasets</SelectItem>
+                <SelectContent className="min-w-[350px] rounded-lg border-slate-200/80 shadow-md">
+                  <SelectItem value="all" className="focus:bg-blue-50">All datasets</SelectItem>
                   {analyzedFiles.map((file) => (
                     <div
                       key={file.id}
@@ -281,7 +369,7 @@ export default function RawData() {
                     >
                       <SelectItem
                         value={file.id.toString()}
-                        className="flex-grow"
+                        className="flex-grow focus:bg-blue-50"
                       >
                         {file.originalName} ({file.recordCount} records)
                       </SelectItem>
@@ -290,7 +378,7 @@ export default function RawData() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="h-8 w-8 px-0 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                             onClick={(e) => e.stopPropagation()}
                             disabled={deletingFileId === file.id}
                           >
@@ -301,22 +389,24 @@ export default function RawData() {
                             )}
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent>
+                        <AlertDialogContent className="bg-white/95 backdrop-blur-sm border-slate-200/60 rounded-xl shadow-xl">
                           <AlertDialogHeader>
-                            <AlertDialogTitle>
+                            <AlertDialogTitle className="text-xl">
                               Delete this file?
                             </AlertDialogTitle>
-                            <AlertDialogDescription>
+                            <AlertDialogDescription className="text-slate-600">
                               This will delete the file "{file.originalName}"
                               and all sentiment posts associated with it. This
                               action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel className="rounded-full hover:bg-slate-100">
+                              Cancel
+                            </AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDeleteFile(file.id)}
-                              className="bg-red-600 hover:bg-red-700"
+                              className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-md"
                             >
                               Delete
                             </AlertDialogAction>
@@ -329,11 +419,11 @@ export default function RawData() {
               </Select>
             </div>
 
-            <div className="text-sm text-slate-500 flex items-center">
+            <div className="px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50/60 rounded-lg border border-slate-200/60 shadow-sm">
               {isLoading ? (
-                <div className="flex items-center">
+                <div className="flex items-center text-blue-600">
                   <svg
-                    className="animate-spin h-4 w-4 mr-2 text-blue-600"
+                    className="animate-spin h-4 w-4 mr-2"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -352,13 +442,16 @@ export default function RawData() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Loading data...
+                  <span className="text-sm font-medium">Loading data...</span>
                 </div>
               ) : (
-                <span>
-                  Showing {transformedPosts.length} of {sentimentPosts.length}{" "}
-                  total records
-                </span>
+                <div className="flex items-center text-sm text-slate-600">
+                  <span className="font-medium">Showing</span>
+                  <span className="mx-1 px-2 py-0.5 bg-white rounded shadow-sm border border-slate-200/60 text-blue-600 font-semibold">{transformedPosts.length}</span>
+                  <span className="font-medium">of</span>
+                  <span className="mx-1 px-2 py-0.5 bg-white rounded shadow-sm border border-slate-200/60 text-blue-600 font-semibold">{sentimentPosts.length}</span>
+                  <span className="font-medium">records</span>
+                </div>
               )}
             </div>
           </div>
