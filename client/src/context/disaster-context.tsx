@@ -158,7 +158,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     refetch: refetchSentimentPosts
   } = useQuery({ 
     queryKey: ['/api/sentiment-posts'],
-    queryFn: getSentimentPosts
+    queryFn: getSentimentPosts,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3 // Retry 3 times if failed
   });
 
   const { 
@@ -168,7 +170,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     refetch: refetchDisasterEvents
   } = useQuery({ 
     queryKey: ['/api/disaster-events'],
-    queryFn: getDisasterEvents
+    queryFn: getDisasterEvents,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3 // Retry 3 times if failed
   });
 
   const { 
@@ -178,7 +182,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     refetch: refetchAnalyzedFiles
   } = useQuery({ 
     queryKey: ['/api/analyzed-files'],
-    queryFn: getAnalyzedFiles
+    queryFn: getAnalyzedFiles,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3 // Retry 3 times if failed
   });
 
   // Calculate stats with safety checks for array data
