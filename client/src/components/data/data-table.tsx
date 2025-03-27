@@ -17,11 +17,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getSentimentBadgeClasses } from "@/lib/colors";
 import { SentimentPost, deleteSentimentPost } from "@/lib/api";
 import { format } from "date-fns";
-import { Trash2, Search, Filter } from 'lucide-react';
+import { Trash2, Search, Filter, Maximize2, Calendar, ExternalLink, Languages, MessageSquare } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 // Removed motion animation imports for better performance
 import {
@@ -210,15 +220,95 @@ export function DataTable({
                         hover:bg-blue-50/40 transition-colors
                       `}
                     >
-                      <TableCell className="font-medium text-sm text-slate-700 max-w-xs truncate">
-                        <div className="group relative">
-                          <div className="truncate">{item.text}</div>
-                          {item.text.length > 60 && (
-                            <div className="absolute z-20 left-0 top-full mt-1 hidden group-hover:block bg-white p-3 shadow-xl rounded-lg border border-slate-200 max-w-sm">
-                              {item.text}
+                      <TableCell className="font-medium text-sm text-slate-700 max-w-xs">
+                        <Dialog>
+                          <DialogTrigger className="w-full">
+                            <div className="flex items-center justify-between gap-2 w-full cursor-pointer group">
+                              <div className="truncate text-left hover:text-blue-600 transition-colors">
+                                {item.text}
+                              </div>
+                              {item.text.length > 40 && (
+                                <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full text-slate-400 group-hover:text-blue-500 group-hover:bg-blue-50 shrink-0">
+                                  <Maximize2 className="h-3 w-3" />
+                                </Button>
+                              )}
                             </div>
-                          )}
-                        </div>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-lg">
+                            <DialogHeader>
+                              <DialogTitle className="text-xl flex items-center gap-2">
+                                <MessageSquare className="h-5 w-5 text-blue-500" />
+                                <span>Full Message Content</span>
+                              </DialogTitle>
+                              <DialogDescription className="text-slate-500">
+                                View the complete message content and details below.
+                              </DialogDescription>
+                            </DialogHeader>
+                            
+                            <div className="mt-4 space-y-6">
+                              <div className="p-4 rounded-lg bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200/60">
+                                <p className="text-base text-slate-700">{item.text}</p>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                  <div className="flex items-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <Calendar className="h-3.5 w-3.5 mr-1.5 text-blue-500" />
+                                    Timestamp
+                                  </div>
+                                  <div className="text-sm font-medium text-slate-700">
+                                    {format(new Date(item.timestamp), "PPP p")}
+                                  </div>
+                                </div>
+                              
+                                <div className="space-y-1">
+                                  <div className="flex items-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <ExternalLink className="h-3.5 w-3.5 mr-1.5 text-blue-500" />
+                                    Source
+                                  </div>
+                                  <div className="text-sm font-medium text-slate-700">
+                                    {item.source || "Unknown"}
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-1">
+                                  <div className="flex items-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <Languages className="h-3.5 w-3.5 mr-1.5 text-blue-500" />
+                                    Language
+                                  </div>
+                                  <div className="text-sm font-medium text-slate-700">
+                                    {item.language}
+                                  </div>
+                                </div>
+                                
+                                {item.disasterType && (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                      Disaster Type
+                                    </div>
+                                    <div className="text-sm font-medium">
+                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs ${getDisasterTypeStyles(item.disasterType)}`}>
+                                        {item.disasterType}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <DialogFooter>
+                              <DialogClose asChild>
+                                <Button 
+                                  type="button" 
+                                  variant="secondary" 
+                                  className="rounded-full hover:bg-slate-100"
+                                >
+                                  Close
+                                </Button>
+                              </DialogClose>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                       </TableCell>
                       <TableCell className="text-sm text-slate-600 whitespace-nowrap">
                         <div className="inline-flex items-center px-2 py-0.5 rounded bg-slate-100/80 border border-slate-200/60">
