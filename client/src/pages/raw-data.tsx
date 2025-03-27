@@ -40,6 +40,19 @@ const languageMap: Record<string, string> = {
   tl: "Filipino",
 };
 
+// This is a safer approach for handling possibly undefined or non-array data
+const createDefaultPage = () => {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[70vh]">
+      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-100 to-blue-100 flex items-center justify-center mb-4 shadow-md">
+        <AlertCircle className="h-8 w-8 text-blue-600" />
+      </div>
+      <h3 className="text-xl font-semibold bg-gradient-to-r from-purple-700 to-blue-600 bg-clip-text text-transparent">Ready to collect data</h3>
+      <p className="text-slate-500 mt-2">Upload a CSV file to begin analyzing sentiment data</p>
+    </div>
+  );
+};
+
 export default function RawData() {
   const { toast } = useToast();
   const {
@@ -111,21 +124,26 @@ export default function RawData() {
     }
   };
 
+  const isLoading = isLoadingSentimentPosts || isLoadingAnalyzedFiles;
+
+  // Make sure sentimentPosts is an array
+  const postsArray = Array.isArray(sentimentPosts) ? sentimentPosts : [];
+
   // Filter posts by file ID if selected
   const filteredPosts =
     selectedFileId === "all"
-      ? sentimentPosts
-      : sentimentPosts.filter(
+      ? postsArray
+      : postsArray.filter(
           (post) => post.fileId === parseInt(selectedFileId),
         );
 
-  const isLoading = isLoadingSentimentPosts || isLoadingAnalyzedFiles;
-
-  // Transform posts to display full language names
-  const transformedPosts = filteredPosts.map((post) => ({
-    ...post,
-    language: languageMap[post.language] || post.language,
-  }));
+  // Transform posts to display full language names (with safety check)
+  const transformedPosts = Array.isArray(filteredPosts) 
+    ? filteredPosts.map((post) => ({
+        ...post,
+        language: languageMap[post.language] || post.language,
+      }))
+    : [];
 
   if (isLoadingSentimentPosts || isLoadingAnalyzedFiles) {
     return (
