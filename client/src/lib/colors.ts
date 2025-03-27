@@ -104,6 +104,8 @@ export function getSentimentBadgeClasses(sentiment: string | null): string {
  * - Earthquake: Brown
  * - Landslide: Dark Brown
  * - Others: Neutral gray
+ * 
+ * Note: Tsunami has been completely removed as requested
  */
 export function getDisasterTypeColor(disasterType: string | null): string {
   if (!disasterType) return disasterTypeColors.Default;

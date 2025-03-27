@@ -61,7 +61,7 @@ export default function Comparison() {
       'tagtuyot': 'Drought',
       'dry': 'Drought'
       
-      // Removed Tsunami as requested
+      // Tsunami has been completely removed as requested
     };
     
     // Add standard disaster types from disasterEvents
@@ -91,6 +91,7 @@ export default function Comparison() {
       const normalized = postDisasterType.toLowerCase();
       
       // Check if this is already a standardized type name (exact match)
+      // Note: Tsunami has been completely removed from this list
       if (["Earthquake", "Flood", "Typhoon", "Fire", "Volcano", "Landslide", "Drought"].includes(postDisasterType)) {
         disasterTypeSet.add(postDisasterType);
       } else {
