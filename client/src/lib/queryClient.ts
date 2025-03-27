@@ -41,14 +41,17 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+// Cache settings optimized for performance
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      staleTime: 5 * 60 * 1000, // 5 minutes instead of Infinity to improve cache freshness
       retry: false,
+      gcTime: 10 * 60 * 1000, // 10 minutes garbage collection time (was cacheTime in v4)
+      placeholderData: 'keepPrevious', // Keep previous data while fetching (replaces keepPreviousData)
     },
     mutations: {
       retry: false,

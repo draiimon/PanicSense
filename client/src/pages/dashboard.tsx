@@ -49,30 +49,36 @@ export default function Dashboard() {
   } = useDisasterContext();
   const [carouselPaused, setCarouselPaused] = useState(false);
 
-  // Calculate stats (added from changes)
-  const totalPosts = sentimentPosts.length;
-  const activeDisasters = disasterEvents.filter(event => 
-    new Date(event.timestamp) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  ).length;
+  // Calculate stats with safety checks
+  const totalPosts = Array.isArray(sentimentPosts) ? sentimentPosts.length : 0;
+  const activeDisasters = Array.isArray(disasterEvents) 
+    ? disasterEvents.filter(event => 
+        new Date(event.timestamp) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      ).length 
+    : 0;
 
-  // Get most affected area (with proper typing)
-  const locationCounts = sentimentPosts.reduce<Record<string, number>>((acc, post) => {
-    if (post.location) {
-      acc[post.location] = (acc[post.location] || 0) + 1;
-    }
-    return acc;
-  }, {});
+  // Get most affected area with safety checks
+  const locationCounts = Array.isArray(sentimentPosts) 
+    ? sentimentPosts.reduce<Record<string, number>>((acc, post) => {
+        if (post.location) {
+          acc[post.location] = (acc[post.location] || 0) + 1;
+        }
+        return acc;
+      }, {})
+    : {};
   const mostAffectedArea = Object.entries(locationCounts)
     .sort(([,a], [,b]) => b - a)[0]?.[0] || 'N/A';
 
 
-  // Filter posts from last week
-  const lastWeekPosts = sentimentPosts.filter(post => {
-    const postDate = new Date(post.timestamp);
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    return postDate >= weekAgo;
-  });
+  // Filter posts from last week with safety check
+  const lastWeekPosts = Array.isArray(sentimentPosts) 
+    ? sentimentPosts.filter(post => {
+        const postDate = new Date(post.timestamp);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return postDate >= weekAgo;
+      })
+    : [];
 
   // Recalculate dominant sentiment from last week's posts
   const lastWeekDominantSentiment = (() => {
@@ -85,15 +91,18 @@ export default function Dashboard() {
       .reduce((a, b) => a[1] > b[1] ? a : b)[0];
   })();
 
-  // Filter out "Not specified" and generic "Philippines" locations
-  const filteredPosts = sentimentPosts.filter(post => {
-    const location = post.location?.toLowerCase();
-    return location && 
-           location !== 'not specified' && 
-           location !== 'philippines' &&
-           location !== 'pilipinas' &&
-           location !== 'pinas';
-  });
+  // Filter out "Not specified" and generic "Philippines" locations with safety check
+  const filteredPosts = Array.isArray(sentimentPosts) 
+    ? sentimentPosts.filter(post => {
+        const location = post.location?.toLowerCase();
+        return location && 
+              location !== 'not specified' && 
+              location !== 'philippines' &&
+              location !== 'pilipinas' &&
+              location !== 'pinas' &&
+              location !== 'unknown';
+      })
+    : [];
 
   const sentimentData = {
     labels: ['Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'],

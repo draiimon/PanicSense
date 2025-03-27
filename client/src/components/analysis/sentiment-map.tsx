@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo, useCallback, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { getSentimentColor, getDisasterTypeColor } from '@/lib/colors';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,8 @@ interface SentimentMapProps {
   showMarkers?: boolean;
 }
 
-export function SentimentMap({ 
+// Memoize the map component for better performance
+export const SentimentMap = memo(function SentimentMap({ 
   regions, 
   onRegionSelect,
   mapType = 'disaster',
@@ -54,11 +55,12 @@ export function SentimentMap({
   const [selectedSentiment, setSelectedSentiment] = useState<string | null>(null);
   const popupRef = useRef<any>(null);
 
-  const zoomToLocation = (coordinates: [number, number]) => {
+  // Memoize zoom function to prevent unnecessary re-renders
+  const zoomToLocation = useCallback((coordinates: [number, number]) => {
     if (mapInstanceRef.current) {
       mapInstanceRef.current.setView(coordinates, 18); // Maximum zoom level for detailed view
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !mapRef.current || mapInstanceRef.current) return;
@@ -116,8 +118,8 @@ export function SentimentMap({
     });
   }, []);
 
-  // Function to update tile layer with correct options
-  const updateTileLayer = (L: any, mapView: string) => {
+  // Memoize the update tile layer function to prevent unnecessary re-renders
+  const updateTileLayer = useCallback((L: any, mapView: string) => {
     if (!mapInstanceRef.current) return;
 
     // Remove existing tile layers
@@ -151,7 +153,7 @@ export function SentimentMap({
         attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
       }).addTo(mapInstanceRef.current);
     }
-  };
+  }, []);
 
   // Update map tiles when view changes
   useEffect(() => {
@@ -159,21 +161,45 @@ export function SentimentMap({
     import('leaflet').then((L) => updateTileLayer(L, view));
   }, [view]);
 
-  // Clear existing markers and create new ones
-  const updateMarkers = async () => {
+  // Memoize marker creation for better performance
+  const updateMarkers = useCallback(async () => {
     if (!mapInstanceRef.current || typeof window === 'undefined') return;
 
     const L = await import('leaflet');
 
-    // Clear previous markers, animations, and popup
-    markersRef.current.forEach(marker => {
-      if (typeof marker === 'object' && marker !== null && 'circle' in marker) {
-        marker.circle.remove();
-      } else if (marker) {
-        marker.remove();
+    // Clear previous markers with batch processing for better performance
+    const clearMarkers = () => {
+      // Process markers in batches to prevent UI blocking
+      const batchSize = 20;
+      const markerRefs = [...markersRef.current];
+      markersRef.current = [];
+      
+      const processBatch = (startIdx: number) => {
+        const endIdx = Math.min(startIdx + batchSize, markerRefs.length);
+        
+        // Process a batch of markers
+        for (let i = startIdx; i < endIdx; i++) {
+          const marker = markerRefs[i];
+          if (typeof marker === 'object' && marker !== null && 'circle' in marker) {
+            marker.circle.remove();
+          } else if (marker) {
+            marker.remove();
+          }
+        }
+        
+        // Process next batch if needed
+        if (endIdx < markerRefs.length) {
+          setTimeout(() => processBatch(endIdx), 0);
+        }
+      };
+      
+      // Start batch processing
+      if (markerRefs.length > 0) {
+        processBatch(0);
       }
-    });
-    markersRef.current = [];
+    };
+    
+    clearMarkers();
 
     if (popupRef.current) {
       popupRef.current.remove();
@@ -267,15 +293,16 @@ export function SentimentMap({
         let isHovered = false;
         let hoverTimeout: NodeJS.Timeout;
 
+        // Create hover effect directly with CSS classes
         circle.on('mouseover', (e) => {
           isHovered = true;
           clearTimeout(hoverTimeout);
           
-          circle.setStyle({ 
+          // Enhanced circle appearance on hover
+          circle.setStyle({
             weight: 3,
             fillOpacity: 0.8,
-            color: '#FFFFFF',
-            cursor: 'grab'
+            color: '#FFFFFF'
           });
 
           // Show popup at circle center initially
@@ -293,7 +320,6 @@ export function SentimentMap({
         
         circle.on('mousedown', () => {
           isDragging = true;
-          circle.setStyle({ cursor: 'grabbing' });
         });
 
         circle.on('mousemove', (e) => {
@@ -308,7 +334,6 @@ export function SentimentMap({
 
         circle.on('mouseup', () => {
           isDragging = false;
-          circle.setStyle({ cursor: 'grab' });
         });
 
         circle.on('mouseout', () => {
@@ -346,12 +371,12 @@ export function SentimentMap({
         .openOn(mapInstanceRef.current);
       markersRef.current.push(popupRef.current);
     }
-  };
+  }, [regions, mapType, showMarkers, zoomToLocation, onRegionSelect]);
 
   // Update markers when regions, mapType, mapZoom, or showMarkers changes
   useEffect(() => {
     updateMarkers();
-  }, [regions, mapType, mapZoom, showMarkers]);
+  }, [regions, mapType, mapZoom, showMarkers, updateMarkers]);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -414,4 +439,4 @@ export function SentimentMap({
       </div>
     </div>
   );
-}
+});

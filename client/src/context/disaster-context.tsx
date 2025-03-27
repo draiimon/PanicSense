@@ -181,22 +181,29 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     queryFn: getAnalyzedFiles
   });
 
-  // Calculate stats
-  const activeDiastersCount = disasterEvents.length;
-  const analyzedPostsCount = sentimentPosts.length;
+  // Calculate stats with safety checks for array data
+  const activeDiastersCount = Array.isArray(disasterEvents) ? disasterEvents.length : 0;
+  const analyzedPostsCount = Array.isArray(sentimentPosts) ? sentimentPosts.length : 0;
 
-  // Calculate dominant sentiment
+  // Calculate dominant sentiment with proper array check
   const sentimentCounts: Record<string, number> = {};
-  sentimentPosts.forEach(post => {
-    sentimentCounts[post.sentiment] = (sentimentCounts[post.sentiment] || 0) + 1;
-  });
+  if (Array.isArray(sentimentPosts) && sentimentPosts.length > 0) {
+    sentimentPosts.forEach(post => {
+      sentimentCounts[post.sentiment] = (sentimentCounts[post.sentiment] || 0) + 1;
+    });
+  }
 
-  const dominantSentiment = Object.entries(sentimentCounts)
-    .sort((a, b) => b[1] - a[1])[0]?.[0] || "Neutral";
+  const dominantSentiment = Object.entries(sentimentCounts).length > 0 
+    ? Object.entries(sentimentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] 
+    : "Neutral";
 
-  // Calculate average model confidence
-  const totalConfidence = sentimentPosts.reduce((sum, post) => sum + post.confidence, 0);
-  const modelConfidence = sentimentPosts.length > 0 ? totalConfidence / sentimentPosts.length : 0;
+  // Calculate average model confidence with safety checks
+  const totalConfidence = Array.isArray(sentimentPosts) 
+    ? sentimentPosts.reduce((sum, post) => sum + (post.confidence || 0), 0)
+    : 0;
+  const modelConfidence = Array.isArray(sentimentPosts) && sentimentPosts.length > 0 
+    ? totalConfidence / sentimentPosts.length 
+    : 0;
 
   // Refresh function
   const refreshData = () => {
