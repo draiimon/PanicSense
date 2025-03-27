@@ -11,6 +11,9 @@ RUN npm install
 # Copy the rest of the application
 COPY . .
 
+# Ensure proper path resolution for the build
+ENV VITE_APP_PATH="/app"
+
 # Build the application
 RUN npm run build
 
