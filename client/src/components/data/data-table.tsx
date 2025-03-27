@@ -23,7 +23,7 @@ import { SentimentPost, deleteSentimentPost } from "@/lib/api";
 import { format } from "date-fns";
 import { Trash2, Search, Filter } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
+// Removed motion animation imports for better performance
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,11 +101,11 @@ export function DataTable({
   const paginatedData = filteredData.slice(startIndex, startIndex + rowsPerPage);
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm rounded-lg shadow-lg border border-slate-200/50">
-      <CardHeader className="p-6 border-b border-slate-200/50">
+    <Card className="bg-white rounded-lg shadow border border-slate-200">
+      <CardHeader className="p-4 lg:p-6 border-b border-slate-200">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
           <div>
-            <CardTitle className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <CardTitle className="text-xl font-semibold text-slate-800">
               {title}
             </CardTitle>
             <CardDescription className="text-sm text-slate-600">{description}</CardDescription>
@@ -121,7 +121,7 @@ export function DataTable({
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="pl-9 w-full sm:w-64 bg-white/50 backdrop-blur-sm border-slate-200/50 focus:border-blue-500 transition-all duration-200"
+                  className="pl-9 w-full sm:w-64 bg-white border-slate-200 focus:border-blue-500"
                 />
               </div>
             <Select
@@ -131,7 +131,7 @@ export function DataTable({
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="w-[180px] bg-white/50 backdrop-blur-sm border-slate-200/50">
+              <SelectTrigger className="w-[180px] bg-white border-slate-200">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filter by emotion" />
               </SelectTrigger>
@@ -147,68 +147,62 @@ export function DataTable({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <Table>
+        <div className="overflow-x-auto border-b border-slate-200">
+          <Table className="w-full">
             <TableHeader>
-              <TableRow className="bg-slate-50/50">
-                <TableHead className="w-[30%]">Text</TableHead>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Disaster</TableHead>
-                <TableHead>Sentiment</TableHead>
-                <TableHead>Confidence</TableHead>
-                <TableHead>Language</TableHead>
-                <TableHead className="w-10">Actions</TableHead>
+              <TableRow className="bg-slate-50 hover:bg-slate-50">
+                <TableHead className="w-[30%] font-medium">Text</TableHead>
+                <TableHead className="font-medium">Timestamp</TableHead>
+                <TableHead className="font-medium">Source</TableHead>
+                <TableHead className="font-medium">Location</TableHead>
+                <TableHead className="font-medium">Disaster</TableHead>
+                <TableHead className="font-medium">Sentiment</TableHead>
+                <TableHead className="font-medium">Confidence</TableHead>
+                <TableHead className="font-medium">Language</TableHead>
+                <TableHead className="w-10 font-medium">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <AnimatePresence>
                 {paginatedData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-slate-500">
+                    <TableCell colSpan={9} className="text-center py-12 text-slate-500">
                       {searchTerm || selectedSentiment !== "All"
                         ? "No results match your search criteria" 
                         : "No data available"}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedData.map((item, index) => (
-                    <motion.tr
+                  paginatedData.map((item) => (
+                    <TableRow
                       key={item.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="border-b border-slate-200/50 hover:bg-slate-50/50 transition-colors duration-200"
+                      className="border-t border-slate-200 hover:bg-slate-50"
                     >
                       <TableCell className="font-medium text-sm text-slate-700">
                         {item.text}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-500">
+                      <TableCell className="text-sm text-slate-600 whitespace-nowrap">
                         {format(new Date(item.timestamp), "yyyy-MM-dd HH:mm")}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-500">
+                      <TableCell className="text-sm text-slate-600">
                         {item.source || "Unknown"}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-500">
+                      <TableCell className="text-sm text-slate-600">
                         {item.location || "Unknown"}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-500">
+                      <TableCell className="text-sm text-slate-600">
                         {item.disasterType || "Not Specified"}
                       </TableCell>
                       <TableCell>
                         <Badge 
                           variant={getSentimentVariant(item.sentiment) as any}
-                          className="animate-fade-in transition-all duration-200"
                         >
                           {item.sentiment}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-slate-500">
+                      <TableCell className="text-sm text-slate-600 whitespace-nowrap font-medium">
                         {(item.confidence * 100).toFixed(1)}%
                       </TableCell>
-                      <TableCell className="text-sm text-slate-500">
+                      <TableCell className="text-sm text-slate-600">
                         {item.language}
                       </TableCell>
                       <TableCell>
@@ -217,13 +211,13 @@ export function DataTable({
                             <Button 
                               variant="ghost" 
                               size="icon"
-                              className="h-8 w-8 text-slate-500 hover:text-red-600 transition-colors duration-200"
+                              className="h-8 w-8 text-slate-400 hover:text-red-600"
                               onClick={() => setPostToDelete(item.id)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent className="bg-white/95 backdrop-blur-sm border-slate-200/50">
+                          <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete this post?</AlertDialogTitle>
                               <AlertDialogDescription>
@@ -234,14 +228,13 @@ export function DataTable({
                             <AlertDialogFooter>
                               <AlertDialogCancel 
                                 onClick={() => setPostToDelete(null)}
-                                className="hover:bg-slate-100 transition-colors duration-200"
                               >
                                 Cancel
                               </AlertDialogCancel>
                               <AlertDialogAction 
                                 disabled={isDeleting}
                                 onClick={() => postToDelete && handleDeletePost(postToDelete)}
-                                className="bg-red-600 hover:bg-red-700 transition-colors duration-200"
+                                className="bg-red-600 hover:bg-red-700"
                               >
                                 {isDeleting ? "Deleting..." : "Delete Post"}
                               </AlertDialogAction>
@@ -249,36 +242,71 @@ export function DataTable({
                           </AlertDialogContent>
                         </AlertDialog>
                       </TableCell>
-                    </motion.tr>
+                    </TableRow>
                   ))
                 )}
-              </AnimatePresence>
             </TableBody>
           </Table>
         </div>
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between p-4 border-t border-slate-200/50">
-            <div className="text-sm text-slate-500">
-              Showing {startIndex + 1}-{Math.min(startIndex + rowsPerPage, filteredData.length)} of {filteredData.length} results
+          <div className="flex items-center justify-between py-3 px-4">
+            <div className="hidden sm:flex text-sm text-slate-600 font-medium">
+              Showing <span className="font-semibold mx-1">{startIndex + 1}-{Math.min(startIndex + rowsPerPage, filteredData.length)}</span> of <span className="font-semibold mx-1">{filteredData.length}</span> results
             </div>
-            <div className="flex space-x-2">
+            <div className="flex sm:justify-end w-full sm:w-auto gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="hover:bg-slate-100 transition-colors duration-200"
+                className="px-3 py-1.5 rounded bg-white"
               >
                 Previous
               </Button>
+              {/* Page numbers - show first, current ±1, and last */}
+              {[...Array(totalPages)].map((_, i) => {
+                const pageNum = i + 1;
+                // Only show first, last, current, and pages within distance 1 of current
+                if (pageNum === 1 || pageNum === totalPages || 
+                    Math.abs(pageNum - currentPage) <= 1) {
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={pageNum === currentPage ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1.5 rounded min-w-[2rem] ${
+                        pageNum === currentPage ? "bg-blue-600 text-white" : "bg-white"
+                      }`}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                }
+                // Show dots for gaps
+                else if (Math.abs(pageNum - currentPage) === 2) {
+                  return (
+                    <Button
+                      key={`gap-${pageNum}`}
+                      variant="outline"
+                      size="sm"
+                      disabled
+                      className="px-1.5 py-1.5 bg-white cursor-default"
+                    >
+                      ...
+                    </Button>
+                  );
+                }
+                return null;
+              })}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="hover:bg-slate-100 transition-colors duration-200"
+                className="px-3 py-1.5 rounded bg-white"
               >
                 Next
               </Button>
