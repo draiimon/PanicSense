@@ -259,32 +259,49 @@ export function ConfusionMatrix({
       };
     });
 
-    if (fileId && !allDatasets) {
-      // Filter out sentiments with no data (row sum = 0)
-      const metricsWithData = metrics.filter((_, idx) => {
-        const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
-        return rowSum > 0;
-      });
-      
-      // Use the highest metric values from any sentiment category rather than averaging
-      const evaluationMetrics = {
-        accuracy: metricsWithData.length > 0 
-          ? Math.max(...metricsWithData.map(m => m.accuracy))
-          : 0,
-        precision: metricsWithData.length > 0 
-          ? Math.max(...metricsWithData.map(m => m.precision))
-          : 0,
-        recall: metricsWithData.length > 0 
-          ? Math.max(...metricsWithData.map(m => m.recall))
-          : 0,
-        f1Score: metricsWithData.length > 0 
-          ? Math.max(...metricsWithData.map(m => m.f1Score))
-          : 0,
-        confusionMatrix: newMatrix
-      };
+    // Filter out sentiments with no data (row sum = 0) for both individual files and all datasets
+    const metricsWithData = metrics.filter((_, idx) => {
+      const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
+      return rowSum > 0;
+    });
+    
+    // Get the highest metrics values for accuracy, precision, recall, and f1Score
+    const highestMetrics = {
+      accuracy: metricsWithData.length > 0 
+        ? Math.max(...metricsWithData.map(m => m.accuracy))
+        : 0,
+      precision: metricsWithData.length > 0 
+        ? Math.max(...metricsWithData.map(m => m.precision))
+        : 0,
+      recall: metricsWithData.length > 0 
+        ? Math.max(...metricsWithData.map(m => m.recall))
+        : 0,
+      f1Score: metricsWithData.length > 0 
+        ? Math.max(...metricsWithData.map(m => m.f1Score))
+        : 0,
+      confusionMatrix: newMatrix
+    };
 
-      apiRequest('PATCH', `/api/analyzed-files/${fileId}/metrics`, evaluationMetrics)
+    if (fileId && !allDatasets) {
+      // Update metrics in database for individual file view
+      apiRequest('PATCH', `/api/analyzed-files/${fileId}/metrics`, highestMetrics)
         .catch(console.error);
+    } 
+    
+    if (allDatasets) {
+      // For All Datasets view, we create a special entry showing the overall maximum metrics
+      const overallMetrics = {
+        sentiment: "★ HIGHEST METRICS ★",
+        precision: highestMetrics.precision,
+        recall: highestMetrics.recall,
+        f1Score: highestMetrics.f1Score,
+        accuracy: highestMetrics.accuracy,
+        // Adding an isHighlight flag to style this row differently in the charts
+        isHighlight: true
+      };
+      
+      // Add it to the metrics array that gets displayed
+      metrics.push(overallMetrics);
     }
 
     setMatrix(newMatrix);
@@ -339,11 +356,54 @@ export function ConfusionMatrix({
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={metricsData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="sentiment" angle={-45} textAnchor="end" height={100} />
+                    <XAxis 
+                      dataKey="sentiment" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={100}
+                      tick={({ x, y, payload }) => {
+                        const item = metricsData.find(d => d.sentiment === payload.value);
+                        const isHighlight = item && (item as any).isHighlight;
+                        return (
+                          <text 
+                            x={x} 
+                            y={y + 10} 
+                            fill={isHighlight ? "#ff6b00" : "#666"} 
+                            textAnchor="end" 
+                            fontSize={isHighlight ? 14 : 12}
+                            fontWeight={isHighlight ? "bold" : "normal"}
+                          >
+                            {payload.value}
+                          </text>
+                        );
+                      }}
+                    />
                     <YAxis domain={[0, 100]} />
                     <Tooltip
-                      formatter={(value) => [`${Number(value).toFixed(2)}%`]}
+                      formatter={(value, name, props) => {
+                        const item = props.payload;
+                        const isHighlight = item && (item as any).isHighlight;
+                        // Only return the formatted value and name (the expected return type)
+                        return [
+                          <span style={{ 
+                            color: isHighlight ? "#ff6b00" : undefined,
+                            fontWeight: isHighlight ? "bold" : "normal" 
+                          }}>{`${Number(value).toFixed(2)}%`}</span>, 
+                          name
+                        ];
+                      }}
                       contentStyle={{ background: 'white', border: '1px solid #e2e8f0' }}
+                      labelFormatter={(label) => {
+                        const item = metricsData.find(d => d.sentiment === label);
+                        const isHighlight = item && (item as any).isHighlight;
+                        return (
+                          <span style={{ 
+                            color: isHighlight ? "#ff6b00" : undefined,
+                            fontWeight: isHighlight ? "bold" : "normal",
+                            fontSize: isHighlight ? "1.1em" : undefined
+                          }}>{label}</span>
+                        );
+                      }}
                     />
                     <Legend
                       iconType="circle"
@@ -383,8 +443,46 @@ export function ConfusionMatrix({
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={metricsData}>
                     <PolarGrid />
-                    <PolarAngleAxis dataKey="sentiment" />
+                    <PolarAngleAxis 
+                      dataKey="sentiment" 
+                      tick={({ x, y, textAnchor, stroke, radius, payload }) => {
+                        const item = metricsData.find(d => d.sentiment === payload.value);
+                        const isHighlight = item && (item as any).isHighlight;
+                        return (
+                          <text 
+                            x={x} 
+                            y={y} 
+                            textAnchor={textAnchor}
+                            stroke={isHighlight ? "#ff6b00" : stroke}
+                            fill={isHighlight ? "#ff6b00" : stroke}
+                            radius={radius}
+                            fontSize={isHighlight ? 14 : 12}
+                            fontWeight={isHighlight ? "bold" : "normal"}
+                          >
+                            {payload.value}
+                          </text>
+                        );
+                      }}
+                    />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                    <Tooltip
+                      formatter={(value, name) => [
+                        <span style={{ fontWeight: 'inherit' }}>{`${Number(value).toFixed(2)}%`}</span>, 
+                        name
+                      ]}
+                      contentStyle={{ background: 'white', border: '1px solid #e2e8f0' }}
+                      labelFormatter={(label) => {
+                        const item = metricsData.find(d => d.sentiment === label);
+                        const isHighlight = item && (item as any).isHighlight;
+                        return (
+                          <span style={{ 
+                            color: isHighlight ? "#ff6b00" : undefined,
+                            fontWeight: isHighlight ? "bold" : "normal",
+                            fontSize: isHighlight ? "1.1em" : undefined
+                          }}>{label}</span>
+                        );
+                      }}
+                    />
                     {radarChartMetrics.precision && (
                       <Radar name="Precision" dataKey="precision" stroke="#22c55e" fill="#22c55e" fillOpacity={0.6} />
                     )}
