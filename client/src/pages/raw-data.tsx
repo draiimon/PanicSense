@@ -119,6 +119,18 @@ export default function RawData() {
     language: languageMap[post.language] || post.language,
   }));
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh]">
+        <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+          <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+        </div>
+        <h3 className="text-xl font-semibold text-slate-700">Loading data...</h3>
+        <p className="text-slate-500 mt-2">Retrieving sentiment analysis information</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Study Significance Section - Enhanced Design */}

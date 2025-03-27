@@ -234,7 +234,7 @@ export function DataTable({
                               )}
                             </div>
                           </DialogTrigger>
-                          <DialogContent className="sm:max-w-lg">
+                          <DialogContent className="sm:max-w-lg [&>button]:hidden">
                             <DialogHeader>
                               <DialogTitle className="text-xl flex items-center gap-2">
                                 <MessageSquare className="h-5 w-5 text-blue-500" />
