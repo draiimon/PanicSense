@@ -102,13 +102,29 @@ export function DataTable({
 
   return (
     <Card className="bg-white/90 rounded-xl shadow-lg border border-slate-200/60 overflow-hidden">
-      <CardHeader className="p-5 bg-gradient-to-r from-purple-50 to-blue-50">
+      <CardHeader className="p-6 bg-gradient-to-r from-purple-100 via-indigo-50 to-blue-50 border-b border-indigo-100/50">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
           <div>
-            <CardTitle className="text-xl font-semibold bg-gradient-to-r from-purple-700 to-blue-600 bg-clip-text text-transparent">
-              {title}
-            </CardTitle>
-            <CardDescription className="text-sm text-slate-600 mt-1">{description}</CardDescription>
+            {title === "Complete Sentiment Dataset" ? (
+              <>
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-blue-600 bg-clip-text text-transparent flex items-center">
+                  {title}
+                  <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-indigo-200 to-blue-100 text-indigo-800 border border-indigo-200/50 shadow-sm">
+                    Primary Dataset
+                  </span>
+                </CardTitle>
+                <CardDescription className="text-base text-slate-600 mt-2 max-w-2xl">
+                  {description}
+                </CardDescription>
+              </>
+            ) : (
+              <>
+                <CardTitle className="text-xl font-semibold bg-gradient-to-r from-purple-700 to-blue-600 bg-clip-text text-transparent">
+                  {title}
+                </CardTitle>
+                <CardDescription className="text-sm text-slate-600 mt-1">{description}</CardDescription>
+              </>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative group">
@@ -166,42 +182,77 @@ export function DataTable({
             <TableBody>
                 {paginatedData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-16 text-slate-500">
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <Search className="h-10 w-10 text-slate-300" />
-                        <p className="text-lg font-medium">
+                    <TableCell colSpan={9} className="text-center py-20 text-slate-500">
+                      <div className="flex flex-col items-center justify-center space-y-4">
+                        <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center shadow-md">
+                          <Search className="h-8 w-8 text-slate-300" />
+                        </div>
+                        <p className="text-xl font-medium bg-gradient-to-r from-slate-700 to-slate-600 bg-clip-text text-transparent">
                           {searchTerm || selectedSentiment !== "All"
                             ? "No results match your search criteria" 
                             : "No data available"}
                         </p>
-                        <p className="text-sm text-slate-400">
+                        <p className="text-sm text-slate-500 max-w-md text-center">
                           {searchTerm || selectedSentiment !== "All" 
-                            ? "Try adjusting your search or filters" 
-                            : "Upload some data to get started"}
+                            ? "Try adjusting your search terms or filters to find what you're looking for" 
+                            : "Upload a CSV file using the upload button to analyze sentiment data"}
                         </p>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedData.map((item) => (
+                  paginatedData.map((item, index) => (
                     <TableRow
                       key={item.id}
-                      className="border-b border-slate-100 hover:bg-blue-50/30 transition-colors"
+                      className={`
+                        border-b border-slate-100 
+                        ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} 
+                        hover:bg-blue-50/40 transition-colors
+                      `}
                     >
-                      <TableCell className="font-medium text-sm text-slate-700">
-                        {item.text}
+                      <TableCell className="font-medium text-sm text-slate-700 max-w-xs truncate">
+                        <div className="group relative">
+                          <div className="truncate">{item.text}</div>
+                          {item.text.length > 60 && (
+                            <div className="absolute z-20 left-0 top-full mt-1 hidden group-hover:block bg-white p-3 shadow-xl rounded-lg border border-slate-200 max-w-sm">
+                              {item.text}
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-slate-600 whitespace-nowrap">
-                        {format(new Date(item.timestamp), "yyyy-MM-dd HH:mm")}
+                        <div className="inline-flex items-center px-2 py-0.5 rounded bg-slate-100/80 border border-slate-200/60">
+                          {format(new Date(item.timestamp), "yyyy-MM-dd HH:mm")}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
-                        {item.source || "Unknown"}
+                        <div className="inline-flex items-center gap-1">
+                          {item.source || "Unknown"}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
-                        {item.location || "Unknown"}
+                        <div className="inline-flex items-center gap-1">
+                          {item.location ? (
+                            <span className="inline-flex items-center">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                              {item.location}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center text-slate-400">
+                              <span className="h-1.5 w-1.5 rounded-full bg-slate-300 mr-1.5"></span>
+                              Unknown
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">
-                        {item.disasterType || "Not Specified"}
+                        {item.disasterType ? (
+                          <div className="inline-flex items-center px-2 py-0.5 rounded bg-amber-50 border border-amber-100 text-amber-700">
+                            {item.disasterType}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">Not Specified</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge 
@@ -211,11 +262,21 @@ export function DataTable({
                           {item.sentiment}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-slate-600 whitespace-nowrap font-medium">
-                        {(item.confidence * 100).toFixed(1)}%
+                      <TableCell className="text-sm whitespace-nowrap">
+                        <div className="w-16 bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full ${getConfidenceColor(item.confidence)}`}
+                            style={{ width: `${item.confidence * 100}%` }}
+                          ></div>
+                        </div>
+                        <div className="mt-1 text-xs font-medium text-slate-600">
+                          {(item.confidence * 100).toFixed(1)}%
+                        </div>
                       </TableCell>
-                      <TableCell className="text-sm text-slate-600">
-                        {item.language}
+                      <TableCell className="text-sm">
+                        <div className="inline-flex items-center px-2 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-indigo-700">
+                          {item.language}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <AlertDialog>
@@ -240,14 +301,14 @@ export function DataTable({
                             <AlertDialogFooter>
                               <AlertDialogCancel 
                                 onClick={() => setPostToDelete(null)}
-                                className="rounded-lg border-slate-200 hover:bg-slate-100 transition-colors"
+                                className="rounded-full border-slate-200 hover:bg-slate-100 transition-colors"
                               >
                                 Cancel
                               </AlertDialogCancel>
                               <AlertDialogAction 
                                 disabled={isDeleting}
                                 onClick={() => postToDelete && handleDeletePost(postToDelete)}
-                                className="rounded-lg bg-red-500 hover:bg-red-600 transition-colors shadow-md"
+                                className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-md"
                               >
                                 {isDeleting ? "Deleting..." : "Delete Post"}
                               </AlertDialogAction>
@@ -262,37 +323,38 @@ export function DataTable({
           </Table>
         </div>
 
-        {/* Modern Pagination */}
+        {/* Enhanced Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between py-4 px-6 bg-gradient-to-r from-slate-50 to-blue-50/30">
-            <div className="hidden sm:flex items-center space-x-1 text-sm text-slate-600">
-              <span className="font-medium">Showing</span>
-              <span className="px-2 py-0.5 rounded-md bg-white shadow-sm border border-slate-200/60 font-semibold text-blue-600">
-                {startIndex + 1}-{Math.min(startIndex + rowsPerPage, filteredData.length)}
-              </span>
-              <span className="font-medium">of</span>
-              <span className="px-2 py-0.5 rounded-md bg-white shadow-sm border border-slate-200/60 font-semibold text-blue-600">
-                {filteredData.length}
-              </span>
-              <span className="font-medium">results</span>
+          <div className="flex items-center justify-between py-4 px-6 bg-gradient-to-br from-purple-50/50 via-indigo-50/30 to-blue-50/30 border-t border-slate-100/80">
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="text-xs uppercase tracking-wider font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100/50">
+                {startIndex + 1}-{Math.min(startIndex + rowsPerPage, filteredData.length)} of {filteredData.length}
+              </div>
             </div>
-            <div className="flex w-full justify-end sm:w-auto">
-              <div className="flex items-center rounded-full bg-white p-1 shadow-md border border-slate-200/60">
+            
+            <div className="flex justify-center items-center gap-3">
+              <div className="flex shadow-sm rounded-full bg-gradient-to-r from-white to-blue-50 p-1 border border-slate-200/50">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="h-9 w-9 rounded-full transition-all duration-200 hover:bg-blue-100 disabled:opacity-50"
+                  className={`
+                    h-8 w-8 rounded-full transition-all duration-200 
+                    ${currentPage === 1 
+                      ? 'text-slate-400 cursor-not-allowed' 
+                      : 'text-blue-600 hover:bg-blue-100'
+                    }
+                  `}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m15 18-6-6 6-6"/>
                   </svg>
                   <span className="sr-only">Previous</span>
                 </Button>
 
-                <div className="px-3 font-medium text-blue-800">
-                  {currentPage} <span className="text-slate-400">/</span> {totalPages}
+                <div className="px-3 text-sm font-medium text-indigo-800 flex items-center">
+                  Page <span className="mx-1 w-5 text-center">{currentPage}</span> of <span className="mx-1 w-5 text-center">{totalPages}</span>
                 </div>
 
                 <Button
@@ -300,9 +362,15 @@ export function DataTable({
                   size="icon"
                   onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="h-9 w-9 rounded-full transition-all duration-200 hover:bg-blue-100 disabled:opacity-50"
+                  className={`
+                    h-8 w-8 rounded-full transition-all duration-200 
+                    ${currentPage === totalPages 
+                      ? 'text-slate-400 cursor-not-allowed' 
+                      : 'text-blue-600 hover:bg-blue-100'
+                    }
+                  `}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m9 18 6-6-6-6"/>
                   </svg>
                   <span className="sr-only">Next</span>
@@ -326,3 +394,15 @@ const getSentimentVariant = (sentiment: string) => {
       default: return 'neutral';
     }
   };
+
+const getConfidenceColor = (confidence: number) => {
+  if (confidence >= 0.9) {
+    return 'bg-gradient-to-r from-emerald-500 to-green-500';
+  } else if (confidence >= 0.7) {
+    return 'bg-gradient-to-r from-blue-500 to-indigo-500';
+  } else if (confidence >= 0.5) {
+    return 'bg-gradient-to-r from-yellow-500 to-amber-500';
+  } else {
+    return 'bg-gradient-to-r from-red-500 to-rose-500';
+  }
+};

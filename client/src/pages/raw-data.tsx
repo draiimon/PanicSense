@@ -129,28 +129,18 @@ export default function RawData() {
         <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-indigo-300/30 rounded-full blur-2xl"></div>
         
         <div className="relative p-6 z-10">
-          <div className="flex items-start gap-4">
-            <div className="hidden sm:flex h-12 w-12 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 items-center justify-center shadow-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                <path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/>
-                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-blue-600 bg-clip-text text-transparent">
-                Disaster Sentiment Analysis
-              </h2>
-              <p className="mt-3 text-base text-slate-700 leading-relaxed">
-                This advanced analysis system examines bilingual (English and Filipino)
-                social media data during natural disasters, providing real-time
-                insights into public emotional responses. The data helps
-                disaster management teams understand and respond to public
-                sentiment patterns, enabling better crisis communication and
-                response strategies.
-              </p>
-            </div>
+          <div>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-blue-600 bg-clip-text text-transparent">
+              Disaster Sentiment Analysis
+            </h2>
+            <p className="mt-3 text-base text-slate-700 leading-relaxed">
+              This advanced analysis system examines bilingual (English and Filipino)
+              social media data during natural disasters, providing real-time
+              insights into public emotional responses. The data helps
+              disaster management teams understand and respond to public
+              sentiment patterns, enabling better crisis communication and
+              response strategies.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
@@ -419,7 +409,7 @@ export default function RawData() {
               </Select>
             </div>
 
-            <div className="px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50/60 rounded-lg border border-slate-200/60 shadow-sm">
+            <div className="flex h-10 items-center justify-center px-4 bg-white rounded-lg border border-slate-200/60 shadow-sm">
               {isLoading ? (
                 <div className="flex items-center text-blue-600">
                   <svg
@@ -445,12 +435,19 @@ export default function RawData() {
                   <span className="text-sm font-medium">Loading data...</span>
                 </div>
               ) : (
-                <div className="flex items-center text-sm text-slate-600">
-                  <span className="font-medium">Showing</span>
-                  <span className="mx-1 px-2 py-0.5 bg-white rounded shadow-sm border border-slate-200/60 text-blue-600 font-semibold">{transformedPosts.length}</span>
-                  <span className="font-medium">of</span>
-                  <span className="mx-1 px-2 py-0.5 bg-white rounded shadow-sm border border-slate-200/60 text-blue-600 font-semibold">{sentimentPosts.length}</span>
-                  <span className="font-medium">records</span>
+                <div className="flex items-center">
+                  <div className="flex items-center justify-center h-7 w-7 rounded-full bg-indigo-100 mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600">
+                      <path d="M20 6 9 17l-5-5"/>
+                    </svg>
+                  </div>
+                  <span className="text-sm font-medium text-slate-700">
+                    {transformedPosts.length === sentimentPosts.length ? (
+                      `${transformedPosts.length} total records`
+                    ) : (
+                      `${transformedPosts.length} filtered records`
+                    )}
+                  </span>
                 </div>
               )}
             </div>
@@ -458,16 +455,23 @@ export default function RawData() {
         </CardContent>
       </Card>
 
-      {/* Data Table */}
-      <DataTable
-        data={transformedPosts}
-        title={
-          selectedFileId === "all"
-            ? "Complete Sentiment Dataset"
-            : `Data from ${analyzedFiles.find((f) => f.id.toString() === selectedFileId)?.originalName || "Selected File"}`
-        }
-        description="Bilingual sentiment analysis results with filtering capabilities"
-      />
+      {/* Data Table - Main Focus */}
+      <div className="w-full overflow-hidden p-1">
+        <div className="relative w-full max-w-[110%] mx-auto transform -translate-x-[5%] overflow-visible">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-200/10 via-blue-200/5 to-white/0 rounded-3xl blur-xl"></div>
+          <div className="relative p-1">
+            <DataTable
+              data={transformedPosts}
+              title={
+                selectedFileId === "all"
+                  ? "Complete Sentiment Dataset"
+                  : `Data from ${analyzedFiles.find((f) => f.id.toString() === selectedFileId)?.originalName || "Selected File"}`
+              }
+              description="Bilingual sentiment analysis results with filtering capabilities"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
