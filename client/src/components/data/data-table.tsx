@@ -281,6 +281,60 @@ export function DataTable({
                                   </div>
                                 </div>
                                 
+                                {/* Sentiment Information */}
+                                <div className="space-y-1">
+                                  <div className="flex items-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    Sentiment
+                                  </div>
+                                  <div className="text-sm font-medium">
+                                    <Badge 
+                                      variant={getSentimentVariant(item.sentiment) as any}
+                                      className="shadow-sm py-1"
+                                    >
+                                      {item.sentiment}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                
+                                {/* Confidence Score with Progress Bar */}
+                                <div className="space-y-1 col-span-1 sm:col-span-2">
+                                  <div className="flex items-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    Confidence Score
+                                  </div>
+                                  <div className="mt-1">
+                                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                                      <div 
+                                        className={`h-full rounded-full ${getConfidenceColor(item.confidence)}`}
+                                        style={{ width: `${item.confidence * 100}%` }}
+                                      ></div>
+                                    </div>
+                                    <div className="mt-2 text-sm font-semibold text-slate-700 flex justify-between">
+                                      <span>{(item.confidence * 100).toFixed(1)}%</span>
+                                      <span className="text-xs text-slate-500">
+                                        {item.confidence >= 0.9 ? 'Very High' : 
+                                         item.confidence >= 0.7 ? 'High' : 
+                                         item.confidence >= 0.5 ? 'Medium' : 'Low'} confidence
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Location Information */}
+                                {item.location && (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                      Location
+                                    </div>
+                                    <div className="text-sm font-medium">
+                                      <span className="inline-flex items-center">
+                                        <span className="h-2 w-2 rounded-full bg-emerald-500 mr-1.5"></span>
+                                        {item.location}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Disaster Type Information */}
                                 {item.disasterType && (
                                   <div className="space-y-1">
                                     <div className="flex items-center text-xs font-medium text-slate-500 uppercase tracking-wider">
