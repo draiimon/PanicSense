@@ -1,0 +1,44 @@
+#11 DONE 0.8s
+#12 [6/6] RUN npm run build
+#12 0.222 
+#12 0.222 > rest-express@1.0.0 build
+#12 0.222 > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+#12 0.222 
+#12 0.570 vite v5.4.14 building for production...
+#12 0.660 transforming...
+#12 11.70 ✓ 3222 modules transformed.
+#12 12.15 rendering chunks...
+#12 12.64 computing gzip size...
+#12 12.72 ../dist/public/index.html                          4.55 kB │ gzip:   1.38 kB
+#12 12.72 ../dist/public/assets/index-ON3aQ7io.css         134.03 kB │ gzip:  25.54 kB
+#12 12.72 ../dist/public/assets/leaflet-src-BlCOxz6q.js    149.98 kB │ gzip:  43.55 kB
+#12 12.72 ../dist/public/assets/index-7mozAwih.js        1,305.62 kB │ gzip: 390.36 kB
+#12 12.72 
+#12 12.72 (!) Some chunks are larger than 500 kB after minification. Consider:
+#12 12.72 - Using dynamic import() to code-split the application
+#12 12.72 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+#12 12.72 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#12 12.72 ✓ built in 12.11s
+#12 13.21 
+#12 13.21   dist/index.js  52.7kb
+#12 13.21 
+#12 13.21 ⚡ Done in 6ms
+#12 DONE 17.2s
+#13 exporting to docker image format
+#13 exporting layers
+#13 exporting layers 20.0s done
+#13 exporting manifest sha256:0e791a7e9675501d4e65bde5b3bffb52aae61632020b3444f4245ac97c592d20 done
+#13 exporting config sha256:535443763db02fba99e781fb0837116818492f8e3d25fd8e2f6d9a49be99bfab done
+#13 DONE 30.1s
+#14 exporting cache to client directory
+#14 preparing build cache for export
+#14 writing cache manifest sha256:48d003902c0703d39b95b7d7097a9968333fca5d0321ee27dc902cf77f486bb6 done
+#14 DONE 11.4s
+Pushing image to registry...
+Upload succeeded
+==> Deploying...
+8:56:52 PM [express] 🚀 Server running on port 10000
+8:56:53 PM [vite] Pre-transform error: Failed to load url /src/main.tsx?v=bJzOxGERXzg9_D69Ae5wD (resolved id: /src/main.tsx?v=bJzOxGERXzg9_D69Ae5wD). Does the file exist?
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+8:57:02 PM [express] 🚀 Server running on port 10000
