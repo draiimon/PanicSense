@@ -134,27 +134,11 @@ export default function About() {
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
                       <div className="relative">
                         <div className="aspect-square bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-xl flex items-center justify-center mb-4 overflow-hidden">
-<<<<<<< HEAD
-                          <img
-                            src={founder.image}
-                            alt={founder.name}
-                            className="w-full h-full object-cover rounded-xl"
-                          />
-                        </div>
-                        <h3 className="text-xl font-bold text-blue-300 mb-2">
-                          {founder.name}
-                        </h3>
-                        <p className="text-blue-200 mb-3">{founder.role}</p>
-                        <p className="text-sm text-blue-100/80">
-                          {founder.description}
-                        </p>
-=======
                           <img src={founder.image} alt={founder.name} className="w-full h-full object-cover rounded-xl"/>
                         </div>
                         <h3 className="text-xl font-bold text-blue-300 mb-2">{founder.name}</h3>
                         <p className="text-blue-200 mb-3">{founder.role}</p>
                         <p className="text-sm text-blue-100/80">{founder.description}</p>
->>>>>>> 8c8ba5694dda2669fe4dcad755b06569121a6ddc
                       </div>
                     </motion.div>
                   </CarouselItem>
