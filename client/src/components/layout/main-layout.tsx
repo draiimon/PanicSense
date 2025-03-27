@@ -146,20 +146,20 @@ export function MainLayout({ children }: MainLayoutProps) {
                   <nav className="p-2 sm:p-4">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                       {menuItems.map((item) => (
-                        <Link 
-                          key={item.path}
-                          href={item.path}
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          <a className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 text-sm ${
-                            location === item.path 
-                              ? 'bg-blue-50 text-blue-600 shadow-sm' 
-                              : 'hover:bg-blue-50/50 text-slate-600 hover:text-blue-600'
-                          }`}>
+                        <div key={item.path}>
+                          <Link 
+                            href={item.path}
+                            onClick={() => setIsMenuOpen(false)}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 text-sm ${
+                              location === item.path 
+                                ? 'bg-blue-50 text-blue-600 shadow-sm' 
+                                : 'hover:bg-blue-50/50 text-slate-600 hover:text-blue-600'
+                            }`}
+                          >
                             {item.icon}
                             <span className="truncate">{item.label}</span>
-                          </a>
-                        </Link>
+                          </Link>
+                        </div>
                       ))}
                     </div>
                   </nav>
