@@ -1,0 +1,159 @@
+letions
+
+2:25:02 AM [python-service] Python process error: PROGRESS:{"processed": 48, "stage": "Analyzing record 25 of 50 (48% complete)", "total": 50}
+
+2:25:02 AM [python-service] Python process error: 2025-03-16 02:25:02,303 - INFO - Attempting API request with key 1/24
+
+2:25:02 AM [python-service] Python process error: 2025-03-16 02:25:02,629 - INFO - Successfully used API key 1 (successes: 2)
+
+2:25:04 AM [python-service] Python process error: PROGRESS:{"processed": 50, "stage": "Analyzing record 26 of 50 (50% complete)", "total": 50}
+
+2:25:04 AM [python-service] Python process error: 2025-03-16 02:25:04,131 - INFO - Attempting API request with key 2/24
+
+2:25:04 AM [python-service] Python process error: 2025-03-16 02:25:04,169 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:06 AM [python-service] Python process error: PROGRESS:{"processed": 51, "stage": "Analyzing record 27 of 50 (51% complete)", "total": 50}
+
+2:25:06 AM [python-service] Python process error: 2025-03-16 02:25:06,172 - INFO - Attempting API request with key 3/24
+
+2:25:06 AM [python-service] Python process error: 2025-03-16 02:25:06,204 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:08 AM [python-service] Python process error: PROGRESS:{"processed": 53, "stage": "Analyzing record 28 of 50 (53% complete)", "total": 50}
+
+2:25:08 AM [python-service] Python process error: 2025-03-16 02:25:08,207 - INFO - Attempting API request with key 4/24
+
+2:25:08 AM [python-service] Python process error: 2025-03-16 02:25:08,247 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:11 AM [python-service] Python process error: PROGRESS:{"processed": 55, "stage": "Analyzing record 29 of 50 (55% complete)", "total": 50}
+
+2:25:11 AM [python-service] Python process error: 2025-03-16 02:25:11,750 - INFO - Attempting API request with key 5/24
+
+2:25:12 AM [python-service] Python process error: 2025-03-16 02:25:12,081 - INFO - Successfully used API key 5 (successes: 1)
+
+2:25:12 AM [python-service] Python process error: PROGRESS:{"processed": 57, "stage": "Analyzing record 30 of 50 (57% complete)", "total": 50}
+
+2:25:12 AM [python-service] Python process error: 2025-03-16 02:25:12,083 - INFO - Attempting API request with key 6/24
+
+2:25:12 AM [python-service] Python process error: 2025-03-16 02:25:12,124 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:14 AM [python-service] Python process error: PROGRESS:{"processed": 59, "stage": "Analyzing record 31 of 50 (59% complete)", "total": 50}
+
+2:25:14 AM [python-service] Python process error: 2025-03-16 02:25:14,126 - INFO - Attempting API request with key 7/24
+
+2:25:14 AM [python-service] Python process error: 2025-03-16 02:25:14,171 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:17 AM [python-service] Python process error: PROGRESS:{"processed": 60, "stage": "Analyzing record 32 of 50 (60% complete)", "total": 50}
+
+2:25:17 AM [python-service] Python process error: 2025-03-16 02:25:17,674 - INFO - Attempting API request with key 8/24
+
+2:25:18 AM [python-service] Python process error: 2025-03-16 02:25:18,026 - INFO - Successfully used API key 8 (successes: 1)
+
+2:25:18 AM [python-service] Python process error: PROGRESS:{"processed": 62, "stage": "Analyzing record 33 of 50 (62% complete)", "total": 50}
+
+2:25:18 AM [python-service] Python process error: 2025-03-16 02:25:18,029 - INFO - Attempting API request with key 9/24
+
+2:25:18 AM [python-service] Python process error: 2025-03-16 02:25:18,064 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:20 AM [python-service] Python process error: PROGRESS:{"processed": 64, "stage": "Analyzing record 34 of 50 (64% complete)", "total": 50}
+
+2:25:20 AM [python-service] Python process error: 2025-03-16 02:25:20,067 - INFO - Attempting API request with key 10/24
+
+2:25:20 AM [python-service] Python process error: 2025-03-16 02:25:20,103 - ERROR - API request failed: 401 Client Error: Unauthorized for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:23 AM [python-service] Python process error: PROGRESS:{"processed": 66, "stage": "Analyzing record 35 of 50 (66% complete)", "total": 50}
+
+2:25:23 AM [python-service] Python process error: 2025-03-16 02:25:23,605 - INFO - Attempting API request with key 11/24
+
+2:25:23 AM [python-service] Python process error: 2025-03-16 02:25:23,915 - INFO - Successfully used API key 11 (successes: 2)
+
+2:25:23 AM [python-service] Python process error: PROGRESS:{"processed": 67, "stage": "Analyzing record 36 of 50 (67% complete)", "total": 50}
+
+2:25:23 AM [python-service] Python process error: 2025-03-16 02:25:23,917 - INFO - Attempting API request with key 12/24
+
+2:25:23 AM [python-service] Python process error: 2025-03-16 02:25:23,970 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:25 AM [python-service] Python process error: PROGRESS:{"processed": 69, "stage": "Analyzing record 37 of 50 (69% complete)", "total": 50}
+
+2:25:25 AM [python-service] Python process error: 2025-03-16 02:25:25,973 - INFO - Attempting API request with key 13/24
+
+2:25:26 AM [python-service] Python process error: 2025-03-16 02:25:26,050 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:29 AM [python-service] Python process error: PROGRESS:{"processed": 71, "stage": "Analyzing record 38 of 50 (71% complete)", "total": 50}
+
+2:25:29 AM [python-service] Python process error: 2025-03-16 02:25:29,553 - INFO - Attempting API request with key 14/24
+
+2:25:29 AM [python-service] Python process error: 2025-03-16 02:25:29,595 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:31 AM [python-service] Python process error: PROGRESS:{"processed": 73, "stage": "Analyzing record 39 of 50 (73% complete)", "total": 50}
+
+2:25:31 AM [python-service] Python process error: 2025-03-16 02:25:31,598 - INFO - Attempting API request with key 15/24
+
+2:25:31 AM [python-service] Python process error: 2025-03-16 02:25:31,980 - INFO - Successfully used API key 15 (successes: 1)
+
+2:25:31 AM [python-service] Python process error: PROGRESS:{"processed": 75, "stage": "Analyzing record 40 of 50 (75% complete)", "total": 50}
+
+2:25:31 AM [python-service] Python process error: 2025-03-16 02:25:31,982 - INFO - Attempting API request with key 16/24
+
+2:25:32 AM [python-service] Python process error: 2025-03-16 02:25:32,023 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:35 AM [python-service] Python process error: PROGRESS:{"processed": 77, "stage": "Analyzing record 41 of 50 (77% complete)", "total": 50}
+
+2:25:35 AM [python-service] Python process error: 2025-03-16 02:25:35,526 - INFO - Attempting API request with key 17/24
+
+2:25:35 AM [python-service] Python process error: 2025-03-16 02:25:35,561 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:37 AM [python-service] Python process error: PROGRESS:{"processed": 78, "stage": "Analyzing record 42 of 50 (78% complete)", "total": 50}
+
+2:25:37 AM [python-service] Python process error: 2025-03-16 02:25:37,563 - INFO - Attempting API request with key 18/24
+
+2:25:37 AM [python-service] Python process error: 2025-03-16 02:25:37,594 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:39 AM [python-service] Python process error: PROGRESS:{"processed": 80, "stage": "Analyzing record 43 of 50 (80% complete)", "total": 50}
+
+2:25:39 AM [python-service] Python process error: 2025-03-16 02:25:39,597 - INFO - Attempting API request with key 19/24
+
+2:25:39 AM [python-service] Python process error: 2025-03-16 02:25:39,926 - INFO - Successfully used API key 19 (successes: 1)
+
+2:25:41 AM [python-service] Python process error: PROGRESS:{"processed": 82, "stage": "Analyzing record 44 of 50 (82% complete)", "total": 50}
+
+2:25:41 AM [python-service] Python process error: 2025-03-16 02:25:41,429 - INFO - Attempting API request with key 20/24
+
+2:25:41 AM [python-service] Python process error: 2025-03-16 02:25:41,475 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:43 AM [python-service] Python process error: PROGRESS:{"processed": 84, "stage": "Analyzing record 45 of 50 (84% complete)", "total": 50}
+
+2:25:43 AM [python-service] Python process error: 2025-03-16 02:25:43,480 - INFO - Attempting API request with key 21/24
+
+2:25:43 AM [python-service] Python process error: 2025-03-16 02:25:43,523 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:45 AM [python-service] Python process error: PROGRESS:{"processed": 86, "stage": "Analyzing record 46 of 50 (86% complete)", "total": 50}
+
+2:25:45 AM [python-service] Python process error: 2025-03-16 02:25:45,526 - INFO - Attempting API request with key 22/24
+
+2:25:45 AM [python-service] Python process error: 2025-03-16 02:25:45,576 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:49 AM [python-service] Python process error: PROGRESS:{"processed": 87, "stage": "Analyzing record 47 of 50 (87% complete)", "total": 50}
+
+2:25:49 AM [python-service] Python process error: 2025-03-16 02:25:49,078 - INFO - Attempting API request with key 23/24
+
+2:25:49 AM [python-service] Python process error: 2025-03-16 02:25:49,394 - INFO - Successfully used API key 23 (successes: 1)
+
+2:25:49 AM [python-service] Python process error: PROGRESS:{"processed": 89, "stage": "Analyzing record 48 of 50 (89% complete)", "total": 50}
+
+2:25:49 AM [python-service] Python process error: 2025-03-16 02:25:49,398 - INFO - Attempting API request with key 24/24
+
+2:25:49 AM [python-service] Python process error: 2025-03-16 02:25:49,468 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:51 AM [python-service] Python process error: PROGRESS:{"processed": 91, "stage": "Analyzing record 49 of 50 (91% complete)", "total": 50}
+
+2:25:51 AM [python-service] Python process error: 2025-03-16 02:25:51,471 - INFO - Attempting API request with key 1/24
+
+2:25:51 AM [python-service] Python process error: 2025-03-16 02:25:51,506 - ERROR - API request failed: 429 Client Error: Too Many Requests for url: https://api.groq.com/openai/v1/chat/completions
+
+2:25:55 AM [python-service] Python process error: PROGRESS:{"processed": 93, "stage": "Analyzing record 50 of 50 (93% complete)", "total": 50}
+
+2:25:55 AM [python-service] Python process error: 2025-03-16 02:25:55,009 - INFO - Attempting API request with key 2/24
+
+2:25:55 AM [python-service] Python process error: 2025-03-16 02:25:55,356 - INFO - Successfully used API key 2 (successes: 2)
+
+2:25:55 AM [python-service] Python process error: PROGRESS:{"processed": 100, "stage": "Analysis complete!", "total": 50}
