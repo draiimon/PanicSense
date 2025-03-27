@@ -60,6 +60,8 @@ export default function Comparison() {
       'drought': 'Drought',
       'tagtuyot': 'Drought',
       'dry': 'Drought'
+      
+      // Removed Tsunami as requested
     };
     
     // Add standard disaster types from disasterEvents
@@ -188,7 +190,7 @@ export default function Comparison() {
     // Get all disaster types from posts
     const disasterTypes = new Set<string>();
     sentimentPosts.forEach(post => {
-      if (post.disasterType) disasterTypes.add(post.disasterType);
+      if (post.disasterType && post.disasterType.toLowerCase() !== 'tsunami') disasterTypes.add(post.disasterType);
     });
 
     // If no disaster types found, show default categories
