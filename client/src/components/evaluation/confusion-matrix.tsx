@@ -220,35 +220,95 @@ export function ConfusionMatrix({
       });
     }
 
+    // For "All Datasets", we calculate a single set of global metrics from the combined data
+    // instead of calculating per sentiment
+    let globalMetrics = {
+      totalTP: 0,            // all true positives (diagonals)
+      totalPredictions: 0,   // all cells in the matrix
+      totalActuals: 0,       // all cells in the matrix (same as totalPredictions)
+      
+      // These are per sentiment but we'll calculate a single set for the entire matrix
+      totalTruePositives: 0,
+      totalFalsePositives: 0,
+      totalFalseNegatives: 0
+    };
+
+    // Calculate global metrics for the entire matrix if in "All Datasets" mode
+    if (allDatasets) {
+      // Sum all diagonal elements (true positives)
+      globalMetrics.totalTP = labels.reduce((sum, _, i) => sum + newMatrix[i][i], 0);
+      
+      // Sum all elements in matrix (total predictions)
+      globalMetrics.totalPredictions = newMatrix.reduce(
+        (sum, row) => sum + row.reduce((rowSum, cell) => rowSum + cell, 0), 0
+      );
+      globalMetrics.totalActuals = globalMetrics.totalPredictions;
+      
+      // Calculate total TP, FP, FN for all sentiments combined
+      for (let i = 0; i < labels.length; i++) {
+        const TP = newMatrix[i][i];                    // True Positive - diagonal
+        const rowSum = newMatrix[i].reduce((sum, val) => sum + val, 0);
+        const colSum = newMatrix.reduce((sum, row) => sum + row[i], 0);
+        
+        globalMetrics.totalTruePositives += TP;
+        globalMetrics.totalFalsePositives += colSum - TP;  // All predicted this class minus TP
+        globalMetrics.totalFalseNegatives += rowSum - TP;  // All actual this class minus TP
+      }
+    }
+
+    // Calculate metrics for each sentiment (or single global metrics for "All Datasets")
     const metrics = labels.map((_, idx) => {
+      // For individual sentiment/category metrics
       const truePositive = newMatrix[idx][idx];
       const rowSum = newMatrix[idx].reduce((sum, val) => sum + val, 0);
       const colSum = newMatrix.reduce((sum, row) => sum + row[idx], 0);
-      const totalSum = newMatrix.reduce((sum, row) => sum + row.reduce((s, v) => s + v, 0), 0);
-
-      const rawPrecision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
-      const rawRecall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
-
-      const precision = Math.max(0, rawPrecision - 4);
-      const recall = Math.max(0, rawRecall - 3);
-
-      const f1Score = precision + recall === 0 ? 0 :
-        (2 * (precision * recall) / (precision + recall));
-
-      const getDecimalPart = (num: number) => num - Math.floor(num);
-      const precisionDecimal = getDecimalPart(precision);
-      const recallDecimal = getDecimalPart(recall);
-      const f1Decimal = getDecimalPart(f1Score);
-
-      const precisionRecallAvg = (precision + recall) / 2;
-      let baseAccuracy = ((precisionRecallAvg + f1Score) / 2);
-
-      if (precision > 0 || recall > 0 || f1Score > 0) {
-        baseAccuracy -= 2;
+      
+      let precision = 0;
+      let recall = 0;
+      let f1Score = 0;
+      let accuracy = 0;
+      
+      // For "All Datasets" - use global values instead of per-sentiment values
+      if (allDatasets) {
+        // For "All Datasets" view, all sentiments have the same metrics (global ones)
+        precision = globalMetrics.totalPredictions === 0 ? 0 : 
+          (globalMetrics.totalTruePositives / (globalMetrics.totalTruePositives + globalMetrics.totalFalsePositives)) * 100;
+        
+        recall = globalMetrics.totalActuals === 0 ? 0 : 
+          (globalMetrics.totalTruePositives / (globalMetrics.totalTruePositives + globalMetrics.totalFalseNegatives)) * 100;
+          
+        f1Score = precision + recall === 0 ? 0 :
+          (2 * (precision * recall) / (precision + recall));
+          
+        accuracy = globalMetrics.totalPredictions === 0 ? 0 : 
+          (globalMetrics.totalTP / globalMetrics.totalPredictions) * 100;
+      } 
+      // For individual dataset analysis
+      else {
+        const rawPrecision = colSum === 0 ? 0 : (truePositive / colSum) * 100;
+        const rawRecall = rowSum === 0 ? 0 : (truePositive / rowSum) * 100;
+  
+        precision = Math.max(0, rawPrecision - 4);
+        recall = Math.max(0, rawRecall - 3);
+  
+        f1Score = precision + recall === 0 ? 0 :
+          (2 * (precision * recall) / (precision + recall));
+  
+        const getDecimalPart = (num: number) => num - Math.floor(num);
+        const precisionDecimal = getDecimalPart(precision);
+        const recallDecimal = getDecimalPart(recall);
+        const f1Decimal = getDecimalPart(f1Score);
+  
+        const precisionRecallAvg = (precision + recall) / 2;
+        let baseAccuracy = ((precisionRecallAvg + f1Score) / 2);
+  
+        if (precision > 0 || recall > 0 || f1Score > 0) {
+          baseAccuracy -= 2;
+        }
+  
+        const rawAccuracy = baseAccuracy + precisionDecimal + recallDecimal + f1Decimal;
+        accuracy = Math.max(0, rawAccuracy);
       }
-
-      const rawAccuracy = baseAccuracy + precisionDecimal + recallDecimal + f1Decimal;
-      const accuracy = Math.max(0, rawAccuracy);
 
       return {
         sentiment: labels[idx],
