@@ -1209,7 +1209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // This ensures the user sees the quiz before any database updates happen
       
       // First, analyze the text with our AI model to get sentiment validation
-      let aiAnalysisResult = null;
+      let aiAnalysisResult: any = null;
       let possibleTrolling = false;
       let aiTrustMessage = "";
       let quizValidation = null;
@@ -1290,8 +1290,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // First, analyze the original text with our AI model to get a proper assessment
       let isPanicText = false;
-      // Define the analysis result outside the try/catch so other code can access it
-      let aiAnalysisResult: any = null;
+      // Use the existing aiAnalysisResult variable instead of redeclaring it
+      // let aiAnalysisResult: any = null;
       
       try {
         // Run AI analysis on the original text to determine its true emotional content

@@ -201,10 +201,10 @@ export function SentimentFeedback({
     setIsSubmitting(true);
     setQuizMode(true);
     
-    // Show quiz loading feedback
+    // Show validating feedback (hide that it's a quiz - backend concern only)
     toast({
-      title: "Checking with AI...",
-      description: "The AI is verifying your feedback with a sentiment quiz",
+      title: "Validating...",
+      description: "Please wait while we process your feedback",
     });
     
     try {
@@ -228,7 +228,7 @@ export function SentimentFeedback({
         includeDisasterType ? correctedDisasterType : undefined
       );
       
-      console.log("Quiz response:", response);
+      console.log("Validation response:", response);
       
       // Now display quiz feedback
       if (response.aiTrustMessage) {
@@ -254,8 +254,8 @@ export function SentimentFeedback({
     } catch (error) {
       console.error("Error submitting sentiment feedback:", error);
       toast({
-        title: "Quiz verification failed",
-        description: "There was an error verifying your feedback",
+        title: "Validation failed",
+        description: "There was an error processing your feedback",
         variant: "destructive",
       });
     } finally {
@@ -362,7 +362,7 @@ export function SentimentFeedback({
           <AlertDialogHeader>
             <AlertDialogTitle className="text-blue-600 flex items-center">
               <AlertCircle className="mr-2 h-5 w-5" />
-              Sentiment Analysis Quiz
+              Feedback Analysis
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base">
               <div className="p-3 border border-blue-200 bg-blue-50 rounded-md mb-3 whitespace-pre-line">
@@ -373,7 +373,7 @@ export function SentimentFeedback({
                   // Client-side validation message (submission blocked) - should never happen now
                   "Your feedback cannot be submitted due to this validation issue. Please review your changes."
                 ) : (
-                  // Server-side educational quiz-style feedback (submission allowed)
+                  // Server-side validation feedback (submission allowed)
                   "Your feedback has been accepted. The AI model has been updated with your input."
                 )}
               </p>
