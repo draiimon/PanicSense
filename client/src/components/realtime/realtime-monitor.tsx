@@ -231,12 +231,12 @@ export function RealtimeMonitor() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-5 h-full flex flex-col">
+        <CardContent className="p-5 flex flex-col" style={{ height: "250px" }}>
           <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter disaster-related text to analyze sentiment..."
-            className="flex-grow h-full min-h-[150px] resize-none"
+            className="flex-grow h-full resize-none"
           />
         </CardContent>
         <CardFooter className="p-5 pt-0 flex flex-col gap-4">
@@ -300,7 +300,7 @@ export function RealtimeMonitor() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-5 flex-grow h-full overflow-y-auto">
+        <CardContent className="p-5 overflow-y-auto" style={{ height: "350px" }}>
           {analyzedTexts.length === 0 ? (
             <div className="text-center py-10 text-slate-400">
               <svg
