@@ -83,8 +83,8 @@ export function CardCarousel({
                 onClick={() => goToSlide(index)}
                 className={`w-2 h-2 rounded-full transition-all ${
                   index === activeIndex
-                    ? 'bg-blue-600/50 w-4'
-                    : 'bg-gray-300/30 hover:bg-gray-400/40'
+                    ? 'bg-blue-600 w-4' // All active pagination dots are blue
+                    : 'bg-blue-300/40 hover:bg-blue-400/50' // Now inactive dots are also blue
                 }`}
                 aria-label={`Go to slide ${index + 1}`}
               />

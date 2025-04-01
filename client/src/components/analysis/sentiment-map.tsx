@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, memo, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, memo, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Card } from '@/components/ui/card';
 import { getSentimentColor, getDisasterTypeColor } from '@/lib/colors';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,15 @@ interface Region {
   name: string;
   coordinates: [number, number];
   sentiment: string;
+  sentiments?: Record<string, number>; // Add support for multiple sentiments
   disasterType?: string;
+  disasterTypes?: Record<string, number>; // Add support for multiple disaster types
   intensity: number;
+}
+
+// Define the type for the imperative handle
+export interface SentimentMapHandle {
+  zoomToLocation: (coordinates: [number, number]) => void;
 }
 
 interface SentimentMapProps {
@@ -30,14 +37,14 @@ interface SentimentMapProps {
   showMarkers?: boolean;
 }
 
-// Memoize the map component for better performance
-export const SentimentMap = memo(function SentimentMap({ 
+// Create a forwardable Sentiment Map component
+export const SentimentMap = memo(forwardRef<SentimentMapHandle, SentimentMapProps>(function SentimentMap({ 
   regions, 
   onRegionSelect,
   mapType = 'disaster',
   view = 'standard',
   showMarkers = true
-}: SentimentMapProps) {
+}: SentimentMapProps, ref) {
   // Define our marker types
   interface MarkerWithAnimation {
     circle: any;
@@ -50,7 +57,7 @@ export const SentimentMap = memo(function SentimentMap({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<MarkerRef[]>([]);
-  const [mapZoom, setMapZoom] = useState(6);
+  const [mapZoom, setMapZoom] = useState(8); // Even higher default zoom
   const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
   const [selectedSentiment, setSelectedSentiment] = useState<string | null>(null);
   const popupRef = useRef<any>(null);
@@ -58,7 +65,7 @@ export const SentimentMap = memo(function SentimentMap({
   // Memoize zoom function to prevent unnecessary re-renders
   const zoomToLocation = useCallback((coordinates: [number, number]) => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView(coordinates, 18); // Maximum zoom level for detailed view
+      mapInstanceRef.current.setView(coordinates, 12); // Moderate zoom level that keeps context visible
     }
   }, []);
 
@@ -73,12 +80,12 @@ export const SentimentMap = memo(function SentimentMap({
         zoomControl: false,
         attributionControl: false,
         maxBounds: [
-          [0, 110],
-          [25, 130]
+          [4, 110], // Tighter boundary
+          [22, 130] // Tighter boundary
         ],
-        minZoom: 5,      // Lower minimum zoom
+        minZoom: 7,      // Higher minimum zoom to prevent white gaps completely
         maxZoom: 18,     // Higher maximum zoom
-        maxBoundsViscosity: 0.8, // Slightly less strict bounds
+        maxBoundsViscosity: 1.0, // Strict bounds to avoid white gaps
         scrollWheelZoom: true,
         dragging: true,
         zoomDelta: 0.5,  // Larger zoom steps
@@ -86,10 +93,10 @@ export const SentimentMap = memo(function SentimentMap({
         doubleClickZoom: true, // Enable double-click zoom
         touchZoom: true, // Better mobile touch zoom
         bounceAtZoomLimits: true // Bounce effect at zoom limits
-      }).fitBounds([
-        [4.566667, 116.928406],
-        [21.120611, 126.604393]
-      ]);
+      });
+      
+      // Set initial view to center of Philippines with much higher zoom (8.5)
+      mapInstanceRef.current.setView(PH_CENTER, 8.5);
 
       // Add base tile layer with noWrap option
       updateTileLayer(L, view);
@@ -249,23 +256,77 @@ export const SentimentMap = memo(function SentimentMap({
 
         // Create custom popup with better styling and layout
         const popupContent = `
-          <div class="p-4 font-sans shadow-sm rounded-lg" style="min-width: 200px">
+          <div class="p-4 font-sans shadow-sm rounded-lg" style="min-width: 240px">
             <h3 class="text-lg font-bold text-slate-800 mb-3 border-b pb-2" style="color: ${color}">${region.name}</h3>
             <div class="space-y-3">
-              <div class="flex items-center gap-2">
-                <span class="w-4 h-4 rounded-full flex-shrink-0" style="background-color: ${getSentimentColor(region.sentiment)}"></span>
-                <span class="text-sm font-medium text-slate-700">
-                  <strong>Sentiment:</strong> ${region.sentiment}
-                </span>
+              <div>
+                <div class="text-sm font-medium text-slate-700 mb-1">
+                  <strong>Sentiments:</strong>
+                </div>
+                <div class="flex flex-wrap gap-1 mb-1">
+                  ${region.sentiments ? 
+                    (() => {
+                      const sentimentEntries = Object.entries(region.sentiments);
+                      const total = sentimentEntries.reduce((sum, [, count]) => sum + count, 0);
+                      return sentimentEntries
+                        .sort(([, a], [, b]) => b - a)
+                        .slice(0, 3) // Show top 3 sentiments
+                        .map(([sentiment, count]) => {
+                          const percentage = Math.round((count / total) * 100);
+                          return `
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full"
+                                  style="background-color: ${getSentimentColor(sentiment)}20; color: ${getSentimentColor(sentiment)}; 
+                                        border: 1px solid ${getSentimentColor(sentiment)}">
+                              ${sentiment} (${percentage}%)
+                            </span>
+                          `;
+                        }).join('');
+                    })()
+                    : `
+                      <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full"
+                            style="background-color: ${getSentimentColor(region.sentiment)}20; color: ${getSentimentColor(region.sentiment)}; 
+                                   border: 1px solid ${getSentimentColor(region.sentiment)}">
+                        ${region.sentiment}
+                      </span>
+                    `
+                  }
+                </div>
               </div>
-              ${region.disasterType ? `
-                <div class="flex items-center gap-2">
-                  <span class="w-4 h-4 rounded-full flex-shrink-0" style="background-color: ${getDisasterTypeColor(region.disasterType)}"></span>
-                  <span class="text-sm font-medium text-slate-700">
-                    <strong>Disaster:</strong> ${region.disasterType}
-                  </span>
+              
+              ${region.disasterTypes || region.disasterType ? `
+                <div>
+                  <div class="text-sm font-medium text-slate-700 mb-1">
+                    <strong>Disaster Types:</strong>
+                  </div>
+                  <div class="flex flex-wrap gap-1">
+                    ${region.disasterTypes ? 
+                      (() => {
+                        const disasterEntries = Object.entries(region.disasterTypes);
+                        const total = disasterEntries.reduce((sum, [, count]) => sum + count, 0);
+                        return disasterEntries
+                          .sort(([, a], [, b]) => b - a)
+                          .slice(0, 3) // Show top 3 disaster types
+                          .map(([disType, count]) => {
+                            const percentage = Math.round((count / total) * 100);
+                            return `
+                              <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full text-white"
+                                    style="background-color: ${getDisasterTypeColor(disType)}">
+                                ${disType} (${percentage}%)
+                              </span>
+                            `;
+                          }).join('');
+                      })()
+                      : `
+                        <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full text-white"
+                              style="background-color: ${getDisasterTypeColor(region.disasterType || '')}">
+                          ${region.disasterType}
+                        </span>
+                      `
+                    }
+                  </div>
                 </div>
               ` : ''}
+              
               <div class="mt-3 pt-2 border-t border-slate-200">
                 <div class="flex items-center justify-between">
                   <span class="text-sm font-medium text-slate-700">Impact Level:</span>
@@ -353,6 +414,7 @@ export const SentimentMap = memo(function SentimentMap({
         });
 
         circle.on('click', () => {
+          // Also use moderate zoom level for circle clicks
           zoomToLocation(region.coordinates);
           if (onRegionSelect) {
             onRegionSelect(region);
@@ -377,6 +439,11 @@ export const SentimentMap = memo(function SentimentMap({
   useEffect(() => {
     updateMarkers();
   }, [regions, mapType, mapZoom, showMarkers, updateMarkers]);
+  
+  // Expose the zoomToLocation function to parent components
+  useImperativeHandle(ref, () => ({
+    zoomToLocation
+  }));
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -404,11 +471,11 @@ export const SentimentMap = memo(function SentimentMap({
           size="icon"
           variant="secondary"
           className="h-8 w-8 bg-white shadow-lg hover:bg-slate-50 border border-slate-200"
-          onClick={() => mapInstanceRef.current?.fitBounds([
-            [4.566667, 116.928406],
-            [21.120611, 126.604393]
-          ])} // Reset to default view
-          title="Fit Philippines"
+          onClick={() => {
+            // Reset to default view with higher zoom (8.5)
+            mapInstanceRef.current?.setView(PH_CENTER, 8.5);
+          }}
+          title="Reset View"
         >
           <Globe className="h-4 w-4" />
         </Button>
@@ -439,4 +506,4 @@ export const SentimentMap = memo(function SentimentMap({
       </div>
     </div>
   );
-});
+}));

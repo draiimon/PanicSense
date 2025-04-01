@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>PanicSense PH</title>
+    <!-- SVG favicon for modern browsers (preferred) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- PNG favicon fallback for older browsers -->
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="shortcut icon" type="image/png" href="/favicon.png" />
     <style>
@@ -15,22 +18,9 @@
         -moz-border-radius: 50%;
       }
       
-      /* Add mask to make icon perfectly round */
-      head {
-        position: relative;
-      }
-      
-      head::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 32px;
-        height: 32px;
-        mask-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="16"/></svg>');
-        -webkit-mask-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="16"/></svg>');
-        mask-size: contain;
-        -webkit-mask-size: contain;
+      /* Force favicon to be visible and properly styled */
+      @media (prefers-color-scheme: dark) {
+        link[rel="icon"] { color: white; }
       }
     </style>
     
@@ -63,6 +53,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="./src/main.tsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

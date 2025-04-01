@@ -99,25 +99,56 @@ export function DisasterComparison({
             y: {
               beginAtZero: true,
               title: {
-                display: true,
-                text: 'Percentage'
+                display: false
+              },
+              ticks: {
+                font: {
+                  size: 9
+                }
+              },
+              grid: {
+                display: false
               }
             },
             x: {
               title: {
-                display: true,
-                text: 'Sentiment'
+                display: false
+              },
+              ticks: {
+                font: {
+                  size: 9
+                }
+              },
+              grid: {
+                display: false
               }
             }
           },
           plugins: {
             legend: {
-              position: 'bottom'
+              position: 'bottom',
+              labels: {
+                boxWidth: 12,
+                font: {
+                  size: 10
+                }
+              }
+            },
+            tooltip: {
+              titleFont: {
+                size: 10
+              },
+              bodyFont: {
+                size: 10
+              }
             }
           },
+          layout: {
+            padding: 10
+          },
           animation: {
-            duration: 1000,
-            easing: 'easeInOutQuart'
+            duration: 800,
+            easing: 'easeOutCubic'
           }
         }
       });
@@ -145,69 +176,62 @@ export function DisasterComparison({
       initial="hidden"
       animate={isLoaded ? "visible" : "hidden"}
       variants={containerVariants}
+      className="w-full"
     >
-      <Card className="bg-white rounded-lg shadow overflow-hidden">
-        <CardHeader className="p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-slate-50">
-          <motion.div variants={itemVariants}>
-            <CardTitle className="text-lg font-medium text-slate-800">{title}</CardTitle>
-            <CardDescription className="text-sm text-slate-500">{description}</CardDescription>
-          </motion.div>
-        </CardHeader>
-        <CardContent className="p-5">
-          {disasters.length === 0 ? (
-            <motion.div 
-              className="py-10 text-center text-slate-500"
-              variants={itemVariants}
-            >
-              No disaster data available for comparison
-            </motion.div>
-          ) : (
-            <div className="space-y-6">
-              {/* Disaster Type Selector */}
-              <motion.div variants={itemVariants}>
-                <p className="mb-2 text-sm font-medium text-slate-700">Select disasters to compare:</p>
-                <div className="flex flex-wrap gap-2">
-                  {disasters.map((disaster, index) => (
-                    <motion.div
-                      key={disaster.type}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.1, duration: 0.3 }}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Badge 
-                        variant={selectedDisasters.includes(disaster.type) ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => toggleDisaster(disaster.type)}
-                        style={{
-                          backgroundColor: selectedDisasters.includes(disaster.type) 
-                            ? getDisasterTypeColor(disaster.type) 
-                            : 'transparent',
-                          borderColor: getDisasterTypeColor(disaster.type),
-                          color: selectedDisasters.includes(disaster.type) ? 'white' : getDisasterTypeColor(disaster.type)
-                        }}
-                      >
-                        {disaster.type}
-                      </Badge>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-              {/* Comparison Chart */}
-              <motion.div 
-                className="mt-4 p-2 rounded-lg bg-gradient-to-b from-white to-slate-50"
-                variants={itemVariants}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-              >
-                <canvas ref={chartRef} height={300}></canvas>
-              </motion.div>
+      {disasters.length === 0 ? (
+        <motion.div 
+          className="py-4 text-center text-slate-500"
+          variants={itemVariants}
+        >
+          No disaster data available for comparison
+        </motion.div>
+      ) : (
+        <div className="space-y-3">
+          {/* Compact Disaster Type Selector */}
+          <motion.div variants={itemVariants} className="px-2">
+            <div className="flex flex-wrap gap-1.5 justify-center">
+              {disasters.map((disaster, index) => (
+                <motion.div
+                  key={disaster.type}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05, duration: 0.2 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Badge 
+                    variant={selectedDisasters.includes(disaster.type) ? "default" : "outline"}
+                    className="cursor-pointer text-xs font-medium"
+                    onClick={() => toggleDisaster(disaster.type)}
+                    style={{
+                      backgroundColor: selectedDisasters.includes(disaster.type) 
+                        ? getDisasterTypeColor(disaster.type) 
+                        : 'transparent',
+                      borderColor: getDisasterTypeColor(disaster.type),
+                      color: selectedDisasters.includes(disaster.type) ? 'white' : getDisasterTypeColor(disaster.type)
+                    }}
+                  >
+                    {disaster.type}
+                  </Badge>
+                </motion.div>
+              ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </motion.div>
+          
+          {/* Compact Chart */}
+          <motion.div 
+            className="px-2 pt-1"
+            variants={itemVariants}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+          >
+            <div className="h-[200px]">
+              <canvas ref={chartRef}></canvas>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 }

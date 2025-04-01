@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import Chart from 'chart.js/auto';
 import { sentimentColors } from '@/lib/colors';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Loader2, 
   PieChart, 
@@ -48,16 +48,16 @@ export function OptimizedSentimentChart({
     return data;
   }, [data, isLoading, isEmpty]);
 
-  // Memoize colors to prevent recalculation
+  // Vibrant, exciting colors as requested (with gray for Neutral as per user request)
   const colors = useMemo(() => {
     return processedData.labels.map(label => {
       switch (label) {
-        case 'Panic': return '#ef4444';
-        case 'Fear/Anxiety': return '#f97316';
-        case 'Disbelief': return '#8b5cf6';
-        case 'Resilience': return '#10b981';
+        case 'Panic': return '#ff2d55'; // Bright pink-red
+        case 'Fear/Anxiety': return '#ff9500'; // Bright orange
+        case 'Disbelief': return '#5e17eb'; // Rich violet
+        case 'Resilience': return '#00d474'; // Bright emerald
         case 'Neutral':
-        default: return '#6b7280';
+        default: return '#6b7280'; // Gray for neutral (changed as per user request)
       }
     });
   }, [processedData.labels]);
@@ -68,8 +68,7 @@ export function OptimizedSentimentChart({
       responsive: true,
       maintainAspectRatio: false,
       animation: {
-        duration: isLoading ? 0 : 800,
-        easing: 'easeOutQuart' as const
+        duration: 0, // Completely disable animations for better performance
       },
       plugins: {
         legend: {
@@ -168,7 +167,7 @@ export function OptimizedSentimentChart({
     const ctx = chartRef.current.getContext('2d');
     if (!ctx) return;
 
-    // Create chart configuration
+    // Create chart configuration - simplified for better performance on mobile
     const chartConfig = {
       type,
       data: {
@@ -178,22 +177,18 @@ export function OptimizedSentimentChart({
           data: processedData.values,
           backgroundColor: colors,
           borderColor: type === 'line' ? colors : Array(processedData.labels.length).fill('#ffffff'),
-          borderWidth: type === 'doughnut' ? 3 : 2,
-          borderRadius: type === 'bar' ? 6 : undefined,
-          hoverBorderWidth: type === 'doughnut' ? 4 : 2,
-          hoverOffset: type === 'doughnut' ? 10 : undefined,
-          tension: 0.3,
+          borderWidth: type === 'doughnut' ? 2 : 1, // Reduced border width
+          borderRadius: type === 'bar' ? 4 : undefined, // Reduced border radius
+          hoverBorderWidth: type === 'doughnut' ? 2 : 1, // Reduced hover border
+          // Removed hover offset for better performance
+          tension: 0.2, // Reduced tension for better performance
           fill: type === 'line',
+          // Simplified point styling for better performance
           pointBackgroundColor: type === 'line' ? '#fff' : undefined,
           pointBorderColor: type === 'line' ? colors : undefined,
-          pointRadius: type === 'line' ? 5 : undefined,
-          pointHoverRadius: type === 'line' ? 7 : undefined,
-          pointBorderWidth: type === 'line' ? 2 : undefined,
-          pointHoverBorderWidth: type === 'line' ? 3 : undefined,
-          shadowOffsetX: 0,
-          shadowOffsetY: 6,
-          shadowBlur: 10,
-          shadowColor: 'rgba(0, 0, 0, 0.2)',
+          pointRadius: type === 'line' ? 3 : undefined, // Smaller points
+          pointHoverRadius: type === 'line' ? 4 : undefined, // Smaller hover points
+          // Removed shadows completely for better performance
         }],
       },
       options: chartOptions,
@@ -230,12 +225,12 @@ export function OptimizedSentimentChart({
   };
 
   return (
-    <div style={{ height }} className="relative">
+    <div style={{ height }} className="relative rounded-xl bg-white">
       {/* Loading State */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="absolute inset-0 bg-white/50 backdrop-blur-sm"></div>
-          <div className="bg-white rounded-xl p-5 shadow-sm flex items-center gap-4 z-10">
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm"></div>
+          <div className="bg-slate-800 rounded-xl p-5 shadow-md border border-slate-700/40 flex items-center gap-4 z-10">
             <div className="relative h-10 w-10 flex-shrink-0">
               <div 
                 className="animate-spin cursor-pointer h-10 w-10 absolute inset-0"
@@ -244,11 +239,11 @@ export function OptimizedSentimentChart({
                   el.style.animationPlayState = el.style.animationPlayState === 'paused' ? 'running' : 'paused';
                 }}
               >
-                <Loader2 className="h-10 w-10 absolute inset-0 text-blue-600" />
+                <Loader2 className="h-10 w-10 absolute inset-0 text-blue-400" />
               </div>
             </div>
             <div>
-              <p className="font-medium text-slate-800">Processing sentiment data...</p>
+              <p className="font-medium text-slate-100">Processing sentiment data...</p>
               {/* Removed the second line for conciseness */}
             </div>
           </div>
@@ -264,10 +259,10 @@ export function OptimizedSentimentChart({
             className="flex flex-col items-center justify-center p-6 text-center"
           >
             <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
-              <PieChart className="h-8 w-8 text-blue-400" />
+              <PieChart className="h-8 w-8 text-blue-500" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">No Sentiment Data</h3>
-            <p className="text-sm text-slate-500 max-w-[250px] mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">No Sentiment Data</h3>
+            <p className="text-sm text-gray-500 max-w-[250px] mb-4">
               Upload dataset files to analyze sentiment distribution across disaster events
             </p>
             <div className="grid grid-cols-5 gap-2 mt-2">
@@ -279,13 +274,15 @@ export function OptimizedSentimentChart({
                   <div 
                     className="w-5 h-5 rounded-full mb-1"
                     style={{ 
-                      backgroundColor: sentiment === 'Panic' ? '#ef4444' :
-                                    sentiment === 'Fear/Anxiety' ? '#f97316' :
-                                    sentiment === 'Disbelief' ? '#8b5cf6' :
-                                    sentiment === 'Resilience' ? '#10b981' : '#6b7280'
+                      backgroundColor: sentiment === 'Panic' ? '#ff2d55' : // Bright pink-red
+                                    sentiment === 'Fear/Anxiety' ? '#ff9500' : // Bright orange
+                                    sentiment === 'Disbelief' ? '#5e17eb' : // Rich violet
+                                    sentiment === 'Resilience' ? '#00d474' : // Bright emerald
+                                    sentiment === 'Neutral' ? '#6b7280' : // Gray for neutral
+                                    '#6b7280' // Default gray
                     }}
                   ></div>
-                  <span className="text-xs text-slate-500 whitespace-nowrap">
+                  <span className="text-xs text-gray-600 whitespace-nowrap">
                     {sentiment.replace('/Anxiety', '')}
                   </span>
                 </div>
@@ -295,22 +292,12 @@ export function OptimizedSentimentChart({
         </div>
       )}
 
-      {/* Chart Container */}
-      <AnimatePresence mode="wait">
-        {!isEmpty && !isLoading && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="h-full relative"
-          >
-            <canvas ref={chartRef}></canvas>
-
-
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Chart Container - Removed animations for better performance */}
+      {!isEmpty && !isLoading && (
+        <div className="h-full relative">
+          <canvas ref={chartRef}></canvas>
+        </div>
+      )}
     </div>
   );
 }

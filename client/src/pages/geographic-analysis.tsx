@@ -1,22 +1,25 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useDisasterContext } from "@/context/disaster-context";
-import { SentimentMap } from "@/components/analysis/sentiment-map";
+import { SentimentMap, SentimentMapHandle } from "@/components/analysis/sentiment-map";
 import { SentimentLegend } from "@/components/analysis/sentiment-legend";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, MapPin, Map, AlertTriangle, Satellite, Eye, EyeOff, BarChart3 } from "lucide-react";
+import { Globe, MapPin, Map, AlertTriangle, Satellite, Eye, EyeOff, BarChart3, MousePointerClick, PieChart } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { getCoordinates, extractLocations } from "@/lib/geocoding";
+import { getSentimentColor, getDisasterTypeColor } from "@/lib/colors";
 import { toast } from "@/hooks/use-toast";
 
 // Define types for the component
 interface Region {
   name: string;
   coordinates: [number, number];
-  sentiment: string;
-  disasterType?: string;
+  sentiment: string; // Still keep dominant sentiment for color coding
+  sentiments: Record<string, number>; // All sentiments with counts
+  disasterType?: string; // Still keep dominant disaster type for main display
+  disasterTypes: Record<string, number>; // All disaster types with counts
   intensity: number;
 }
 
@@ -34,6 +37,7 @@ export default function GeographicAnalysis() {
   const [mapView, setMapView] = useState<'standard' | 'satellite'>('standard');
   const [selectedRegionFilter, setSelectedRegionFilter] = useState<string | null>(null);
   const [showMarkers, setShowMarkers] = useState<boolean>(true);
+  const mapRef = useRef<SentimentMapHandle>(null);
   const [detectedLocations, setDetectedLocations] = useState<Record<string, [number, number]>>({
     // Add locations that the AI might identify by name but aren't in our predefined list
     "Meycauayan": [14.7345008, 120.9571635], 
@@ -45,8 +49,8 @@ export default function GeographicAnalysis() {
 
   // Complete Philippine region coordinates
   const regionCoordinates: Record<string, [number, number]> = {
-    // Default coordinates for unknown locations
-    "Unknown": [12.8797, 121.7740],
+    // Remove the Unknown entry entirely
+    // "Unknown": [12.8797, 121.7740],
 
     // Metro Manila and surrounding provinces
     "Metro Manila": [14.5995, 120.9842],
@@ -307,7 +311,7 @@ export default function GeographicAnalysis() {
     return Object.entries(locationData)
       .filter(([name]) => name !== "UNKNOWN" && name !== "Unknown")
       .map(([name, data]) => {
-      // Find dominant sentiment
+      // Find dominant sentiment while keeping all sentiments data
       let maxCount = 0;
       let dominantSentiment = "Neutral";
 
@@ -318,7 +322,7 @@ export default function GeographicAnalysis() {
         }
       });
 
-      // Find dominant disaster type
+      // Find dominant disaster type while keeping all disaster types data
       let maxTypeCount = 0;
       let dominantDisasterType: string | undefined;
 
@@ -336,14 +340,16 @@ export default function GeographicAnalysis() {
       return {
         name,
         coordinates: data.coordinates,
-        sentiment: dominantSentiment,
-        disasterType: dominantDisasterType,
+        sentiment: dominantSentiment, // Keep dominant sentiment for main color coding
+        sentiments: data.sentiments,  // Include all sentiments with their counts
+        disasterType: dominantDisasterType, // Keep dominant disaster type for main display
+        disasterTypes: data.disasterTypes, // Include all disaster types with their counts
         intensity
       };
     });
   }, [locationData]);
 
-  // Calculate most affected areas
+  // Calculate most affected areas - Top 10
   const mostAffectedAreas = useMemo(() => {
     return regions
       .sort((a, b) => b.intensity - a.intensity)
@@ -351,9 +357,45 @@ export default function GeographicAnalysis() {
       .map(region => ({
         name: region.name,
         sentiment: region.sentiment,
-        disasterType: region.disasterType
+        sentiments: region.sentiments,
+        disasterType: region.disasterType,
+        disasterTypes: region.disasterTypes,
+        coordinates: region.coordinates, // Include coordinates for click-to-zoom functionality
+        isTopTen: true
       }));
   }, [regions]);
+  
+  // Calculate other affected areas - Beyond top 10, but limit to 20 to prevent overwhelming
+  const otherAffectedAreas = useMemo(() => {
+    return regions
+      .sort((a, b) => b.intensity - a.intensity)
+      .slice(10, 30) // Get areas beyond the top 10, but limit to 20 more
+      .map(region => ({
+        name: region.name,
+        sentiment: region.sentiment,
+        sentiments: region.sentiments,
+        disasterType: region.disasterType,
+        disasterTypes: region.disasterTypes,
+        coordinates: region.coordinates, // Include coordinates for click-to-zoom functionality
+        isTopTen: false
+      }));
+  }, [regions]);
+
+  // Handle clicking on a location to zoom to it on the map
+  const handleZoomToLocation = (coordinates: [number, number]) => {
+    // Access the map instance through the ref and zoom to location
+    if (mapRef.current) {
+      // Use the map ref directly with the proper type
+      mapRef.current.zoomToLocation(coordinates);
+      
+      // Show visual feedback
+      toast({
+        title: "Zooming to location",
+        description: "Moving map view to see the selected area and its surroundings",
+        variant: "default",
+      });
+    }
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -362,50 +404,71 @@ export default function GeographicAnalysis() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
-      {/* Content Container - Mobile-optimized layout */}
-      <div className="flex-1 px-2 sm:px-4 py-2 sm:py-4 overflow-y-auto">
-        {/* Header Card - More compact on mobile */}
-        <Card className="bg-white shadow-sm border-none mb-2 sm:mb-4">
-          <CardHeader className="p-2 sm:p-4">
+    <div className="relative flex flex-col min-h-screen">
+      {/* Enhanced colorful background for entire page (matching dashboard) */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-violet-50 to-pink-50 overflow-hidden">
+        {/* More vibrant animated gradient overlay - CSS Animation */}
+        <div 
+          className="absolute inset-0 bg-gradient-to-r from-purple-500/15 via-teal-500/10 to-rose-500/15 animate-gradient"
+          style={{ backgroundSize: '200% 200%' }}
+        />
+        
+        {/* Enhanced animated patterns with more vibrant colors */}
+        <div className="absolute inset-0 opacity-15 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM1MDUwRjAiIGZpbGwtb3BhY2l0eT0iMC41Ij48cGF0aCBkPSJNMzYgMzR2Nmg2di02aC02em02IDZ2Nmg2di02aC02em0tMTIgMGg2djZoLTZ2LTZ6bTEyIDBoNnY2aC02di02eiIvPjwvZz48L2c+PC9zdmc+')]"></div>
+        
+        {/* Additional decorative elements */}
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,rgba(120,80,255,0.8)_0%,transparent_70%)]"></div>
+      </div>
+      
+      {/* Content Container - Mobile-optimized layout with minimal padding */}
+      <div className="flex-1 px-1 sm:px-2 py-2 sm:py-4 pb-0 overflow-y-auto">
+        {/* Header Card - More compact on mobile with translucency */}
+        <Card className="border-none mb-2 sm:mb-4 overflow-hidden shadow-lg rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100/40">
+          <CardHeader className="p-2 sm:p-4 bg-gradient-to-r from-indigo-600/90 via-blue-600/90 to-purple-600/90 border-b border-indigo-700/50">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <Globe className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm shadow-inner">
+                  <Globe className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
                 <div>
-                  <CardTitle className="text-lg sm:text-xl font-bold text-slate-800">
+                  <CardTitle className="text-lg sm:text-xl font-bold text-white">
                     Geographic Analysis
                   </CardTitle>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1">
+                  <p className="text-xs sm:text-sm text-indigo-100 mt-0.5 sm:mt-1">
                     Visualizing disaster impact across Philippine regions
                   </p>
                 </div>
               </div>
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
                 onClick={() => setShowMarkers(!showMarkers)}
-                className="flex items-center gap-1 z-10 text-xs sm:text-sm py-1 px-2 h-8"
+                className="flex items-center gap-1 z-10 text-xs sm:text-sm py-1 px-3 h-8 bg-white/30 backdrop-blur-sm text-white border border-white/30 hover:bg-white/40 shadow-sm"
               >
                 {showMarkers ? <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" /> : <Eye className="h-3 w-3 sm:h-4 sm:w-4" />}
-                <span>{showMarkers ? 'Hide' : 'Show'}</span>
+                <span>{showMarkers ? 'Hide Markers' : 'Show Markers'}</span>
               </Button>
             </div>
           </CardHeader>
         </Card>
 
         {/* Main Content Area - Optimized for mobile */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4">
-          {/* Map Container - Better height management */}
-          <div className="lg:col-span-2 bg-white shadow-sm rounded-lg overflow-hidden flex flex-col h-[calc(100vh-10rem)] sm:h-[calc(100vh-12rem)]">
-            {/* Map Controls - Compact on mobile */}
-            <div className="border-b border-slate-200 p-2 sm:p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
+          {/* Map Container - Enhanced design with translucency and proper corners */}
+          <div className="bg-white/90 shadow-xl rounded-2xl overflow-hidden flex flex-col h-[calc(100vh-8rem)] sm:h-[calc(100vh-9rem)] border border-indigo-100/40 backdrop-blur-sm">
+            {/* Map Controls - Upgraded style with rounded top corners */}
+            <div className="border-b border-indigo-100 p-2 sm:p-4 bg-gradient-to-r from-slate-100 via-blue-50 to-indigo-100 rounded-t-2xl">
               <div className="flex flex-wrap gap-2 items-center justify-between">
                 {/* View Type Controls */}
                 <div className="flex gap-1 sm:gap-2">
                   <Button
                     variant={activeMapType === 'disaster' ? 'default' : 'outline'}
                     onClick={() => setActiveMapType('disaster')}
-                    className="flex items-center gap-1 text-xs sm:text-sm h-8"
+                    className={`flex items-center gap-1 text-xs sm:text-sm h-8 rounded-full ${
+                      activeMapType === 'disaster' 
+                        ? 'bg-gradient-to-r from-amber-500 to-red-500 text-white border-0 shadow-md' 
+                        : 'border border-amber-200 text-amber-700 hover:bg-amber-50'
+                    }`}
                     size="sm"
                   >
                     <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -414,31 +477,45 @@ export default function GeographicAnalysis() {
                   <Button
                     variant={activeMapType === 'emotion' ? 'default' : 'outline'}
                     onClick={() => setActiveMapType('emotion')}
-                    className="flex items-center gap-1 text-xs sm:text-sm h-8"
+                    className={`flex items-center gap-1 text-xs sm:text-sm h-8 rounded-full ${
+                      activeMapType === 'emotion' 
+                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0 shadow-md' 
+                        : 'border border-indigo-200 text-indigo-700 hover:bg-indigo-50'
+                    }`}
                     size="sm"
                   >
                     <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span>Sentiment</span>
+                    <span>Emotion</span>
                   </Button>
                 </div>
 
                 {/* Map Style Controls */}
-                <div className="flex rounded-lg overflow-hidden border border-slate-200">
+                <div className="flex shadow-sm rounded-full overflow-hidden border border-blue-200">
                   <Button
                     size="sm"
-                    variant={mapView === 'standard' ? 'default' : 'outline'}
+                    variant="ghost"
                     onClick={() => setMapView('standard')}
-                    className="rounded-none border-0 h-8 px-2"
+                    className={`rounded-l-full rounded-r-none border-0 h-8 px-3 ${
+                      mapView === 'standard' 
+                        ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white'
+                        : 'bg-white text-blue-700 hover:bg-blue-50'
+                    }`}
                   >
-                    <Map className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Map className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <span className="text-xs">Map</span>
                   </Button>
                   <Button
                     size="sm"
-                    variant={mapView === 'satellite' ? 'default' : 'outline'}
+                    variant="ghost"
                     onClick={() => setMapView('satellite')}
-                    className="rounded-none border-0 h-8 px-2"
+                    className={`rounded-r-full rounded-l-none border-0 h-8 px-3 ${
+                      mapView === 'satellite' 
+                        ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white'
+                        : 'bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
                   >
-                    <Satellite className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Satellite className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <span className="text-xs">Satellite</span>
                   </Button>
                 </div>
               </div>
@@ -472,26 +549,281 @@ export default function GeographicAnalysis() {
                   className="absolute inset-0"
                 >
                   <SentimentMap
+                    ref={mapRef}
                     regions={regions}
                     mapType={activeMapType}
                     view={mapView}
                     showMarkers={showMarkers}
+                    onRegionSelect={(region) => {
+                      setSelectedRegionFilter(region.name);
+                    }}
                   />
                 </motion.div>
               </AnimatePresence>
             </div>
           </div>
 
-          {/* Legend Panel - Adjusted for mobile */}
-          <div className="lg:col-span-1 bg-white shadow-sm rounded-lg flex flex-col min-h-[300px] sm:min-h-[400px] lg:h-[calc(100vh-12rem)]">
-            <div className="p-2 border-b border-slate-200">
-              <h3 className="font-semibold text-slate-800 text-xs sm:text-sm">Analysis Legend</h3>
+          {/* Regional Insights Panel - All in one container with sidebars */}
+          <div className="rounded-2xl bg-white/95 shadow-lg border border-indigo-100/40 backdrop-blur-sm min-h-[300px] sm:min-h-[400px] lg:h-[calc(100vh-9rem)] flex flex-col">
+            <div className="bg-gradient-to-r from-indigo-600/90 via-blue-600/90 to-purple-600/90 p-3 border-b border-indigo-700/50 rounded-t-2xl">
+              <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                <div className="p-1.5 rounded-full bg-white/20 backdrop-blur-sm shadow-inner">
+                  <Globe className="h-3.5 w-3.5 text-white" />
+                </div>
+                Regional Insights
+              </h3>
             </div>
-            <div className="flex-1 overflow-y-auto">
-              <SentimentLegend
-                mostAffectedAreas={mostAffectedAreas}
-                showRegionSelection={false}
-              />
+            
+            {/* Main Container */}
+            <div className="flex-1 p-3 overflow-auto scrollbar-hide">
+              {/* Legends & Indicators Section */}
+              <div className="flex flex-col gap-4 mb-4">
+                {/* Sentiment Legend */}
+                <div className="bg-gradient-to-br from-indigo-50/70 to-purple-50/50 p-2.5 rounded-xl border border-indigo-100/50 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1 rounded-full bg-indigo-100/70">
+                      <PieChart className="h-3.5 w-3.5 text-indigo-600" />
+                    </div>
+                    <h3 className="text-sm font-medium text-indigo-800">Emotion Indicators</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-white/50 hover:bg-white/80 transition-colors">
+                      <div className="w-4 h-4 rounded-full bg-red-500 shadow-sm"></div>
+                      <span className="text-xs font-medium text-slate-700">Panic</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-white/50 hover:bg-white/80 transition-colors">
+                      <div className="w-4 h-4 rounded-full bg-orange-500 shadow-sm"></div>
+                      <span className="text-xs font-medium text-slate-700">Fear</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-white/50 hover:bg-white/80 transition-colors">
+                      <div className="w-4 h-4 rounded-full bg-purple-500 shadow-sm"></div>
+                      <span className="text-xs font-medium text-slate-700">Disbelief</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-white/50 hover:bg-white/80 transition-colors">
+                      <div className="w-4 h-4 rounded-full bg-green-500 shadow-sm"></div>
+                      <span className="text-xs font-medium text-slate-700">Resilience</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-white/50 hover:bg-white/80 transition-colors">
+                      <div className="w-4 h-4 rounded-full bg-gray-500 shadow-sm"></div>
+                      <span className="text-xs font-medium text-slate-700">Neutral</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Disaster Types */}
+                <div className="bg-gradient-to-br from-amber-50/70 to-orange-50/50 p-2.5 rounded-xl border border-amber-100/50 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1 rounded-full bg-amber-100/70">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                    </div>
+                    <h3 className="text-sm font-medium text-amber-800">Disaster Types</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-white/50 hover:bg-white/80 transition-colors">
+                      <div className="w-4 h-4 rounded-full bg-blue-500 shadow-sm"></div>
+                      <span className="text-xs font-medium text-slate-700">Flood</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-white/50 hover:bg-white/80 transition-colors">
+                      <div className="w-4 h-4 rounded-full bg-blue-900 shadow-sm"></div>
+                      <span className="text-xs font-medium text-slate-700">Typhoon</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-white/50 hover:bg-white/80 transition-colors">
+                      <div className="w-4 h-4 rounded-full bg-orange-500 shadow-sm"></div>
+                      <span className="text-xs font-medium text-slate-700">Fire</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-white/50 hover:bg-white/80 transition-colors">
+                      <div className="w-4 h-4 rounded-full bg-red-500 shadow-sm"></div>
+                      <span className="text-xs font-medium text-slate-700">Volcanic</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-white/50 hover:bg-white/80 transition-colors">
+                      <div className="w-4 h-4 rounded-full bg-amber-800 shadow-sm"></div>
+                      <span className="text-xs font-medium text-slate-700">Earthquake</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-1.5 rounded-md bg-white/50 hover:bg-white/80 transition-colors">
+                      <div className="w-4 h-4 rounded-full bg-amber-950 shadow-sm"></div>
+                      <span className="text-xs font-medium text-slate-700">Landslide</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Affected Areas Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-4">
+                {/* Most Affected Areas */}
+                <div className="bg-gradient-to-br from-slate-50 to-rose-50/30 p-3 rounded-xl border border-red-100/50 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 rounded-full bg-red-100/70">
+                        <Globe className="h-3.5 w-3.5 text-red-600" />
+                      </div>
+                      <h3 className="text-sm font-medium text-red-800">Most Affected Areas</h3>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="outline" className="text-xs border-red-200 text-red-700 bg-red-50/50">
+                        Clickable
+                      </Badge>
+                      <MousePointerClick className="h-3 w-3 text-red-500" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    {mostAffectedAreas.map((area, index) => {
+                      // Standardize disaster type display
+                      const displayDisasterType = area.disasterType === 'Volcano' ? 'Volcanic Eruption' : area.disasterType;
+                      
+                      return (
+                        <div 
+                          key={index}
+                          onClick={() => area.coordinates && handleZoomToLocation(area.coordinates)}
+                          className="bg-white p-2 rounded-md border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all cursor-pointer active:bg-blue-100 shadow-sm hover:shadow-md group"
+                          title="Click to zoom to this location on the map"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium text-slate-800 truncate max-w-[70%]">
+                              {area.name}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-medium px-1.5 py-0.5 bg-slate-100 rounded-full text-slate-600">#{index + 1}</span>
+                              <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <MousePointerClick className="h-3 w-3 text-blue-500" />
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {/* Show multiple sentiment tags based on the data */}
+                            {Object.entries(area.sentiments)
+                              .sort(([, a], [, b]) => b - a)
+                              .slice(0, 2) // Show top 2 sentiments
+                              .map(([sentiment, count], i) => (
+                                <Badge 
+                                  key={i}
+                                  variant="outline"
+                                  className="text-xs font-medium px-1.5 py-0.5"
+                                  style={{ 
+                                    borderColor: getSentimentColor(sentiment),
+                                    color: getSentimentColor(sentiment),
+                                    backgroundColor: `${getSentimentColor(sentiment)}10`
+                                  }}
+                                >
+                                  {sentiment}
+                                </Badge>
+                              ))}
+                            
+                            {/* Show multiple disaster types based on the data */}
+                            {Object.entries(area.disasterTypes)
+                              .sort(([, a], [, b]) => b - a)
+                              .slice(0, 2) // Show top 2 disaster types
+                              .map(([disType, count], i) => {
+                                const displayType = disType === 'Volcano' ? 'Volcanic Eruption' : disType;
+                                return (
+                                  <Badge
+                                    key={i}
+                                    className="text-xs font-medium px-1.5 py-0.5"
+                                    style={{
+                                      backgroundColor: getDisasterTypeColor(displayType),
+                                      color: 'white'
+                                    }}
+                                  >
+                                    {displayType}
+                                  </Badge>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                
+                {/* Other Affected Areas */}
+                <div className="bg-gradient-to-br from-slate-50 to-blue-50/30 p-3 rounded-xl border border-blue-100/50 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 rounded-full bg-blue-100/70">
+                        <Map className="h-3.5 w-3.5 text-blue-600" />
+                      </div>
+                      <h3 className="text-sm font-medium text-blue-800">Other Affected Areas</h3>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="outline" className="text-xs border-blue-200 text-blue-700 bg-blue-50/50">
+                        Clickable
+                      </Badge>
+                      <MousePointerClick className="h-3 w-3 text-blue-500" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    {otherAffectedAreas && otherAffectedAreas.length > 0 ? (
+                      otherAffectedAreas.map((area, index) => {
+                        // Standardize disaster type display
+                        const displayDisasterType = area.disasterType === 'Volcano' ? 'Volcanic Eruption' : area.disasterType;
+
+                        return (
+                          <div 
+                            key={index}
+                            onClick={() => area.coordinates && handleZoomToLocation(area.coordinates)}
+                            className="bg-white p-2 rounded-md border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all cursor-pointer active:bg-blue-100 shadow-sm hover:shadow-md group"
+                            title="Click to zoom to this location on the map"
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-slate-800 truncate max-w-[70%]">
+                                {area.name}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <MousePointerClick className="h-3 w-3 text-blue-500" />
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {/* Show multiple sentiment tags based on the data */}
+                              {Object.entries(area.sentiments)
+                                .sort(([, a], [, b]) => b - a)
+                                .slice(0, 2) // Show top 2 sentiments
+                                .map(([sentiment, count], i) => (
+                                  <Badge 
+                                    key={i}
+                                    variant="outline"
+                                    className="text-xs font-medium px-1.5 py-0.5"
+                                    style={{ 
+                                      borderColor: getSentimentColor(sentiment),
+                                      color: getSentimentColor(sentiment),
+                                      backgroundColor: `${getSentimentColor(sentiment)}10`
+                                    }}
+                                  >
+                                    {sentiment}
+                                  </Badge>
+                                ))}
+                              
+                              {/* Show multiple disaster types based on the data */}
+                              {Object.entries(area.disasterTypes)
+                                .sort(([, a], [, b]) => b - a)
+                                .slice(0, 1) // Show just the top disaster type for other areas to save space
+                                .map(([disType, count], i) => {
+                                  const displayType = disType === 'Volcano' ? 'Volcanic Eruption' : disType;
+                                  return (
+                                    <Badge
+                                      key={i}
+                                      className="text-xs font-medium px-1.5 py-0.5"
+                                      style={{
+                                        backgroundColor: getDisasterTypeColor(displayType),
+                                        color: 'white'
+                                      }}
+                                    >
+                                      {displayType}
+                                    </Badge>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-center text-slate-500 py-2">No additional areas detected</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

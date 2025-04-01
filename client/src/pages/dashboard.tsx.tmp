@@ -1,0 +1,19 @@
+import { useDisasterContext } from "@/context/disaster-context";
+import { StatusCard } from "@/components/dashboard/status-card";
+import { OptimizedSentimentChart } from "@/components/dashboard/optimized-sentiment-chart";
+import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
+import { AffectedAreasCard } from "@/components/dashboard/affected-areas-card-new";
+import { UsageStatsCard } from "@/components/dashboard/usage-stats-card";
+import { FileUploader } from "@/components/file-uploader";
+import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
+import { getSentimentColor, getDisasterTypeColor } from "@/lib/colors";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Upload, Database, BarChart3, Globe2, ArrowUpRight, RefreshCw, AlertTriangle, Clock, Shield, Zap, Activity, Waves, Wind, Bell, Map, Sparkles, BrainCircuit } from "lucide-react";
+import { CardCarousel } from "@/components/dashboard/card-carousel";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
+import { SentimentMap } from "@/components/analysis/sentiment-map";
+import { KeyEvents } from "@/components/timeline/key-events";
+
+import React, { useState, useRef, useEffect, lazy, Suspense, useMemo } from 'react';

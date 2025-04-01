@@ -7,7 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import GeographicAnalysis from "@/pages/geographic-analysis";
 import Timeline from "@/pages/timeline";
 import Comparison from "@/pages/comparison";
-import RawData from "@/pages/raw-data-new";
+import RawData from "@/pages/raw-data";
 import Evaluation from "@/pages/evaluation";
 import RealTime from "@/pages/real-time";
 import About from "@/pages/about";

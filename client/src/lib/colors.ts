@@ -124,3 +124,60 @@ export function getDisasterTypeColor(disasterType: string | null): string {
   // Default color for other disaster types
   return disasterTypeColors.Default;
 }
+
+/**
+ * Creates a gradient background string for progress bars showing multiple sentiments and disaster types
+ * The gradient will blend colors proportionally based on the counts of each sentiment/disaster type
+ * @param sentiments Record of sentiment types with their counts
+ * @param disasterTypes Record of disaster types with their counts
+ * @returns CSS gradient string to use as background property
+ */
+export function createProgressGradient(
+  sentiments: Record<string, number>,
+  disasterTypes: Record<string, number>
+): string {
+  // Convert records to arrays of [type, count] for easier processing
+  const sentimentEntries = Object.entries(sentiments);
+  const disasterEntries = Object.entries(disasterTypes);
+  
+  // Combine both arrays for total count calculation
+  const allEntries = [...sentimentEntries, ...disasterEntries];
+  const totalCount = allEntries.reduce((sum, [_, count]) => sum + count, 0);
+  
+  // If no data, return a default gray gradient
+  if (totalCount === 0) {
+    return 'linear-gradient(to right, #e5e7eb, #d1d5db)';
+  }
+  
+  // Sort entries by count (highest first) to prioritize dominant colors
+  const sortedEntries = allEntries.sort((a, b) => b[1] - a[1]);
+  
+  // Limit to top 4 entries for cleaner gradients
+  const topEntries = sortedEntries.slice(0, 4);
+  
+  // Calculate percentages and positions for the gradient
+  let currentPosition = 0;
+  const gradientStops = topEntries.map(([type, count], index) => {
+    // Determine if it's a sentiment or disaster type
+    const isSentiment = sentiments.hasOwnProperty(type);
+    
+    // Get appropriate color
+    const color = isSentiment ? getSentimentColor(type) : getDisasterTypeColor(type);
+    
+    // Calculate percentage of total (how much of the bar this entry represents)
+    const percentage = (count / totalCount) * 100;
+    
+    // Calculate the start and end positions for this color
+    const startPosition = currentPosition;
+    const endPosition = currentPosition + percentage;
+    
+    // Update current position for next iteration
+    currentPosition = endPosition;
+    
+    // Return gradient stop string with positions
+    return `${color} ${startPosition}%, ${color} ${endPosition}%`;
+  });
+  
+  // Construct the full gradient string
+  return `linear-gradient(to right, ${gradientStops.join(', ')})`;
+}

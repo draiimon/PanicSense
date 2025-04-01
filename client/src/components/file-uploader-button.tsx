@@ -127,8 +127,8 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       whileTap={{ scale: 0.97 }}
       className={`
         relative inline-flex items-center justify-center px-5 py-2.5 h-10
-        bg-gradient-to-r from-purple-600 to-blue-600
-        hover:from-purple-700 hover:to-blue-700
+        bg-gradient-to-r from-teal-500 to-emerald-500
+        hover:from-teal-600 hover:to-emerald-600
         text-white text-sm font-medium rounded-full
         cursor-pointer transition-all duration-300
         shadow-md hover:shadow-lg
@@ -136,8 +136,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         ${className}
       `}
     >
-      {/* Animated shimmer effect */}
-      <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-white/0 via-white/25 to-white/0 animate-shimmer -translate-x-full"></div>
+      {/* REMOVED Animated shimmer effect */}
 
       {/* Content */}
       <div className="relative flex items-center justify-center">
@@ -152,21 +151,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         onChange={handleFileUpload}
       />
 
-      <style>
-        {`
-          @keyframes shimmer {
-            0% {
-              transform: translateX(-100%);
-            }
-            100% {
-              transform: translateX(200%);
-            }
-          }
-          .animate-shimmer {
-            animation: shimmer 2.5s infinite;
-          }
-        `}
-      </style>
+      {/* REMOVED Animation styles */}
     </motion.label>
   );
 }

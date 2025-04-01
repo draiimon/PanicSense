@@ -53,7 +53,20 @@ interface DisasterContextType {
   activeDiastersCount: number;
   analyzedPostsCount: number;
   dominantSentiment: string;
+  dominantDisaster: string;
   modelConfidence: number;
+  
+  // Sentiment statistics
+  dominantSentimentPercentage?: number;
+  secondDominantSentiment?: string | null;
+  secondDominantSentimentPercentage?: number;
+  sentimentPercentages?: Record<string, number>;
+  
+  // Disaster statistics
+  dominantDisasterPercentage?: number;
+  secondDominantDisaster?: string | null;
+  secondDominantDisasterPercentage?: number;
+  disasterPercentages?: Record<string, number>;
 
   // Filters
   selectedDisasterType: string;
@@ -191,17 +204,89 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   const activeDiastersCount = Array.isArray(disasterEvents) ? disasterEvents.length : 0;
   const analyzedPostsCount = Array.isArray(sentimentPosts) ? sentimentPosts.length : 0;
 
-  // Calculate dominant sentiment with proper array check
+  // Calculate dominant sentiment with proper array check and percentages
   const sentimentCounts: Record<string, number> = {};
-  if (Array.isArray(sentimentPosts) && sentimentPosts.length > 0) {
+  const totalPosts = Array.isArray(sentimentPosts) ? sentimentPosts.length : 0;
+  
+  if (totalPosts > 0) {
     sentimentPosts.forEach(post => {
       sentimentCounts[post.sentiment] = (sentimentCounts[post.sentiment] || 0) + 1;
     });
   }
 
-  const dominantSentiment = Object.entries(sentimentCounts).length > 0 
-    ? Object.entries(sentimentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] 
+  // Sort sentiments by count from highest to lowest
+  const sortedSentiments = Object.entries(sentimentCounts)
+    .sort((a, b) => b[1] - a[1]);
+    
+  // Get the dominant sentiment
+  const dominantSentiment = sortedSentiments.length > 0 
+    ? sortedSentiments[0]?.[0] 
     : "Neutral";
+    
+  // Calculate percentages for each sentiment
+  const sentimentPercentages = Object.fromEntries(
+    Object.entries(sentimentCounts).map(([sentiment, count]) => [
+      sentiment, 
+      totalPosts > 0 ? Math.round((count / totalPosts) * 100) : 0
+    ])
+  );
+  
+  // Calculate dominant sentiment percentage
+  const dominantSentimentPercentage = sentimentPercentages[dominantSentiment] || 0;
+  
+  // Calculate second most dominant sentiment if available
+  const secondDominantSentiment = sortedSentiments.length > 1 
+    ? sortedSentiments[1]?.[0] 
+    : null;
+  const secondDominantSentimentPercentage = secondDominantSentiment 
+    ? sentimentPercentages[secondDominantSentiment] 
+    : 0;
+    
+  // Calculate dominant disaster type with proper array check
+  const disasterCounts: Record<string, number> = {};
+  let validDisasterPostsCount = 0;
+  
+  if (totalPosts > 0) {
+    sentimentPosts.forEach(post => {
+      if (post.disasterType && 
+          post.disasterType !== "Not Specified" && 
+          post.disasterType !== "NONE" && 
+          post.disasterType !== "None" && 
+          post.disasterType !== "null" && 
+          post.disasterType !== "undefined") {
+        disasterCounts[post.disasterType] = (disasterCounts[post.disasterType] || 0) + 1;
+        validDisasterPostsCount++;
+      }
+    });
+  }
+  
+  // Sort disaster types by count from highest to lowest
+  const sortedDisasters = Object.entries(disasterCounts)
+    .sort((a, b) => b[1] - a[1]);
+  
+  // Get the dominant disaster
+  const dominantDisaster = sortedDisasters.length > 0 
+    ? sortedDisasters[0]?.[0] 
+    : "Unknown";
+    
+  // Calculate percentages for each disaster type
+  const disasterPercentages = Object.fromEntries(
+    Object.entries(disasterCounts).map(([disasterType, count]) => [
+      disasterType, 
+      validDisasterPostsCount > 0 ? Math.round((count / validDisasterPostsCount) * 100) : 0
+    ])
+  );
+  
+  // Calculate dominant disaster percentage
+  const dominantDisasterPercentage = disasterPercentages[dominantDisaster] || 0;
+  
+  // Calculate second most dominant disaster if available
+  const secondDominantDisaster = sortedDisasters.length > 1 
+    ? sortedDisasters[1]?.[0] 
+    : null;
+  const secondDominantDisasterPercentage = secondDominantDisaster 
+    ? disasterPercentages[secondDominantDisaster] 
+    : 0;
 
   // Calculate average model confidence with safety checks
   const totalConfidence = Array.isArray(sentimentPosts) 
@@ -235,7 +320,19 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         activeDiastersCount,
         analyzedPostsCount,
         dominantSentiment,
+        dominantDisaster,
         modelConfidence,
+        // Sentiment statistics
+        dominantSentimentPercentage,
+        secondDominantSentiment,
+        secondDominantSentimentPercentage,
+        sentimentPercentages,
+        // Disaster statistics
+        dominantDisasterPercentage,
+        secondDominantDisaster,
+        secondDominantDisasterPercentage,
+        disasterPercentages,
+        // Filters
         selectedDisasterType,
         setSelectedDisasterType,
         setIsUploading,

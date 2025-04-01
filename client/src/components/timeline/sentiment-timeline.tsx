@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { chartColors, sentimentColors } from '@/lib/colors';
+import { chartColors, sentimentColors, getSentimentColor } from '@/lib/colors';
 import Chart from 'chart.js/auto';
 import 'chartjs-adapter-date-fns';
-import { subDays, subWeeks, subMonths, parseISO, differenceInDays, format, isAfter, isEqual, getYear } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  parseISO, 
+  format, 
+  getYear,
+  isFuture
+} from 'date-fns';
+import { ChevronLeft, ChevronRight, CalendarRange } from 'lucide-react';
 
 interface TimelineData {
   labels: string[]; // dates
@@ -25,86 +29,75 @@ interface SentimentTimelineProps {
 export function SentimentTimeline({ 
   data, 
   title = 'Sentiment Evolution',
-  description = 'Last 7 days',
+  description = 'Full Year View',
   rawDates = []
 }: SentimentTimelineProps) {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
-  const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month' | 'year'>('week');
+  // Only use 'year' since our data is historical (2025 and earlier)
+  const [timeRange, setTimeRange] = useState<'year'>('year');
 
-  // Get all available years from rawDates
-  const availableYears = rawDates.length > 0 
-    ? Array.from(new Set(rawDates.map(dateStr => getYear(parseISO(dateStr))))).sort((a, b) => a - b)
+  // Filter out future dates from rawDates
+  const validRawDates = rawDates.filter(dateStr => {
+    const date = parseISO(dateStr);
+    return !isFuture(date);
+  });
+
+  // Get all available years from validRawDates
+  const availableYears = validRawDates.length > 0 
+    ? Array.from(new Set(validRawDates.map(dateStr => {
+        // Ensure dateStr is valid before parsing
+        if (!dateStr || typeof dateStr !== 'string') {
+          return new Date().getFullYear();
+        }
+        return getYear(parseISO(dateStr));
+      }))).sort((a, b) => a - b)
     : [new Date().getFullYear()];
 
-  // State for selected years
-  const [selectedYears, setSelectedYears] = useState<number[]>(availableYears.length > 0 ? [availableYears[availableYears.length -1]] : [new Date().getFullYear()]);
+  // State for selected years - default to most recent year (2025)
+  const [selectedYears, setSelectedYears] = useState<number[]>([
+    Math.max(...availableYears)
+  ]);
 
   const selectAllYears = () => {
     setSelectedYears(availableYears);
   };
 
-  const toggleYear = (year: number) => {
-    setSelectedYears(prevYears => {
-      if (prevYears.includes(year)) {
-        return prevYears.filter(y => y !== year);
-      } else {
-        return [...prevYears, year];
-      }
-    });
-  };
-
-  const clearYears = () => {
+  const selectLatestYear = () => {
     setSelectedYears([availableYears[availableYears.length-1]]);
   };
 
-
-  // Function to filter the data based on the selected time range and year
-  const filterDataByTimeRangeAndYear = () => {
-    if (!rawDates || rawDates.length === 0) {
+  // Function to filter the data based on selected years
+  const filterDataByYear = () => {
+    if (!validRawDates || validRawDates.length === 0) {
       return data; // Return original data if no raw dates
     }
 
-    const currentDate = new Date();
-    let cutoffDate: Date;
-
     // Convert all raw dates to Date objects for filtering
-    const datePairs = rawDates.map(dateStr => {
+    const datePairs = validRawDates.map(dateStr => {
+      // Skip invalid date strings
+      if (!dateStr || typeof dateStr !== 'string') {
+        const currentDate = new Date();
+        return { 
+          original: currentDate.toISOString(), 
+          formatted: format(currentDate, 'MMM dd, yyyy'), 
+          date: currentDate, 
+          year: getYear(currentDate) 
+        };
+      }
+      
       const date = parseISO(dateStr);
       const formattedDate = format(date, 'MMM dd, yyyy');
       return { original: dateStr, formatted: formattedDate, date, year: getYear(date) };
     });
 
-    // First filter by selected years
-    let yearFilteredDates = datePairs.filter(pair => selectedYears.includes(pair.year));
-
-    // Then apply time range filter if needed
-    let timeFilteredDates = yearFilteredDates;
-
-    if (timeRange !== 'year') {
-      // Determine cutoff date based on selected range
-      switch (timeRange) {
-        case 'day':
-          cutoffDate = subDays(currentDate, 1);
-          break;
-        case 'week':
-          cutoffDate = subWeeks(currentDate, 1);
-          break;
-        case 'month':
-          cutoffDate = subMonths(currentDate, 1);
-          break;
-        default:
-          cutoffDate = subDays(currentDate, 7);
-      }
-
-      // Only apply additional time filter if viewing current year
-      timeFilteredDates = yearFilteredDates.filter(
-        pair => isAfter(pair.date, cutoffDate) || isEqual(pair.date, cutoffDate)
-      );
-    }
+    // Filter by selected years and ensure no future dates
+    const yearFilteredDates = datePairs.filter(pair => 
+      selectedYears.includes(pair.year) && !isFuture(pair.date)
+    );
 
     // Get filtered formatted dates for labels
-    const filteredLabels = Array.from(new Set(timeFilteredDates.map(pair => pair.formatted)));
+    const filteredLabels = Array.from(new Set(yearFilteredDates.map(pair => pair.formatted)));
 
     // Sort chronologically
     filteredLabels.sort((a, b) => {
@@ -132,7 +125,7 @@ export function SentimentTimeline({
     };
   };
 
-  const filteredData = filterDataByTimeRangeAndYear();
+  const filteredData = filterDataByYear();
 
   useEffect(() => {
     if (chartRef.current) {
@@ -145,40 +138,19 @@ export function SentimentTimeline({
       if (!ctx) return;
 
       // Format datasets with more vibrant sentiment-specific colors
-      const formattedDatasets = filteredData.datasets.map((dataset, index) => {
-        let color;
-
-        // Get proper sentiment color
-        switch(dataset.label) {
-          case 'Panic':
-            color = '#ef4444'; // Vibrant red
-            break;
-          case 'Fear/Anxiety':
-            color = '#f97316'; // Vibrant orange
-            break;
-          case 'Disbelief':
-            color = '#8b5cf6'; // Vibrant purple
-            break;
-          case 'Resilience':
-            color = '#10b981'; // Vibrant green
-            break;
-          case 'Neutral':
-            color = '#6b7280'; // Slate gray
-            break;
-          default:
-            color = chartColors[index % chartColors.length];
-        }
+      const formattedDatasets = filteredData.datasets.map((dataset) => {
+        const color = getSentimentColor(dataset.label);
 
         return {
           ...dataset,
           borderColor: color,
           backgroundColor: `${color}20`, // 20% opacity
-          borderWidth: 3,
+          borderWidth: 2.5,
           pointBackgroundColor: color,
           pointRadius: 4,
           pointHoverRadius: 6,
           fill: true,
-          tension: 0.3 // Smoother lines
+          tension: 0.4 // Smoother lines
         };
       });
 
@@ -197,7 +169,7 @@ export function SentimentTimeline({
               duration: 1000,
               easing: 'linear',
               from: 0.8,
-              to: 0.3,
+              to: 0.4,
               loop: false
             }
           },
@@ -213,14 +185,23 @@ export function SentimentTimeline({
                 display: true,
                 text: 'Sentiment Percentage (%)',
                 font: {
-                  weight: 'bold'
-                }
+                  weight: 'bold',
+                  size: 13
+                },
+                color: '#64748b'
               },
               grid: {
-                color: 'rgba(0, 0, 0, 0.05)',
-                borderDash: [5, 5]
+                color: 'rgba(226, 232, 240, 0.5)'
+              },
+              border: {
+                display: false
               },
               ticks: {
+                color: '#64748b',
+                padding: 10,
+                font: {
+                  size: 11
+                },
                 callback: function(value) {
                   return value + '%';
                 }
@@ -231,12 +212,26 @@ export function SentimentTimeline({
                 display: true,
                 text: 'Date',
                 font: {
-                  weight: 'bold'
-                }
+                  weight: 'bold',
+                  size: 13
+                },
+                color: '#64748b'
               },
               grid: {
-                color: 'rgba(0, 0, 0, 0.05)',
+                display: false,
+                color: 'transparent'
+              },
+              border: {
                 display: false
+              },
+              ticks: {
+                color: '#64748b',
+                padding: 5,
+                font: {
+                  size: 11
+                },
+                maxRotation: 45,
+                minRotation: 45
               }
             }
           },
@@ -250,17 +245,19 @@ export function SentimentTimeline({
                 padding: 15,
                 font: {
                   size: 12
-                }
+                },
+                color: '#334155'
               }
             },
             tooltip: {
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
               titleColor: '#1e293b',
               bodyColor: '#475569',
-              borderColor: 'rgba(0, 0, 0, 0.1)',
+              borderColor: 'rgba(148, 163, 184, 0.2)',
               borderWidth: 1,
-              padding: 10,
-              boxPadding: 5,
+              padding: 12,
+              cornerRadius: 8,
+              boxPadding: 6,
               usePointStyle: true,
               callbacks: {
                 label: function(context) {
@@ -285,120 +282,112 @@ export function SentimentTimeline({
         chartInstance.current.destroy();
       }
     };
-  }, [filteredData, timeRange, selectedYears]);
+  }, [filteredData, selectedYears]);
 
-  // Get the correct description based on the time range and year
+  // Get the correct description based on the year
   const getRangeDescription = () => {
     if (filteredData.labels.length === 0) {
       return "No data available";
     }
-
-    const count = filteredData.labels.length;
-    const yearsText = selectedYears.length > 1 ? `Years: ${selectedYears.join(', ')}` : `Year: ${selectedYears[0]}`;
-
-    switch(timeRange) {
-      case 'day':
-        return `Last 24 hours, ${yearsText} (${count} data point${count !== 1 ? 's' : ''})`;
-      case 'week':
-        return `Last 7 days, ${yearsText} (${count} data point${count !== 1 ? 's' : ''})`;
-      case 'month':
-        return `Last 30 days, ${yearsText} (${count} data point${count !== 1 ? 's' : ''})`;
-      case 'year':
-        return `Full year${selectedYears.length > 1 ? 's ' + selectedYears.join(', ') : ' ' + selectedYears[0]} (${count} data point${count !== 1 ? 's' : ''})`;
-      default:
-        return `${count} data point${count !== 1 ? 's' : ''} for ${yearsText}`;
+    
+    // Create a readable year range description
+    if (selectedYears.length === 1) {
+      return `${selectedYears[0]}`;
+    } else if (selectedYears.length === availableYears.length) {
+      return "All Years";
+    } else {
+      // Show "All Years" for multiple selected years too
+      return "All Years";
     }
   };
 
   return (
-    <Card className="bg-white rounded-lg shadow">
-      <CardHeader className="p-4 md:p-5 border-b border-gray-200 flex flex-col space-y-3">
-        <div className="flex flex-row justify-between items-center">
-          <div>
-            <CardTitle className="text-lg font-medium text-slate-800">{title}</CardTitle>
-            <CardDescription className="text-sm text-slate-500">{getRangeDescription()}</CardDescription>
-          </div>
-
+    <div>
+      <div className="p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200">
+        <div className="flex items-center gap-2">
           {/* Year selector */}
-          <div className="flex justify-between items-center">
-            <div className="flex gap-2 items-center">
-              <Button
-                onClick={() => {
-                  const currentIndex = availableYears.indexOf(selectedYears[0]);
-                  if (currentIndex > 0) {
-                    const prevYear = availableYears[currentIndex - 1];
-                    setSelectedYears([prevYear]);
-                  }
-                }}
-                variant="outline"
-                size="sm"
-                disabled={selectedYears.length !== 1 || selectedYears[0] === Math.min(...availableYears)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="font-medium">
-                {selectedYears.length === availableYears.length 
-                  ? "All Years" 
-                  : selectedYears.join(', ')}
-              </span>
-              <Button
-                onClick={() => {
-                  const currentIndex = availableYears.indexOf(selectedYears[0]);
-                  if (currentIndex < availableYears.length - 1) {
-                    const nextYear = availableYears[currentIndex + 1];
-                    setSelectedYears([nextYear]);
-                  }
-                }}
-                variant="outline"
-                size="sm"
-                disabled={selectedYears.length !== 1 || selectedYears[0] === Math.max(...availableYears)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+          <div className="flex items-center">
+            <Button
+              onClick={() => {
+                const currentIndex = availableYears.indexOf(selectedYears[0]);
+                if (currentIndex > 0) {
+                  const prevYear = availableYears[currentIndex - 1];
+                  setSelectedYears([prevYear]);
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 rounded-l-md rounded-r-none border-r-0"
+              disabled={selectedYears.length !== 1 || selectedYears[0] === Math.min(...availableYears)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div
+              className="h-8 px-3 py-1 rounded-none border border-x-0 border-input flex items-center justify-center font-medium text-slate-800"
+            >
+              {selectedYears.length === 1 ? selectedYears[0] : "All Years"}
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => {
-                  if (selectedYears.length === availableYears.length) {
-                    clearYears();
-                  } else {
-                    selectAllYears();
-                  }
-                }}
-                variant={selectedYears.length === availableYears.length ? "default" : "outline"}
-                size="sm"
-              >
-                {selectedYears.length === availableYears.length ? "Hide All Years" : "Show All Years"}
-              </Button>
-            </div>
+            <Button
+              onClick={() => {
+                const currentIndex = availableYears.indexOf(selectedYears[0]);
+                if (currentIndex < availableYears.length - 1) {
+                  const nextYear = availableYears[currentIndex + 1];
+                  setSelectedYears([nextYear]);
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 rounded-r-md rounded-l-none border-l-0"
+              disabled={selectedYears.length !== 1 || selectedYears[0] === Math.max(...availableYears)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
-
-        {/* Time range selector dropdown */}
-        <div className="flex justify-end">
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as 'day' | 'week' | 'month' | 'year')}
-            className="bg-white border border-gray-200 text-slate-700 text-sm rounded-md p-2 pr-8 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        
+        {/* Data view controls */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <CalendarRange className="h-4 w-4 text-slate-500" />
+            <div className="text-slate-700 text-sm font-medium">
+              {getRangeDescription()}
+            </div>
+          </div>
+          
+          <Button
+            onClick={() => {
+              if (selectedYears.length === availableYears.length) {
+                selectLatestYear();
+              } else {
+                selectAllYears();
+              }
+            }}
+            variant={selectedYears.length === availableYears.length ? "default" : "outline"}
+            size="sm"
+            className="ml-2"
           >
-            <option value="day">Day</option>
-            <option value="week">Week</option>
-            <option value="month">Month</option>
-            <option value="year">Year</option>
-          </select>
+            {selectedYears.length === availableYears.length ? "Latest Year Only" : "All Years"}
+          </Button>
         </div>
-      </CardHeader>
-      <CardContent className="p-5">
+      </div>
+      
+      <div className="p-6">
         {filteredData.labels.length === 0 ? (
-          <div className="h-80 flex items-center justify-center text-slate-500">
-            No data available for {selectedYears.join(', ')} in the selected time range
+          <div className="h-80 flex items-center justify-center flex-col">
+            <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+              <CalendarRange className="h-8 w-8 text-slate-400" />
+            </div>
+            <p className="text-slate-600 font-medium mb-1">No data available</p>
+            <p className="text-sm text-slate-500">
+              Try selecting a different year or uploading more data
+            </p>
           </div>
         ) : (
           <div className="h-80">
             <canvas ref={chartRef} />
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

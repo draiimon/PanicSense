@@ -60,19 +60,19 @@ export interface UploadProgress {
 }
 
 // Sentiment Posts API
-export async function getSentimentPosts(): Promise<SentimentPost[]> {
-  const response = await apiRequest('GET', '/api/sentiment-posts');
+export async function getSentimentPosts(filterUnknown: boolean = true): Promise<SentimentPost[]> {
+  const response = await apiRequest('GET', `/api/sentiment-posts?filterUnknown=${filterUnknown}`);
   return response.json();
 }
 
-export async function getSentimentPostsByFileId(fileId: number): Promise<SentimentPost[]> {
-  const response = await apiRequest('GET', `/api/sentiment-posts/file/${fileId}`);
+export async function getSentimentPostsByFileId(fileId: number, filterUnknown: boolean = true): Promise<SentimentPost[]> {
+  const response = await apiRequest('GET', `/api/sentiment-posts/file/${fileId}?filterUnknown=${filterUnknown}`);
   return response.json();
 }
 
 // Disaster Events API
-export async function getDisasterEvents(): Promise<DisasterEvent[]> {
-  const response = await apiRequest('GET', '/api/disaster-events');
+export async function getDisasterEvents(filterUnknown: boolean = true): Promise<DisasterEvent[]> {
+  const response = await apiRequest('GET', `/api/disaster-events?filterUnknown=${filterUnknown}`);
   return response.json();
 }
 

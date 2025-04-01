@@ -66,9 +66,6 @@ export function DataTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSentiment, setSelectedSentiment] = useState<string>("All");
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  // Performance optimization - memoize expensive operations
-  const isSmallScreen = useState(window.innerWidth < 768)[0];
   const [postToDelete, setPostToDelete] = useState<number | null>(null);
   const rowsPerPage = 10;
 
@@ -139,41 +136,7 @@ export function DataTable({
               </>
             )}
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative group">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 group-hover:text-blue-500 transition-colors duration-200" />
-                <Input
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="pl-9 w-full sm:w-64 bg-white border-slate-200 rounded-lg 
-                            focus:border-blue-400 focus:ring-1 focus:ring-blue-300 shadow-sm
-                            transition-all duration-200"
-                />
-              </div>
-            <Select
-              value={selectedSentiment}
-              onValueChange={(value) => {
-                setSelectedSentiment(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[180px] bg-white border-slate-200 rounded-lg shadow-sm">
-                <Filter className="h-4 w-4 mr-2 text-slate-500" />
-                <SelectValue placeholder="Filter by emotion" />
-              </SelectTrigger>
-              <SelectContent className="rounded-lg border-slate-200 shadow-md">
-                {EMOTIONS.map((emotion) => (
-                  <SelectItem key={emotion} value={emotion} className="focus:bg-blue-50">
-                    {emotion}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Search and filter controls are moved to the Raw Data page header */}
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -226,7 +189,7 @@ export function DataTable({
                   >
                     <TableCell className="font-medium text-sm text-slate-700 max-w-xs">
                       <CustomDialogTrigger
-                        className="flex items-center justify-between gap-2 w-full cursor-pointer group hover:text-blue-600 transition-colors duration-200"
+                        className="flex items-center justify-between gap-2 w-full cursor-pointer group"
                         dialog={
                           <DialogContent className="sm:max-w-lg [&>[aria-label='Close']]:hidden">
                             <DialogHeader>
@@ -361,8 +324,8 @@ export function DataTable({
                       </CustomDialogTrigger>
                     </TableCell>
                     <TableCell className="text-sm text-slate-600 whitespace-nowrap">
-                      <div className="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs sm:text-sm whitespace-nowrap">
-                        {format(new Date(item.timestamp), "yyyy-MM-dd HH:mm")}
+                      <div className="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs sm:text-sm overflow-hidden text-ellipsis max-w-full">
+                        {format(new Date(item.timestamp), "yyyy-MM-dd HH:mm:ss")}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-slate-600">

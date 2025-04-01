@@ -288,105 +288,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const generateDisasterEvents = async (posts: any[]): Promise<void> => {
     if (posts.length === 0) return;
 
-    // Group posts by day and disaster type
-    const postsByDayAndType: {[key: string]: {
+    // First, delete existing events to avoid duplicates (keeping only 5 at a time)
+    const currentEvents = await storage.getDisasterEvents();
+    if (currentEvents.length >= 5) {
+      // Sort by ID and keep only the 3 most recent
+      const sortedEvents = currentEvents.sort((a, b) => b.id - a.id);
+      for (let i = 3; i < sortedEvents.length; i++) {
+        try {
+          // Delete older events
+          await storage.deleteDisasterEvent(sortedEvents[i].id);
+        } catch (error) {
+          console.error(`Failed to delete event ${sortedEvents[i].id}:`, error);
+        }
+      }
+    }
+
+    // Group posts by disaster type and location (more granular)
+    const disasterGroups: {[key: string]: {
       posts: any[],
-      count: number,
-      sentiments: {[key: string]: number},
-      type: string,
-      location: string | null
+      locations: {[location: string]: number},
+      sentiments: {[sentiment: string]: number},
+      dates: {[date: string]: number}
     }} = {};
 
-    // Group posts by day and disaster type
+    // Process posts to identify disaster patterns
     for (const post of posts) {
-      if (!post.disasterType) continue;
-
-      const day = new Date(post.timestamp).toISOString().split('T')[0];
-      const key = `${day}-${post.disasterType}`;
-
-      if (!postsByDayAndType[key]) {
-        postsByDayAndType[key] = {
+      if (!post.disasterType || !post.timestamp) continue;
+      
+      // Format timestamp to a readable date 
+      const postDate = new Date(post.timestamp);
+      const formattedDate = postDate.toISOString().split('T')[0];
+      
+      // Skip future dates
+      if (postDate > new Date()) continue;
+      
+      // Use disaster type as key
+      const key = post.disasterType;
+      
+      if (!disasterGroups[key]) {
+        disasterGroups[key] = {
           posts: [],
-          count: 0,
+          locations: {},
           sentiments: {},
-          type: post.disasterType,
-          location: null
+          dates: {}
         };
       }
-
-      postsByDayAndType[key].posts.push(post);
-      postsByDayAndType[key].count++;
-
-      // Track location with most occurrences
-      if (post.location) {
-        postsByDayAndType[key].location = post.location;
+      
+      // Add post to group
+      disasterGroups[key].posts.push(post);
+      
+      // Track locations
+      if (post.location && 
+          post.location !== 'UNKNOWN' && 
+          post.location !== 'Not specified' && 
+          post.location !== 'Philippines') {
+        disasterGroups[key].locations[post.location] = 
+          (disasterGroups[key].locations[post.location] || 0) + 1;
       }
-
-      // Count sentiment occurrences
-      const sentiment = post.sentiment;
-      postsByDayAndType[key].sentiments[sentiment] = (postsByDayAndType[key].sentiments[sentiment] || 0) + 1;
+      
+      // Track sentiments
+      disasterGroups[key].sentiments[post.sentiment] = 
+        (disasterGroups[key].sentiments[post.sentiment] || 0) + 1;
+        
+      // Track dates
+      disasterGroups[key].dates[formattedDate] = 
+        (disasterGroups[key].dates[formattedDate] || 0) + 1;
     }
-
-    // Process each group with sufficient posts (at least 3)
-    for (const [key, data] of Object.entries(postsByDayAndType)) {
-      if (data.count < 3) continue;
-
-      // Find dominant sentiment and its change description
-      let maxCount = 0;
-      let dominantSentiment: string | null = null;
-      let sentimentDescription = '';
-
-      for (const [sentiment, count] of Object.entries(data.sentiments)) {
-        if (count > maxCount) {
-          maxCount = count;
-          dominantSentiment = sentiment;
-        }
+    
+    // Process disaster groups to create meaningful events
+    const newEvents = [];
+    
+    for (const [disasterType, data] of Object.entries(disasterGroups)) {
+      // Skip if not enough data
+      if (data.posts.length < 3) continue;
+      
+      // Find the most common location
+      const locations = Object.entries(data.locations).sort((a, b) => b[1] - a[1]);
+      const primaryLocation = locations.length > 0 ? locations[0][0] : null;
+      
+      // Find secondary locations (for multi-location events)
+      const secondaryLocations = locations.slice(1, 3).map(l => l[0]);
+      
+      // Find the most recent date with activity
+      const dates = Object.entries(data.dates).sort();
+      const mostRecentDateStr = dates[dates.length - 1]?.[0];
+      const mostRecentDate = mostRecentDateStr ? new Date(mostRecentDateStr) : new Date();
+      
+      // Find peak date (date with most activity)
+      const peakDateEntry = Object.entries(data.dates).sort((a, b) => b[1] - a[1])[0];
+      const peakDate = peakDateEntry ? new Date(peakDateEntry[0]) : new Date();
+      
+      // Calculate sentiment distribution
+      const sentimentTotals = Object.values(data.sentiments).reduce((sum, count) => sum + count, 0);
+      const sentimentDistribution = Object.entries(data.sentiments).map(([sentiment, count]) => {
+        const percentage = Math.round((count / sentimentTotals) * 100);
+        return `${sentiment} ${percentage}%`;
+      }).join(', ');
+      
+      // Find sample posts with highest engagement or relevance
+      const samplePosts = data.posts
+        .filter(post => post.text.length > 15)
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 3);
+        
+      const sampleContent = samplePosts.length > 0 ? samplePosts[0].text : data.posts[0].text;
+      
+      // Create descriptive event name
+      const eventName = primaryLocation 
+        ? `${disasterType} in ${primaryLocation}` 
+        : `${disasterType} Event`;
+      
+      // Create comprehensive description
+      let description = `Based on ${data.posts.length} reports from the community. `;
+      
+      // Add location information if available
+      if (primaryLocation && secondaryLocations.length > 0) {
+        description += `Affected areas include ${primaryLocation}, ${secondaryLocations.join(', ')}. `;
+      } else if (primaryLocation) {
+        description += `Primary affected area: ${primaryLocation}. `;
       }
-
-      // Create meaningful sentiment change descriptions
-      if (dominantSentiment) {
-        const percentage = Math.round((maxCount / data.count) * 100);
-        if (percentage > 60) {
-          switch(dominantSentiment) {
-            case 'Fear/Anxiety':
-              sentimentDescription = 'Fear/Anxiety sentiment spike';
-              break;
-            case 'Panic':
-              sentimentDescription = 'Panic sentiment spike';
-              break;
-            case 'Neutral':
-              sentimentDescription = 'Neutral sentiment trend';
-              break;
-            case 'Relief':
-              sentimentDescription = 'Relief sentiment increase';
-              break;
-            case 'Disbelief':
-              sentimentDescription = 'Disbelief sentiment surge';
-              break;
-            default:
-              sentimentDescription = `${dominantSentiment} sentiment trend`;
-          }
-        } else {
-          sentimentDescription = 'Mixed sentiment patterns';
-        }
-      }
-
-      // Find most relevant sample content matching the disaster type
-      const relevantPost = data.posts.find(post => 
-        post.text.toLowerCase().includes(data.type.toLowerCase()) ||
-        post.sentiment === dominantSentiment
-      ) || data.posts[0];
-
-      // Create the disaster event with improved description
-      await storage.createDisasterEvent({
-        name: `${data.type} Incident on ${new Date(key.split('-')[0]).toLocaleDateString()}`,
-        description: `Based on ${data.count} social media reports. Sample content: ${relevantPost.text}`,
-        timestamp: new Date(key.split('-')[0]),
-        location: data.location,
-        type: data.type,
-        sentimentImpact: sentimentDescription
-      });
+      
+      // Add sentiment distribution
+      description += `Sentiment distribution: ${sentimentDistribution}. `;
+      
+      // Add sample content
+      description += `Sample report: "${sampleContent}"`;
+      
+      // Create the disaster event with rich, real-time data
+      const newEvent = {
+        name: eventName,
+        description: description,
+        timestamp: mostRecentDate,
+        location: primaryLocation,
+        type: disasterType,
+        sentimentImpact: sentimentDistribution
+      };
+      
+      newEvents.push(newEvent);
+      
+      // Store the event in the database
+      await storage.createDisasterEvent(newEvent);
     }
+    
+    console.log(`Generated ${newEvents.length} new disaster events based on real-time data`);
   };
 
   // Get all sentiment posts
@@ -394,8 +438,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const posts = await storage.getSentimentPosts();
       
-      // Send all posts without filtering
-      res.json(posts);
+      // Filter out "UNKNOWN" locations if the query parameter is set
+      const filterUnknown = req.query.filterUnknown === 'true';
+      
+      if (filterUnknown) {
+        const filteredPosts = posts.filter(post => 
+          post.location !== null && 
+          post.location.toUpperCase() !== 'UNKNOWN' && 
+          post.location !== 'Not specified' &&
+          post.location !== 'Philippines'
+        );
+        res.json(filteredPosts);
+      } else {
+        // Send all posts without filtering if not explicitly requested
+        res.json(posts);
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch sentiment posts" });
     }
@@ -406,7 +463,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const fileId = parseInt(req.params.fileId);
       const posts = await storage.getSentimentPostsByFileId(fileId);
-      res.json(posts);
+      
+      // Filter out "UNKNOWN" locations if the query parameter is set
+      const filterUnknown = req.query.filterUnknown === 'true';
+      
+      if (filterUnknown) {
+        const filteredPosts = posts.filter(post => 
+          post.location !== null && 
+          post.location.toUpperCase() !== 'UNKNOWN' && 
+          post.location !== 'Not specified' &&
+          post.location !== 'Philippines'
+        );
+        res.json(filteredPosts);
+      } else {
+        // Send all posts without filtering if not explicitly requested
+        res.json(posts);
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch sentiment posts" });
     }
@@ -416,7 +488,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/disaster-events', async (req: Request, res: Response) => {
     try {
       const events = await storage.getDisasterEvents();
-      res.json(events);
+      
+      // Filter out "UNKNOWN" locations if the query parameter is set
+      const filterUnknown = req.query.filterUnknown === 'true';
+      
+      if (filterUnknown) {
+        const filteredEvents = events.filter(event => 
+          event.location !== null && 
+          event.location.toUpperCase() !== 'UNKNOWN' && 
+          event.location !== 'Not specified' &&
+          event.location !== 'Philippines'
+        );
+        res.json(filteredEvents);
+      } else {
+        // Send all events without filtering if not explicitly requested
+        res.json(events);
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch disaster events" });
     }

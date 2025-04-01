@@ -252,7 +252,7 @@ class DisasterSentimentBackend:
 
         # If no significant evidence found
         if max_score < 1:
-            return "Not Specified"
+            return "UNKNOWN"
 
         # Get disaster types that tied for highest score
         top_disasters = [
@@ -389,7 +389,7 @@ class DisasterSentimentBackend:
                         if match.lower() == loc.lower():
                             return loc
 
-        return None
+        return "UNKNOWN"
 
     def detect_social_media_source(self, text):
         """
@@ -430,8 +430,8 @@ class DisasterSentimentBackend:
                 "sentiment": "Neutral",
                 "confidence": 0.7,
                 "explanation": "No text provided",
-                "disasterType": "Not Specified",
-                "location": None,
+                "disasterType": "UNKNOWN",
+                "location": "UNKNOWN",
                 "language": "English"
             }
 

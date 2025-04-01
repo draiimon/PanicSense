@@ -125,6 +125,9 @@ export function RealtimeMonitor() {
       }
       return;
     }
+    
+    // YouTube-style performance tracking
+    const startTime = performance.now();
 
     setIsAnalyzing(true);
     setAnalysisProgress({ 
@@ -159,6 +162,7 @@ export function RealtimeMonitor() {
 
       const isNonDisasterInput = !result.post.explanation || 
                               result.post.disasterType === "Not Specified" ||
+                              result.post.disasterType === "UNKNOWN" ||
                               !result.post.disasterType;
 
       if (isNonDisasterInput && !autoAnalyze) {
@@ -186,6 +190,10 @@ export function RealtimeMonitor() {
     } finally {
       setIsAnalyzing(false);
       setAnalysisProgress({ isProcessing: false });
+      
+      // Log performance metrics for YouTube-like speed
+      const endTime = performance.now();
+      console.log(`Total analysis time: ${(endTime - startTime).toFixed(2)}ms`);
     }
   };
 
@@ -197,24 +205,29 @@ export function RealtimeMonitor() {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {/* Input Card */}
-      <Card className="bg-white rounded-lg shadow">
-        <CardHeader className="p-5 border-b border-gray-200">
+      <Card className="border-none mb-2 sm:mb-4 overflow-hidden shadow-lg rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100/40">
+        <CardHeader className="p-4 border-b border-gray-200/40 bg-gradient-to-r from-indigo-600/90 via-blue-600/90 to-purple-600/90">
           <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="text-lg font-medium text-slate-800">
-                Real-Time Sentiment Analysis
-              </CardTitle>
-              <CardDescription className="text-sm text-slate-500">
-                Enter text related to disaster situations
-              </CardDescription>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm shadow-inner">
+                <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-base sm:text-lg font-bold text-white">
+                  Real-Time Sentiment Analysis
+                </CardTitle>
+                <p className="text-xs sm:text-sm text-indigo-100 mt-0.5 sm:mt-1">
+                  Enter text related to disaster situations
+                </p>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg">
               <Switch
                 id="auto-analyze"
                 checked={autoAnalyze}
                 onCheckedChange={setAutoAnalyze}
               />
-              <Label htmlFor="auto-analyze">Auto Analyze</Label>
+              <Label htmlFor="auto-analyze" className="text-white text-xs sm:text-sm">Auto Analyze</Label>
             </div>
           </div>
         </CardHeader>
@@ -253,7 +266,7 @@ export function RealtimeMonitor() {
             <Button
               onClick={handleAnalyze}
               disabled={isAnalyzing || !text.trim()}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 hover:from-indigo-700 hover:via-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
             >
               {isAnalyzing ? (
                 <div className="flex items-center">
@@ -269,16 +282,23 @@ export function RealtimeMonitor() {
       </Card>
 
       {/* Results Card */}
-      <Card className="bg-white rounded-lg shadow">
-        <CardHeader className="p-5 border-b border-gray-200">
-          <CardTitle className="text-lg font-medium text-slate-800">
-            Analysis Results
-          </CardTitle>
-          <CardDescription className="text-sm text-slate-500">
-            {analyzedTexts.length === 0
-              ? "No results yet - analyze some text to see results"
-              : `Showing ${analyzedTexts.length} analyzed text${analyzedTexts.length !== 1 ? "s" : ""}`}
-          </CardDescription>
+      <Card className="border-none mb-2 sm:mb-4 overflow-hidden shadow-lg rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100/40">
+        <CardHeader className="p-4 border-b border-gray-200/40 bg-gradient-to-r from-indigo-600/90 via-blue-600/90 to-purple-600/90">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm shadow-inner">
+              <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-base sm:text-lg font-bold text-white">
+                Analysis Results
+              </CardTitle>
+              <p className="text-xs sm:text-sm text-indigo-100 mt-0.5 sm:mt-1">
+                {analyzedTexts.length === 0
+                  ? "No results yet - analyze some text to see results"
+                  : `Showing ${analyzedTexts.length} analyzed text${analyzedTexts.length !== 1 ? "s" : ""}`}
+              </p>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-5 max-h-[500px] overflow-y-auto">
           {analyzedTexts.length === 0 ? (
@@ -303,7 +323,7 @@ export function RealtimeMonitor() {
           ) : (
             <div className="space-y-4">
               {analyzedTexts.map((item, index) => (
-                <div key={index} className="p-4 bg-slate-50 rounded-lg">
+                <div key={index} className="p-4 bg-white/80 backdrop-blur-sm rounded-lg border border-slate-200/60 shadow-sm">
                   <div className="flex justify-between items-start">
                     <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">
                       {item.text}
@@ -323,12 +343,12 @@ export function RealtimeMonitor() {
                     <span>{item.timestamp.toLocaleTimeString()}</span>
                   </div>
 
-                  {item.disasterType && item.disasterType !== "Not Specified" && (
+                  {item.disasterType && item.disasterType !== "Not Specified" && item.disasterType !== "UNKNOWN" && (
                     <div className="mt-2 flex items-center gap-2">
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                         {item.disasterType}
                       </Badge>
-                      {item.location && (
+                      {item.location && item.location !== "UNKNOWN" && (
                         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                           {item.location}
                         </Badge>
@@ -338,26 +358,26 @@ export function RealtimeMonitor() {
 
                   {/* Only show explanation if it exists and is meaningful */}
                   {item.explanation && !item.explanation.includes("Fallback") && (
-                    <div className="bg-slate-50 p-3 rounded-md border border-slate-200 mt-2">
+                    <div className="bg-gradient-to-r from-violet-50/90 to-indigo-50/90 backdrop-blur-sm p-3 rounded-md border border-violet-200/50 mt-2 shadow-sm">
                       <div className="flex items-start gap-2">
-                        <AlertCircle className="h-5 w-5 text-slate-600 mt-0.5" />
+                        <AlertCircle className="h-5 w-5 text-violet-600 mt-0.5" />
                         <div>
-                          <h4 className="text-sm font-medium mb-1">Analysis Details</h4>
+                          <h4 className="text-sm font-medium mb-1 text-violet-900">Analysis Details</h4>
                           <div className="space-y-2">
-                            {item.disasterType && item.disasterType !== "Not Specified" && (
+                            {item.disasterType && item.disasterType !== "Not Specified" && item.disasterType !== "UNKNOWN" && (
                               <p className="text-sm text-slate-700">
-                                <span className="font-semibold">Disaster Type:</span>{" "}
+                                <span className="font-semibold text-indigo-700">Disaster Type:</span>{" "}
                                 {item.disasterType}
                               </p>
                             )}
-                            {item.location && (
+                            {item.location && item.location !== "UNKNOWN" && (
                               <p className="text-sm text-slate-700">
-                                <span className="font-semibold">Location:</span>{" "}
+                                <span className="font-semibold text-indigo-700">Location:</span>{" "}
                                 {item.location}
                               </p>
                             )}
                             <p className="text-sm text-slate-700">
-                              <span className="font-semibold">Analysis:</span>{" "}
+                              <span className="font-semibold text-indigo-700">Analysis:</span>{" "}
                               {item.explanation}
                             </p>
                           </div>
@@ -376,13 +396,13 @@ export function RealtimeMonitor() {
             <Button
               variant="outline"
               onClick={() => setAnalyzedTexts([])}
-              className="text-slate-600"
+              className="text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 font-medium"
             >
               Clear Results
             </Button>
             <Button
               variant="ghost"
-              className="text-blue-600"
+              className="text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-medium"
               onClick={() => {
                 const text = analyzedTexts
                   .map(

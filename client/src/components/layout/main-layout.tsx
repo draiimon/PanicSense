@@ -18,7 +18,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useDeviceCapability } from "@/hooks/use-device-capability";
-import { AnimatedBackground } from "./animated-background";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -27,7 +26,7 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location] = useLocation();
-  const { isCapableDevice, isMobile } = useDeviceCapability();
+  const { isCapableDevice } = useDeviceCapability();
 
   const menuItems = [
     {
@@ -79,14 +78,14 @@ export function MainLayout({ children }: MainLayoutProps) {
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="fixed w-full top-0 bg-gradient-to-r from-white/95 via-blue-50/95 to-indigo-50/95 backdrop-blur-sm border-b border-slate-200 shadow-lg z-50"
+          className="fixed w-full top-0 bg-white border-b border-slate-200 shadow-lg z-50"
         >
           {renderHeaderContent()}
         </motion.header>
       );
     } else {
       return (
-        <header className="fixed w-full top-0 bg-gradient-to-r from-white/95 via-blue-50/95 to-indigo-50/95 backdrop-blur-sm border-b border-slate-200 shadow-lg z-50 header-fade-in">
+        <header className="fixed w-full top-0 bg-white border-b border-slate-200 shadow-lg z-50 header-fade-in">
           {renderHeaderContent()}
         </header>
       );
@@ -154,126 +153,342 @@ export function MainLayout({ children }: MainLayoutProps) {
     }
   };
 
-  // Render header content with dynamic elements
-  const renderHeaderContent = () => {
-    return (
-      <div className="max-w-[2000px] mx-auto">
-        <div className="flex items-center justify-between px-3 py-3 sm:px-8 sm:py-5">
-          {/* Left side - Logo and Title */}
-          <div className="flex items-center gap-3 sm:gap-5">
-            <div className="relative w-10 h-10 sm:w-12 sm:h-12">
-              {renderLogo()}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <BrainCircuit className="w-6 h-6 sm:w-7 sm:h-7 text-white drop-shadow" />
+  // Render desktop sidebar based on device capability
+  const renderDesktopSidebar = () => {
+    const headerHeight = 85; // Increased height to prevent overlap
+
+    if (isCapableDevice) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, x: -280 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -280 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          style={{ top: "101px", paddingTop: "0.5rem" }}
+          className="hidden md:block fixed left-0 h-[calc(100vh-88px)] w-64 bg-white shadow-xl border-r border-slate-200 z-30 overflow-y-auto"
+        >
+          <nav className="p-4">
+            <div className="pt-2">
+              <div className="space-y-1">
+                {menuItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    href={item.path}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                      location === item.path
+                        ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-600 font-medium"
+                        : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="text-lg">{item.icon}</div>
+                    <span className="text-sm">{item.label}</span>
+                    {location === item.path && (
+                      <motion.div
+                        layoutId="activeSidebarItem"
+                        className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full"
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 30,
+                        }}
+                      />
+                    )}
+                  </Link>
+                ))}
               </div>
             </div>
-            <div>{renderTitle()}</div>
-          </div>
-
-          {/* Right side - Profile and Menu */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Profile - More compact on mobile */}
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
-                <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-              </div>
-              <span className="text-xs sm:text-sm font-medium text-slate-700 hidden sm:inline">Admin</span>
-            </div>
-
-            {/* Logout Button - Icon only on mobile */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 sm:h-9 sm:w-auto rounded-full hover:bg-red-50 hover:text-red-600 transition-all duration-200"
-              onClick={() => console.log('Logout clicked')}
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline ml-2">Logout</span>
-            </Button>
-
-            {/* Menu Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              <Menu className="h-4 w-4" />
-            </Button>
-          </div>
+          </nav>
+        </motion.div>
+      );
+    } else {
+      return (
+        <div
+          style={{ top: `${headerHeight}px` }}
+          className="hidden md:block fixed left-0 h-[calc(100vh-85px)] w-64 bg-slate-900 shadow-xl border-r border-slate-700 z-30 overflow-y-auto sidebar-slide-in"
+        >
+          {renderSidebarNav()}
         </div>
-
-        {/* Dropdown Navigation Menu - Mobile Optimized */}
-        <AnimatePresence>
-          {isMenuOpen && (
-            <>
-              <div
-                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
-                onClick={() => setIsMenuOpen(false)}
-              />
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="absolute top-full left-0 right-0 bg-white/90 backdrop-blur-sm shadow-lg border-t border-slate-200 z-50 max-h-[80vh] overflow-y-auto"
-              >
-                <nav className="p-2 sm:p-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                    {menuItems.map((item) => (
-                      <div key={item.path}>
-                        <Link
-                          href={item.path}
-                          onClick={() => setIsMenuOpen(false)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 text-sm ${
-                            location === item.path || 
-                            (item.path === "/geographic-analysis" && location === "/emotion-analysis")
-                              ? "bg-blue-50 text-blue-600 shadow-sm"
-                              : "hover:bg-blue-50/50 text-slate-600 hover:text-blue-600"
-                          }`}
-                        >
-                          {item.icon}
-                          <span className="truncate">{item.label}</span>
-                        </Link>
-                      </div>
-                    ))}
-                  </div>
-                </nav>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      </div>
-    );
+      );
+    }
   };
 
-  return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Use the improved animated background for better performance */}
-      <AnimatedBackground />
+  // Render mobile menu based on device capability
+  const renderMobileMenu = () => {
+    if (isCapableDevice) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="md:hidden absolute top-full left-0 right-0 bg-slate-900 shadow-xl border-t border-slate-700 z-40 max-h-[80vh] overflow-y-auto"
+        >
+          {renderMobileNav()}
+        </motion.div>
+      );
+    } else {
+      return (
+        <div className="md:hidden absolute top-full left-0 right-0 bg-white shadow-xl z-40 max-h-[80vh] overflow-y-auto mobile-dropdown-fade-in">
+          {renderMobileNav()}
+        </div>
+      );
+    }
+  };
 
-      {/* Use the dynamic header rendering based on device capability */}
+  // Common sidebar navigation content
+  const renderSidebarNav = () => (
+    <nav className="p-4 bg-white">
+      <div className="pt-2 border-t border-slate-700">
+        <p className="text-xs text-slate-400 uppercase font-semibold mb-4 mt-3 px-3">
+          Main Navigation
+        </p>
+        <div className="space-y-1">
+          {menuItems.map((item) => (
+            <Link
+              key={item.path}
+              href={item.path}
+              onClick={() => setIsMenuOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                location === item.path
+                  ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-600 font-medium"
+                  : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+              }`}
+            >
+              <div className="text-lg">{item.icon}</div>
+              <span className="text-sm">{item.label}</span>
+              {location === item.path &&
+                (isCapableDevice ? (
+                  <motion.div
+                    layoutId="activeSidebarItem"
+                    className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full"
+                    transition={{
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 30,
+                    }}
+                  />
+                ) : (
+                  <div className="absolute left-0 w-1 h-8 bg-blue-500 rounded-r-full" />
+                ))}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </nav>
+  );
+
+  // Common mobile navigation content
+  const renderMobileNav = () => (
+    <nav className="p-4 bg-white">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {menuItems.map((item) => (
+          <div key={item.path}>
+            <Link
+              href={item.path}
+              onClick={() => setIsMenuOpen(false)}
+              className={`flex items-center gap-2 px-3 py-3 rounded-lg transition-all duration-200 text-sm ${
+                location === item.path
+                  ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-600 font-medium"
+                  : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+              }`}
+            >
+              {item.icon}
+              <span className="truncate">{item.label}</span>
+            </Link>
+          </div>
+        ))}
+      </div>
+    </nav>
+  );
+
+  // Header content
+  const renderHeaderContent = () => (
+    <div className="max-w-[2000px] mx-auto">
+      <div className="flex items-center justify-between px-3 py-3 sm:px-8 sm:py-5">
+        {/* Left side - Menu (for desktop), Logo and Title */}
+        <div className="flex items-center gap-3 sm:gap-5">
+          {/* Menu Button - Now on the left like YouTube */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
+
+          <div className="relative w-10 h-10 sm:w-12 sm:h-12">
+            {renderLogo()}
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+              <BrainCircuit className="w-6 h-6 sm:w-7 sm:h-7 text-white drop-shadow" />
+            </div>
+          </div>
+          <div>{renderTitle()}</div>
+        </div>
+
+        {/* Right side - Profile and Logout */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Profile - More compact on mobile */}
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
+              <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+            </div>
+            <span className="text-xs sm:text-sm font-medium text-slate-700 hidden sm:inline">
+              Mark Andrei
+            </span>
+          </div>
+
+          {/* Logout Button - Icon only on mobile */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 sm:h-9 sm:w-auto rounded-full hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+            onClick={() => console.log("Logout clicked")}
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline ml-2">Logout</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* YouTube-style Sidebar for Desktop & Dropdown for Mobile */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            {/* Backdrop for mobile only */}
+            <div
+              className="md:hidden fixed inset-0 z-20"
+              onClick={() => setIsMenuOpen(false)}
+            />
+
+            {/* DESKTOP: Left side YouTube-style sidebar */}
+            {renderDesktopSidebar()}
+
+            {/* MOBILE: Dropdown menu from top */}
+            {renderMobileMenu()}
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100 relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 z-0">
+        <div className="wave-animation"></div>
+      </div>
+
+      {/* Header with Navigation */}
       {renderHeader()}
 
-      {/* Main Content - Adjusted padding for mobile */}
-      <main className="relative z-10 flex-grow pt-24 sm:pt-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          {children}
-        </div>
-      </main>
+      {/* Container for Sidebar and Main Content */}
+      <div className="flex flex-grow relative z-10">
+        {/* Empty placeholder for sidebar space when sidebar is open */}
+        <div
+          className={`hidden md:block flex-shrink-0 w-0 transition-all duration-300 ${isMenuOpen ? "w-64" : "w-0"}`}
+        ></div>
 
-      {/* Footer - Mobile Optimized */}
-      <footer className="mt-auto bg-white/80 backdrop-blur-sm border-t border-slate-200 py-2 sm:py-4 px-4 sm:px-8 relative z-10">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-xs sm:text-sm text-slate-600">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <BrainCircuit className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-            <span>PanicSense PH © 2025</span>
+        {/* Main Content */}
+        <main className="flex-grow pt-[89px] w-full pb-[60px]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            {children}
           </div>
-          <div className="mt-1 sm:mt-0">
-            Advanced Disaster Sentiment Analysis Platform
+        </main>
+      </div>
+
+      {/* Footer */}
+      <footer
+        className={`fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-2 sm:py-4 z-50`}
+      >
+        <div
+          className={`transition-all duration-300 ${isMenuOpen ? "md:pl-64" : ""}`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs sm:text-sm text-slate-600">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <BrainCircuit className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+              <span>PanicSense PH © 2025</span>
+            </div>
+            <div className="mt-1 sm:mt-0">
+              Advanced Disaster Sentiment Analysis Platform
+            </div>
           </div>
         </div>
       </footer>
+
+      {/* Animation styles - Optimized for all devices */}
+      <style>{`
+        /* Background wave animation - CSS-based for better performance */
+        .wave-animation {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(60deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+          animation: wave 8s ease-in-out infinite;
+          background-size: 400% 400%;
+        }
+
+        .wave-animation::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(60deg, rgba(255, 255, 255, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+          animation: wave 8s ease-in-out infinite;
+          animation-delay: -4s;
+          background-size: 400% 400%;
+        }
+
+        @keyframes wave {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+
+        /* Simple CSS pulse animation for logo on low-end devices */
+        .simple-pulse {
+          animation: simplePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes simplePulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+
+        /* CSS-based sidebar slide-in for low-end devices */
+        .sidebar-slide-in {
+          animation: slideFromLeft 0.3s ease-out forwards;
+        }
+
+        @keyframes slideFromLeft {
+          0% { transform: translateX(-100%); opacity: 0; }
+          100% { transform: translateX(0); opacity: 1; }
+        }
+
+        /* CSS-based dropdown fade-in for mobile menu on low-end devices */
+        .mobile-dropdown-fade-in {
+          animation: fadeInDown 0.2s ease-out forwards;
+        }
+
+        @keyframes fadeInDown {
+          0% { transform: translateY(-10px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+
+        /* CSS-based header fade-in for low-end devices */
+        .header-fade-in {
+          animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+          0% { opacity: 0; transform: translateY(-20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

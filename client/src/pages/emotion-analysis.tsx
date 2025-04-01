@@ -15,8 +15,7 @@ export default function GeographicImpactAnalysis() {
 
   // Complete Philippine region coordinates
   const regionCoordinates: Record<string, [number, number]> = {
-    // Default coordinates for unknown locations
-    "Unknown": [12.8797, 121.7740],
+    // Removed Unknown location coordinates
 
     // Metro Manila and surrounding provinces
     "Metro Manila": [14.5995, 120.9842],
@@ -53,6 +52,9 @@ export default function GeographicImpactAnalysis() {
     // Process posts to populate the map
     sentimentPosts.forEach(post => {
       if (!post.location) return;
+      
+      // Skip posts with "UNKNOWN" location
+      if (post.location.toUpperCase() === "UNKNOWN") return;
 
       let location = post.location;
       const lowerLocation = location.toLowerCase().trim();

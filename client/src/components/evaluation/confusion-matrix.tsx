@@ -48,44 +48,80 @@ export function ConfusionMatrix({
     f1Score: true,
     accuracy: true
   });
+  
+  // For tracking the opacity of each metric (0.2 to 1.0)
+  const [barMetricsOpacity, setBarMetricsOpacity] = useState({
+    precision: 1,
+    recall: 1,
+    f1Score: 1,
+    accuracy: 1
+  });
+  
+  const [radarMetricsOpacity, setRadarMetricsOpacity] = useState({
+    precision: 1,
+    recall: 1,
+    f1Score: 1,
+    accuracy: 1
+  });
+  
   const handleBarLegendClick = (entry: any) => {
     if (entry && entry.dataKey) {
-      const dataKey = entry.dataKey;
+      const dataKey = entry.dataKey as keyof typeof barMetricsOpacity;
+      // Instead of toggling on/off, we'll toggle between full and reduced opacity
+      const newOpacity = barMetricsOpacity[dataKey] === 1 ? 0.3 : 1;
+      
+      setBarMetricsOpacity(prev => ({
+        ...prev,
+        [dataKey]: newOpacity
+      }));
+      
+      // Keep the metric visible but with reduced opacity
       setBarChartMetrics(prev => ({
         ...prev,
-        [dataKey]: !prev[dataKey as keyof typeof prev]
+        [dataKey]: true // Always true, so chart stays visible
       }));
     }
   };
+  
   const handleRadarLegendClick = (entry: any) => {
     if (entry && entry.dataKey) {
-      const dataKey = entry.dataKey;
+      const dataKey = entry.dataKey as keyof typeof radarMetricsOpacity;
+      // Instead of toggling on/off, we'll toggle between full and reduced opacity
+      const newOpacity = radarMetricsOpacity[dataKey] === 1 ? 0.3 : 1;
+      
+      setRadarMetricsOpacity(prev => ({
+        ...prev,
+        [dataKey]: newOpacity
+      }));
+      
+      // Keep the metric visible but with reduced opacity
       setRadarChartMetrics(prev => ({
         ...prev,
-        [dataKey]: !prev[dataKey as keyof typeof prev]
+        [dataKey]: true // Always true, so chart stays visible
       }));
     }
   };
   const getBarLegendItemStyle = (dataKey: string) => {
     return {
       cursor: 'pointer',
-      opacity: barChartMetrics[dataKey as keyof typeof barChartMetrics] ? 1 : 0.5,
-      fontWeight: barChartMetrics[dataKey as keyof typeof barChartMetrics] ? 'bold' : 'normal',
-      textDecoration: barChartMetrics[dataKey as keyof typeof barChartMetrics] ? 'none' : 'line-through',
-      background: barChartMetrics[dataKey as keyof typeof barChartMetrics] ? 'transparent' : '#f0f0f0',
+      opacity: barMetricsOpacity[dataKey as keyof typeof barMetricsOpacity],
+      fontWeight: barMetricsOpacity[dataKey as keyof typeof barMetricsOpacity] === 1 ? 'bold' : 'normal',
+      textDecoration: 'none',
       padding: '2px 8px',
-      borderRadius: '4px'
+      borderRadius: '4px',
+      transition: 'opacity 0.3s ease'
     };
   };
+  
   const getRadarLegendItemStyle = (dataKey: string) => {
     return {
       cursor: 'pointer',
-      opacity: radarChartMetrics[dataKey as keyof typeof radarChartMetrics] ? 1 : 0.5,
-      fontWeight: radarChartMetrics[dataKey as keyof typeof radarChartMetrics] ? 'bold' : 'normal',
-      textDecoration: radarChartMetrics[dataKey as keyof typeof radarChartMetrics] ? 'none' : 'line-through',
-      background: radarChartMetrics[dataKey as keyof typeof radarChartMetrics] ? 'transparent' : '#f0f0f0',
+      opacity: radarMetricsOpacity[dataKey as keyof typeof radarMetricsOpacity],
+      fontWeight: radarMetricsOpacity[dataKey as keyof typeof radarMetricsOpacity] === 1 ? 'bold' : 'normal',
+      textDecoration: 'none',
       padding: '2px 8px',
-      borderRadius: '4px'
+      borderRadius: '4px',
+      transition: 'opacity 0.3s ease'
     };
   };
   const { data: sentimentPosts, isLoading: isLoadingFilePosts } = useQuery({
@@ -96,9 +132,16 @@ export function ConfusionMatrix({
   const { data: allSentimentPosts, isLoading: isLoadingAllPosts } = useQuery({
     queryKey: ['/api/sentiment-posts'],
     queryFn: () => getSentimentPosts(),
-    enabled: allDatasets
+    // Always enabled to ensure data is loaded on refresh
+    enabled: true
   });
-  const isLoading = isLoadingFilePosts || (allDatasets && isLoadingAllPosts);
+  // Always check loading state for both file posts and all posts to ensure data is loaded properly
+  const isLoading = isLoadingFilePosts || isLoadingAllPosts;
+
+  // Reset calculation status when allDatasets prop changes
+  useEffect(() => {
+    setIsMatrixCalculated(false);
+  }, [allDatasets, fileId]);
 
   useEffect(() => {
     // First, check if we should return early (loading or no data)
@@ -331,12 +374,19 @@ export function ConfusionMatrix({
               <p className="text-sm text-slate-600 mb-4">
                 Performance metrics by sentiment category
               </p>
-              <div className="h-80">
+              <div className="h-80 min-w-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={metricsData}>
+                  <BarChart data={metricsData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="sentiment" angle={-45} textAnchor="end" height={100} />
-                    <YAxis domain={[0, 100]} />
+                    <XAxis 
+                      dataKey="sentiment" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={100}
+                      tick={{ fontSize: 10 }}
+                      tickMargin={10}
+                    />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
                     <Tooltip
                       formatter={(value) => [`${Number(value).toFixed(2)}%`]}
                       contentStyle={{ background: 'white', border: '1px solid #e2e8f0' }}
@@ -354,16 +404,40 @@ export function ConfusionMatrix({
                       )}
                     />
                     {barChartMetrics.precision && (
-                      <Bar dataKey="precision" name="Precision" fill="#22c55e" legendType="circle" />
+                      <Bar 
+                        dataKey="precision" 
+                        name="Precision" 
+                        fill="#22c55e" 
+                        legendType="circle" 
+                        fillOpacity={barMetricsOpacity.precision} 
+                      />
                     )}
                     {barChartMetrics.recall && (
-                      <Bar dataKey="recall" name="Recall" fill="#8b5cf6" legendType="circle" />
+                      <Bar 
+                        dataKey="recall" 
+                        name="Recall" 
+                        fill="#8b5cf6" 
+                        legendType="circle" 
+                        fillOpacity={barMetricsOpacity.recall}
+                      />
                     )}
                     {barChartMetrics.f1Score && (
-                      <Bar dataKey="f1Score" name="F1 Score" fill="#f97316" legendType="circle" />
+                      <Bar 
+                        dataKey="f1Score" 
+                        name="F1 Score" 
+                        fill="#f97316" 
+                        legendType="circle" 
+                        fillOpacity={barMetricsOpacity.f1Score}
+                      />
                     )}
                     {barChartMetrics.accuracy && (
-                      <Bar dataKey="accuracy" name="Accuracy" fill="#3b82f6" legendType="circle" />
+                      <Bar 
+                        dataKey="accuracy" 
+                        name="Accuracy" 
+                        fill="#3b82f6" 
+                        legendType="circle" 
+                        fillOpacity={barMetricsOpacity.accuracy}
+                      />
                     )}
                   </BarChart>
                 </ResponsiveContainer>
@@ -375,23 +449,54 @@ export function ConfusionMatrix({
               <p className="text-sm text-slate-600 mb-4">
                 Comparative view across sentiments
               </p>
-              <div className="h-80">
+              <div className="h-80 min-w-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={metricsData}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="sentiment" />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                  <RadarChart cx="50%" cy="50%" outerRadius="75%" data={metricsData}>
+                    <PolarGrid gridType="circle" />
+                    <PolarAngleAxis 
+                      dataKey="sentiment" 
+                      tick={{ fontSize: 10 }}
+                    />
+                    <PolarRadiusAxis 
+                      angle={30} 
+                      domain={[0, 100]} 
+                      tick={{ fontSize: 10 }} 
+                    />
                     {radarChartMetrics.precision && (
-                      <Radar name="Precision" dataKey="precision" stroke="#22c55e" fill="#22c55e" fillOpacity={0.6} />
+                      <Radar 
+                        name="Precision" 
+                        dataKey="precision" 
+                        stroke="#22c55e" 
+                        fill="#22c55e" 
+                        fillOpacity={0.6} 
+                      />
                     )}
                     {radarChartMetrics.recall && (
-                      <Radar name="Recall" dataKey="recall" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
+                      <Radar 
+                        name="Recall" 
+                        dataKey="recall" 
+                        stroke="#8b5cf6" 
+                        fill="#8b5cf6" 
+                        fillOpacity={0.6}
+                      />
                     )}
                     {radarChartMetrics.f1Score && (
-                      <Radar name="F1 Score" dataKey="f1Score" stroke="#f97316" fill="#f97316" fillOpacity={0.6} />
+                      <Radar 
+                        name="F1 Score" 
+                        dataKey="f1Score" 
+                        stroke="#f97316" 
+                        fill="#f97316" 
+                        fillOpacity={0.6}
+                      />
                     )}
                     {radarChartMetrics.accuracy && (
-                      <Radar name="Accuracy" dataKey="accuracy" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
+                      <Radar 
+                        name="Accuracy" 
+                        dataKey="accuracy" 
+                        stroke="#3b82f6" 
+                        fill="#3b82f6" 
+                        fillOpacity={0.5}
+                      />
                     )}
                     <Legend
                       iconType="circle"
@@ -399,7 +504,7 @@ export function ConfusionMatrix({
                       verticalAlign="bottom"
                       align="center"
                       wrapperStyle={{ cursor: "pointer" }}
-                      onClick={(entry) => handleRadarLegendClick(entry)}
+                      onClick={handleRadarLegendClick}
                       formatter={(value, entry) => (
                         <span style={getRadarLegendItemStyle(entry.dataKey as string)}>
                           {value}
@@ -415,20 +520,20 @@ export function ConfusionMatrix({
           <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
             <h3 className="text-lg font-semibold mb-2">Confusion Matrix</h3>
             <p className="text-sm text-slate-600 mb-4">Sentiment prediction distribution</p>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto -mx-4 px-4 pb-2 sm:mx-0 sm:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <table className="w-full min-w-[500px]">
                 <thead>
                   <tr className="bg-slate-50">
-                    <th className="px-4 py-2 text-left">True Sentiment</th>
+                    <th className="px-3 py-2 text-left text-sm sm:px-4">True Sentiment</th>
                     {labels.map((label, idx) => (
-                      <th key={idx} className="px-4 py-2 text-center">{label}</th>
+                      <th key={idx} className="px-2 py-2 text-center text-sm sm:px-4">{label}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {matrix.map((row, rowIdx) => (
                     <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                      <td className="px-4 py-2 font-medium">{labels[rowIdx]}</td>
+                      <td className="px-3 py-2 font-medium text-sm sm:px-4">{labels[rowIdx]}</td>
                       {row.map((value, colIdx) => {
                         const { background, text } = getCellColor(rowIdx, colIdx, value);
                         const percentage = (value / row.reduce((sum, val) => sum + val, 0) * 100) || 0;
@@ -436,16 +541,16 @@ export function ConfusionMatrix({
                         return (
                           <td
                             key={colIdx}
-                            className="px-4 py-2 relative"
+                            className="px-1 py-1 relative sm:px-3 sm:py-2"
                             onMouseEnter={() => setHoveredCell({ row: rowIdx, col: colIdx })}
                             onMouseLeave={() => setHoveredCell(null)}
                           >
                             <div
-                              className="rounded p-2 text-center transition-all duration-200"
+                              className="rounded p-1 text-center transition-all duration-200 sm:p-2"
                               style={{ backgroundColor: background, color: text }}
                             >
-                              <div className="text-lg font-bold">{percentage.toFixed(1)}%</div>
-                              <div className="text-xs opacity-75">({value.toFixed(2)})</div>
+                              <div className="text-sm font-bold sm:text-lg">{percentage.toFixed(1)}%</div>
+                              <div className="text-xs opacity-75 hidden sm:block">({value.toFixed(2)})</div>
                             </div>
                           </td>
                         );
