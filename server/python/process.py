@@ -494,6 +494,10 @@ class DisasterSentimentBackend:
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', o 'Neutral'.
                     Pumili ng ISANG kategorya lamang at magbigay ng kumpiyansa sa score (0.0-1.0) at maikling paliwanag.
                     
+                    IMPORTANTE: Mga mensahe na nag-aalok ng tulong (tulad ng "tumulong tayo", "tulungan natin sila", "lets help") 
+                    ay dapat ilagay sa kategoryang 'Resilience' dahil nagpapakita ito ng suporta ng komunidad at positibong aksyon, 
+                    hindi panic o takot. Suriin ang buong konteksto ng mensahe, hindi lang mga individual na salita.
+                    
                     Suriin din kung anong uri ng sakuna ang nabanggit STRICTLY sa listahang ito at may malaking letra sa unang titik:
                     - Flood
                     - Typhoon
@@ -677,24 +681,58 @@ class DisasterSentimentBackend:
                 if keyword in text_lower:
                     scores[sentiment] += 1
 
-        # Additional scoring patterns
-        if "!" in text:
-            # Exclamation points can indicate Panic
-            exclamation_count = text.count("!")
-            if exclamation_count >= 3:
+        # Context-based analysis
+        # Check for phrases indicating help/resilience in the context
+        resilience_phrases = [
+            "let's help", "lets help", "help them", "help us", "tulungan natin", 
+            "tumulong tayo", "tulong sa", "tulong para", "tulungan ang", "mag-donate", 
+            "magbigay ng tulong", "mag volunteer", "magtulungan", "tulungan"
+        ]
+        
+        for phrase in resilience_phrases:
+            if phrase in text_lower:
+                scores["Resilience"] += 2
+                # Reduce panic score if a resilience phrase is found
+                if scores["Panic"] > 0:
+                    scores["Panic"] -= 1
+        
+        # Look for actual urgent calls for help
+        panic_phrases = [
+            "help me", "save me", "trapped", "can't breathe", "tulungan ako", 
+            "saklolo", "naipit ako", "hindi makahinga", "naiipit", "nakulong", 
+            "nasasabit", "naiipit kami", "nanganganib ang buhay"
+        ]
+        
+        for phrase in panic_phrases:
+            if phrase in text_lower:
                 scores["Panic"] += 2
-            elif exclamation_count > 0:
-                scores["Panic"] += 1
-
+        
+        # Use exclamation points more intelligently
+        if "!" in text:
+            exclamation_count = text.count("!")
+            
+            # Only consider exclamation points as panic if combined with panic words
+            if any(word in text_lower for word in ["emergency", "urgent", "critical", "dying", "death"]):
+                if exclamation_count >= 3:
+                    scores["Panic"] += 2
+                elif exclamation_count > 0:
+                    scores["Panic"] += 1
+            elif any(word in text_lower for word in ["help", "support", "donate", "assist"]):
+                # Exclamation with support words indicates resilience/engagement
+                scores["Resilience"] += 1
+        
         if "?" in text:
             # Question marks might indicate Disbelief
             question_count = text.count("?")
             if question_count >= 2:
                 scores["Disbelief"] += 1
-
-        # ALL CAPS text often indicates Panic
+        
+        # ALL CAPS text needs more context to determine sentiment
         if text.isupper() and len(text) > 10:
-            scores["Panic"] += 2
+            if any(word in text_lower for word in ["emergency", "urgent", "critical", "dying", "death"]):
+                scores["Panic"] += 2
+            elif any(word in text_lower for word in ["help", "support", "donate", "assist"]):
+                scores["Resilience"] += 1
 
         # Determine the sentiment with the highest score
         max_score = max(scores.values())

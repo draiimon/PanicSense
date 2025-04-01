@@ -203,7 +203,7 @@ export function RealtimeMonitor() {
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2">
       {/* Input Card */}
       <Card className="border-none mb-2 sm:mb-4 overflow-hidden shadow-lg rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100/40">
         <CardHeader className="p-4 border-b border-gray-200/40 bg-gradient-to-r from-indigo-600/90 via-blue-600/90 to-purple-600/90">
@@ -321,9 +321,9 @@ export function RealtimeMonitor() {
               <p className="text-sm mt-1">Enter some text and click Analyze</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {analyzedTexts.map((item, index) => (
-                <div key={index} className="p-4 bg-white/80 backdrop-blur-sm rounded-lg border border-slate-200/60 shadow-sm">
+                <div key={index} className="p-3 bg-white/80 backdrop-blur-sm rounded-lg border border-slate-200/60 shadow-sm">
                   <div className="flex justify-between items-start">
                     <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">
                       {item.text}
@@ -339,7 +339,7 @@ export function RealtimeMonitor() {
                   </div>
 
                   <div className="mt-2 flex justify-between text-xs text-slate-500">
-                    <span>Confidence: {(item.confidence * 100).toFixed(3)}%</span>
+                    <span>Confidence: {(item.confidence * 100).toFixed(0)}%</span>
                     <span>{item.timestamp.toLocaleTimeString()}</span>
                   </div>
 
@@ -407,7 +407,7 @@ export function RealtimeMonitor() {
                 const text = analyzedTexts
                   .map(
                     (item) =>
-                      `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(3)}%) - Language: ${item.language === "tl" ? "Filipino" : "English"}`,
+                      `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(0)}%) - Language: ${item.language === "tl" ? "Filipino" : "English"}`,
                   )
                   .join("\n");
                 navigator.clipboard.writeText(text);
