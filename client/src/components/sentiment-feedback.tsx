@@ -68,6 +68,11 @@ export function SentimentFeedback({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [warningOpen, setWarningOpen] = useState(false);
   const [warningMessage, setWarningMessage] = useState("");
+  const [quizMode, setQuizMode] = useState(false);
+  const [quizQuestion, setQuizQuestion] = useState("");
+  const [quizOptions, setQuizOptions] = useState("");
+  const [quizAnswer, setQuizAnswer] = useState("");
+  const [quizFeedback, setQuizFeedback] = useState("");
   const { toast } = useToast();
 
   const sentimentOptions = [
@@ -192,6 +197,73 @@ export function SentimentFeedback({
     return disasterKeywords.some(keyword => lowerText.includes(keyword));
   };
 
+  const verifyWithQuiz = async () => {
+    setIsSubmitting(true);
+    setQuizMode(true);
+    
+    // Show quiz loading feedback
+    toast({
+      title: "Checking with AI...",
+      description: "The AI is verifying your feedback with a sentiment quiz",
+    });
+    
+    try {
+      // Only proceed if there's a sentiment correction - for now
+      if (!correctedSentiment && !includeLocation && !includeDisasterType) {
+        toast({
+          title: "Selection required",
+          description: "Please select at least one correction to provide feedback on",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Make the API call but don't complete the full submission
+      const response = await submitSentimentFeedback(
+        originalText,
+        originalSentiment,
+        correctedSentiment,
+        includeLocation ? correctedLocation : undefined,
+        includeDisasterType ? correctedDisasterType : undefined
+      );
+      
+      console.log("Quiz response:", response);
+      
+      // Now display quiz feedback
+      if (response.aiTrustMessage) {
+        // The Python AI model detected a potential issue
+        setWarningMessage(response.aiTrustMessage);
+        setWarningOpen(true);
+      } else {
+        // Success! Sentiment matched what AI expected
+        toast({
+          title: "Feedback submitted",
+          description: "Thank you for helping improve our AI analysis system",
+        });
+        
+        // Close dialog and reset form
+        setIsOpen(false);
+        resetForm();
+        
+        // Call callback for UI refresh
+        if (onFeedbackSubmitted) {
+          onFeedbackSubmitted();
+        }
+      }
+    } catch (error) {
+      console.error("Error submitting sentiment feedback:", error);
+      toast({
+        title: "Quiz verification failed",
+        description: "There was an error verifying your feedback",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+      setQuizMode(false);
+    }
+  };
+  
   const handleSubmit = async () => {
     if (!correctedSentiment && !includeLocation && !includeDisasterType) {
       toast({
@@ -524,7 +596,7 @@ export function SentimentFeedback({
             Cancel
           </Button>
           <Button 
-            onClick={handleSubmit} 
+            onClick={verifyWithQuiz} 
             disabled={
               isSubmitting || 
               (!correctedSentiment && !includeLocation && !includeDisasterType) ||

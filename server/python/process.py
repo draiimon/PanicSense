@@ -1599,9 +1599,21 @@ class DisasterSentimentBackend:
             
             # Always proceed with the correction, but include the validation details
             # in the response for the frontend to display the interactive quiz results
-            logging.info(f"Quiz validation complete. Valid: {validation_result['valid']}, Feedback: {validation_result['reason']}")
-            logging.info(f"Text: \"{original_text}\"")
-            logging.info(f"Original: {original_sentiment}, Corrected: {corrected_sentiment}")
+            result_separator = "=" * 50
+            quiz_result = f"""
+{result_separator}
+📋 AI QUIZ VALIDATION RESULTS 📋
+{result_separator}
+✅ Valid: {validation_result['valid']}
+📝 Original Text: "{original_text}"
+🔄 Sentiment Change: {original_sentiment} ➡️ {corrected_sentiment}
+
+📢 AI Feedback: 
+{validation_result['reason']}
+{result_separator}
+"""
+            print(quiz_result)  # Print to console
+            logging.info(quiz_result)  # Also log it
             
             # Calculate a simulated improvement
             improvement = random.uniform(0.008, 0.015)
@@ -1777,12 +1789,23 @@ class DisasterSentimentBackend:
         quiz_options = "a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience"
         ai_answer = option_map.get(ai_sentiment, f"({ai_sentiment})")
         
-        # Log the quiz-style analysis
-        logging.info(f"AI QUIZ VALIDATION: {quiz_prompt}")
-        logging.info(f"AI QUIZ VALIDATION: Options: {quiz_options}")
-        logging.info(f"AI QUIZ VALIDATION: The AI answered: {ai_answer}")
-        logging.info(f"AI QUIZ VALIDATION: Explanation: {ai_explanation}")
-        logging.info(f"AI QUIZ VALIDATION: User selected: {option_map.get(corrected_sentiment, corrected_sentiment)}")
+        # Log the quiz-style analysis with more visual representation
+        console_separator = "=" * 50
+        quiz_frame = f"""
+{console_separator}
+📝 AI QUIZ VALIDATION STARTED 📝
+{console_separator}
+Question: {quiz_prompt}
+Options: {quiz_options}
+
+🤖 AI's Answer: {ai_answer}
+👨‍💼 User Selected: {option_map.get(corrected_sentiment, corrected_sentiment)}
+
+💡 AI's Reasoning: {ai_explanation}
+{console_separator}
+"""
+        print(quiz_frame)  # Print to console for immediate visibility
+        logging.info(quiz_frame)  # Also log it
         
         # Default to valid
         result = {"valid": True, "reason": ""}
@@ -1901,7 +1924,56 @@ def main():
                 else:
                     text = args.text
 
+                # Analyze sentiment with normal approach
                 result = backend.analyze_sentiment(text)
+                
+                # Add quiz-style format information to the result
+                sentiment_map = {
+                    "Panic": "a) Panic",
+                    "Fear/Anxiety": "b) Fear/Anxiety", 
+                    "Neutral": "c) Neutral",
+                    "Disbelief": "d) Disbelief", 
+                    "Resilience": "e) Resilience"
+                }
+                
+                # Create a quiz-style question and answer
+                quiz_question = f"Analyzing text: '{text}'\nWhat sentiment classification is most appropriate?"
+                quiz_options = "a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience"
+                quiz_answer = sentiment_map.get(result["sentiment"], f"({result['sentiment']})")
+                
+                # Generate quiz-style feedback message
+                quiz_feedback = f"""
+Based on our AI analysis, this text shows characteristics of {quiz_answer}.
+
+Explanation: {result["explanation"]}
+
+The level of confidence in this analysis is {int(result["confidence"] * 100)}%.
+"""
+                
+                # Add the quiz format information to the result
+                result["quizFormat"] = True
+                result["quizQuestion"] = quiz_question
+                result["quizOptions"] = quiz_options
+                result["quizAnswer"] = quiz_answer
+                result["quizFeedback"] = quiz_feedback
+                
+                # Print the quiz in the console for visual display
+                console_separator = "=" * 50
+                quiz_frame = f"""
+{console_separator}
+📝 AI QUIZ ANALYSIS 📝
+{console_separator}
+Question: {quiz_question}
+Options: {quiz_options}
+
+🤖 AI's Answer: {quiz_answer}
+
+💡 AI's Reasoning: {result["explanation"]}
+{console_separator}
+"""
+                print(quiz_frame)  # Print to console for immediate visibility
+                
+                # Return the full result with quiz information
                 print(json.dumps(result))
                 sys.stdout.flush()
             except Exception as e:

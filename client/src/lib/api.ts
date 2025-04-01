@@ -218,7 +218,15 @@ export async function submitSentimentFeedback(
   correctedSentiment: string,
   correctedLocation?: string,
   correctedDisasterType?: string
-): Promise<SentimentFeedback> {
+): Promise<SentimentFeedback & {
+  status?: string;
+  message?: string;
+  performance?: {
+    previous_accuracy: number;
+    new_accuracy: number;
+    improvement: number;
+  };
+}> {
   try {
     // Use fetch directly for better control of the response handling
     const response = await fetch('/api/sentiment-feedback', {

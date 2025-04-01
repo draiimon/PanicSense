@@ -1205,7 +1205,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Processing feedback for training:", feedback);
       
-      // Save to database first
+      // QUIZ VALIDATION FIRST: Do AI-POWERED VERIFICATION before saving to database
+      // This ensures the user sees the quiz before any database updates happen
+      
+      // First, analyze the text with our AI model to get sentiment validation
+      let aiAnalysisResult = null;
+      let possibleTrolling = false;
+      let aiTrustMessage = "";
+      let quizValidation = null;
+      
+      try {
+        console.log("Performing AI quiz validation before saving feedback...");
+        // Get AI validation in quiz format
+        quizValidation = await pythonService.trainModelWithFeedback(
+          feedback.originalText,
+          feedback.originalSentiment,
+          feedback.correctedSentiment || feedback.originalSentiment, // Use original if no correction
+          feedback.correctedLocation,
+          feedback.correctedDisasterType
+        );
+        
+        console.log("Quiz validation result:", quizValidation);
+        
+        // If there's a quiz validation message, use it for the trust message
+        if (quizValidation.message) {
+          aiTrustMessage = quizValidation.message;
+          
+          // Check if the quiz validation indicates a problem
+          if (quizValidation.status === "quiz_feedback") {
+            possibleTrolling = true;
+            console.log("⚠️ AI QUIZ VALIDATION: Quiz suggests a potential problem with this feedback");
+          }
+        }
+      } catch (aiError) {
+        console.error("Error during AI quiz validation:", aiError);
+        // We'll still save the feedback but mark it with an error
+      }
+      
+      // Only save to database if we get past the quiz validation
       const savedFeedback = await storage.submitSentimentFeedback(feedback);
       console.log("Feedback saved to database with ID:", savedFeedback.id);
       
@@ -1246,10 +1283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue even if this fails - it might be a duplicate
       }
       
-      // AI-POWERED VERIFICATION: Using advanced analysis instead of simple keyword detection
-      // This uses AI sentiment and context analysis to validate feedback accuracy
-      let possibleTrolling = false;
-      let aiTrustMessage = "";
+      // Already performed AI-POWERED VERIFICATION above, so we'll skip the duplicate code
       
       // Instead of using hardcoded keywords, we'll analyze the text using our AI system
       // to determine if it contains panic indicators

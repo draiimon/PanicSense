@@ -674,6 +674,11 @@ export class PythonService {
     language: string;
     disasterType?: string;
     location?: string;
+    quizFormat?: boolean;
+    quizQuestion?: string;
+    quizOptions?: string;
+    quizAnswer?: string;
+    quizFeedback?: string;
   }> {
     try {
       log(`Analyzing sentiment for text: ${text.substring(0, 30)}...`, 'python-service');
