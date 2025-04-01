@@ -71,7 +71,7 @@ export class PythonService {
     try {
       log(`Training model with feedback: "${originalText.substring(0, 30)}..." - ${originalSentiment} → ${correctedSentiment}`, 'python-service');
       
-      // Create feedback payload
+      // Create feedback payload - ensure it's properly formatted with double quotes for JSON parsing on Python side
       const feedbackData = JSON.stringify({
         feedback: true,
         originalText,
@@ -79,7 +79,11 @@ export class PythonService {
         correctedSentiment
       });
       
+      // Log the exact payload being sent to Python for debugging
+      log(`Sending feedback payload to Python: ${feedbackData}`, 'python-service');
+      
       return new Promise((resolve, reject) => {
+        // Use correct argument format - use proper string for --text parameter
         const pythonProcess = spawn(this.pythonBinary, [
           this.scriptPath,
           '--text', feedbackData
@@ -89,20 +93,28 @@ export class PythonService {
         let errorData = '';
         
         pythonProcess.stdout.on('data', (data) => {
-          outputData += data.toString();
+          const dataString = data.toString();
+          outputData += dataString;
+          log(`Python stdout: ${dataString.trim()}`, 'python-service');
+          
+          // Save to console messages for debugging
+          pythonConsoleMessages.push({
+            message: dataString.trim(),
+            timestamp: new Date()
+          });
         });
         
         pythonProcess.stderr.on('data', (data) => {
           const message = data.toString().trim();
-          if (!message.startsWith('PROGRESS:')) {
-            errorData += message;
-            // Log Python process output for debugging
-            pythonConsoleMessages.push({
-              message: message,
-              timestamp: new Date()
-            });
-            log(`Python process error: ${message}`, 'python-service');
-          }
+          errorData += message;
+          
+          // Log all Python process output for debugging
+          pythonConsoleMessages.push({
+            message: message,
+            timestamp: new Date()
+          });
+          
+          log(`Python process error: ${message}`, 'python-service');
         });
         
         pythonProcess.on('close', (code) => {
@@ -111,24 +123,44 @@ export class PythonService {
             return reject(new Error(`Python process failed with code ${code}: ${errorData}`));
           }
           
+          // Trim the output to remove any whitespace
+          const trimmedOutput = outputData.trim();
+          log(`Raw Python output: "${trimmedOutput}"`, 'python-service');
+          
           try {
-            const result = JSON.parse(outputData);
+            // Ensure we're parsing valid JSON
+            const result = JSON.parse(trimmedOutput);
             log(`Model training result: ${result.status} - ${result.message}`, 'python-service');
+            
             if (result.status === 'success') {
               // Purge from cache if we've updated the model
               this.confidenceCache.delete(originalText);
             }
+            
+            // Return a successful result
             resolve(result);
           } catch (err) {
-            reject(new Error(`Failed to parse Python output: ${err}`));
+            const parseError = `Failed to parse Python output: ${err}. Raw output: "${trimmedOutput}"`;
+            log(parseError, 'python-service');
+            reject(new Error(parseError));
           }
+        });
+        
+        // Handle process error events
+        pythonProcess.on('error', (err) => {
+          const errorMsg = `Error spawning Python process: ${err}`;
+          log(errorMsg, 'python-service');
+          reject(new Error(errorMsg));
         });
       });
     } catch (error) {
-      log(`Error training model: ${error}`, 'python-service');
+      const errorMsg = `Error training model: ${error}`;
+      log(errorMsg, 'python-service');
+      
+      // Return a structured error response
       return {
         status: "error",
-        message: `Failed to train model: ${error}`
+        message: errorMsg
       };
     }
   }

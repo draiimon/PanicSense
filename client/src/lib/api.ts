@@ -211,21 +211,45 @@ export async function submitSentimentFeedback(
   originalSentiment: string,
   correctedSentiment: string
 ): Promise<SentimentFeedback> {
-  const response = await apiRequest('POST', '/api/sentiment-feedback', {
-    originalText,
-    originalSentiment,
-    correctedSentiment,
-    // Don't include trainedOn as it's not in the schema and is defaulted server-side
-    // Include originalPostId and userId as optional
-    originalPostId: null,
-    userId: null
-  });
-  
   try {
-    return await response.json();
+    // Use fetch directly for better control of the response handling
+    const response = await fetch('/api/sentiment-feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        originalText,
+        originalSentiment,
+        correctedSentiment,
+        // Don't include trainedOn as it's not in the schema and is defaulted server-side
+        // Include originalPostId and userId as optional
+        originalPostId: null,
+        userId: null
+      }),
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+    }
+    
+    // Get response as text first
+    const textResponse = await response.text();
+    console.log('Raw response from server:', textResponse);
+    
+    // Then try to parse as JSON
+    try {
+      const jsonResponse = JSON.parse(textResponse);
+      console.log('Successfully parsed sentiment feedback response:', jsonResponse);
+      return jsonResponse;
+    } catch (parseError) {
+      console.error("Failed to parse JSON response:", parseError, "Raw text:", textResponse);
+      throw new Error("Invalid JSON in response");
+    }
   } catch (error) {
-    console.error("Error parsing sentiment feedback response:", error);
-    // Return a basic object if the JSON parse fails
+    console.error("Error submitting sentiment feedback:", error);
+    // Return a basic object if the request or JSON parse fails
     return {
       id: 0,
       originalText,
