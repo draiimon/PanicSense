@@ -1425,6 +1425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create base response
+      // Update base response with quiz validation result if available
       const baseResponse = {
         id: savedFeedback.id,
         originalText: savedFeedback.originalText,
@@ -1439,6 +1440,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         possibleTrolling: possibleTrolling,
         aiTrustMessage: aiTrustMessage
       };
+      
+      // Add quiz validation result if available
+      if (quizValidation && quizValidation.message) {
+        baseResponse.aiTrustMessage = quizValidation.message;
+      }
       
       // Execute training in a separate try/catch to handle training errors independently
       try {

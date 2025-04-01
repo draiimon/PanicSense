@@ -470,17 +470,31 @@ export class PythonService {
           log(`Raw Python output: "${trimmedOutput}"`, 'python-service');
           
           try {
-            // Ensure we're parsing valid JSON
-            const result = JSON.parse(trimmedOutput);
-            log(`Model training result: ${result.status} - ${result.message}`, 'python-service');
+            // IMPROVED JSON EXTRACTION: The Python output contains a quiz format with ==== headers
+            // We need to extract just the JSON part at the end
             
-            if (result.status === 'success') {
-              // Purge from cache if we've updated the model
-              this.confidenceCache.delete(originalText);
+            // Find the last occurrence of '{' which should be the start of our JSON
+            const jsonStartIndex = trimmedOutput.lastIndexOf('{');
+            
+            if (jsonStartIndex !== -1) {
+              // Extract just the JSON part
+              const jsonPart = trimmedOutput.substring(jsonStartIndex);
+              
+              // Now parse just the JSON part
+              const result = JSON.parse(jsonPart);
+              log(`Model training result: ${result.status} - ${result.message}`, 'python-service');
+              
+              if (result.status === 'success') {
+                // Purge from cache if we've updated the model
+                this.confidenceCache.delete(originalText);
+              }
+              
+              // Return a successful result, which includes the educational quiz message
+              resolve(result);
+            } else {
+              // No JSON found at all
+              reject(new Error(`No JSON data found in Python output. Raw output: "${trimmedOutput}"`));
             }
-            
-            // Return a successful result
-            resolve(result);
           } catch (err) {
             const parseError = `Failed to parse Python output: ${err}. Raw output: "${trimmedOutput}"`;
             log(parseError, 'python-service');
