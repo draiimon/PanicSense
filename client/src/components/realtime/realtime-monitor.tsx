@@ -232,12 +232,13 @@ export function RealtimeMonitor() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-5 flex flex-col">
+        <CardContent className="p-5 flex flex-col h-full">
           <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter disaster-related text to analyze sentiment..."
-            className="flex-grow min-h-[150px] max-h-[250px] resize-y h-full"
+            className="w-full flex-1 min-h-[150px] max-h-[250px] resize-y"
+            style={{ height: "100%" }}
           />
         </CardContent>
         <CardFooter className="p-5 pt-0 flex flex-col gap-4">

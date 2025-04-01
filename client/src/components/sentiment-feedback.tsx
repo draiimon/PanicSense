@@ -25,9 +25,10 @@ import { ThumbsUp, ThumbsDown } from "lucide-react";
 interface SentimentFeedbackProps {
   originalText: string;
   originalSentiment: string;
+  onFeedbackSubmitted?: () => void;
 }
 
-export function SentimentFeedback({ originalText, originalSentiment }: SentimentFeedbackProps) {
+export function SentimentFeedback({ originalText, originalSentiment, onFeedbackSubmitted }: SentimentFeedbackProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [correctedSentiment, setCorrectedSentiment] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,6 +71,11 @@ export function SentimentFeedback({ originalText, originalSentiment }: Sentiment
       });
       setIsOpen(false);
       setCorrectedSentiment("");
+      
+      // Call the onFeedbackSubmitted callback if provided
+      if (onFeedbackSubmitted) {
+        onFeedbackSubmitted();
+      }
     } catch (error) {
       console.error("Error submitting feedback:", error);
       toast({

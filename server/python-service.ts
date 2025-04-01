@@ -54,6 +54,85 @@ export class PythonService {
     this.confidenceCache.set(text, confidence);
   }
 
+  // Process feedback and train the model with corrections
+  public async trainModelWithFeedback(
+    originalText: string, 
+    originalSentiment: string, 
+    correctedSentiment: string
+  ): Promise<{
+    status: string;
+    message: string;
+    performance?: {
+      previous_accuracy: number;
+      new_accuracy: number;
+      improvement: number;
+    }
+  }> {
+    try {
+      log(`Training model with feedback: "${originalText.substring(0, 30)}..." - ${originalSentiment} → ${correctedSentiment}`, 'python-service');
+      
+      // Create feedback payload
+      const feedbackData = JSON.stringify({
+        feedback: true,
+        originalText,
+        originalSentiment,
+        correctedSentiment
+      });
+      
+      return new Promise((resolve, reject) => {
+        const pythonProcess = spawn(this.pythonBinary, [
+          this.scriptPath,
+          '--text', feedbackData
+        ]);
+        
+        let outputData = '';
+        let errorData = '';
+        
+        pythonProcess.stdout.on('data', (data) => {
+          outputData += data.toString();
+        });
+        
+        pythonProcess.stderr.on('data', (data) => {
+          const message = data.toString().trim();
+          if (!message.startsWith('PROGRESS:')) {
+            errorData += message;
+            // Log Python process output for debugging
+            pythonConsoleMessages.push({
+              message: message,
+              timestamp: new Date()
+            });
+            log(`Python process error: ${message}`, 'python-service');
+          }
+        });
+        
+        pythonProcess.on('close', (code) => {
+          if (code !== 0) {
+            log(`Python process exited with code ${code}`, 'python-service');
+            return reject(new Error(`Python process failed with code ${code}: ${errorData}`));
+          }
+          
+          try {
+            const result = JSON.parse(outputData);
+            log(`Model training result: ${result.status} - ${result.message}`, 'python-service');
+            if (result.status === 'success') {
+              // Purge from cache if we've updated the model
+              this.confidenceCache.delete(originalText);
+            }
+            resolve(result);
+          } catch (err) {
+            reject(new Error(`Failed to parse Python output: ${err}`));
+          }
+        });
+      });
+    } catch (error) {
+      log(`Error training model: ${error}`, 'python-service');
+      return {
+        status: "error",
+        message: `Failed to train model: ${error}`
+      };
+    }
+  }
+
   public async processCSV(
     fileBuffer: Buffer, 
     originalFilename: string,

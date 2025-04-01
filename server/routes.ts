@@ -1145,11 +1145,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Sentiment feedback for model training
+  // Sentiment feedback for model training with real-time model updates
   app.post('/api/sentiment-feedback', async (req: Request, res: Response) => {
     try {
-      // Validate using the sentiment feedback schema
-      const result = insertSentimentFeedbackSchema.safeParse(req.body);
+      // Validate using the sentiment feedback schema with partial validation
+      // to allow for missing optional fields
+      const result = insertSentimentFeedbackSchema.partial().safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ 
           error: "Invalid feedback data", 
@@ -1157,19 +1158,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const feedback = result.data;
+      // Ensure required fields are present
+      if (!req.body.originalText || !req.body.originalSentiment || !req.body.correctedSentiment) {
+        return res.status(400).json({
+          error: "Missing required fields",
+          details: "originalText, originalSentiment, and correctedSentiment are required"
+        });
+      }
+      
+      // Create a properly typed object with the required fields
+      const feedback = {
+        originalText: req.body.originalText,
+        originalSentiment: req.body.originalSentiment,
+        correctedSentiment: req.body.correctedSentiment,
+        originalPostId: req.body.originalPostId || null,
+        userId: req.body.userId || null
+      };
+      
+      // Save to database
       const savedFeedback = await storage.submitSentimentFeedback(feedback);
       
-      // Broadcast update to connected clients
-      broadcastUpdate({ 
-        type: "feedback-submitted", 
-        data: { 
-          originalSentiment: feedback.originalSentiment,
-          correctedSentiment: feedback.correctedSentiment
-        } 
-      });
-      
-      return res.status(200).json(savedFeedback);
+      // Immediately train the model with this feedback
+      try {
+        const trainingResult = await pythonService.trainModelWithFeedback(
+          feedback.originalText,
+          feedback.originalSentiment,
+          feedback.correctedSentiment
+        );
+        
+        console.log("Model training result:", trainingResult);
+        
+        // Log the training in server logs
+        if (trainingResult.status === 'success') {
+          console.log(`🚀 Model trained successfully on feedback - Performance improved by ${(trainingResult.performance?.improvement || 0) * 100}%`);
+        }
+        
+        // Broadcast update to connected clients
+        broadcastUpdate({ 
+          type: "feedback-submitted", 
+          data: { 
+            originalSentiment: feedback.originalSentiment,
+            correctedSentiment: feedback.correctedSentiment,
+            trainingResult: trainingResult
+          } 
+        });
+        
+        // Return a safe response that matches the expected format, now with training results
+        return res.status(200).json({
+          id: savedFeedback.id,
+          originalText: savedFeedback.originalText,
+          originalSentiment: savedFeedback.originalSentiment,
+          correctedSentiment: savedFeedback.correctedSentiment,
+          trainedOn: true, // Mark as trained since we're doing it immediately
+          createdAt: savedFeedback.createdAt,
+          userId: savedFeedback.userId,
+          originalPostId: savedFeedback.originalPostId,
+          trainingResult: trainingResult
+        });
+      } catch (trainingError) {
+        console.error("Error training model with feedback:", trainingError);
+        
+        // Still return success since we saved the feedback, but include training error
+        return res.status(200).json({
+          id: savedFeedback.id,
+          originalText: savedFeedback.originalText,
+          originalSentiment: savedFeedback.originalSentiment,
+          correctedSentiment: savedFeedback.correctedSentiment,
+          trainedOn: false,
+          createdAt: savedFeedback.createdAt,
+          userId: savedFeedback.userId,
+          originalPostId: savedFeedback.originalPostId,
+          trainingError: "Model training failed, but feedback was saved"
+        });
+      }
     } catch (error) {
       console.error("Error submitting feedback:", error);
       return res.status(500).json({ error: "Failed to submit feedback" });

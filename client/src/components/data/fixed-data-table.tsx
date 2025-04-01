@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useDisasterContext } from "@/context/disaster-context";
 import { CustomDialogTrigger, CustomAlertDialogTrigger } from "@/components/custom";
+import { SentimentFeedback } from "@/components/sentiment-feedback";
 
 interface DataTableProps {
   data: SentimentPost[];
@@ -307,7 +308,21 @@ export function DataTable({
                               </div>
                             </div>
                             
-                            <DialogFooter className="mt-6">
+                            <DialogFooter className="mt-6 justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-500">Suggest a correction:</span>
+                                <SentimentFeedback 
+                                  originalText={item.text}
+                                  originalSentiment={item.sentiment}
+                                  onFeedbackSubmitted={() => {
+                                    refreshData();
+                                    toast({
+                                      title: "Feedback submitted",
+                                      description: "Thank you for helping us improve our model!",
+                                    });
+                                  }}
+                                />
+                              </div>
                               <DialogClose asChild>
                                 <Button variant="outline" className="rounded-full bg-white border-slate-200 hover:bg-slate-50">
                                   Close

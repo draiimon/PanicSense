@@ -199,8 +199,10 @@ export interface SentimentFeedback {
   originalSentiment: string;
   correctedSentiment: string;
   trainedOn: boolean;
-  timestamp: string;
+  createdAt: string;
+  timestamp?: string; // For backwards compatibility
   userId?: number | null;
+  originalPostId?: number | null;
 }
 
 // Submit sentiment feedback for model improvement
@@ -213,10 +215,29 @@ export async function submitSentimentFeedback(
     originalText,
     originalSentiment,
     correctedSentiment,
-    trainedOn: false,
-    userId: null // This could be set if user authentication is active
+    // Don't include trainedOn as it's not in the schema and is defaulted server-side
+    // Include originalPostId and userId as optional
+    originalPostId: null,
+    userId: null
   });
-  return response.json();
+  
+  try {
+    return await response.json();
+  } catch (error) {
+    console.error("Error parsing sentiment feedback response:", error);
+    // Return a basic object if the JSON parse fails
+    return {
+      id: 0,
+      originalText,
+      originalSentiment,
+      correctedSentiment,
+      trainedOn: false,
+      createdAt: new Date().toISOString(),
+      timestamp: new Date().toISOString(), // Include for backwards compatibility
+      originalPostId: null,
+      userId: null
+    };
+  }
 }
 
 // Get all sentiment feedback
