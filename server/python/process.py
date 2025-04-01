@@ -511,6 +511,9 @@ class DisasterSentimentBackend:
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', or 'Neutral'.
                     Choose ONLY ONE category and provide a confidence score (0.0-1.0) and brief explanation.
                     
+                    IMPORTANT: Messages offering help (e.g. "lets help", "help them") should be classified as 'Resilience' 
+                    as they show community support and positive action, not panic.
+                    
                     Also identify what type of disaster is mentioned STRICTLY from this list with capitalized first letter:
                     - Flood
                     - Typhoon
@@ -644,8 +647,8 @@ class DisasterSentimentBackend:
         # Keywords associated with each sentiment
         sentiment_keywords = {
             "Panic": [
-                "emergency", "help", "trapped", "dying", "death", "urgent",
-                "critical", "tulong", "saklolo", "naiipit", "mamamatay",
+                "emergency", "trapped", "dying", "death", "urgent",
+                "critical", "saklolo", "naiipit", "mamamatay",
                 "agad", "kritikal", "emerhensya"
             ],
             "Fear/Anxiety": [
@@ -660,8 +663,9 @@ class DisasterSentimentBackend:
             ],
             "Resilience": [
                 "stay strong", "we will overcome", "resilient", "rebuild",
-                "recover", "hope", "malalampasan", "tatayo ulit", "magbabalik",
-                "pag-asa", "malalagpasan"
+                "recover", "hope", "lets help", "let's help", "help us", "help them",
+                "tulungan", "tulong", "malalampasan", "tatayo ulit", "magbabalik",
+                "pag-asa", "malalagpasan", "tulungan natin", "tumulong"
             ]
         }
 
