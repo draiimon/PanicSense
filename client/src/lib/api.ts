@@ -265,11 +265,15 @@ export async function submitSentimentFeedback(
       originalText,
       originalSentiment,
       correctedSentiment,
+      correctedLocation,
+      correctedDisasterType,
       trainedOn: false,
       createdAt: new Date().toISOString(),
       timestamp: new Date().toISOString(), // Include for backwards compatibility
       originalPostId: null,
-      userId: null
+      userId: null,
+      possibleTrolling: false,
+      aiTrustMessage: "Error communicating with server"
     };
   }
 }

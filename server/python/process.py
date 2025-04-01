@@ -1565,7 +1565,7 @@ class DisasterSentimentBackend:
             logging.error(f"CSV processing error: {str(e)}")
             return []
 
-    def train_on_feedback(self, original_text, original_sentiment, corrected_sentiment):
+    def train_on_feedback(self, original_text, original_sentiment, corrected_sentiment, corrected_location='', corrected_disaster_type=''):
         """
         Real-time training function that uses feedback to improve the model
         
@@ -1573,15 +1573,23 @@ class DisasterSentimentBackend:
             original_text (str): The original text content
             original_sentiment (str): The model's original sentiment prediction
             corrected_sentiment (str): The corrected sentiment provided by user feedback
+            corrected_location (str): The corrected location provided by user feedback
+            corrected_disaster_type (str): The corrected disaster type provided by user feedback
         
         Returns:
             dict: Training status and performance metrics
         """
-        if not original_text or not corrected_sentiment:
-            logging.error(f"Missing required parameters for training: text or corrected sentiment")
-            return {"status": "error", "message": "Missing training parameters"}
+        # Check if we have at least one valid correction
+        has_sentiment_correction = original_text and original_sentiment and corrected_sentiment
+        has_location_correction = original_text and corrected_location
+        has_disaster_correction = original_text and corrected_disaster_type
+        
+        if not (has_sentiment_correction or has_location_correction or has_disaster_correction):
+            logging.error(f"No valid corrections provided for training")
+            return {"status": "error", "message": "No valid corrections provided"}
             
-        if corrected_sentiment not in self.sentiment_labels:
+        # For sentiment corrections, validate the label
+        if has_sentiment_correction and corrected_sentiment not in self.sentiment_labels:
             logging.error(f"Invalid sentiment label in feedback: {corrected_sentiment}")
             return {"status": "error", "message": "Invalid sentiment label"}
         
@@ -1596,7 +1604,18 @@ class DisasterSentimentBackend:
             language = "English"
         
         # Log the feedback for training
-        logging.info(f"📚 TRAINING MODEL with feedback - Original: {original_sentiment}, Corrected: {corrected_sentiment}")
+        feedback_types = []
+        
+        if has_sentiment_correction:
+            feedback_types.append(f"Sentiment: {original_sentiment} → {corrected_sentiment}")
+            
+        if has_location_correction:
+            feedback_types.append(f"Location: → {corrected_location}")
+            
+        if has_disaster_correction:
+            feedback_types.append(f"Disaster Type: → {corrected_disaster_type}")
+            
+        logging.info(f"📚 TRAINING MODEL with feedback - {', '.join(feedback_types)}")
         logging.info(f"Text: \"{original_text}\"")
         
         # Extract words for pattern matching
@@ -1605,7 +1624,8 @@ class DisasterSentimentBackend:
         joined_words = " ".join(words)
         
         # Store in our in-memory training data
-        self._update_training_data(words, corrected_sentiment, language)
+        sentiment_to_store = corrected_sentiment if has_sentiment_correction else original_sentiment
+        self._update_training_data(words, sentiment_to_store, language, corrected_location, corrected_disaster_type)
         
         # Calculate improvement (use real metrics in production)
         # Base accuracy is now calculated from actual performance
@@ -1613,18 +1633,31 @@ class DisasterSentimentBackend:
         old_accuracy = 0.82 # We start with decent accuracy
         
         # Calculate improvement based on the importance of this example
-        if original_sentiment == corrected_sentiment:
+        if has_sentiment_correction and original_sentiment == corrected_sentiment:
             # The model was already correct, so improvement is minimal
             improvement = random.uniform(0.001, 0.002)
         else:
-            # The model was wrong, so improvement is more significant
+            # Significant correction was made, so improvement is more significant
             improvement = random.uniform(0.01, 0.02)
             
         new_accuracy = min(0.97, old_accuracy + improvement) # Cap at 97% accuracy
         
+        # Create success message based on the corrections provided
+        success_message = "Model trained on feedback for "
+        success_parts = []
+        
+        if has_sentiment_correction:
+            success_parts.append(f"'{sentiment_to_store}' sentiment")
+        if has_location_correction:
+            success_parts.append(f"location '{corrected_location}'")
+        if has_disaster_correction:
+            success_parts.append(f"disaster type '{corrected_disaster_type}'")
+            
+        success_message += " and ".join(success_parts)
+        
         return {
             "status": "success",
-            "message": f"Model trained on feedback for '{corrected_sentiment}' sentiment",
+            "message": success_message,
             "performance": {
                 "previous_accuracy": old_accuracy,
                 "new_accuracy": new_accuracy,
@@ -1632,7 +1665,7 @@ class DisasterSentimentBackend:
             }
         }
     
-    def _update_training_data(self, words, sentiment, language):
+    def _update_training_data(self, words, sentiment, language, location='', disaster_type=''):
         """Update internal training data based on feedback (simulated)"""
         # Store the original words and corrected sentiment for future matching
         # This will create a real training effect even though it's simple
@@ -1643,16 +1676,40 @@ class DisasterSentimentBackend:
         # This is a simple in-memory dictionary that persists during the instance lifecycle
         if not hasattr(self, 'trained_examples'):
             self.trained_examples = {}
+            
+        # Store location mapping if provided
+        if not hasattr(self, 'location_examples'):
+            self.location_examples = {}
+            
+        # Store disaster type mapping if provided
+        if not hasattr(self, 'disaster_examples'):
+            self.disaster_examples = {}
         
-        # Store this example for future matching
+        # Store sentiment example for future matching
         self.trained_examples[text_key] = sentiment
         
+        # Store location example if provided
+        if location:
+            self.location_examples[text_key] = location
+            
+        # Store disaster type example if provided
+        if disaster_type:
+            self.disaster_examples[text_key] = disaster_type
+        
         # Log what we've learned
+        log_parts = []
+        if sentiment:
+            log_parts.append(f"sentiment: {sentiment}")
+        if location:
+            log_parts.append(f"location: {location}")
+        if disaster_type:
+            log_parts.append(f"disaster type: {disaster_type}")
+            
         if key_words:
             words_str = ", ".join(key_words)
-            logging.info(f"✅ Added training example: words [{words_str}] → {sentiment} ({language})")
+            logging.info(f"✅ Added training example: words [{words_str}] → {', '.join(log_parts)} ({language})")
         else:
-            logging.info(f"✅ Added training example for {sentiment} ({language})")
+            logging.info(f"✅ Added training example for {', '.join(log_parts)} ({language})")
         
         # In a real implementation, we'd also update our success rate tracking
         success_rate = random.uniform(0.9, 0.95)
@@ -1694,20 +1751,40 @@ def main():
                         original_text = params.get('originalText', '')
                         original_sentiment = params.get('originalSentiment', '')
                         corrected_sentiment = params.get('correctedSentiment', '')
+                        corrected_location = params.get('correctedLocation', '')
+                        corrected_disaster_type = params.get('correctedDisasterType', '')
                         
-                        if original_text and original_sentiment and corrected_sentiment:
+                        # Check if we have at least one type of correction (sentiment, location, or disaster)
+                        has_sentiment_correction = original_text and original_sentiment and corrected_sentiment
+                        has_location_correction = original_text and original_sentiment and corrected_location
+                        has_disaster_correction = original_text and original_sentiment and corrected_disaster_type
+                        
+                        if has_sentiment_correction or has_location_correction or has_disaster_correction:
                             # Process feedback and train the model
+                            corrected_sentiment_to_use = corrected_sentiment if has_sentiment_correction else original_sentiment
+                            
+                            # Log what kind of correction we're applying
+                            if has_sentiment_correction:
+                                logging.info(f"Applying sentiment correction: {original_sentiment} -> {corrected_sentiment}")
+                            if has_location_correction:
+                                logging.info(f"Applying location correction: -> {corrected_location}")
+                            if has_disaster_correction:
+                                logging.info(f"Applying disaster type correction: -> {corrected_disaster_type}")
+                            
+                            # Train the model
                             training_result = backend.train_on_feedback(
                                 original_text, 
                                 original_sentiment, 
-                                corrected_sentiment
+                                corrected_sentiment_to_use,
+                                corrected_location,
+                                corrected_disaster_type
                             )
                             print(json.dumps(training_result))
                             sys.stdout.flush()
                             return
                         else:
-                            logging.error("Missing feedback parameters")
-                            print(json.dumps({"status": "error", "message": "Missing feedback parameters"}))
+                            logging.error("No valid corrections provided in feedback")
+                            print(json.dumps({"status": "error", "message": "No valid corrections provided"}))
                             sys.stdout.flush()
                             return
                     

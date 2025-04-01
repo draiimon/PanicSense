@@ -163,9 +163,9 @@ export function SentimentFeedback({
       console.log("Successfully parsed sentiment feedback response:", response);
 
       // Check if response contains a warning flag for trolling detection
-      if (response.possibleTrolling && response.aiWarning) {
-        // Show warning popup
-        setWarningMessage(response.aiWarning);
+      if (response.possibleTrolling && response.aiTrustMessage) {
+        // Show warning popup with AI-generated message
+        setWarningMessage(response.aiTrustMessage);
         setWarningOpen(true);
       } else {
         // Show success message
@@ -178,7 +178,8 @@ export function SentimentFeedback({
       setIsOpen(false);
       resetForm();
       
-      // Call the onFeedbackSubmitted callback if provided
+      // Always call the onFeedbackSubmitted callback to force UI refresh immediately
+      // regardless of warning or success, making sure frontend updates instantly
       if (onFeedbackSubmitted) {
         onFeedbackSubmitted();
       }
@@ -211,8 +212,9 @@ export function SentimentFeedback({
                 {warningMessage || "Our AI detected an inconsistency in your feedback."}
               </div>
               <p className="text-sm text-gray-600 mt-2">
-                Your feedback has been saved and processed for training purposes, but some 
-                posts might not be updated if our AI detected potential issues.
+                Your feedback has been saved and all changes have been applied to the database.
+                This alert is just to inform you about a potential mismatch between the text content
+                and your chosen category.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
