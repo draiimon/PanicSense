@@ -64,7 +64,7 @@ app.use((req, res, next) => {
 
   // Using port 5000 as required by the workflow
   const port = process.env.PORT || 5000;
-  server.listen(port, "0.0.0.0", () => {
+  server.listen(Number(port), "0.0.0.0", () => {
     log(`🚀 Server running on port ${port}`);
   });
 })();
