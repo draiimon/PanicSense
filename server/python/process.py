@@ -493,7 +493,7 @@ class DisasterSentimentBackend:
         if not text or len(text.strip()) == 0:
             return {
                 "sentiment": "Neutral",
-                "confidence": 0.7,
+                "confidence": 0.82,
                 "explanation": "No text provided",
                 "disasterType": "UNKNOWN",
                 "location": "UNKNOWN",
@@ -550,7 +550,7 @@ class DisasterSentimentBackend:
                 
             return {
                 "sentiment": trained_sentiment,
-                "confidence": 0.95,  # High confidence since it's directly from user feedback
+                "confidence": 0.88,  # Maximum confidence for very certain results
                 "explanation": explanation,
                 "disasterType": self.extract_disaster_type(text),
                 "location": self.extract_location(text),
@@ -949,7 +949,7 @@ class DisasterSentimentBackend:
             # If no clear sentiment detected, return Neutral
             return {
                 "sentiment": "Neutral",
-                "confidence": 0.7,
+                "confidence": 0.83,
                 "explanation": "No clear sentiment indicators found in text"
             }
 
@@ -970,7 +970,11 @@ class DisasterSentimentBackend:
                     break
 
         # Calculate confidence based on the score and text length
-        confidence = min(0.9, 0.5 + (max_score / 10))
+        # MODIFIED: Limit confidence to realistic range (80-86% normally, max 88% when very certain)
+        confidence = 0.80 + min(0.06, (max_score / 20))
+        # Ensure confidence never exceeds our specified maximum
+        if confidence > 0.88:
+            confidence = 0.88
 
         # Generate more detailed explanation based on sentiment
         explanation = ""

@@ -1353,7 +1353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await db.update(sentimentPosts)
                 .set({ 
                   sentiment: feedback.correctedSentiment, 
-                  confidence: 0.95 // High confidence since this is manually corrected
+                  confidence: 0.84 // Moderate-high confidence (80-86 range)
                 })
                 .where(eq(sentimentPosts.id, post.id));
                 
@@ -1528,7 +1528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 await db.update(sentimentPosts)
                   .set({ 
                     sentiment: feedback.correctedSentiment, 
-                    confidence: 0.92 // High confidence based on verified similarity
+                    confidence: 0.82 // Moderate confidence for similar posts
                   })
                   .where(eq(sentimentPosts.id, post.id));
                   
