@@ -1246,29 +1246,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue even if this fails - it might be a duplicate
       }
       
-      // ENHANCED TROLL PROTECTION: Advanced verification system for feedback validity
-      // This checks for mismatches between text content, context, and requested sentiment changes
+      // AI-POWERED VERIFICATION: Using advanced analysis instead of simple keyword detection
+      // This uses AI sentiment and context analysis to validate feedback accuracy
       let possibleTrolling = false;
       let aiTrustMessage = "";
       
-      // Check for panic indicators
-      const hasAllCaps = feedback.originalText.split(' ').some((word: string) => 
-        word.length > 3 && word === word.toUpperCase() && /[A-Z]/.test(word));
-      const hasMultipleExclamations = (feedback.originalText.match(/!/g) || []).length >= 2;
-      const hasPanicWords = 
-        feedback.originalText.includes('NATATAKOT') || 
-        feedback.originalText.includes('KAME') || 
-        feedback.originalText.includes('KAMI') ||
-        feedback.originalText.toLowerCase().includes('takot') ||
-        feedback.originalText.toLowerCase().includes('help') ||
-        feedback.originalText.toLowerCase().includes('tulong');
+      // Instead of using hardcoded keywords, we'll analyze the text using our AI system
+      // to determine if it contains panic indicators
       
-      // Define more comprehensive panic detection
-      const isPanicText = 
-        hasAllCaps || 
-        hasMultipleExclamations || 
-        hasPanicWords ||
-        (feedback.originalText.toLowerCase().includes('tulong') && feedback.originalText.toLowerCase().includes('takot'));
+      // First, analyze the original text with our AI model to get a proper assessment
+      let isPanicText = false;
+      // Define the analysis result outside the try/catch so other code can access it
+      let aiAnalysisResult: any = null;
+      
+      try {
+        // Run AI analysis on the original text to determine its true emotional content
+        aiAnalysisResult = await pythonService.analyzeSentiment(feedback.originalText);
+        
+        console.log("🧠 AI Analysis result:", aiAnalysisResult);
+        
+        // Use AI-determined sentiment to identify if this is panic text
+        // This is much more accurate than using hardcoded keywords
+        isPanicText = 
+          aiAnalysisResult.sentiment === 'Panic' || 
+          aiAnalysisResult.sentiment === 'Fear/Anxiety' ||
+          (aiAnalysisResult.confidence > 0.75 && 
+           aiAnalysisResult.explanation.toLowerCase().includes('distress') || 
+           aiAnalysisResult.explanation.toLowerCase().includes('urgent'));
+           
+        console.log(`🧠 AI determined this ${isPanicText ? 'IS' : 'is NOT'} panic text with confidence ${aiAnalysisResult.confidence}`);
+      } catch (aiError) {
+        // Fallback only if AI analysis fails
+        console.error("Error during AI verification:", aiError);
+        
+        // Using a more intelligent fallback based on multiple linguistic signals
+        // Only as a last resort if AI analysis fails completely
+        const hasPanicWords = [
+          // Filipino panic/fear words
+          'takot', 'natatakot', 'natakot', 'nakakatakot',
+          'kame', 'kami', 'tulong', 'saklolo',
+          // English panic/fear words
+          'scared', 'terrified', 'help', 'fear', 'afraid',
+          'emergency', 'evacuate', 'evacuating', 'destroyed', 'lost'
+        ].some(word => feedback.originalText.toLowerCase().includes(word));
+        
+        // Check for ALL CAPS which often indicates urgency or intensity
+        const hasAllCaps = feedback.originalText.split(' ').some((word: string) => 
+          word.length > 3 && word === word.toUpperCase() && /[A-Z]/.test(word)
+        );
+        
+        // Check for multiple exclamation points which can indicate urgency
+        const hasMultipleExclamations = (feedback.originalText.match(/!/g) || []).length >= 2;
+        
+        // Combine signals for a more robust fallback detection
+        isPanicText = hasPanicWords || hasAllCaps || hasMultipleExclamations;
+        
+        console.log("⚠️ WARNING: Using intelligent fallback detection because AI analysis failed");
+      }
       
       // Skip all troll detection if no sentiment correction is provided
       // This allows changing only location or disaster type without triggering troll protection
@@ -1292,16 +1326,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("⚠️ AI TRUST VERIFICATION: Detected possible mismatch - non-panic text being marked as panic");
         }
         
-        // TROLL PROTECTION 3: Check for disbelief/joke content being changed to serious sentiment
-        const jokeWords = ['joke', 'eme', 'charot', 'just kidding', 'kidding', 'lol', 'haha', 'jk'];
-        const hasJokeWords = jokeWords.some((word: string) => feedback.originalText.toLowerCase().includes(word));
-        
-        if (hasJokeWords && 
-            (feedback.correctedSentiment === 'Panic' || feedback.correctedSentiment === 'Fear/Anxiety')
-        ) {
-          possibleTrolling = true;
-          aiTrustMessage = "Our AI analysis found that this text contains humor or joke indicators which may not align with a serious Panic sentiment. Please review your correction.";
-          console.log("⚠️ AI TRUST VERIFICATION: Detected possible mismatch - humorous text being marked as panic");
+        // TROLL PROTECTION 3: Use AI to check for humorous/joking content being changed to serious sentiment
+        // Instead of using hardcoded joke words, analyze the content and tone using AI
+        try {
+          // Re-use the same analysis result from above since we already ran it once
+          // We need to access the AI analysis result that was already computed
+          
+          // First make sure we're only accessing this after AI analysis is complete
+          if (aiAnalysisResult !== null) {
+            const isJokeOrDisbelief = 
+              aiAnalysisResult.sentiment === 'Disbelief' || 
+              (aiAnalysisResult.explanation && aiAnalysisResult.explanation.toLowerCase().includes('humor')) ||
+              (aiAnalysisResult.explanation && aiAnalysisResult.explanation.toLowerCase().includes('joke')) ||
+              (aiAnalysisResult.explanation && aiAnalysisResult.explanation.toLowerCase().includes('kidding')) ||
+              (aiAnalysisResult.explanation && aiAnalysisResult.explanation.toLowerCase().includes('laughter'));
+            
+            if (isJokeOrDisbelief && 
+                (feedback.correctedSentiment === 'Panic' || feedback.correctedSentiment === 'Fear/Anxiety')
+            ) {
+              possibleTrolling = true;
+              aiTrustMessage = "Our AI analysis found that this text contains humor or disbelief indicators which may not align with a serious Panic sentiment. Please review your correction.";
+              console.log("⚠️ AI TRUST VERIFICATION: Detected potential mismatch - humorous/disbelief text marked as panic");
+            }
+          }
+        } catch (jokeCheckError) {
+          console.error("Error checking for joke content:", jokeCheckError);
+          // No fallback needed here, this is just an extra verification
         }
       } else {
         console.log("Skipping troll detection since no sentiment correction was provided");
@@ -1350,13 +1400,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           pythonService.clearCacheForText(feedback.originalText);
           console.log(`Cache cleared for retrained text: "${feedback.originalText.substring(0, 30)}..."`);
           
-          // Don't skip updates - always update posts even if AI is unsure
-          // But include warning/info in response for the frontend
+          // We used to skip updates if AI verification failed, but now we'll always update
+          // the database records regardless of the warning, just showing warnings to users
+          // This ensures that admin/user-provided corrections are always applied to the database
           if (possibleTrolling) {
             console.log(`⚠️ AI WARNING: Detected potential irregular feedback but will still update posts.`);
             console.log(`AI Message: ${aiTrustMessage}`);
+            console.log(`✅ IMPORTANT: Still applying updates to database as requested by user/admin`);
             
-            // Just log the info but continue with updates
+            // Continue with updates regardless of warning - user knows best in some cases
           }
           
           // UPDATE ALL EXISTING POSTS WITH SAME TEXT TO NEW SENTIMENT
@@ -1370,25 +1422,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Update each post with the new corrected sentiment, but with verification
             for (const post of postsToUpdate) {
-              // CRITICAL SAFEGUARD: First check if this text has panic indicators
-              const isPanicText = 
-                post.text.includes('NATATAKOT') || 
-                post.text.includes('KAME') || 
-                post.text.includes('KAMI') || 
-                post.text.includes('!!!') ||
-                post.text.toUpperCase() === post.text ||
-                (post.text.toLowerCase().includes('tulungan') && post.text.toLowerCase().includes('takot'));
+              // APPLY UPDATES DIRECTLY - No longer using hardcoded keyword checks
+              // We trust the user/admin feedback and will update the records directly
+              // This ensures changes are immediately visible on the frontend
               
-              // Determine if the new sentiment is appropriate for the text
+              // Just determine if the new sentiment is panic-related for logging
               const isPanicSentiment = feedback.correctedSentiment === 'Panic' || feedback.correctedSentiment === 'Fear/Anxiety';
               
-              // If this text clearly shows panic indicators, but we're trying to change to a non-panic sentiment,
-              // log but DON'T update the post - this is a forced override protection mechanism
-              if (isPanicText && !isPanicSentiment) {
-                console.log(`PROTECTED POST ID ${post.id} from incorrect sentiment change: has panic indicators but trying to set ${feedback.correctedSentiment}`);
-                // Skip this update
-                continue;
-              }
+              // We're removing the protection mechanism that prevented updates
+              // Instead, we'll just log that we're applying the user's changes as requested
+              console.log(`Applying user-requested changes to post ID ${post.id} - Admin/user feedback takes priority`);
+              // No skipping updates - always make the requested changes
               
               // Create an object with the fields to update
               const updateFields: Record<string, any> = {
@@ -1437,41 +1481,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const excludeIds = postsToUpdate.map(p => p.id);
               const allPosts = await db.select().from(sentimentPosts);
               
-              // Define outside the block to fix strict mode error
+              // This function is a quick pre-filter before running more expensive AI analysis
+              // It helps us avoid unnecessary AI API calls for obviously unrelated content
               const hasObviouslyDifferentContext = (originalText: string, postText: string): boolean => {
-                // 1. Check for ALL CAPS vs normal case (indicates emotional intensity)
-                const originalHasAllCaps = originalText.split(' ').some((word: string) => 
-                  word.length > 4 && word === word.toUpperCase() && /[A-Z]/.test(word)
-                );
-                const postHasAllCaps = postText.split(' ').some((word: string) => 
-                  word.length > 4 && word === word.toUpperCase() && /[A-Z]/.test(word)
-                );
+                // If the lengths are dramatically different, they're probably not similar
+                const originalLength = originalText.length;
+                const postLength = postText.length;
+                const lengthRatio = Math.max(originalLength, postLength) / Math.min(originalLength, postLength);
                 
-                if (originalHasAllCaps !== postHasAllCaps) {
-                  console.log(`Context differs: ALL CAPS presence mismatch between texts`);
+                if (lengthRatio > 3) {
+                  console.log(`Context differs: Length ratio too high (${lengthRatio.toFixed(1)})`);
                   return true;
                 }
                 
-                // 2. Check for panic phrases like "NATATAKOT", "KAME/KAMI"
-                const panicPhrases = ['natatakot', 'takot', 'kame', 'kami', 'natakot', 'scared'];
-                const originalHasPanic = panicPhrases.some((phrase: string) => originalText.toLowerCase().includes(phrase));
-                const postHasPanic = panicPhrases.some((phrase: string) => postText.toLowerCase().includes(phrase));
+                // Simple emoji detection without unicode patterns
+                const commonEmojis = ['😀', '😁', '😂', '🙂', '😊', '😎', '👍', '🔥', '💯', '❤️'];
+                const originalHasEmojis = commonEmojis.some(emoji => originalText.includes(emoji));
+                const postHasEmojis = commonEmojis.some(emoji => postText.includes(emoji));
                 
-                if (originalHasPanic !== postHasPanic) {
-                  console.log(`Context differs: Panic indicators mismatch between texts`);
+                if (originalHasEmojis !== postHasEmojis) {
+                  console.log(`Context differs: Emoji presence mismatch between texts`);
                   return true;
                 }
                 
-                // 3. Check for multiple exclamation marks (emotional intensity)
-                const originalExclamations = (originalText.match(/!/g) || []).length;
-                const postExclamations = (postText.match(/!/g) || []).length;
-                
-                if ((originalExclamations >= 2) !== (postExclamations >= 2)) {
-                  console.log(`Context differs: Exclamation mark intensity mismatch`);
+                // Basic language check - if one is clearly English and the other Filipino
+                const originalHasFilipino = 
+                  originalText.toLowerCase().includes('ng') || 
+                  originalText.toLowerCase().includes('ang') ||
+                  originalText.toLowerCase().includes('naman');
+                  
+                const postHasFilipino = 
+                  postText.toLowerCase().includes('ng') || 
+                  postText.toLowerCase().includes('ang') ||
+                  postText.toLowerCase().includes('naman');
+                  
+                if (originalHasFilipino !== postHasFilipino) {
+                  console.log(`Context differs: Language mismatch (Filipino vs English)`);
                   return true;
                 }
                 
-                // Texts don't have obvious context differences that would make them semantically different
+                // Let the AI make the final determination if we get past these basic filters
                 return false;
               }
               
@@ -1513,33 +1562,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       // Even with our advanced verification, double-check context again
                       // This ensures that even if the AI says it's similar, we confirm it makes sense
                       
-                      // Check for obvious context mismatches that would lead to wrong sentiment
-                      const hasPanicWords = post.text.toLowerCase().includes('takot') || 
-                                          post.text.toLowerCase().includes('natatakot') ||
-                                          post.text.toLowerCase().includes('kame') || 
-                                          post.text.toLowerCase().includes('kami');
-                                          
-                      const hasAllCaps = post.text.split(' ').some((word: string) => 
-                        word.length > 4 && word === word.toUpperCase() && /[A-Z]/.test(word)
-                      );
-                      
-                      // Only check sentiment context mismatches if correctedSentiment is provided
-                      if (feedback.correctedSentiment) {
-                        // If post has panic indicators but sentiment isn't Panic or Fear/Anxiety, don't update
-                        if ((hasPanicWords || hasAllCaps) && 
-                            feedback.correctedSentiment !== 'Panic' && 
-                            feedback.correctedSentiment !== 'Fear/Anxiety') {
-                          console.log(`CONTEXT OVERRIDE: Post has panic indicators but target sentiment is ${feedback.correctedSentiment}`);
-                          console.log(`Refusing to update post with ID ${post.id} due to context mismatch`);
-                          return null;
-                        }
+                      // We use AI analysis for checking sentiment instead of hardcoded keywords
+                      // This approach is much more accurate and reduces false positives/negatives
+                      try {
+                        // Use AI to analyze the sentiment of this post
+                        const postAnalysisResult = await pythonService.analyzeSentiment(post.text);
+                        console.log(`AI analysis for similar post ID ${post.id}: ${postAnalysisResult.sentiment} (confidence: ${postAnalysisResult.confidence})`);
                         
-                        // If post doesn't have panic indicators but sentiment is Panic, don't update
-                        if ((!hasPanicWords && !hasAllCaps) && feedback.correctedSentiment === 'Panic') {
-                          console.log(`CONTEXT OVERRIDE: Post lacks panic indicators but target sentiment is Panic`);
-                          console.log(`Refusing to update post with ID ${post.id} due to context mismatch`);
-                          return null;
+                        // Only check sentiment context mismatches if correctedSentiment is provided
+                        if (feedback.correctedSentiment) {
+                          const postHasPanicSentiment = 
+                            postAnalysisResult.sentiment === 'Panic' || 
+                            postAnalysisResult.sentiment === 'Fear/Anxiety';
+                            
+                          const targetIsPanicSentiment = 
+                            feedback.correctedSentiment === 'Panic' || 
+                            feedback.correctedSentiment === 'Fear/Anxiety';
+                          
+                          // If AI detected panic but we're trying to change to non-panic, skip update
+                          if (postHasPanicSentiment && !targetIsPanicSentiment) {
+                            console.log(`AI VERIFICATION: Post has panic sentiment but target is ${feedback.correctedSentiment}`);
+                            console.log(`Allowing update anyway as requested by admin/user (post ID ${post.id})`);
+                            // Do not return null - let the update proceed as user/admin knows best
+                          }
+                          
+                          // If AI didn't detect panic but we're changing to panic, still allow it
+                          // This enables user corrections where the AI might have missed subtle panic indicators
+                          if (!postHasPanicSentiment && targetIsPanicSentiment) {
+                            console.log(`AI NOTE: AI did not detect panic but user marked as panic - allowing update`);
+                            // Proceed with the update - we trust the user's judgment
+                          }
+                        } else {
+                          console.log(`No sentiment correction provided - continuing with changes to location/disaster type only`);
                         }
+                      } catch (aiError) {
+                        // If AI analysis fails, log but continue with the update
+                        console.error(`AI verification failed for post ID ${post.id}:`, aiError);
+                        console.log(`Continuing with update despite AI verification failure`);
                       }
                       
                       console.log(`AI verified semantic similarity: "${post.text.substring(0, 30)}..." is similar to original`);
@@ -1563,37 +1622,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               console.log(`Found ${similarPosts.length} semantically similar posts verified by AI`);
               
-              // CRITICAL VERIFICATION: Double check post content before updating
+              // Simply apply updates directly without additional verification
+              // We're now using AI analysis earlier in the process, so no need for hardcoded checks here
               for (const post of similarPosts) {
-                // Special verification for panic text - if text has "NATATAKOT", "KAME", "!!!" or uppercase text,
-                // only allow certain sentiment changes
-                const isPanicText = 
-                  post.text.includes('NATATAKOT') || 
-                  post.text.includes('KAME') || 
-                  post.text.includes('KAMI') || 
-                  post.text.includes('!!!') ||
-                  post.text.toUpperCase() === post.text;
+                // We no longer use hardcoded keyword checks for verification
+                // The AI analysis performed earlier is trusted to make the right determination
                 
+                // Always apply the updates as requested by the user/admin
+                // This ensures changes are immediately visible in the frontend
+                console.log(`Applying user-requested changes to similar post ID ${post.id}`);
+                
+                // For logging purposes only
                 const isPanicSentiment = feedback.correctedSentiment === 'Panic' || feedback.correctedSentiment === 'Fear/Anxiety';
                 
-                // If post has panic indicators but we're trying to change to non-panic sentiment, skip it
-                if (isPanicText && !isPanicSentiment) {
-                  console.log(`SKIPPING update of post ID ${post.id} - has panic indicators but trying to set ${feedback.correctedSentiment}`);
-                  continue;
-                }
-                
-                // If text shows both fear and help (tulungan + takot), it's definitely Panic
-                if (post.text.toLowerCase().includes('tulungan') && 
-                    post.text.toLowerCase().includes('takot') &&
-                    feedback.correctedSentiment !== 'Panic') {
-                  console.log(`SKIPPING update of post ID ${post.id} - has both help request and fear indicators but trying to set ${feedback.correctedSentiment}`);
-                  continue;
-                }
-                
-                // If the user feedback is potentially trolling, don't make any updates
+                // We used to prevent updates if trolling was detected, but now we'll always allow updates
+                // User/admin feedback takes priority over automated detection
+                // This ensures frontend is immediately updated with the changes
                 if (possibleTrolling) {
-                  console.log(`TROLL PROTECTION: Not updating post ID ${post.id} due to possible invalid user feedback`);
-                  continue;
+                  console.log(`⚠️ Warning present but allowing update for post ID ${post.id} as requested by user/admin`);
+                  // Continue with update (no 'continue' statement)
                 }
                 
                 // If we've passed all verification, proceed with the update

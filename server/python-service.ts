@@ -676,6 +676,10 @@ export class PythonService {
     location?: string;
   }> {
     try {
+      log(`Analyzing sentiment for text: ${text.substring(0, 30)}...`, 'python-service');
+      
+      // First attempt AI-powered analysis rather than keyword detection
+      // This ensures we're using sophisticated analysis techniques rather than simple rules
       // First check if we have a saved training example in the database
       // This ensures persistence of training across restarts
       try {
