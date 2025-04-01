@@ -6,7 +6,7 @@ import path from "path";
 import multer from "multer";
 import fs from "fs";
 import { pythonService, pythonConsoleMessages } from "./python-service";
-import { insertSentimentPostSchema, insertAnalyzedFileSchema } from "@shared/schema";
+import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema } from "@shared/schema";
 import { usageTracker } from "./utils/usage-tracker";
 import { EventEmitter } from 'events';
 
@@ -1142,6 +1142,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.send(csv);    } catch (error) {
       res.status(500).json({ error: "Failed to export CSV" });
+    }
+  });
+
+  // Sentiment feedback for model training
+  app.post('/api/sentiment-feedback', async (req: Request, res: Response) => {
+    try {
+      // Validate using the sentiment feedback schema
+      const result = insertSentimentFeedbackSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid feedback data", 
+          details: result.error.format() 
+        });
+      }
+      
+      const feedback = result.data;
+      const savedFeedback = await storage.submitSentimentFeedback(feedback);
+      
+      // Broadcast update to connected clients
+      broadcastUpdate({ 
+        type: "feedback-submitted", 
+        data: { 
+          originalSentiment: feedback.originalSentiment,
+          correctedSentiment: feedback.correctedSentiment
+        } 
+      });
+      
+      return res.status(200).json(savedFeedback);
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      return res.status(500).json({ error: "Failed to submit feedback" });
+    }
+  });
+  
+  // Get all sentiment feedback
+  app.get('/api/sentiment-feedback', async (req: Request, res: Response) => {
+    try {
+      const feedback = await storage.getSentimentFeedback();
+      return res.status(200).json(feedback);
+    } catch (error) {
+      console.error("Error getting feedback:", error);
+      return res.status(500).json({ error: "Failed to get feedback" });
+    }
+  });
+
+  // Get untrained feedback for model retraining
+  app.get('/api/untrained-feedback', async (req: Request, res: Response) => {
+    try {
+      const feedback = await storage.getUntrainedFeedback();
+      return res.status(200).json(feedback);
+    } catch (error) {
+      console.error("Error getting untrained feedback:", error);
+      return res.status(500).json({ error: "Failed to get untrained feedback" });
+    }
+  });
+
+  // Mark feedback as trained
+  app.patch('/api/sentiment-feedback/:id/trained', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.markFeedbackAsTrained(id);
+      return res.status(200).json({ message: "Feedback marked as trained" });
+    } catch (error) {
+      console.error("Error marking feedback as trained:", error);
+      return res.status(500).json({ error: "Failed to mark feedback as trained" });
     }
   });
 

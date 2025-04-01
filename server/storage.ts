@@ -3,7 +3,8 @@ import { users, type User, type InsertUser,
   disasterEvents, type DisasterEvent, type InsertDisasterEvent,
   analyzedFiles, type AnalyzedFile, type InsertAnalyzedFile,
   sessions, type LoginUser,
-  profileImages, type ProfileImage, type InsertProfileImage
+  profileImages, type ProfileImage, type InsertProfileImage,
+  sentimentFeedback, type SentimentFeedback, type InsertSentimentFeedback
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -31,6 +32,7 @@ export interface IStorage {
   // Disaster Events
   getDisasterEvents(): Promise<DisasterEvent[]>;
   createDisasterEvent(event: InsertDisasterEvent): Promise<DisasterEvent>;
+  deleteDisasterEvent(id: number): Promise<void>;
   deleteAllDisasterEvents(): Promise<void>;
 
   // File Analysis
@@ -44,6 +46,12 @@ export interface IStorage {
   // Profile Images
   getProfileImages(): Promise<ProfileImage[]>;
   createProfileImage(profile: InsertProfileImage): Promise<ProfileImage>;
+  
+  // Sentiment Feedback Training
+  getSentimentFeedback(): Promise<SentimentFeedback[]>;
+  getUntrainedFeedback(): Promise<SentimentFeedback[]>;
+  submitSentimentFeedback(feedback: InsertSentimentFeedback): Promise<SentimentFeedback>;
+  markFeedbackAsTrained(id: number): Promise<void>;
 
   // Delete All Data
   deleteAllData(): Promise<void>;
@@ -152,6 +160,11 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return result;
   }
+  
+  async deleteDisasterEvent(id: number): Promise<void> {
+    await db.delete(disasterEvents)
+      .where(eq(disasterEvents.id, id));
+  }
 
   // File Analysis
   async getAnalyzedFiles(): Promise<AnalyzedFile[]> {
@@ -213,7 +226,32 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  // Sentiment Feedback Training 
+  async getSentimentFeedback(): Promise<SentimentFeedback[]> {
+    return db.select().from(sentimentFeedback);
+  }
+
+  async getUntrainedFeedback(): Promise<SentimentFeedback[]> {
+    return db.select()
+      .from(sentimentFeedback)
+      .where(eq(sentimentFeedback.trainedOn, false));
+  }
+
+  async submitSentimentFeedback(feedback: InsertSentimentFeedback): Promise<SentimentFeedback> {
+    const [result] = await db.insert(sentimentFeedback)
+      .values(feedback)
+      .returning();
+    return result;
+  }
+
+  async markFeedbackAsTrained(id: number): Promise<void> {
+    await db.update(sentimentFeedback)
+      .set({ trainedOn: true })
+      .where(eq(sentimentFeedback.id, id));
+  }
+
   async deleteAllData(): Promise<void> {
+    await db.delete(sentimentFeedback);
     await this.deleteAllSentimentPosts();
     await this.deleteAllDisasterEvents();
     await this.deleteAllAnalyzedFiles();

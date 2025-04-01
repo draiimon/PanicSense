@@ -16,6 +16,29 @@ export const insertProfileImageSchema = createInsertSchema(profileImages);
 export type ProfileImage = typeof profileImages.$inferSelect;
 export type InsertProfileImage = z.infer<typeof insertProfileImageSchema>;
 
+// Feedback data for model training
+export const sentimentFeedback = pgTable("sentiment_feedback", {
+  id: serial("id").primaryKey(),
+  originalPostId: integer("original_post_id").references(() => sentimentPosts.id, { onDelete: "cascade" }),
+  originalText: text("original_text").notNull(),
+  originalSentiment: text("original_sentiment").notNull(),
+  correctedSentiment: text("corrected_sentiment").notNull(),
+  trainedOn: boolean("trained_on").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  userId: integer("user_id").references(() => users.id)
+});
+
+export const insertSentimentFeedbackSchema = createInsertSchema(sentimentFeedback).pick({
+  originalPostId: true,
+  originalText: true,
+  originalSentiment: true,
+  correctedSentiment: true,
+  userId: true
+});
+
+export type InsertSentimentFeedback = z.infer<typeof insertSentimentFeedbackSchema>;
+export type SentimentFeedback = typeof sentimentFeedback.$inferSelect;
+
 // Authentication Tables
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),

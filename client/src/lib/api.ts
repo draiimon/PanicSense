@@ -191,3 +191,48 @@ export async function getPythonConsoleMessages(limit: number = 100): Promise<Pyt
   const response = await apiRequest('GET', `/api/python-console-messages?limit=${limit}`);
   return response.json();
 }
+
+// Interface for Sentiment Feedback
+export interface SentimentFeedback {
+  id: number;
+  originalText: string;
+  originalSentiment: string;
+  correctedSentiment: string;
+  trainedOn: boolean;
+  timestamp: string;
+  userId?: number | null;
+}
+
+// Submit sentiment feedback for model improvement
+export async function submitSentimentFeedback(
+  originalText: string,
+  originalSentiment: string,
+  correctedSentiment: string
+): Promise<SentimentFeedback> {
+  const response = await apiRequest('POST', '/api/sentiment-feedback', {
+    originalText,
+    originalSentiment,
+    correctedSentiment,
+    trainedOn: false,
+    userId: null // This could be set if user authentication is active
+  });
+  return response.json();
+}
+
+// Get all sentiment feedback
+export async function getSentimentFeedback(): Promise<SentimentFeedback[]> {
+  const response = await apiRequest('GET', '/api/sentiment-feedback');
+  return response.json();
+}
+
+// Get untrained feedback for model retraining
+export async function getUntrainedFeedback(): Promise<SentimentFeedback[]> {
+  const response = await apiRequest('GET', '/api/untrained-feedback');
+  return response.json();
+}
+
+// Mark sentiment feedback as trained
+export async function markFeedbackAsTrained(id: number): Promise<{message: string}> {
+  const response = await apiRequest('PATCH', `/api/sentiment-feedback/${id}/trained`);
+  return response.json();
+}

@@ -19,6 +19,7 @@ import { getSentimentBadgeClasses } from "@/lib/colors";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { motion } from "framer-motion";
+import { SentimentFeedback } from "@/components/sentiment-feedback";
 
 interface AnalyzedText {
   text: string;
@@ -231,12 +232,12 @@ export function RealtimeMonitor() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-5 flex flex-col" style={{ height: "250px" }}>
+        <CardContent className="p-5 flex flex-col">
           <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter disaster-related text to analyze sentiment..."
-            className="flex-grow h-full resize-none"
+            className="flex-grow min-h-[150px] max-h-[250px] resize-y h-full"
           />
         </CardContent>
         <CardFooter className="p-5 pt-0 flex flex-col gap-4">
@@ -338,8 +339,14 @@ export function RealtimeMonitor() {
                     </div>
                   </div>
 
-                  <div className="mt-2 flex justify-between text-xs text-slate-500">
-                    <span>Confidence: {(item.confidence * 100).toFixed(0)}%</span>
+                  <div className="mt-2 flex justify-between items-center text-xs text-slate-500">
+                    <div className="flex items-center gap-2">
+                      <span>Confidence: {(item.confidence * 100).toFixed(0)}%</span>
+                      <SentimentFeedback 
+                        originalText={item.text}
+                        originalSentiment={item.sentiment}
+                      />
+                    </div>
                     <span>{item.timestamp.toLocaleTimeString()}</span>
                   </div>
 

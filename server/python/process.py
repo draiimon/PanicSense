@@ -690,8 +690,10 @@ class DisasterSentimentBackend:
                 "kinakabahan", "nangangamba"
             ],
             "Disbelief": [
-                "unbelievable", "impossible", "can't believe",
-                "what's happening", "shocked", "hindi kapani-paniwala",
+                "unbelievable", "impossible", "can't believe", "no way",
+                "what's happening", "shocked", "hindi kapani-paniwala", "haha",
+                "hahaha", "lol", "lmao", "ulol", "gago", "tanga", "wtf", "daw?", "raw?", 
+                "talaga?", "really?", "seriously?", "seryoso?", "?!", "??", 
                 "imposible", "di ako makapaniwala", "nagulat", "gulat"
             ],
             "Resilience": [
@@ -721,6 +723,17 @@ class DisasterSentimentBackend:
             "fundraising", "fund raising", "relief", "relief goods", "pagtulong",
             "magbayanihan", "bayanihan", "volunteer", "volunteers"
         ]
+        
+        # Check for laughter and mockery patterns (strong indicators of disbelief)
+        laughter_patterns = ["haha", "hehe", "lol", "lmao", "ulol", "gago", "tanga"]
+        laughter_count = 0
+        for pattern in laughter_patterns:
+            if pattern in text_lower:
+                laughter_count += text_lower.count(pattern)
+        
+        # Strong laughing combined with disaster keywords is usually disbelief
+        if laughter_count >= 2 and any(word in text_lower for word in ["sunog", "fire", "baha", "flood"]):
+            scores["Disbelief"] += 3  # Give extra weight to this pattern
         
         # Check for who is speaking - are they offering help? (Resilience)
         for phrase in resilience_phrases:
@@ -855,7 +868,11 @@ class DisasterSentimentBackend:
         elif sentiment == "Fear/Anxiety":
             explanation = "The message expresses worry, concern or apprehension about the situation."
         elif sentiment == "Disbelief":
-            explanation = "The content shows shock, surprise or inability to comprehend the situation."
+            # Check for mockery patterns
+            if laughter_count >= 2:
+                explanation = "The content contains laughter patterns and mockery, indicating disbelief or skepticism about the reported situation."
+            else:
+                explanation = "The content shows shock, surprise or inability to comprehend the situation."
         elif sentiment == "Resilience":
             explanation = "The text demonstrates community support, offers of help, or positive action toward recovery."
         else:  # Neutral
