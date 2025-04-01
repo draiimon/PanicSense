@@ -71,18 +71,8 @@ app.use((req, res, next) => {
       console.log("Vite middleware setup complete");
     }
 
-    // Using both ports 5000 and 8080 to improve workflow detection
-    const port = 8080; // Using port 8080 for better compatibility
-    // Check if port is already in use before attempting to listen
-    console.log(`Pre-check: Verifying if port ${port} is available...`);
-    
-    const isPortAvailable = await checkPort(port, '0.0.0.0');
-    console.log(`Pre-check result: Port ${port} is ${isPortAvailable ? 'AVAILABLE' : 'IN USE'}`);
-    
-    if (!isPortAvailable) {
-      console.warn(`WARNING: Port ${port} appears to be already in use. Server may fail to start.`);
-    }
-    
+    // Using just port 5000 as the main port
+    const port = 5000;
     console.log(`Attempting to listen on port ${port}...`);
     
     server.listen(port, "0.0.0.0", () => {
@@ -91,39 +81,6 @@ app.use((req, res, next) => {
       console.log(`Server listening at: http://0.0.0.0:${port}`);
       console.log(`Server ready at: ${new Date().toISOString()}`);
       console.log(`========================================`);
-      
-      // Create a secondary HTTP server on port 5000 to satisfy workflow requirements
-      try {
-        import('http').then(({ createServer }) => {
-          const secondaryPort = 5000;
-          const secondaryServer = createServer((req, res) => {
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.end(`Secondary server running on port ${secondaryPort}. Main application is at port ${port}.`);
-          });
-          
-          secondaryServer.listen(secondaryPort, '0.0.0.0', () => {
-            console.log(`Secondary server listening on port ${secondaryPort} for workflow detection`);
-          });
-          
-          secondaryServer.on('error', (err) => {
-            console.error(`Secondary server error:`, err);
-          });
-        });
-      } catch (err) {
-        console.error('Failed to start secondary server:', err);
-      }
-      
-      // Repeatedly check and report port status to help debug workflow issues
-      checkPortPeriodically(port, '0.0.0.0', 1000, 10)
-        .then(() => {
-          console.log(`Port ${port} is confirmed AVAILABLE for external connections`);
-        })
-        .catch((err) => {
-          console.error(`Port checking error:`, err);
-        });
-        
-      console.log(`Port ${port} should now be open and accessible`);
-      console.log(`Try accessing http://0.0.0.0:${port} in your browser`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);
