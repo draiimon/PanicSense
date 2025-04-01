@@ -494,9 +494,9 @@ class DisasterSentimentBackend:
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', o 'Neutral'.
                     Pumili ng ISANG kategorya lamang at magbigay ng kumpiyansa sa score (0.0-1.0) at maikling paliwanag.
                     
-                    IMPORTANTE: Mga mensahe na nag-aalok ng tulong (tulad ng "tumulong tayo", "tulungan natin sila", "lets help") 
-                    ay dapat ilagay sa kategoryang 'Resilience' dahil nagpapakita ito ng suporta ng komunidad at positibong aksyon, 
-                    hindi panic o takot. Suriin ang buong konteksto ng mensahe, hindi lang mga individual na salita.
+                    IMPORTANTE: Ang mga mensaheng NAG-AALOK ng tulong (hal. "tumulong tayo", "tulungan natin sila") LANG ang dapat ikategori bilang 'Resilience'.
+                    Ang mga mensaheng HUMIHINGI ng tulong na may pagkabahala (hal. "TULONG!", "SAKLOLO!", "kailangan ng tulong") ay dapat ikategorya bilang 'Panic' o 'Fear/Anxiety'
+                    dahil nagpapakita ito ng pangamba o takot, hindi ng katatagan. Suriin ang buong konteksto ng mensahe at tono nito.
                     
                     Suriin din kung anong uri ng sakuna ang nabanggit STRICTLY sa listahang ito at may malaking letra sa unang titik:
                     - Flood
@@ -515,8 +515,9 @@ class DisasterSentimentBackend:
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', or 'Neutral'.
                     Choose ONLY ONE category and provide a confidence score (0.0-1.0) and brief explanation.
                     
-                    IMPORTANT: Messages offering help (e.g. "lets help", "help them") should be classified as 'Resilience' 
-                    as they show community support and positive action, not panic.
+                    IMPORTANT: Only messages OFFERING help (e.g. "lets help them", "we should help") should be classified as 'Resilience'.
+                    Messages ASKING FOR help with urgency (e.g. "TULONG!", "HELP US!", "needs help") should be classified as 'Panic' or 'Fear/Anxiety'
+                    as they indicate distress, not resilience.
                     
                     Also identify what type of disaster is mentioned STRICTLY from this list with capitalized first letter:
                     - Flood
@@ -684,9 +685,9 @@ class DisasterSentimentBackend:
         # Context-based analysis
         # Check for phrases indicating help/resilience in the context
         resilience_phrases = [
-            "let's help", "lets help", "help them", "help us", "tulungan natin", 
+            "let's help", "lets help", "help them", "tulungan natin", 
             "tumulong tayo", "tulong sa", "tulong para", "tulungan ang", "mag-donate", 
-            "magbigay ng tulong", "mag volunteer", "magtulungan", "tulungan"
+            "magbigay ng tulong", "mag volunteer", "magtulungan"
         ]
         
         for phrase in resilience_phrases:
@@ -698,8 +699,8 @@ class DisasterSentimentBackend:
         
         # Look for actual urgent calls for help
         panic_phrases = [
-            "help me", "save me", "trapped", "can't breathe", "tulungan ako", 
-            "saklolo", "naipit ako", "hindi makahinga", "naiipit", "nakulong", 
+            "help me", "save me", "trapped", "can't breathe", "tulungan ako", "help us",
+            "saklolo", "tulong", "tulong!", "naipit ako", "hindi makahinga", "naiipit", "nakulong", 
             "nasasabit", "naiipit kami", "nanganganib ang buhay"
         ]
         
