@@ -490,19 +490,27 @@ class DisasterSentimentBackend:
                 # Construct different prompts based on language
                 if language == "Filipino":
                     system_message = """Ikaw ay isang dalubhasa sa pagsusuri ng damdamin sa panahon ng sakuna sa Pilipinas. 
-                    Ang iyong tungkulin ay suriin ang damdamin ng isang tao sa isang teksto at iuri ito sa isa sa mga sumusunod: 
+                    Ang iyong tungkulin ay MASUSING SURIIN ANG KABUUANG KONTEKSTO ng bawat mensahe at iuri ito sa isa sa mga sumusunod: 
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', o 'Neutral'.
                     Pumili ng ISANG kategorya lamang at magbigay ng kumpiyansa sa score (0.0-1.0) at maikling paliwanag.
                     
-                    MAHALAGANG PAGKAKAIBA NG PAG-AALOK at PAGHINGI NG TULONG:
+                    SURIIN ANG BUONG KONTEKSTO AT KAHULUGAN ng mga mensahe. Hindi dapat ang mga keywords, capitalization, o bantas lamang ang magtatakda ng sentimento.
+                    
+                    MAHALAGANG PAGKAKAIBA NG KONTEKSTO:
                     
                     - Ang mga mensaheng NAG-AALOK ng tulong sa iba (tulad ng "tumulong tayo", "tulungan natin sila", "magbigay tayo ng tulong") ay dapat ikategori bilang 'Resilience'
                       dahil ito ay nagpapakita ng suporta sa komunidad at positibong aksyon.
                       
                     - Ang mga mensaheng HUMIHINGI ng tulong na may pananaliksik (tulad ng "TULONG!", "SAKLOLO!", "kailangan ng tulong") ay dapat ikategorya bilang 'Panic' o 'Fear/Anxiety'
                       dahil ito ay nagpapakita ng pangamba o takot, hindi ng katatagan.
-                      
-                    ANG KONTEKSTO AY MAS MAHALAGA KAYSA SA PAGKA-ALL CAPS O BANTAS!
+                    
+                    - Ang "TULONG" mismo ay nangangahulugang pahingi ng tulong (Panic/Fear), ngunit ang "TUMULONG TAYO" ay nangangahulugang "Tayo ay tumulong" (Resilience).
+                    
+                    PAGTUUNAN ANG MGA INDICATOR NA ITO NG KONTEKSTO:
+                    - Sino ang nagsasalita: biktima, nakakakita, tumutulong
+                    - Tono: pakiusap para sa tulong vs. pag-aalok ng tulong
+                    - Perspektibo: personal na panganib vs. nakakakita ng panganib vs. pagbangon
+                    - Ipinahahiwatig na aksyon: kailangan ng saklolo vs. nagbibigay ng saklolo
                     
                     Suriin din kung anong uri ng sakuna ang nabanggit STRICTLY sa listahang ito at may malaking letra sa unang titik:
                     - Flood
@@ -517,19 +525,27 @@ class DisasterSentimentBackend:
                     Tumugon lamang sa JSON format: {"sentiment": "kategorya", "confidence": score, "explanation": "paliwanag", "disasterType": "uri", "location": "lokasyon"}"""
                 else:
                     system_message = """You are a disaster sentiment analysis expert for the Philippines.
-                    Your task is to analyze the sentiment in text and categorize it into one of: 
+                    Your task is to DEEPLY ANALYZE THE FULL CONTEXT of each message and categorize it into one of: 
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', or 'Neutral'.
                     Choose ONLY ONE category and provide a confidence score (0.0-1.0) and brief explanation.
                     
-                    IMPORTANT DISTINCTIONS BETWEEN OFFERING vs ASKING FOR HELP:
+                    ANALYZE THE ENTIRE CONTEXT AND MEANING of messages. Keywords, capitalization, or punctuation alone SHOULD NOT determine sentiment.
+                    
+                    IMPORTANT DISTINCTIONS IN CONTEXT:
                     
                     - Messages OFFERING help to others (like "let's help them", "we should help", "let us help") should be classified as 'Resilience'
                       as they show community support and positive action.
                       
                     - Messages ASKING FOR help with urgency (like "TULONG!", "HELP US!", "needs help") should be classified as 'Panic' or 'Fear/Anxiety'
                       as they indicate distress, not resilience.
-                      
-                    CONTEXT MATTERS MORE THAN CAPITALIZATION OR PUNCTUATION!
+                    
+                    - "TULONG" by itself means a call for help (Panic/Fear), but "TUMULONG TAYO" means "Let's help" (Resilience).
+                    
+                    FOCUS ON THESE CONTEXT INDICATORS:
+                    - Who is speaking: victim, observer, helper
+                    - Tone: plea for help vs. offer to help
+                    - Perspective: personal danger vs. witnessing danger vs. recovery
+                    - Implied action: need rescue vs. providing rescue
                     
                     Also identify what type of disaster is mentioned STRICTLY from this list with capitalized first letter:
                     - Flood
@@ -695,58 +711,113 @@ class DisasterSentimentBackend:
                 if keyword in text_lower:
                     scores[sentiment] += 1
 
-        # Context-based analysis
+        # DEEPLY ANALYZE FULL CONTEXT
         # Check for phrases indicating help/resilience in the context
         resilience_phrases = [
             "let's help", "lets help", "help them", "tulungan natin", 
             "tumulong tayo", "tulong sa", "tulong para", "tulungan ang", "mag-donate", 
-            "magbigay ng tulong", "mag volunteer", "magtulungan"
+            "magbigay ng tulong", "mag volunteer", "magtulungan", "donate", "donation",
+            "we can help", "we will help", "tutulong tayo", "support", "donate",
+            "fundraising", "fund raising", "relief", "relief goods", "pagtulong",
+            "magbayanihan", "bayanihan", "volunteer", "volunteers"
         ]
         
+        # Check for who is speaking - are they offering help? (Resilience)
         for phrase in resilience_phrases:
             if phrase in text_lower:
                 scores["Resilience"] += 2
-                # Reduce panic score if a resilience phrase is found
+                # If the message is about helping others, it's less likely to be panic
                 if scores["Panic"] > 0:
                     scores["Panic"] -= 1
         
-        # Look for actual urgent calls for help
+        # Look for specific context clues of victims asking for help
         panic_phrases = [
             "help me", "save me", "trapped", "can't breathe", "tulungan ako", "help us",
-            "saklolo", "tulong", "tulong!", "naipit ako", "hindi makahinga", "naiipit", "nakulong", 
-            "nasasabit", "naiipit kami", "nanganganib ang buhay"
+            "saklolo", "tulong!", "naipit ako", "hindi makahinga", "naiipit", "nakulong", 
+            "nasasabit", "naiipit kami", "nanganganib ang buhay", "stranded", "nawalan ng bahay",
+            "walang makain", "walang tubig", "naputol", "walang kuryente", "nawawala",
+            "nawawalang tao", "hinahanap", "hinahanap namin", "missing", "casualty",
+            "casualties", "patay", "nasugatan", "injured", "nasaktan"
         ]
         
+        # Check for single word "tulong" context
+        if "tulong" in text_lower and not any(phrase in text_lower for phrase in resilience_phrases):
+            # If "tulong" appears alone without resilience context, it's likely a call for help
+            scores["Panic"] += 2
+        
+        # Parse full context of panic phrases  
         for phrase in panic_phrases:
             if phrase in text_lower:
                 scores["Panic"] += 2
         
-        # Use exclamation points more intelligently
+        # CONTEXT-AWARE ANALYSIS OF TEXT FORMATTING
+        # Analyze formatting in context, not by itself
+        
+        # Analyze surrounding context for exclamation points
         if "!" in text:
-            exclamation_count = text.count("!")
+            # Don't just count exclamation points - look at CONTEXT
             
-            # Only consider exclamation points as panic if combined with panic words
-            if any(word in text_lower for word in ["emergency", "urgent", "critical", "dying", "death"]):
-                if exclamation_count >= 3:
-                    scores["Panic"] += 2
-                elif exclamation_count > 0:
-                    scores["Panic"] += 1
-            elif any(word in text_lower for word in ["help", "support", "donate", "assist"]):
-                # Exclamation with support words indicates resilience/engagement
-                scores["Resilience"] += 1
+            # Extract phrases with exclamation (5 words before and after)
+            exclamation_phrases = []
+            words = text_lower.split()
+            for i, word in enumerate(words):
+                if "!" in word:
+                    start = max(0, i-5)
+                    end = min(len(words), i+6)
+                    phrase = " ".join(words[start:end])
+                    exclamation_phrases.append(phrase)
+            
+            # Analyze the context of each exclamation phrase
+            for phrase in exclamation_phrases:
+                # Context indicates victim perspective (panic)
+                if any(word in phrase for word in ["help", "emergency", "saklolo", "trapped", "tulong", "danger"]):
+                    if not any(rp in phrase for rp in resilience_phrases):
+                        scores["Panic"] += 1
+                
+                # Context indicates helper perspective (resilience)
+                elif any(word in phrase for word in ["donate", "let's help", "support", "tulungan natin", "assist"]):
+                    scores["Resilience"] += 1
+                
+                # Context indicates shock or disbelief
+                elif any(word in phrase for word in ["what", "can't believe", "ano", "bakit", "hindi kapani-paniwala"]):
+                    scores["Disbelief"] += 1
         
+        # Analyze question marks in context
         if "?" in text:
-            # Question marks might indicate Disbelief
-            question_count = text.count("?")
-            if question_count >= 2:
-                scores["Disbelief"] += 1
+            question_phrases = []
+            words = text_lower.split()
+            for i, word in enumerate(words):
+                if "?" in word:
+                    start = max(0, i-5)
+                    end = min(len(words), i+1)
+                    phrase = " ".join(words[start:end])
+                    question_phrases.append(phrase)
+            
+            for phrase in question_phrases:
+                # Questions about status of disaster/victims
+                if any(word in phrase for word in ["nasaan", "where", "kamusta", "how", "when", "kailan", "ilang", "how many"]):
+                    if any(word in phrase for word in ["victim", "dead", "casualties", "stranded", "missing"]):
+                        scores["Fear/Anxiety"] += 1
+                
+                # Questions expressing disbelief
+                if any(word in phrase for word in ["bakit", "paano", "why", "how could", "paanong"]):
+                    scores["Disbelief"] += 1
         
-        # ALL CAPS text needs more context to determine sentiment
-        if text.isupper() and len(text) > 10:
-            if any(word in text_lower for word in ["emergency", "urgent", "critical", "dying", "death"]):
-                scores["Panic"] += 2
-            elif any(word in text_lower for word in ["help", "support", "donate", "assist"]):
-                scores["Resilience"] += 1
+        # Analyze ALL CAPS text with full context
+        # ALL CAPS is not itself an indicator - analyze the meaning
+        if len([word for word in text.split() if word.isupper() and len(word) > 2]) > 1:
+            # Get ALL CAPS words
+            caps_words = [word.lower() for word in text.split() if word.isupper() and len(word) > 2]
+            
+            # Context-based analysis of ALL CAPS content
+            if any(word in caps_words for word in ["emergency", "tulong", "saklolo", "help", "rescue"]):
+                if not any(phrase in text_lower for phrase in resilience_phrases):
+                    scores["Panic"] += 1
+            
+            # ALL CAPS for offering help is resilience
+            elif any(word in " ".join(caps_words) for word in ["donate", "tulungan", "help", "lets", "tumulong"]):
+                if any(phrase in text_lower for phrase in resilience_phrases):
+                    scores["Resilience"] += 1
 
         # Determine the sentiment with the highest score
         max_score = max(scores.values())
@@ -777,13 +848,23 @@ class DisasterSentimentBackend:
         # Calculate confidence based on the score and text length
         confidence = min(0.9, 0.5 + (max_score / 10))
 
+        # Generate more detailed explanation based on sentiment
+        explanation = ""
+        if sentiment == "Panic":
+            explanation = "The text shows signs of urgent distress or calls for immediate help, indicating panic."
+        elif sentiment == "Fear/Anxiety":
+            explanation = "The message expresses worry, concern or apprehension about the situation."
+        elif sentiment == "Disbelief":
+            explanation = "The content shows shock, surprise or inability to comprehend the situation."
+        elif sentiment == "Resilience":
+            explanation = "The text demonstrates community support, offers of help, or positive action toward recovery."
+        else:  # Neutral
+            explanation = "The text appears informational or descriptive without strong emotional indicators."
+            
         return {
-            "sentiment":
-            sentiment,
-            "confidence":
-            confidence,
-            "explanation":
-            f"Rule-based analysis detected {sentiment.lower()} indicators"
+            "sentiment": sentiment,
+            "confidence": confidence,
+            "explanation": explanation
         }
 
     def process_csv(self, file_path):
