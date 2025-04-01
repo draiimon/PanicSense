@@ -1258,8 +1258,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Broadcast update to connected clients
           broadcastUpdate({ 
-            type: "feedback-submitted", 
+            type: "feedback-update", 
             data: { 
+              originalText: feedback.originalText,
               originalSentiment: feedback.originalSentiment,
               correctedSentiment: feedback.correctedSentiment,
               trainingResult: trainingResult,

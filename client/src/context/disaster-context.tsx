@@ -1,5 +1,6 @@
 import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { 
   getSentimentPosts, 
   getDisasterEvents, 
@@ -104,6 +105,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>(initialProgress);
 
+  // Get toast for notifications
+  const { toast } = useToast();
+  
   // WebSocket setup
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -113,7 +117,23 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'progress') {
+        
+        // Handle sentiment feedback updates (for real-time UI updates)
+        if (data.type === 'feedback-update') {
+          console.log('WebSocket feedback update received:', data);
+          
+          // This will trigger a refresh of all data including sentiment posts
+          refreshData();
+          
+          // Display a toast notification about the sentiment update
+          toast({
+            title: 'Model Updated',
+            description: `Sentiment model has been trained with new feedback.`,
+            variant: 'default',
+          });
+        }
+        // Handle progress updates for file processing
+        else if (data.type === 'progress') {
           console.log('WebSocket progress update:', data);
 
           // Extract progress info from Python service
