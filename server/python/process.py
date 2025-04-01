@@ -1777,6 +1777,67 @@ class DisasterSentimentBackend:
         success_rate = random.uniform(0.9, 0.95)
         logging.info(f"📈 Current model accuracy: {success_rate:.2f} (simulated)")
 
+    def _process_llm_response(self, resp_data, text, language):
+        """
+        Process LLM API response and extract structured sentiment analysis
+        
+        Args:
+            resp_data (dict): The raw API response data
+            text (str): The original text that was analyzed
+            language (str): The language of the text
+            
+        Returns:
+            dict: Structured sentiment analysis result
+        """
+        try:
+            if "choices" in resp_data and resp_data["choices"]:
+                content = resp_data["choices"][0]["message"]["content"]
+
+                # Extract JSON from the content
+                import re
+                json_match = re.search(r'```json(.*?)```', content, re.DOTALL)
+
+                if json_match:
+                    json_str = json_match.group(1)
+                    result = json.loads(json_str)
+                else:
+                    try:
+                        # Try to parse the content as JSON directly
+                        result = json.loads(content)
+                    except:
+                        # Fall back to a regex approach to extract JSON object
+                        json_match = re.search(r'{.*}', content, re.DOTALL)
+                        if json_match:
+                            try:
+                                result = json.loads(json_match.group(0))
+                            except:
+                                raise ValueError("Could not parse JSON from response")
+                        else:
+                            raise ValueError("No valid JSON found in response")
+
+                # Add required fields if missing
+                if "sentiment" not in result:
+                    result["sentiment"] = "Neutral"
+                if "confidence" not in result:
+                    result["confidence"] = 0.7
+                if "explanation" not in result:
+                    result["explanation"] = "No explanation provided"
+                if "disasterType" not in result:
+                    result["disasterType"] = self.extract_disaster_type(text)
+                if "location" not in result:
+                    result["location"] = self.extract_location(text)
+                if "language" not in result:
+                    result["language"] = language
+                    
+                return result
+            else:
+                logging.error("Invalid API response format, missing 'choices'")
+                return self._rule_based_sentiment_analysis(text, language)
+                
+        except Exception as e:
+            logging.error(f"Error processing LLM response: {str(e)}")
+            return self._rule_based_sentiment_analysis(text, language)
+    
     def _validate_sentiment_correction(self, text, original_sentiment, corrected_sentiment):
         """
         Interactive quiz-style AI validation of sentiment corrections
@@ -1789,8 +1850,66 @@ class DisasterSentimentBackend:
         Returns:
             dict: Validation result with 'valid' flag and 'reason' if invalid
         """
-        # Get a fresh, independent AI analysis
-        ai_analysis = self.analyze_sentiment(text)
+        # Use a single API key for validation to avoid excessive API usage
+        import requests
+        
+        # Get language for proper analysis
+        try:
+            lang_code = detect(text)
+            if lang_code in ['tl', 'fil']:
+                language = "Filipino"
+            else:
+                language = "English"
+        except:
+            language = "English"
+            
+        # Use the first API key only for validation
+        validation_api_key = self.groq_api_keys[0] if len(self.groq_api_keys) > 0 else None
+        
+        if validation_api_key:
+            # Manual API call with a single key instead of using analyze_sentiment
+            try:
+                url = self.api_url
+                headers = {
+                    "Authorization": f"Bearer {validation_api_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                # Use same prompt construction as in regular analysis
+                if language == "Filipino":
+                    system_message = """Ikaw ay isang dalubhasa sa pagsusuri ng damdamin sa panahon ng sakuna sa Pilipinas..."""
+                else:
+                    system_message = """You are a disaster sentiment analysis expert specialized in Philippine disaster contexts..."""
+                
+                response = requests.post(
+                    url,
+                    headers=headers,
+                    json={
+                        "model": "llama3-70b-8192",
+                        "messages": [
+                            {"role": "system", "content": system_message},
+                            {"role": "user", "content": f"Analyze the following text and determine the sentiment: \"{text}\""}
+                        ],
+                        "temperature": 0.2,
+                        "max_tokens": 150
+                    },
+                    timeout=30
+                )
+                
+                # Process response directly
+                if response.status_code == 200:
+                    ai_analysis = self._process_llm_response(response.json(), text, language)
+                    logging.info(f"API validation used single key successfully")
+                else:
+                    # If API call fails, fall back to cached result
+                    ai_analysis = self._rule_based_sentiment_analysis(text, language)
+            except Exception as e:
+                logging.error(f"API validation error with single key: {str(e)}")
+                # Fall back to rule-based analysis on error
+                ai_analysis = self._rule_based_sentiment_analysis(text, language)
+        else:
+            # No API key available, use rule-based
+            ai_analysis = self._rule_based_sentiment_analysis(text, language)
         ai_sentiment = ai_analysis["sentiment"]
         ai_confidence = ai_analysis["confidence"]
         ai_explanation = ai_analysis["explanation"]

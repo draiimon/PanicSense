@@ -230,17 +230,27 @@ export function SentimentFeedback({
       
       console.log("Validation response:", response);
       
+      // Call the callback to force UI refresh FIRST, before showing explanation
+      // This ensures the UI updates even if the explanation is displayed
+      if (onFeedbackSubmitted) {
+        onFeedbackSubmitted();
+      } else {
+        // Force a data refresh by triggering a custom event for UI components to listen to
+        const refreshEvent = new CustomEvent('sentiment-data-changed');
+        window.dispatchEvent(refreshEvent);
+      }
+      
       // Show complete explanation feedback from the AI
       if (response.aiTrustMessage) {
         // Show warning with the actual explanation from the AI
         setWarningMessage(response.aiTrustMessage);
         setWarningOpen(true);
         
-        // Even with warning, we still need to refresh UI to show changes
+        // Show a toast notification to indicate success, even with warnings
         toast({
           title: "Feedback analyzed",
           description: "Check the explanation for details about your feedback",
-          variant: "destructive"
+          variant: "default" // Changed from destructive to default for better UX
         });
       } else {
         // Success! Sentiment matched what AI expected
@@ -373,10 +383,10 @@ export function SentimentFeedback({
           <AlertDialogHeader>
             <AlertDialogTitle className="text-blue-600 flex items-center">
               <AlertCircle className="mr-2 h-5 w-5" />
-              Feedback Analysis
+              AI Feedback Results
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base">
-              <div className="p-3 border border-blue-200 bg-blue-50 rounded-md mb-3 whitespace-pre-line">
+              <div className="p-4 border border-blue-200 bg-blue-50 rounded-md mb-3 whitespace-pre-line font-medium text-blue-800">
                 {warningMessage || "Our AI analyzed this text and made a sentiment classification."}
               </div>
               <p className="text-sm text-gray-600 mt-2">

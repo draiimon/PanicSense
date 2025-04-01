@@ -132,6 +132,20 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
             variant: 'default',
           });
         }
+        // Handle specific post update messages
+        else if (data.type === 'post-updated') {
+          console.log('WebSocket post update received:', data);
+          
+          // Force an immediate refresh to update the UI with the new sentiment
+          refreshData();
+          
+          // Display a toast notification about the post update
+          toast({
+            title: 'Post Updated',
+            description: `Sentiment has been updated successfully.`,
+            variant: 'default',
+          });
+        }
         // Handle progress updates for file processing
         else if (data.type === 'progress') {
           console.log('WebSocket progress update:', data);
