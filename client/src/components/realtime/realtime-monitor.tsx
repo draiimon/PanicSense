@@ -236,7 +236,7 @@ export function RealtimeMonitor() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter disaster-related text to analyze sentiment..."
-            className="min-h-[200px]"
+            className="min-h-[150px]"
           />
         </CardContent>
         <CardFooter className="p-5 pt-0 flex flex-col gap-4">
@@ -300,7 +300,7 @@ export function RealtimeMonitor() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-5 max-h-[500px] overflow-y-auto">
+        <CardContent className="p-5 max-h-[350px] overflow-y-auto">
           {analyzedTexts.length === 0 ? (
             <div className="text-center py-10 text-slate-400">
               <svg
