@@ -1532,6 +1532,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 .set(updateFields)
                 .where(eq(sentimentPosts.id, post.id));
                 
+              // Get the updated post to ensure we see the changes
+              const updatedPost = await db.select().from(sentimentPosts).where(eq(sentimentPosts.id, post.id)).then(posts => posts[0]);
+              
               // Log the update details
               let updateMessage = `Updated post ID ${post.id}:`;
               if (feedback.correctedSentiment) {
@@ -1544,6 +1547,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 updateMessage += ` disaster type to '${feedback.correctedDisasterType}'`;
               }
               console.log(updateMessage);
+              
+              // Send a broadcast specifically for this post update to force UI refresh
+              broadcastUpdate({
+                type: "post-updated",
+                data: {
+                  id: post.id,
+                  updates: updateFields,
+                  originalText: post.text,
+                  updatedPost: updatedPost
+                }
+              });
             }
             
             // LOOK FOR SIMILAR POSTS that have SAME MEANING using AI verification
