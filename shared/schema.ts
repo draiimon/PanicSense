@@ -79,6 +79,8 @@ export const sentimentFeedback = pgTable("sentiment_feedback", {
   originalText: text("original_text").notNull(),
   originalSentiment: text("original_sentiment").notNull(),
   correctedSentiment: text("corrected_sentiment").notNull(),
+  correctedLocation: text("corrected_location"),
+  correctedDisasterType: text("corrected_disaster_type"),
   trainedOn: boolean("trained_on").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   userId: integer("user_id").references(() => users.id)
@@ -101,6 +103,8 @@ export const insertSentimentFeedbackSchema = createInsertSchema(sentimentFeedbac
   originalText: true,
   originalSentiment: true,
   correctedSentiment: true,
+  correctedLocation: true,
+  correctedDisasterType: true,
   userId: true
 });
 

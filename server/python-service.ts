@@ -384,7 +384,9 @@ export class PythonService {
   public async trainModelWithFeedback(
     originalText: string, 
     originalSentiment: string, 
-    correctedSentiment: string
+    correctedSentiment: string,
+    correctedLocation?: string,
+    correctedDisasterType?: string
   ): Promise<{
     status: string;
     message: string;
@@ -397,12 +399,26 @@ export class PythonService {
     try {
       log(`Training model with feedback: "${originalText.substring(0, 30)}..." - ${originalSentiment} → ${correctedSentiment}`, 'python-service');
       
+      // Track if we're also providing location or disaster type corrections
+      const isLocationCorrected = correctedLocation && correctedLocation !== "UNKNOWN";
+      const isDisasterTypeCorrected = correctedDisasterType && correctedDisasterType !== "UNKNOWN";
+      
+      if (isLocationCorrected) {
+        log(`  - also correcting location to: ${correctedLocation}`, 'python-service');
+      }
+      
+      if (isDisasterTypeCorrected) {
+        log(`  - also correcting disaster type to: ${correctedDisasterType}`, 'python-service');
+      }
+      
       // Create feedback payload - ensure it's properly formatted with double quotes for JSON parsing on Python side
       const feedbackData = JSON.stringify({
         feedback: true,
         originalText,
         originalSentiment,
-        correctedSentiment
+        correctedSentiment,
+        correctedLocation: correctedLocation || undefined,
+        correctedDisasterType: correctedDisasterType || undefined
       });
       
       // Log the exact payload being sent to Python for debugging

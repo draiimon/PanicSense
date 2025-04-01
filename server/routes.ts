@@ -1163,12 +1163,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Ensure required fields are present
-      if (!req.body.originalText || !req.body.originalSentiment || !req.body.correctedSentiment) {
-        console.error("Missing required fields in feedback request");
+      // Ensure required base fields are present
+      if (!req.body.originalText || !req.body.originalSentiment) {
+        console.error("Missing required base fields in feedback request");
         return res.status(400).json({
           error: "Missing required fields",
-          details: "originalText, originalSentiment, and correctedSentiment are required"
+          details: "originalText and originalSentiment are required"
+        });
+      }
+      
+      // Ensure at least one correction is provided
+      if (!req.body.correctedSentiment && !req.body.correctedLocation && !req.body.correctedDisasterType) {
+        console.error("No corrections provided in feedback request");
+        return res.status(400).json({
+          error: "Missing correction data",
+          details: "At least one of correctedSentiment, correctedLocation, or correctedDisasterType must be provided"
         });
       }
       
@@ -1177,6 +1186,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         originalText: req.body.originalText,
         originalSentiment: req.body.originalSentiment,
         correctedSentiment: req.body.correctedSentiment,
+        correctedLocation: req.body.correctedLocation || null,
+        correctedDisasterType: req.body.correctedDisasterType || null,
         originalPostId: req.body.originalPostId || null,
         userId: req.body.userId || null
       };
@@ -1221,38 +1232,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue even if this fails - it might be a duplicate
       }
       
-      // TROLL PROTECTION: Check if the feedback seems invalid or trolling
-      // This checks if there's an obvious mismatch between text content and requested sentiment
+      // ENHANCED TROLL PROTECTION: Advanced verification system for feedback validity
+      // This checks for mismatches between text content, context, and requested sentiment changes
       let possibleTrolling = false;
       let aiTrustMessage = "";
       
-      // Check for PANIC text being changed to something else
-      if (
-        (feedback.originalText.includes('NATATAKOT') || 
-         feedback.originalText.includes('KAME') || 
-         feedback.originalText.includes('KAMI') || 
-         feedback.originalText.includes('!!!') ||
-         (feedback.originalText.toLowerCase().includes('tulong') && feedback.originalText.toLowerCase().includes('takot'))) && 
-        (feedback.correctedSentiment !== 'Panic' && feedback.correctedSentiment !== 'Fear/Anxiety')
+      // Check for panic indicators
+      const hasAllCaps = feedback.originalText.split(' ').some((word: string) => 
+        word.length > 3 && word === word.toUpperCase() && /[A-Z]/.test(word));
+      const hasMultipleExclamations = (feedback.originalText.match(/!/g) || []).length >= 2;
+      const hasPanicWords = 
+        feedback.originalText.includes('NATATAKOT') || 
+        feedback.originalText.includes('KAME') || 
+        feedback.originalText.includes('KAMI') ||
+        feedback.originalText.toLowerCase().includes('takot') ||
+        feedback.originalText.toLowerCase().includes('help') ||
+        feedback.originalText.toLowerCase().includes('tulong');
+      
+      // Define more comprehensive panic detection
+      const isPanicText = 
+        hasAllCaps || 
+        hasMultipleExclamations || 
+        hasPanicWords ||
+        (feedback.originalText.toLowerCase().includes('tulong') && feedback.originalText.toLowerCase().includes('takot'));
+      
+      // TROLL PROTECTION 1: Check for PANIC text being changed to something else
+      if (isPanicText && 
+          (feedback.correctedSentiment !== 'Panic' && feedback.correctedSentiment !== 'Fear/Anxiety')
       ) {
         possibleTrolling = true;
-        aiTrustMessage = "AI VERIFICATION FAILED: Text contains strong panic indicators but user tried to change to non-panic sentiment. This likely incorrect feedback.";
+        aiTrustMessage = "AI VERIFICATION FAILED: Text contains panic indicators but user tried to change to non-panic sentiment. This is likely incorrect feedback.";
         console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - panic text being incorrectly changed");
       }
       
-      // Check for Resilience text being changed to Panic without indicators 
-      if (
-        (feedback.originalSentiment === 'Resilience') &&
-        (feedback.correctedSentiment === 'Panic') &&
-        !(feedback.originalText.includes('NATATAKOT') || 
-          feedback.originalText.includes('KAME') || 
-          feedback.originalText.includes('KAMI') || 
-          feedback.originalText.includes('!!!') ||
-          feedback.originalText.toLowerCase().includes('takot'))
+      // TROLL PROTECTION 2: Check for Resilience text being changed to Panic without indicators 
+      if ((feedback.originalSentiment === 'Resilience' || feedback.originalSentiment === 'Neutral') &&
+          (feedback.correctedSentiment === 'Panic') &&
+          !isPanicText
       ) {
         possibleTrolling = true;
-        aiTrustMessage = "AI VERIFICATION FAILED: Text does not contain any panic indicators but user tried to change from Resilience to Panic. This is likely incorrect feedback.";
+        aiTrustMessage = "AI VERIFICATION FAILED: Text does not contain any panic indicators but user tried to change to Panic sentiment. This is likely incorrect feedback.";
         console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - non-panic text being incorrectly marked as panic");
+      }
+      
+      // TROLL PROTECTION 3: Check for disbelief/joke content being changed to serious sentiment
+      const jokeWords = ['joke', 'eme', 'charot', 'just kidding', 'kidding', 'lol', 'haha', 'jk'];
+      const hasJokeWords = jokeWords.some((word: string) => feedback.originalText.toLowerCase().includes(word));
+      
+      if (hasJokeWords && 
+          (feedback.correctedSentiment === 'Panic' || feedback.correctedSentiment === 'Fear/Anxiety')
+      ) {
+        possibleTrolling = true;
+        aiTrustMessage = "AI VERIFICATION FAILED: Text contains joke/humor indicators but user tried to set to serious panic sentiment. This is likely incorrect feedback.";
+        console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - joke text being incorrectly marked as panic");
       }
       
       // Create base response
@@ -1261,6 +1293,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         originalText: savedFeedback.originalText,
         originalSentiment: savedFeedback.originalSentiment,
         correctedSentiment: savedFeedback.correctedSentiment,
+        correctedLocation: savedFeedback.correctedLocation,
+        correctedDisasterType: savedFeedback.correctedDisasterType,
         trainedOn: false,
         createdAt: savedFeedback.createdAt,
         userId: savedFeedback.userId,
@@ -1277,7 +1311,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const trainingResult = await pythonService.trainModelWithFeedback(
           feedback.originalText,
           feedback.originalSentiment,
-          feedback.correctedSentiment
+          feedback.correctedSentiment,
+          feedback.correctedLocation,
+          feedback.correctedDisasterType
         );
         
         console.log("Model training completed with result:", trainingResult);
@@ -1350,11 +1386,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 continue;
               }
               
+              // Create an object with the fields to update
+              const updateFields: Record<string, any> = {
+                confidence: 0.84 // Moderate-high confidence (80-86 range)
+              };
+              
+              // Add correctedSentiment if provided
+              if (feedback.correctedSentiment) {
+                updateFields.sentiment = feedback.correctedSentiment;
+              }
+              
+              // Add correctedLocation if provided
+              if (feedback.correctedLocation) {
+                updateFields.location = feedback.correctedLocation;
+              }
+              
+              // Add correctedDisasterType if provided
+              if (feedback.correctedDisasterType) {
+                updateFields.disasterType = feedback.correctedDisasterType;
+              }
+              
+              // Update the post with all provided corrections
               await db.update(sentimentPosts)
-                .set({ 
-                  sentiment: feedback.correctedSentiment, 
-                  confidence: 0.84 // Moderate-high confidence (80-86 range)
-                })
+                .set(updateFields)
                 .where(eq(sentimentPosts.id, post.id));
                 
               console.log(`Updated post ID ${post.id} sentiment from ${post.sentiment} to ${feedback.correctedSentiment}`);
@@ -1371,10 +1425,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Define outside the block to fix strict mode error
               const hasObviouslyDifferentContext = (originalText: string, postText: string): boolean => {
                 // 1. Check for ALL CAPS vs normal case (indicates emotional intensity)
-                const originalHasAllCaps = originalText.split(' ').some(word => 
+                const originalHasAllCaps = originalText.split(' ').some((word: string) => 
                   word.length > 4 && word === word.toUpperCase() && /[A-Z]/.test(word)
                 );
-                const postHasAllCaps = postText.split(' ').some(word => 
+                const postHasAllCaps = postText.split(' ').some((word: string) => 
                   word.length > 4 && word === word.toUpperCase() && /[A-Z]/.test(word)
                 );
                 
@@ -1385,8 +1439,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 // 2. Check for panic phrases like "NATATAKOT", "KAME/KAMI"
                 const panicPhrases = ['natatakot', 'takot', 'kame', 'kami', 'natakot', 'scared'];
-                const originalHasPanic = panicPhrases.some(phrase => originalText.toLowerCase().includes(phrase));
-                const postHasPanic = panicPhrases.some(phrase => postText.toLowerCase().includes(phrase));
+                const originalHasPanic = panicPhrases.some((phrase: string) => originalText.toLowerCase().includes(phrase));
+                const postHasPanic = panicPhrases.some((phrase: string) => postText.toLowerCase().includes(phrase));
                 
                 if (originalHasPanic !== postHasPanic) {
                   console.log(`Context differs: Panic indicators mismatch between texts`);
@@ -1450,7 +1504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                           post.text.toLowerCase().includes('kame') || 
                                           post.text.toLowerCase().includes('kami');
                                           
-                      const hasAllCaps = post.text.split(' ').some(word => 
+                      const hasAllCaps = post.text.split(' ').some((word: string) => 
                         word.length > 4 && word === word.toUpperCase() && /[A-Z]/.test(word)
                       );
                       
@@ -1548,6 +1602,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               originalText: feedback.originalText,
               originalSentiment: feedback.originalSentiment,
               correctedSentiment: feedback.correctedSentiment,
+              correctedLocation: feedback.correctedLocation,
+              correctedDisasterType: feedback.correctedDisasterType,
               trainingResult: trainingResult,
               feedback_id: savedFeedback.id
             } 

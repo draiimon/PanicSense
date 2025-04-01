@@ -209,7 +209,9 @@ export interface SentimentFeedback {
 export async function submitSentimentFeedback(
   originalText: string,
   originalSentiment: string,
-  correctedSentiment: string
+  correctedSentiment: string,
+  correctedLocation?: string,
+  correctedDisasterType?: string
 ): Promise<SentimentFeedback> {
   try {
     // Use fetch directly for better control of the response handling
@@ -222,6 +224,8 @@ export async function submitSentimentFeedback(
         originalText,
         originalSentiment,
         correctedSentiment,
+        correctedLocation,
+        correctedDisasterType,
         // Don't include trainedOn as it's not in the schema and is defaulted server-side
         // Include originalPostId and userId as optional
         originalPostId: null,
