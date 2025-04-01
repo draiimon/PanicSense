@@ -471,18 +471,39 @@ export class PythonService {
           
           try {
             // IMPROVED JSON EXTRACTION: The Python output contains a quiz format with ==== headers
-            // We need to extract just the JSON part at the end
+            // We need to extract just the JSON part at the end AND ENSURE NO EXTRA TEXT AFTER THE JSON
             
             // Find the last occurrence of '{' which should be the start of our JSON
             const jsonStartIndex = trimmedOutput.lastIndexOf('{');
             
             if (jsonStartIndex !== -1) {
-              // Extract just the JSON part
-              const jsonPart = trimmedOutput.substring(jsonStartIndex);
+              // Extract just the JSON part and ensure it's clean for parsing
+              let jsonPart = trimmedOutput.substring(jsonStartIndex);
               
-              // Now parse just the JSON part
+              // Handle the case if there's any additional text after the actual JSON
+              // by ensuring we only get to the last closing brace of the JSON object
+              let braceCount = 0;
+              let endIndex = 0;
+              
+              for (let i = 0; i < jsonPart.length; i++) {
+                if (jsonPart[i] === '{') braceCount++;
+                if (jsonPart[i] === '}') {
+                  braceCount--;
+                  if (braceCount === 0) {
+                    endIndex = i + 1; // include the closing brace
+                    break;
+                  }
+                }
+              }
+              
+              // If we found a proper JSON ending, trim the string
+              if (endIndex > 0) {
+                jsonPart = jsonPart.substring(0, endIndex);
+              }
+              
+              // Now parse just the clean JSON part
               const result = JSON.parse(jsonPart);
-              log(`Model training result: ${result.status} - ${result.message}`, 'python-service');
+              log(`Model training result: ${result.status} - ${result.message || 'No message'}`, 'python-service');
               
               // CONTENT FILTERING: Check for inappropriate language
               if (result.message) {

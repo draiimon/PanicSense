@@ -335,19 +335,27 @@ export function SentimentFeedback({
 
       console.log("Raw response from server:", JSON.stringify(response));
       console.log("Successfully parsed sentiment feedback response:", response);
+      console.log("Validation response:", response);
 
-      // Check if response contains quiz feedback from AI validation
-      if (response.status === "quiz_feedback" || (response.possibleTrolling && response.aiTrustMessage)) {
-        // Show quiz feedback popup with AI-generated analysis explanation
-        setWarningMessage(response.message || response.aiTrustMessage);
-        setWarningOpen(true);
-      } else {
-        // Show success message
-        toast({
-          title: "Feedback submitted",
-          description: "Thank you for helping improve our AI analysis system",
-        });
-      }
+      // ALWAYS SHOW THE FEEDBACK POPUP with the validation message
+      // This ensures that the explanation always shows up regardless of response format
+      
+      // Extract the message from any of the possible fields or fallback to default
+      const validationMessage = 
+        // If status is error, use the message directly  
+        response.status === "error" ? response.message : 
+        // If we have a message field, use it (from normal validation)
+        response.message ? response.message :
+        // If we have AI trust message (from trolling detection)
+        response.aiTrustMessage ? response.aiTrustMessage :
+        // If we have training error
+        response.trainingError ? response.trainingError :
+        // Default message if all else fails
+        "Feedback received. AI analysis results will be updated.";
+        
+      // Always show the popup dialog with the message
+      setWarningMessage(validationMessage);
+      setWarningOpen(true);
       
       setIsOpen(false);
       resetForm();

@@ -1871,8 +1871,10 @@ class DisasterSentimentBackend:
         except:
             language = "English"
             
-        # Use the first API key only for validation
+        # Use ONLY ONE API key for validation to prevent rate limiting
+        # This strictly follows the requirement of using just one API key
         validation_api_key = self.groq_api_keys[0] if len(self.groq_api_keys) > 0 else None
+        logging.info(f"Using 1 key(s) for validation")
         
         if validation_api_key:
             # Manual API call with a single key instead of using analyze_sentiment
@@ -1939,23 +1941,9 @@ class DisasterSentimentBackend:
         quiz_options = "a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience"
         ai_answer = option_map.get(ai_sentiment, f"({ai_sentiment})")
         
-        # Log the quiz-style analysis with more visual representation
-        console_separator = "=" * 50
-        quiz_frame = f"""
-{console_separator}
-📝 AI QUIZ VALIDATION STARTED 📝
-{console_separator}
-Question: {quiz_prompt}
-Options: {quiz_options}
-
-🤖 AI's Answer: {ai_answer}
-👨‍💼 User Selected: {option_map.get(corrected_sentiment, corrected_sentiment)}
-
-💡 AI's Reasoning: {ai_explanation}
-{console_separator}
-"""
-        # Just log it to the logging system - don't print to stdout to avoid duplicate messages
-        logging.info(quiz_frame)
+        # Don't print any quiz frames to stdout - only log to file
+        # This prevents double messages and JSON parsing errors
+        logging.info("AI QUIZ VALIDATION: Validating user correction")
         
         # Default to valid
         result = {"valid": True, "reason": ""}
@@ -2085,6 +2073,8 @@ def main():
                                 
                                 # Make sure no logging or validation messages are in the output
                                 # We want ONLY ONE clean JSON output for the frontend to parse
+                                # REMOVED ALL BANNER DISPLAYS, ONLY OUTPUT THE PURE JSON RESULT TO AVOID PARSING ISSUES ON CLIENT
+                                # REMOVED AI QUIZ VALIDATION RESULTS BANNER AND OTHER DECORATIVE TEXT
                                 print(json.dumps(training_result))
                                 sys.stdout.flush()
                             except Exception as e:

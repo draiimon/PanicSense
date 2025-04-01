@@ -1,0 +1,473 @@
+:34 PM [python-service] Raw Python output: "==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: d) Disbelief
+
+Explanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: d) Disbelief\n\nExplanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.831538370313647, "improvement": 0.011538370313646962}}"
+6:13:34 PM [python-service] Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 99. Raw output: "==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: d) Disbelief
+
+Explanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: d) Disbelief\n\nExplanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.831538370313647, "improvement": 0.011538370313646962}}"
+Error during AI quiz validation: Error: Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 99. Raw output: "==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: d) Disbelief
+
+Explanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: d) Disbelief\n\nExplanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.831538370313647, "improvement": 0.011538370313646962}}"
+    at ChildProcess.<anonymous> (/home/runner/workspace/server/python-service.ts:528:20)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+Feedback saved to database with ID: 116
+Training example saved to database with ID: 4
+6:13:36 PM [python-service] Analyzing sentiment for text: 😂 TULONG HAHAHA !...
+6:13:36 PM [python-service] Using training example from database for sentiment: Resilience
+🧠 AI Analysis result: {
+  sentiment: 'Resilience',
+  confidence: 0.95,
+  explanation: 'The message shows strength and determination in the face of disaster. The language demonstrates community support and cooperation. The use of laughter suggests disbelief or nervous humor about the situation. The use of all caps indicates heightened emotional intensity.',
+  language: 'English',
+  disasterType: 'UNKNOWN',
+  location: 'UNKNOWN'
+}
+🧠 AI determined this is NOT panic text with confidence 0.95
+Starting model training with feedback
+6:13:36 PM [python-service] Training model with feedback: "😂 TULONG HAHAHA !..." - Disbelief → Resilience
+6:13:36 PM [python-service] Sending feedback payload to Python: {"feedback":true,"originalText":"😂 TULONG HAHAHA !","originalSentiment":"Disbelief","correctedSentiment":"Resilience"}
+6:13:37 PM [python-service] Python process error: 2025-04-01 18:13:37,255 - INFO - Loaded 2 API keys for rotation
+6:13:37 PM [python-service] Python process error: 2025-04-01 18:13:37,255 - INFO - Using 1 key(s) for validation
+2025-04-01 18:13:37,255 - INFO - Loaded 1 API keys for rotation
+2025-04-01 18:13:37,255 - INFO - Applying sentiment correction: Disbelief -> Resilience
+6:13:38 PM [python-service] Python process error: 2025-04-01 18:13:38,227 - ERROR - Error processing LLM response: No valid JSON found in response
+6:13:38 PM [python-service] Python process error: 2025-04-01 18:13:38,227 - INFO - API validation used single key successfully
+2025-04-01 18:13:38,227 - INFO - 
+==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: e) Resilience
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+2025-04-01 18:13:38,227 - WARNING - AI QUIZ VALIDATION: STRICTLY REJECTING correction due to validation failure
+2025-04-01 18:13:38,227 - INFO - AI QUIZ VALIDATION result: {'valid': False, 'reason': "VALIDATION FAILED!\n\nOur AI analyzed this text as: d) Disbelief\n\nExplanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis."}
+2025-04-01 18:13:38,227 - INFO - 
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: d) Disbelief
+
+Explanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+6:13:38 PM [python-service] Python stdout: ==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: d) Disbelief
+
+Explanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: d) Disbelief\n\nExplanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8345304738869519, "improvement": 0.014530473886951993}}
+6:13:38 PM [python-service] Raw Python output: "==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: d) Disbelief
+
+Explanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: d) Disbelief\n\nExplanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8345304738869519, "improvement": 0.014530473886951993}}"
+6:13:38 PM [python-service] Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 100. Raw output: "==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: d) Disbelief
+
+Explanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: d) Disbelief\n\nExplanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8345304738869519, "improvement": 0.014530473886951993}}"
+Error training model with feedback: Error: Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 100. Raw output: "==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: d) Disbelief
+
+Explanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: d) Disbelief\n\nExplanation: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8345304738869519, "improvement": 0.014530473886951993}}"
+    at ChildProcess.<anonymous> (/home/runner/workspace/server/python-service.ts:528:20)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+6:13:38 PM [express] POST /api/sentiment-feedback 200 in 5476ms :: {"id":116,"originalText":"😂 TULONG HAHAHA !","originalSentiment":"Disbelief","correctedSentiment":"...
+6:13:39 PM [express] GET /api/sentiment-posts 304 in 426ms :: [{"id":61,"text":"😂 TULONG HAHAHA !","timestamp":"2025-04-01T14:53:00.252Z","source":"Manual Input"...
+6:13:39 PM [express] GET /api/sentiment-posts 304 in 214ms :: [{"id":61,"text":"😂 TULONG HAHAHA !","timestamp":"2025-04-01T14:53:00.252Z","source":"Manual Input"...
+6:13:40 PM [express] GET /api/analyzed-files 304 in 1528ms :: [{"id":1,"originalName":"MAGULONG DATA!.csv","storedName":"46fGDgrcRIsbpdNxsB3df-MAGULONG DATA!.csv"...
+6:13:40 PM [express] GET /api/disaster-events 304 in 1523ms :: [{"id":4,"name":"UNKNOWN Event","description":"Based on 9 reports from the community. Sentiment dist...
+6:13:40 PM [express] GET /api/analyzed-files 304 in 218ms :: [{"id":1,"originalName":"MAGULONG DATA!.csv","storedName":"46fGDgrcRIsbpdNxsB3df-MAGULONG DATA!.csv"...
+6:13:40 PM [express] GET /api/disaster-events 304 in 216ms :: [{"id":4,"name":"UNKNOWN Event","description":"Based on 9 reports from the community. Sentiment dist...
+6:13:57 PM [express] GET /api/usage-stats 304 in 1ms :: {"used":0,"limit":10000,"remaining":10000,"resetAt":"2025-04-01T17:55:06.089Z"}
+Received sentiment feedback request: {
+  "originalText": "may sunog sa TIP help!!!",
+  "originalSentiment": "Panic",
+  "correctedSentiment": "Resilience",
+  "originalPostId": null,
+  "userId": null
+}
+Processing feedback for training: {
+  originalText: 'may sunog sa TIP help!!!',
+  originalSentiment: 'Panic',
+  correctedSentiment: 'Resilience',
+  correctedLocation: null,
+  correctedDisasterType: null,
+  originalPostId: null,
+  userId: null
+}
+Performing AI quiz validation before saving feedback...
+6:14:18 PM [python-service] Training model with feedback: "may sunog sa TIP help!!!..." - Panic → Resilience
+6:14:18 PM [python-service] Sending feedback payload to Python: {"feedback":true,"originalText":"may sunog sa TIP help!!!","originalSentiment":"Panic","correctedSentiment":"Resilience"}
+6:14:18 PM [python-service] Python process error: 2025-04-01 18:14:18,584 - INFO - Loaded 2 API keys for rotation
+2025-04-01 18:14:18,584 - INFO - Using 1 key(s) for validation
+6:14:18 PM [python-service] Python process error: 2025-04-01 18:14:18,584 - INFO - Loaded 1 API keys for rotation
+2025-04-01 18:14:18,584 - INFO - Applying sentiment correction: Panic -> Resilience
+6:14:19 PM [python-service] Python process error: 2025-04-01 18:14:19,534 - ERROR - Error processing LLM response: No valid JSON found in response
+6:14:19 PM [python-service] Python process error: 2025-04-01 18:14:19,534 - INFO - API validation used single key successfully
+2025-04-01 18:14:19,535 - INFO - 
+==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: 'may sunog sa TIP help!!!'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: a) Panic
+👨‍💼 User Selected: e) Resilience
+
+💡 AI's Reasoning: The text shows signs of urgent distress or calls for immediate help, indicating panic.
+==================================================
+
+2025-04-01 18:14:19,535 - WARNING - AI QUIZ VALIDATION: FAILED - User answer is too different from AI assessment
+2025-04-01 18:14:19,535 - WARNING - AI QUIZ VALIDATION: STRICTLY REJECTING correction due to validation failure
+2025-04-01 18:14:19,535 - INFO - AI QUIZ VALIDATION result: {'valid': False, 'reason': 'VALIDATION FAILED!\n\nOur AI analyzed this text as: a) Panic\n\nExplanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.'}
+2025-04-01 18:14:19,535 - INFO - 
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "may sunog sa TIP help!!!"
+🔄 Sentiment Change: Panic ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: a) Panic
+
+Explanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+6:14:19 PM [python-service] Python stdout: ==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "may sunog sa TIP help!!!"
+🔄 Sentiment Change: Panic ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: a) Panic
+
+Explanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: a) Panic\n\nExplanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8304793623204665, "improvement": 0.01047936232046654}}
+6:14:19 PM [python-service] Raw Python output: "==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "may sunog sa TIP help!!!"
+🔄 Sentiment Change: Panic ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: a) Panic
+
+Explanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: a) Panic\n\nExplanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8304793623204665, "improvement": 0.01047936232046654}}"
+6:14:19 PM [python-service] Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 99. Raw output: "==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "may sunog sa TIP help!!!"
+🔄 Sentiment Change: Panic ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: a) Panic
+
+Explanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: a) Panic\n\nExplanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8304793623204665, "improvement": 0.01047936232046654}}"
+Error during AI quiz validation: Error: Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 99. Raw output: "==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "may sunog sa TIP help!!!"
+🔄 Sentiment Change: Panic ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: a) Panic
+
+Explanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: a) Panic\n\nExplanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8304793623204665, "improvement": 0.01047936232046654}}"
+    at ChildProcess.<anonymous> (/home/runner/workspace/server/python-service.ts:528:20)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+Feedback saved to database with ID: 117
+Training example saved to database with ID: 14
+6:14:21 PM [python-service] Analyzing sentiment for text: may sunog sa TIP help!!!...
+6:14:21 PM [python-service] Using training example from database for sentiment: Resilience
+🧠 AI Analysis result: {
+  sentiment: 'Resilience',
+  confidence: 0.95,
+  explanation: 'The message shows strength and determination in the face of disaster. The language demonstrates community support and cooperation. Context relates to fire incident.',
+  language: 'English',
+  disasterType: 'Fire',
+  location: 'UNKNOWN'
+}
+🧠 AI determined this is NOT panic text with confidence 0.95
+Starting model training with feedback
+6:14:21 PM [python-service] Training model with feedback: "may sunog sa TIP help!!!..." - Panic → Resilience
+6:14:21 PM [python-service] Sending feedback payload to Python: {"feedback":true,"originalText":"may sunog sa TIP help!!!","originalSentiment":"Panic","correctedSentiment":"Resilience"}
+6:14:22 PM [python-service] Python process error: 2025-04-01 18:14:22,360 - INFO - Loaded 2 API keys for rotation
+6:14:22 PM [python-service] Python process error: 2025-04-01 18:14:22,360 - INFO - Using 1 key(s) for validation
+2025-04-01 18:14:22,360 - INFO - Loaded 1 API keys for rotation
+2025-04-01 18:14:22,360 - INFO - Applying sentiment correction: Panic -> Resilience
+6:14:23 PM [python-service] Python process error: 2025-04-01 18:14:23,333 - ERROR - Error processing LLM response: No valid JSON found in response
+6:14:23 PM [python-service] Python process error: 2025-04-01 18:14:23,333 - INFO - API validation used single key successfully
+2025-04-01 18:14:23,333 - INFO - 
+==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: 'may sunog sa TIP help!!!'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: a) Panic
+👨‍💼 User Selected: e) Resilience
+
+💡 AI's Reasoning: The text shows signs of urgent distress or calls for immediate help, indicating panic.
+==================================================
+
+2025-04-01 18:14:23,333 - WARNING - AI QUIZ VALIDATION: FAILED - User answer is too different from AI assessment
+2025-04-01 18:14:23,333 - WARNING - AI QUIZ VALIDATION: STRICTLY REJECTING correction due to validation failure
+2025-04-01 18:14:23,333 - INFO - AI QUIZ VALIDATION result: {'valid': False, 'reason': 'VALIDATION FAILED!\n\nOur AI analyzed this text as: a) Panic\n\nExplanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.'}
+2025-04-01 18:14:23,333 - INFO - 
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "may sunog sa TIP help!!!"
+🔄 Sentiment Change: Panic ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: a) Panic
+
+Explanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+6:14:23 PM [python-service] Python stdout: ==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "may sunog sa TIP help!!!"
+🔄 Sentiment Change: Panic ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: a) Panic
+
+Explanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: a) Panic\n\nExplanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8307802153475533, "improvement": 0.010780215347553338}}
+6:14:23 PM [python-service] Raw Python output: "==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "may sunog sa TIP help!!!"
+🔄 Sentiment Change: Panic ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: a) Panic
+
+Explanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: a) Panic\n\nExplanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8307802153475533, "improvement": 0.010780215347553338}}"
+6:14:23 PM [python-service] Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 100. Raw output: "==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "may sunog sa TIP help!!!"
+🔄 Sentiment Change: Panic ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: a) Panic
+
+Explanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: a) Panic\n\nExplanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8307802153475533, "improvement": 0.010780215347553338}}"
+Error training model with feedback: Error: Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 100. Raw output: "==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: False
+📝 Original Text: "may sunog sa TIP help!!!"
+🔄 Sentiment Change: Panic ➡️ Resilience
+
+📢 AI Feedback: 
+VALIDATION FAILED!
+
+Our AI analyzed this text as: a) Panic
+
+Explanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.
+
+Your selection (e) Resilience) was NOT accepted because it conflicts with our analysis.
+==================================================
+
+{"status": "quiz_feedback", "message": "VALIDATION FAILED!\n\nOur AI analyzed this text as: a) Panic\n\nExplanation: The text shows signs of urgent distress or calls for immediate help, indicating panic.\n\nYour selection (e) Resilience) was NOT accepted because it conflicts with our analysis.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8307802153475533, "improvement": 0.010780215347553338}}"
+    at ChildProcess.<anonymous> (/home/runner/workspace/server/python-service.ts:528:20)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+6:14:23 PM [express] POST /api/sentiment-feedback 200 in 5372ms :: {"id":117,"originalText":"may sunog sa TIP help!!!","originalSentiment":"Panic","correctedSentiment"...
+6:14:24 PM [express] GET /api/sentiment-posts 304 in 431ms :: [{"id":61,"text":"😂 TULONG HAHAHA !","timestamp":"2025-04-01T14:53:00.252Z","source":"Manual Input"...
+6:14:24 PM [express] GET /api/sentiment-posts 304 in 218ms :: [{"id":61,"text":"😂 TULONG HAHAHA !","timestamp":"2025-04-01T14:53:00.252Z","source":"Manual Input"...
+6:14:25 PM [express] GET /api/disaster-events 304 in 1496ms :: [{"id":4,"name":"UNKNOWN Event","description":"Based on 9 reports from the community. Sentiment dist...
+6:14:25 PM [express] GET /api/analyzed-files 304 in 1499ms :: [{"id":1,"originalName":"MAGULONG DATA!.csv","storedName":"46fGDgrcRIsbpdNxsB3df-MAGULONG DATA!.csv"...
+6:14:25 PM [express] GET /api/disaster-events 304 in 213ms :: [{"id":4,"name":"UNKNOWN Event","description":"Based on 9 reports from the community. Sentiment dist...
+6:14:25 PM [express] GET /api/analyzed-files 304 in 214ms :: [{"id":1,"originalName":"MAGULONG DATA!.csv","storedName":"46fGDgrcRIsbpdNxsB3df-MAGULONG DATA!.csv"...
+6:14:57 PM [express] GET /api/usage-stats 304 in 1ms :: {"used":0,"limit":10000,"remaining":10000,"resetAt":"2025-04-01T17:55:06.089Z"}
+6:15:36 PM [vite] hmr update /src/components/sentiment-feedback.tsx, /src/index.css?v=FSFJIWCNUkrT7jSknX53_
