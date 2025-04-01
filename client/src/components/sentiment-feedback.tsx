@@ -118,6 +118,76 @@ export function SentimentFeedback({
     setIncludeDisasterType(false);
     setActiveTab("sentiment");
   };
+  
+  // Client-side validation function to validate sentiment changes
+  const validateSentimentChange = (): { valid: boolean, message: string | null } => {
+    // Default to valid
+    let result = { valid: true, message: null };
+    
+    // Check if changing sentiment from Disbelief to Neutral for joke content
+    if (
+      originalSentiment === "Disbelief" && 
+      correctedSentiment === "Neutral" && 
+      containsJokeIndicators(originalText)
+    ) {
+      return {
+        valid: false,
+        message: "This text appears to contain joke or sarcasm indicators which are better classified as Disbelief, not Neutral."
+      };
+    }
+    
+    // Check if changing serious panic content to Disbelief
+    if (
+      (originalSentiment === "Panic" || originalSentiment === "Fear/Anxiety") && 
+      correctedSentiment === "Disbelief" && 
+      !containsJokeIndicators(originalText) && 
+      containsDisasterKeywords(originalText)
+    ) {
+      return {
+        valid: false,
+        message: "This text appears to contain serious disaster content without humor indicators. It should not be classified as Disbelief."
+      };
+    }
+    
+    return result;
+  };
+  
+  // Function to check if text contains joke/sarcasm indicators
+  const containsJokeIndicators = (text: string): boolean => {
+    const lowerText = text.toLowerCase();
+    const jokeIndicators = [
+      "haha", "hehe", "lol", "lmao", "ulol", "gago", "tanga", 
+      "daw?", "raw?", "talaga?", "really?", "😂", "🤣"
+    ];
+    
+    // Check for laughter patterns
+    if (jokeIndicators.some(indicator => lowerText.includes(indicator))) {
+      return true;
+    }
+    
+    // Check for multiple exclamation marks with "haha"
+    if (lowerText.includes("haha") && text.includes("!")) {
+      return true;
+    }
+    
+    // Check for capitalized laughter
+    if (text.includes("HAHA") || text.includes("HEHE")) {
+      return true;
+    }
+    
+    return false;
+  };
+  
+  // Function to check if text contains disaster keywords
+  const containsDisasterKeywords = (text: string): boolean => {
+    const lowerText = text.toLowerCase();
+    const disasterKeywords = [
+      "earthquake", "lindol", "fire", "sunog", "flood", "baha", 
+      "typhoon", "bagyo", "tsunami", "landslide", "nagiba"
+    ];
+    
+    return disasterKeywords.some(keyword => lowerText.includes(keyword));
+  };
 
   const handleSubmit = async () => {
     if (!correctedSentiment && !includeLocation && !includeDisasterType) {
@@ -127,6 +197,18 @@ export function SentimentFeedback({
         variant: "destructive",
       });
       return;
+    }
+    
+    // Check if sentiment change is valid (only if correctedSentiment is provided)
+    if (correctedSentiment) {
+      const validationResult = validateSentimentChange();
+      if (!validationResult.valid && validationResult.message) {
+        // Show validation warning directly in UI
+        setWarningMessage(validationResult.message);
+        setWarningOpen(true);
+        // Return without submitting - this blocks the submission completely
+        return;
+      }
     }
 
     if (includeLocation && !correctedLocation) {
@@ -212,15 +294,22 @@ export function SentimentFeedback({
                 {warningMessage || "Our AI detected an inconsistency in your feedback."}
               </div>
               <p className="text-sm text-gray-600 mt-2">
-                Your feedback has been saved and all changes have been applied to the database.
-                This alert is just to inform you about a potential mismatch between the text content
-                and your chosen category.
+                {correctedSentiment && validateSentimentChange().valid === false ? (
+                  // Client-side validation message (submission blocked)
+                  "Your feedback cannot be submitted due to this validation issue. Please review your changes."
+                ) : (
+                  // Server-side warning message (submission allowed)
+                  "Your feedback has been saved and all changes have been applied to the database. This alert is just to inform you about a potential mismatch between the text content and your chosen category."
+                )}
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white">
-              I Understand
+              {correctedSentiment && validateSentimentChange().valid === false ? 
+                "Go Back and Fix" : 
+                "I Understand"
+              }
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -272,8 +361,11 @@ export function SentimentFeedback({
                 
                 <div>
                   <h3 className="text-sm font-medium mb-2">Corrected Sentiment</h3>
-                  <Select value={correctedSentiment} onValueChange={setCorrectedSentiment}>
-                    <SelectTrigger className="w-full">
+                  <Select 
+                    value={correctedSentiment} 
+                    onValueChange={setCorrectedSentiment}
+                  >
+                    <SelectTrigger className={`w-full ${correctedSentiment && !validateSentimentChange().valid ? "border-red-500" : ""}`}>
                       <SelectValue placeholder="Select sentiment" />
                     </SelectTrigger>
                     <SelectContent>
@@ -287,6 +379,14 @@ export function SentimentFeedback({
                       </SelectGroup>
                     </SelectContent>
                   </Select>
+                  
+                  {/* Show instant validation feedback */}
+                  {correctedSentiment && !validateSentimentChange().valid && (
+                    <div className="text-sm text-red-600 mt-1 flex items-center">
+                      <AlertCircle className="h-3.5 w-3.5 mr-1" />
+                      {validateSentimentChange().message}
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -420,8 +520,18 @@ export function SentimentFeedback({
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={isSubmitting || (!correctedSentiment && !includeLocation && !includeDisasterType)}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600"
+            disabled={
+              isSubmitting || 
+              (!correctedSentiment && !includeLocation && !includeDisasterType) ||
+              (correctedSentiment && !validateSentimentChange().valid)
+            }
+            className={`
+              bg-gradient-to-r 
+              ${correctedSentiment && !validateSentimentChange().valid 
+                ? "from-red-500 to-red-700 opacity-70" 
+                : "from-indigo-600 to-purple-600"
+              }
+            `}
           >
             {isSubmitting ? "Submitting..." : "Submit Feedback"}
             {!isSubmitting && <ThumbsUp className="ml-2 h-4 w-4" />}
