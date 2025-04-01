@@ -119,37 +119,77 @@ export function SentimentFeedback({
     setActiveTab("sentiment");
   };
   
-  // Client-side validation function to validate sentiment changes
+  // General purpose client-side validation function for all sentiment changes
   const validateSentimentChange = (): { valid: boolean, message: string | null } => {
     // Default to valid
     let result = { valid: true, message: null };
     
-    // Check if changing sentiment from Disbelief to Neutral for joke content
-    if (
-      originalSentiment === "Disbelief" && 
-      correctedSentiment === "Neutral" && 
-      containsJokeIndicators(originalText)
-    ) {
-      return {
-        valid: false,
-        message: "This text appears to contain joke or sarcasm indicators which are better classified as Disbelief, not Neutral."
-      };
+    // ===== BASIC CONTENT CLASSIFICATION =====
+    const hasJokeIndicators = containsJokeIndicators(originalText);
+    const hasDisasterKeywords = containsDisasterKeywords(originalText);
+    const hasQuestionForm = containsQuestionForm(originalText);
+    const hasEmojis = originalText.includes("😂") || originalText.includes("🤣") || originalText.includes("😆");
+    
+    // ===== SENTIMENT CLASSIFICATION RULES =====
+    
+    // RULE 1: Joking text should be classified as Disbelief
+    if (correctedSentiment !== "Disbelief" && hasJokeIndicators && !hasSeriosDisasterIndication(originalText)) {
+      if (hasJokeIndicators && (hasDisasterKeywords || hasEmojis)) {
+        return {
+          valid: false,
+          message: "This text appears to be joking or sarcastic. It should be classified as Disbelief, not " + correctedSentiment
+        };
+      }
     }
     
-    // Check if changing serious panic content to Disbelief
-    if (
-      (originalSentiment === "Panic" || originalSentiment === "Fear/Anxiety") && 
-      correctedSentiment === "Disbelief" && 
-      !containsJokeIndicators(originalText) && 
-      containsDisasterKeywords(originalText)
-    ) {
+    // RULE 2: Clear disaster text without humor should not be classified as Disbelief
+    if (correctedSentiment === "Disbelief" && hasDisasterKeywords && !hasJokeIndicators && !hasQuestionForm) {
       return {
         valid: false,
         message: "This text appears to contain serious disaster content without humor indicators. It should not be classified as Disbelief."
       };
     }
     
+    // RULE 3: Text with both disaster keywords AND joke indicators is valid as Disbelief
+    if (correctedSentiment === "Disbelief" && hasJokeIndicators && hasDisasterKeywords) {
+      // Allow the change - if someone is joking about a disaster, it's valid to mark as Disbelief
+      return { valid: true, message: null };
+    }
+    
+    // RULE 4: Text with emojis and question markers should be allowed to be Disbelief 
+    if (correctedSentiment === "Disbelief" && hasEmojis && hasQuestionForm) {
+      // Specifically for the "MA SUNOG DAW?" text with laughing emojis
+      return { valid: true, message: null };
+    }
+    
     return result;
+  };
+  
+  // Helper function to check if text is in question form (daw/raw/?, etc)
+  const containsQuestionForm = (text: string): boolean => {
+    const lowerText = text.toLowerCase();
+    return (
+      text.includes("?") || 
+      lowerText.includes("daw") || 
+      lowerText.includes("raw") || 
+      lowerText.includes("ba") || 
+      lowerText.includes("kaya") || 
+      lowerText.includes("talaga")
+    );
+  };
+  
+  // Helper function to detect serious disaster indications that override joke markers
+  const hasSeriosDisasterIndication = (text: string): boolean => {
+    const lowerText = text.toLowerCase();
+    const seriousIndicators = [
+      "mamatay", "patay", "papatayin", "namatay",
+      "died", "dead", "death", "killed",
+      "casualties", "casualty", "victim", "victims",
+      "injured", "injuries", "wounded", "wound",
+      "emergency", "emerhensi", "evac", "evacuate"
+    ];
+    
+    return seriousIndicators.some(indicator => lowerText.includes(indicator));
   };
   
   // Function to check if text contains joke/sarcasm indicators
@@ -157,7 +197,9 @@ export function SentimentFeedback({
     const lowerText = text.toLowerCase();
     const jokeIndicators = [
       "haha", "hehe", "lol", "lmao", "ulol", "gago", "tanga", 
-      "daw?", "raw?", "talaga?", "really?", "😂", "🤣"
+      "daw?", "raw?", "talaga?", "really?", "😂", "🤣",
+      "joke", "jokes", "joke lang", "eme", "charot", "char", "joke time",
+      "jk", "kidding", "just kidding", "sarcasm"
     ];
     
     // Check for laughter patterns
