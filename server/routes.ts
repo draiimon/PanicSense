@@ -1294,9 +1294,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 for (const word of words) {
                   if (word.length >= 4) { // Only use significant words (4+ chars)
-                    const matchingPosts = await db.select().from(sentimentPosts)
-                      .where(sql`text ILIKE ${`%${word}%`}`)
-                      .where(sql`id NOT IN (${postsToUpdate.map(p => p.id).join(',')})`); // Exclude exact matches
+                    // Skip SQL query if no posts to update (avoid division by zero)
+                    if (postsToUpdate.length === 0) continue;
+                    
+                    // Build an array of IDs to exclude
+                    const excludeIds = postsToUpdate.map(p => p.id);
+                    
+                    // Query for similar posts excluding already updated ones
+                    let matchingPosts = [];
+                    if (excludeIds.length > 0) {
+                      // Use individual WHERE id != conditions instead of NOT IN
+                      let query = db.select().from(sentimentPosts)
+                        .where(sql`text ILIKE ${`%${word}%`}`);
+                        
+                      // Add individual exclusions for each ID 
+                      for (const id of excludeIds) {
+                        query = query.where(sql`id != ${id}`);
+                      }
+                      
+                      matchingPosts = await query;
+                    }
                     
                     if (similarPosts.length === 0) {
                       similarPosts = matchingPosts;
