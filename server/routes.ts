@@ -2,11 +2,13 @@ import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
+import { db } from "./db";
+import { eq, sql } from "drizzle-orm";
 import path from "path";
 import multer from "multer";
 import fs from "fs";
 import { pythonService, pythonConsoleMessages } from "./python-service";
-import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema } from "@shared/schema";
+import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts } from "@shared/schema";
 import { usageTracker } from "./utils/usage-tracker";
 import { EventEmitter } from 'events';
 
@@ -1255,6 +1257,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Clear the cache entry for this text to force re-analysis next time
           pythonService.clearCacheForText(feedback.originalText);
           console.log(`Cache cleared for retrained text: "${feedback.originalText.substring(0, 30)}..."`);
+          
+          // UPDATE ALL EXISTING POSTS WITH SAME TEXT TO NEW SENTIMENT
+          try {
+            // Get all posts from the database with the same text
+            const query = db.select().from(sentimentPosts)
+              .where(sql`text = ${feedback.originalText}`);
+            
+            const postsToUpdate = await query;
+            console.log(`Found ${postsToUpdate.length} posts with the same text to update sentiment`);
+            
+            // Update each post with the new corrected sentiment
+            for (const post of postsToUpdate) {
+              await db.update(sentimentPosts)
+                .set({ 
+                  sentiment: feedback.correctedSentiment, 
+                  confidence: 0.95 // High confidence since this is manually corrected
+                })
+                .where(eq(sentimentPosts.id, post.id));
+                
+              console.log(`Updated post ID ${post.id} sentiment from ${post.sentiment} to ${feedback.correctedSentiment}`);
+            }
+            
+            // ALSO LOOK FOR SIMILAR POSTS (partial text matches) and update those too
+            // This ensures that variations like "Example text" vs "Example text in Cavite" still get updated
+            try {
+              // Create normalized text (lowercase, no punctuation, space-separated words)
+              const normalizedText = feedback.originalText.toLowerCase().replace(/[^\w\s]/g, '');
+              const words = normalizedText.split(/\s+/).filter(w => w.length > 3);
+              
+              // Skip if we don't have enough significant words to match on
+              if (words.length >= 3) {
+                // Build a SQL query to find posts containing all these words
+                // This is a simple approach - for production, consider using full-text search
+                let similarPosts = [];
+                
+                for (const word of words) {
+                  if (word.length >= 4) { // Only use significant words (4+ chars)
+                    const matchingPosts = await db.select().from(sentimentPosts)
+                      .where(sql`text ILIKE ${`%${word}%`}`)
+                      .where(sql`id NOT IN (${postsToUpdate.map(p => p.id).join(',')})`); // Exclude exact matches
+                    
+                    if (similarPosts.length === 0) {
+                      similarPosts = matchingPosts;
+                    } else {
+                      // Keep only posts that matched previous words too
+                      similarPosts = similarPosts.filter(post => 
+                        matchingPosts.some(match => match.id === post.id)
+                      );
+                    }
+                    
+                    // If no matches left, break early
+                    if (similarPosts.length === 0) break;
+                  }
+                }
+                
+                console.log(`Found ${similarPosts.length} similar posts to update sentiment`);
+                
+                // Update similar posts
+                for (const post of similarPosts) {
+                  await db.update(sentimentPosts)
+                    .set({ 
+                      sentiment: feedback.correctedSentiment, 
+                      confidence: 0.92 // High confidence but slightly less than exact match
+                    })
+                    .where(eq(sentimentPosts.id, post.id));
+                    
+                  console.log(`Updated similar post ID ${post.id} sentiment from ${post.sentiment} to ${feedback.correctedSentiment}`);
+                }
+              }
+            } catch (similarError) {
+              console.error("Error updating similar posts:", similarError);
+            }
+          } catch (error) {
+            console.error("Error updating existing sentiment posts:", error);
+          }
           
           // Broadcast update to connected clients
           broadcastUpdate({ 
