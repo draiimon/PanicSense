@@ -203,9 +203,9 @@ export function RealtimeMonitor() {
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2 h-full">
       {/* Input Card */}
-      <Card className="border-none mb-2 sm:mb-4 overflow-hidden shadow-lg rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100/40">
+      <Card className="border-none mb-2 sm:mb-4 overflow-hidden shadow-lg rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100/40 flex flex-col h-full">
         <CardHeader className="p-4 border-b border-gray-200/40 bg-gradient-to-r from-indigo-600/90 via-blue-600/90 to-purple-600/90">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -231,12 +231,12 @@ export function RealtimeMonitor() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-5">
+        <CardContent className="p-5 h-full flex flex-col">
           <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter disaster-related text to analyze sentiment..."
-            className="min-h-[150px]"
+            className="flex-grow h-full min-h-[150px] resize-none"
           />
         </CardContent>
         <CardFooter className="p-5 pt-0 flex flex-col gap-4">
@@ -282,7 +282,7 @@ export function RealtimeMonitor() {
       </Card>
 
       {/* Results Card */}
-      <Card className="border-none mb-2 sm:mb-4 overflow-hidden shadow-lg rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100/40">
+      <Card className="border-none mb-2 sm:mb-4 overflow-hidden shadow-lg rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100/40 flex flex-col h-full">
         <CardHeader className="p-4 border-b border-gray-200/40 bg-gradient-to-r from-indigo-600/90 via-blue-600/90 to-purple-600/90">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm shadow-inner">
@@ -300,7 +300,7 @@ export function RealtimeMonitor() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-5 max-h-[350px] overflow-y-auto">
+        <CardContent className="p-5 flex-grow h-full overflow-y-auto">
           {analyzedTexts.length === 0 ? (
             <div className="text-center py-10 text-slate-400">
               <svg
