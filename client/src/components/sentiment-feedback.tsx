@@ -230,14 +230,22 @@ export function SentimentFeedback({
       
       console.log("Validation response:", response);
       
-      // Call the callback to force UI refresh FIRST, before showing explanation
+      // AGGRESSIVELY force UI refresh FIRST, before showing explanation
       // This ensures the UI updates even if the explanation is displayed
+      
+      // Force a data refresh by triggering a custom event for UI components to listen to
+      const refreshEvent = new CustomEvent('sentiment-data-changed', {
+        detail: {
+          text: originalText,
+          newSentiment: correctedSentiment,
+          timestamp: new Date().toISOString()
+        }
+      });
+      window.dispatchEvent(refreshEvent);
+      
+      // Also call the callback if provided
       if (onFeedbackSubmitted) {
         onFeedbackSubmitted();
-      } else {
-        // Force a data refresh by triggering a custom event for UI components to listen to
-        const refreshEvent = new CustomEvent('sentiment-data-changed');
-        window.dispatchEvent(refreshEvent);
       }
       
       // Show complete explanation feedback from the AI
@@ -365,7 +373,13 @@ export function SentimentFeedback({
         onFeedbackSubmitted();
       } else {
         // Force a data refresh by triggering a custom event for UI components to listen to
-        const refreshEvent = new CustomEvent('sentiment-data-changed');
+        const refreshEvent = new CustomEvent('sentiment-data-changed', {
+          detail: {
+            text: originalText,
+            newSentiment: correctedSentiment,
+            timestamp: new Date().toISOString()
+          }
+        });
         window.dispatchEvent(refreshEvent);
       }
     } catch (error) {

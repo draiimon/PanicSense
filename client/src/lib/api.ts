@@ -221,6 +221,7 @@ export async function submitSentimentFeedback(
 ): Promise<SentimentFeedback & {
   status?: string;
   message?: string;
+  aiTrustMessage?: string;
   performance?: {
     previous_accuracy: number;
     new_accuracy: number;
@@ -278,6 +279,8 @@ export async function submitSentimentFeedback(
       trainedOn: false,
       createdAt: new Date().toISOString(),
       timestamp: new Date().toISOString(), // Include for backwards compatibility
+      status: "error",
+      message: "Failed to submit feedback",
       originalPostId: null,
       userId: null,
       possibleTrolling: false,

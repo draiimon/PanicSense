@@ -114,6 +114,38 @@ export function RealtimeMonitor() {
     window.addEventListener('message', progressEventHandler);
     return () => window.removeEventListener('message', progressEventHandler);
   }, []);
+  
+  // Listen for sentiment changes from the correction UI
+  useEffect(() => {
+    const sentimentChangeHandler = (event: CustomEvent) => {
+      console.log("Sentiment change event received:", event);
+      
+      // Update the matching text in our list with the new sentiment
+      if (event.detail && event.detail.text) {
+        setAnalyzedTexts(prevTexts => {
+          return prevTexts.map(item => {
+            if (item.text === event.detail.text) {
+              // Update the sentiment and keep everything else
+              return {
+                ...item,
+                sentiment: event.detail.newSentiment || item.sentiment,
+                // Add a visual indicator that this was manually corrected
+                corrected: true
+              };
+            }
+            return item;
+          });
+        });
+        
+        // Also refresh the global data to update charts and stats
+        refreshData();
+      }
+    };
+    
+    // Need to cast to any because CustomEvent isn't in the standard Event type
+    window.addEventListener('sentiment-data-changed', sentimentChangeHandler as any);
+    return () => window.removeEventListener('sentiment-data-changed', sentimentChangeHandler as any);
+  }, [refreshData]);
 
   const handleAnalyze = async () => {
     if (!text.trim()) {
@@ -372,40 +404,12 @@ export function RealtimeMonitor() {
                         <div className="w-full">
                           <h4 className="text-sm font-medium mb-1 text-blue-800">AI Sentiment Analysis</h4>
                           
-                          <div className="p-2 bg-white/80 rounded-md border border-blue-100 mb-2">
-                            <p className="text-sm font-medium text-slate-700">Text: "{item.text}"</p>
-                            
-                            <div className="flex gap-2 mt-2">
-                              <div className="bg-blue-100 border border-blue-300 px-3 py-1 rounded">
-                                <span className="text-sm font-bold text-blue-800">
-                                  {item.sentiment}
-                                </span>
-                              </div>
-                            </div>
+                          <div className="text-sm text-slate-700 p-2 bg-white/80 rounded border border-blue-100">
+                            <span className="font-semibold text-blue-700">Explanation:</span>{" "}
+                            <span className="text-slate-700">{item.explanation}</span>
                           </div>
                           
-                          <div className="space-y-2">
-                            <div className="text-sm text-slate-700 p-2 bg-white/80 rounded border border-blue-100">
-                              <span className="font-semibold text-blue-700">Explanation:</span>{" "}
-                              <span className="text-slate-700">{item.explanation}</span>
-                            </div>
-                            
-                            {/* Additional metadata in quiz-like cards */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                              {item.disasterType && item.disasterType !== "Not Specified" && item.disasterType !== "UNKNOWN" && (
-                                <div className="p-2 bg-white/80 rounded border border-blue-100">
-                                  <span className="text-xs font-semibold text-blue-700">Disaster Type:</span>{" "}
-                                  <span className="text-xs text-slate-700">{item.disasterType}</span>
-                                </div>
-                              )}
-                              {item.location && item.location !== "UNKNOWN" && (
-                                <div className="p-2 bg-white/80 rounded border border-blue-100">
-                                  <span className="text-xs font-semibold text-blue-700">Location:</span>{" "}
-                                  <span className="text-xs text-slate-700">{item.location}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                          {/* No additional metadata - only explanation as requested */}
                         </div>
                       </div>
                     </div>
