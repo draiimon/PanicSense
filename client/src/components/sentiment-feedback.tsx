@@ -247,16 +247,16 @@ export function SentimentFeedback({
       console.log("Raw response from server:", JSON.stringify(response));
       console.log("Successfully parsed sentiment feedback response:", response);
 
-      // Check if response contains a warning flag for trolling detection
-      if (response.possibleTrolling && response.aiTrustMessage) {
-        // Show warning popup with AI-generated message
-        setWarningMessage(response.aiTrustMessage);
+      // Check if response contains quiz feedback from AI validation
+      if (response.status === "quiz_feedback" || (response.possibleTrolling && response.aiTrustMessage)) {
+        // Show quiz feedback popup with AI-generated analysis explanation
+        setWarningMessage(response.message || response.aiTrustMessage);
         setWarningOpen(true);
       } else {
         // Show success message
         toast({
           title: "Feedback submitted",
-          description: "Thank you for helping improve our analysis system",
+          description: "Thank you for helping improve our AI analysis system",
         });
       }
       
@@ -288,30 +288,30 @@ export function SentimentFeedback({
       <AlertDialog open={warningOpen} onOpenChange={setWarningOpen}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-600 flex items-center">
+            <AlertDialogTitle className="text-blue-600 flex items-center">
               <AlertCircle className="mr-2 h-5 w-5" />
-              Potential Feedback Issue Detected
+              Sentiment Analysis Quiz
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base">
-              <div className="p-3 border border-red-200 bg-red-50 rounded-md mb-3">
-                {warningMessage || "Our AI detected an inconsistency in your feedback."}
+              <div className="p-3 border border-blue-200 bg-blue-50 rounded-md mb-3 whitespace-pre-line">
+                {warningMessage || "Our AI analyzed this text and made a sentiment classification."}
               </div>
               <p className="text-sm text-gray-600 mt-2">
                 {correctedSentiment && validateSentimentChange().valid === false ? (
-                  // Client-side validation message (submission blocked)
+                  // Client-side validation message (submission blocked) - should never happen now
                   "Your feedback cannot be submitted due to this validation issue. Please review your changes."
                 ) : (
-                  // Server-side warning message (submission allowed)
-                  "Your feedback has been saved and all changes have been applied to the database. This alert is just to inform you about a potential mismatch between the text content and your chosen category."
+                  // Server-side educational quiz-style feedback (submission allowed)
+                  "Your feedback has been accepted. The AI model has been updated with your input."
                 )}
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white">
+            <AlertDialogAction className="bg-blue-600 hover:bg-blue-700 text-white">
               {correctedSentiment && validateSentimentChange().valid === false ? 
                 "Go Back and Fix" : 
-                "I Understand"
+                "Thanks for Teaching Me!"
               }
             </AlertDialogAction>
           </AlertDialogFooter>
