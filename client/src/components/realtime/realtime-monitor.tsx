@@ -370,37 +370,17 @@ export function RealtimeMonitor() {
                       <div className="flex items-start gap-2">
                         <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
                         <div className="w-full">
-                          <h4 className="text-sm font-medium mb-1 text-blue-800">AI Sentiment Quiz Results</h4>
+                          <h4 className="text-sm font-medium mb-1 text-blue-800">AI Sentiment Analysis</h4>
                           
                           <div className="p-2 bg-white/80 rounded-md border border-blue-100 mb-2">
-                            <p className="text-sm font-medium text-slate-700">Analyzing text: "{item.text}"</p>
-                            <p className="text-xs text-slate-500 mt-1">What sentiment classification is most appropriate?</p>
+                            <p className="text-sm font-medium text-slate-700">Text: "{item.text}"</p>
                             
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-2">
-                              {["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"].map((sentiment, i) => (
-                                <div key={i} className={`flex items-center px-2 py-1 rounded ${
-                                  sentiment === item.sentiment 
-                                    ? "bg-blue-100 border border-blue-300"
-                                    : "bg-white border border-slate-200" 
-                                }`}>
-                                  <div className={`h-4 w-4 rounded-full flex items-center justify-center mr-2 ${
-                                    sentiment === item.sentiment
-                                      ? "bg-blue-600 text-white"
-                                      : "bg-white border border-slate-300"
-                                  }`}>
-                                    {sentiment === item.sentiment && (
-                                      <span className="text-xs text-white font-bold">✓</span>
-                                    )}
-                                  </div>
-                                  <span className={`text-xs ${
-                                    sentiment === item.sentiment
-                                      ? "font-bold text-blue-800"
-                                      : "text-slate-600"
-                                  }`}>
-                                    {String.fromCharCode(97 + i)}) {sentiment}
-                                  </span>
-                                </div>
-                              ))}
+                            <div className="flex gap-2 mt-2">
+                              <div className="bg-blue-100 border border-blue-300 px-3 py-1 rounded">
+                                <span className="text-sm font-bold text-blue-800">
+                                  {item.sentiment}
+                                </span>
+                              </div>
                             </div>
                           </div>
                           
