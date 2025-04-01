@@ -230,11 +230,18 @@ export function SentimentFeedback({
       
       console.log("Validation response:", response);
       
-      // Now display quiz feedback
+      // Show complete explanation feedback from the AI
       if (response.aiTrustMessage) {
-        // The Python AI model detected a potential issue
+        // Show warning with the actual explanation from the AI
         setWarningMessage(response.aiTrustMessage);
         setWarningOpen(true);
+        
+        // Even with warning, we still need to refresh UI to show changes
+        toast({
+          title: "Feedback analyzed",
+          description: "Check the explanation for details about your feedback",
+          variant: "destructive"
+        });
       } else {
         // Success! Sentiment matched what AI expected
         toast({
@@ -336,9 +343,13 @@ export function SentimentFeedback({
       resetForm();
       
       // Always call the onFeedbackSubmitted callback to force UI refresh immediately
-      // regardless of warning or success, making sure frontend updates instantly
+      // This MUST happen regardless of warning or success, so the frontend updates instantly
       if (onFeedbackSubmitted) {
         onFeedbackSubmitted();
+      } else {
+        // Force a data refresh by triggering a custom event for UI components to listen to
+        const refreshEvent = new CustomEvent('sentiment-data-changed');
+        window.dispatchEvent(refreshEvent);
       }
     } catch (error) {
       console.error("Error submitting sentiment feedback:", error);
