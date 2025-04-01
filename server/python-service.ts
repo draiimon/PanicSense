@@ -241,7 +241,7 @@ export class PythonService {
       const words2 = new Set(text2.toLowerCase().match(/\b\w+\b/g) || []);
       
       // Find common words
-      const commonWords = [...words1].filter(word => words2.has(word));
+      const commonWords = Array.from(words1).filter(word => words2.has(word));
       
       // If there are enough common significant words, they might be similar
       if (commonWords.length >= 4 && 
@@ -254,25 +254,66 @@ export class PythonService {
         };
       }
       
-      // Check sentiment context if both were provided
+      // FULL POWERED VERIFICATION: Advanced verification of sentiment context
       if (originalSentiment && correctedSentiment) {
-        // If one text is a joke and the other isn't, they should have different sentiments
+        // 1. Check joke context vs sentiment alignment
         if (text1HasJoke !== text2HasJoke) {
           // Joke text should likely be Disbelief, non-joke likely Resilience
           const jokeTextSentiment = text1HasJoke ? originalSentiment : correctedSentiment;
+          const nonJokeTextSentiment = text1HasJoke ? correctedSentiment : originalSentiment;
           
-          if (jokeTextSentiment === 'Disbelief') {
-            console.log('Sentiment verification passed: Joke text has Disbelief sentiment');
-            // This makes sense - joke should be Disbelief
-            this.similarityCache.set(cacheKey, false);  // Still not similar
+          if (jokeTextSentiment === 'Disbelief' && nonJokeTextSentiment !== 'Disbelief') {
+            console.log('Sentiment verification passed: Joke text has Disbelief sentiment, non-joke has different sentiment');
+            this.similarityCache.set(cacheKey, false);
             return {
               areSimilar: false,
-              score: 0.2,
-              explanation: "Texts have appropriately different sentiments (joke has Disbelief)"
+              score: 0.1,
+              explanation: "Texts have correctly different sentiments based on joke context"
             };
-          } else {
-            console.log('Sentiment check failed: Joke text should have Disbelief sentiment');
           }
+        }
+        
+        // 2. Check for fear/panic indicators vs sentiment
+        const panicWords = ['natatakot', 'takot', 'kame', 'kami', 'tulong', 'help', 'emergency', 'scared', 'afraid', '!!!'];
+        const text1HasPanic = panicWords.some(word => text1.toLowerCase().includes(word)) || 
+                            text1.toUpperCase() === text1 || // ALL CAPS suggests panic
+                            text1.includes('!!!');
+        const text2HasPanic = panicWords.some(word => text2.toLowerCase().includes(word)) || 
+                            text2.toUpperCase() === text2 ||
+                            text2.includes('!!!');
+                            
+        // If panic indicators are different between texts, they should have different sentiments
+        if (text1HasPanic !== text2HasPanic) {
+          console.log(`Panic indicators mismatch: "${text1.substring(0, 20)}..." vs "${text2.substring(0, 20)}..."`, 
+                      `(has panic: ${text1HasPanic} vs ${text2HasPanic})`);
+          
+          // Text with panic should have Panic or Fear/Anxiety sentiment
+          const panicText = text1HasPanic ? text1 : text2;
+          const panicTextSentiment = text1HasPanic ? originalSentiment : correctedSentiment;
+          
+          // If text has panic indicators but sentiment is not Panic, texts are likely different
+          if (text1HasPanic && panicTextSentiment !== 'Panic' && panicTextSentiment !== 'Fear/Anxiety') {
+            console.log('Sentiment verification failed: Text has panic indicators but sentiment is not Panic');
+            this.similarityCache.set(cacheKey, false);
+            return {
+              areSimilar: false,
+              score: 0.15,
+              explanation: "Texts have different emotional contexts (panic indicators mismatch)"
+            };
+          }
+        }
+        
+        // 3. Check if text contains both action phrase (tulungan) and fear indicators (takot)
+        if ((text1.toLowerCase().includes('tulungan') && text1.toLowerCase().includes('takot')) !==
+            (text2.toLowerCase().includes('tulungan') && text2.toLowerCase().includes('takot'))) {
+          
+          console.log('Mixed emotion context mismatch: One text has both help request and fear, other does not');
+          this.similarityCache.set(cacheKey, false);
+          return {
+            areSimilar: false,
+            score: 0.1,
+            explanation: "Texts have different emotional complexity (help+fear vs single emotion)"
+          };
         }
       }
       
