@@ -484,6 +484,33 @@ export class PythonService {
               const result = JSON.parse(jsonPart);
               log(`Model training result: ${result.status} - ${result.message}`, 'python-service');
               
+              // CONTENT FILTERING: Check for inappropriate language
+              if (result.message) {
+                // Create a list of inappropriate words/phrases to filter out
+                const inappropriateWords = [
+                  'bobo', 'tanga', 'gago', 'stupid', 'idiot', 
+                  'tangina', 'ulol', 'putang', 'punyeta', 'fuck',
+                  'shit', 'damn', 'bitch', 'ass', 'hell'
+                ];
+                
+                // Check if any inappropriate words are in the message
+                const hasInappropriateContent = inappropriateWords.some(word => 
+                  result.message.toLowerCase().includes(word.toLowerCase())
+                );
+                
+                if (hasInappropriateContent) {
+                  // Replace the inappropriate message with a respectful one
+                  const originalMessage = result.message;
+                  log(`⚠️ CONTENT FILTER: Detected inappropriate content in AI message: "${originalMessage}"`, 'python-service');
+                  
+                  // Create a clean version without the inappropriate content
+                  result.message = "Thank you for your feedback. We've received your sentiment classification and will use it to improve our system. We appreciate your participation in helping make our AI better.";
+                  
+                  // Also log this issue as a warning
+                  console.warn(`Content filter activated: Replaced inappropriate AI message with clean version`);
+                }
+              }
+              
               if (result.status === 'success') {
                 // Purge from cache if we've updated the model
                 this.confidenceCache.delete(originalText);

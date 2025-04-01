@@ -1841,7 +1841,9 @@ Options: {quiz_options}
             if corrected_sentiment == ai_sentiment:
                 result["reason"] = f"Great! Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) matches our AI analysis.\n\nExplanation: {ai_explanation}"
             else:
-                result["reason"] = f"Thank you for your feedback. While our AI suggested {ai_answer}, we've accepted your classification as {option_map.get(corrected_sentiment, corrected_sentiment)}.\n\nAI's explanation was: {ai_explanation}"
+                # Generate a polite message that doesn't repeat the whole AI explanation
+                # This avoids potential offensive content from being repeated in the AI explanation
+                result["reason"] = f"Thank you for your feedback. While our AI suggested {ai_answer}, we've accepted your classification as {option_map.get(corrected_sentiment, corrected_sentiment)}.\n\nOur system will learn from your input to improve future analyses."
         
         logging.info(f"AI QUIZ VALIDATION result: {result}")
         return result
