@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { analyzeText } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { getSentimentBadgeClasses } from "@/lib/colors";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, BrainCircuit, Shield } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { motion } from "framer-motion";
 import { SentimentFeedback } from "@/components/sentiment-feedback";
@@ -30,6 +30,9 @@ interface AnalyzedText {
   explanation?: string | null;
   disasterType?: string | null;
   location?: string | null;
+  corrected?: boolean;
+  aiTrustMessage?: string;
+  updatedAt?: string;
 }
 
 interface ProcessingStatus {
@@ -117,8 +120,8 @@ export function RealtimeMonitor() {
   
   // DIRECT ACCESS to override sentiment data on the fly
   // This function will be called from the sentiment-feedback component through the window object
-  const directlySentimentUpdate = (text: string, newSentiment: string) => {
-    console.log(`DIRECT UPDATE called for text: "${text}" -> "${newSentiment}"`);
+  const directlySentimentUpdate = (text: string, newSentiment: string, validationMessage?: string) => {
+    console.log(`DIRECT UPDATE called for text: "${text}" -> "${newSentiment}" with message: "${validationMessage}"`);
     
     // Update the matching text in our list with the new sentiment
     setAnalyzedTexts(prevTexts => {
@@ -130,7 +133,11 @@ export function RealtimeMonitor() {
             ...item,
             sentiment: newSentiment,
             // Add a visual indicator that this was manually corrected
-            corrected: true
+            corrected: true,
+            // Store validation message as explanation for popup display
+            explanation: validationMessage || `User corrected sentiment from ${item.sentiment} to ${newSentiment}`,
+            // Add timestamp to track when the update happened
+            updatedAt: new Date().toISOString()
           };
         }
         return item;
@@ -171,7 +178,11 @@ export function RealtimeMonitor() {
                 ...item,
                 sentiment: event.detail.newSentiment || item.sentiment,
                 // Add a visual indicator that this was manually corrected
-                corrected: true
+                corrected: true,
+                // Also store any explanation or message that came with the update
+                explanation: event.detail.message || `User corrected sentiment from ${item.sentiment} to ${event.detail.newSentiment}`,
+                // Add timestamp to track when the update happened
+                updatedAt: new Date().toISOString()
               };
             }
             return item;
@@ -398,63 +409,78 @@ export function RealtimeMonitor() {
           ) : (
             <div className="space-y-3">
               {analyzedTexts.map((item, index) => (
-                <div key={index} className="p-3 bg-white/80 backdrop-blur-sm rounded-lg border border-slate-200/60 shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">
-                      {item.text}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Badge className={getSentimentBadgeClasses(item.sentiment)}>
-                        {item.sentiment}
-                      </Badge>
-                      <Badge variant="outline" className="bg-slate-100">
-                        {item.language === "tl" ? "Filipino" : "English"}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="mt-2 flex justify-between items-center text-xs text-slate-500">
-                    <div className="flex items-center gap-2">
-                      <span>Confidence: {(item.confidence * 100).toFixed(0)}%</span>
-                      <SentimentFeedback 
-                        originalText={item.text}
-                        originalSentiment={item.sentiment}
-                      />
-                    </div>
-                    <span>{item.timestamp.toLocaleTimeString()}</span>
-                  </div>
-
-                  {item.disasterType && item.disasterType !== "Not Specified" && item.disasterType !== "UNKNOWN" && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                        {item.disasterType}
-                      </Badge>
-                      {item.location && item.location !== "UNKNOWN" && (
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          {item.location}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Show explanation in quiz-like format if it exists and is meaningful */}
-                  {item.explanation && !item.explanation.includes("Fallback") && (
-                    <div className="bg-gradient-to-r from-blue-50/90 to-indigo-50/90 backdrop-blur-sm p-3 rounded-md border border-blue-200/50 mt-2 shadow-sm">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-                        <div className="w-full">
-                          <h4 className="text-sm font-medium mb-1 text-blue-800">AI Sentiment Analysis</h4>
-                          
-                          <div className="text-sm text-slate-700 p-2 bg-white/80 rounded border border-blue-100">
-                            <span className="font-semibold text-blue-700">Explanation:</span>{" "}
-                            <span className="text-slate-700">{item.explanation}</span>
+                <div key={index} className="mb-3">
+                  {/* Reusable message display component for consistent styling */}
+                  <div className="relative">
+                    {/* Show a visual indicator if the sentiment was corrected */}
+                    {item.corrected && (
+                      <div className="absolute -left-2 -top-2 h-4 w-4 bg-blue-500 rounded-full flex items-center justify-center z-10">
+                        <span className="text-[9px] text-white font-bold">✓</span>
+                      </div>
+                    )}
+                    
+                    {/* Import MessageDisplay from the new component */}
+                    <div className="relative">
+                      <div className="p-3 bg-white/80 backdrop-blur-sm rounded-lg border border-slate-200/60 shadow-sm">
+                        <div className="flex justify-between items-start">
+                          <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">
+                            {item.text}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Badge className={getSentimentBadgeClasses(item.sentiment)}>
+                              {item.sentiment}
+                              {item.corrected && (
+                                <span className="ml-1 text-xs opacity-70">(✓)</span>
+                              )}
+                            </Badge>
+                            <Badge variant="outline" className="bg-slate-100">
+                              {item.language === "tl" ? "Filipino" : "English"}
+                            </Badge>
                           </div>
-                          
-                          {/* No additional metadata - only explanation as requested */}
                         </div>
+
+                        <div className="mt-2 flex justify-between items-center text-xs text-slate-500">
+                          <div className="flex items-center gap-2">
+                            <span>Confidence: {(item.confidence * 100).toFixed(0)}%</span>
+                            <SentimentFeedback 
+                              originalText={item.text}
+                              originalSentiment={item.sentiment}
+                            />
+                          </div>
+                          <span>{item.timestamp.toLocaleTimeString()}</span>
+                        </div>
+
+                        {item.disasterType && item.disasterType !== "Not Specified" && item.disasterType !== "UNKNOWN" && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              {item.disasterType}
+                            </Badge>
+                            {item.location && item.location !== "UNKNOWN" && (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                {item.location}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Show explanation in quiz-like format if it exists and is meaningful */}
+                        {item.explanation && !item.explanation.includes("Fallback") && (
+                          <div className="bg-gradient-to-r from-blue-50/90 to-indigo-50/90 backdrop-blur-sm p-3 rounded-md border border-blue-200/50 mt-2 shadow-sm">
+                            <div className="flex items-start gap-2">
+                              <BrainCircuit className="h-5 w-5 text-blue-600 mt-0.5" />
+                              <div className="w-full">
+                                <h4 className="text-sm font-medium mb-1 text-blue-800">AI Sentiment Analysis</h4>
+                                
+                                <div className="text-sm text-slate-700 p-2 bg-white/80 rounded border border-blue-100">
+                                  <span className="text-slate-700">{item.explanation}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               ))}
               <div ref={resultsEndRef} />

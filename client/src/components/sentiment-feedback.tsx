@@ -362,20 +362,31 @@ export function SentimentFeedback({
       
       // DIRECT UPDATE OF UI - MOST RELIABLE WAY!
       // Directly call the window function exposed by the realtime monitor to fix UI instantly
-      if (
-        // @ts-ignore - we know this exists because we added it
-        window.updateRealtimeSentiment && 
-        typeof window.updateRealtimeSentiment === 'function' && 
-        correctedSentiment
-      ) {
-        // @ts-ignore - we know this exists because we added it
-        window.updateRealtimeSentiment(originalText, correctedSentiment);
-        console.log("Used direct sentiment update function to refresh UI");
+      if (correctedSentiment) {
+        try {
+          // Use the dynamically added function on window object
+          const updateFn = (window as any).updateRealtimeSentiment;
+          if (typeof updateFn === 'function') {
+            updateFn(originalText, correctedSentiment, validationMessage || undefined);
+            console.log("Used direct sentiment update function to refresh UI with message:", validationMessage || "No message provided");
+          }
+        } catch (updateError) {
+          console.error("Error using direct update:", updateError);
+        }
       }
 
       // Always show the popup dialog with the message after the update
-      setWarningMessage(validationMessage);
+      setWarningMessage(validationMessage || "Feedback received. Thank you for helping improve our AI.");
       setWarningOpen(true);
+      
+      // ALSO show a toast notification with the validation message for higher visibility
+      toast({
+        title: "Feedback Processed!",
+        description: validationMessage,
+        // Use default variant instead of success to fix type error
+        variant: "default",
+        duration: 5000,
+      });
       
       // Close dialog and reset form
       setIsOpen(false);
@@ -656,7 +667,7 @@ export function SentimentFeedback({
             disabled={
               isSubmitting || 
               (!correctedSentiment && !includeLocation && !includeDisasterType) ||
-              (correctedSentiment && !validateSentimentChange().valid)
+              (correctedSentiment ? !validateSentimentChange().valid : false)
             }
             className={`
               bg-gradient-to-r 
