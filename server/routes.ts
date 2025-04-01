@@ -1218,13 +1218,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Update the feedback record to mark it as trained
           await storage.markFeedbackAsTrained(savedFeedback.id);
           
+          // Clear the cache entry for this text to force re-analysis next time
+          pythonService.clearCacheForText(feedback.originalText);
+          console.log(`Cache cleared for retrained text: "${feedback.originalText.substring(0, 30)}..."`);
+          
           // Broadcast update to connected clients
           broadcastUpdate({ 
             type: "feedback-submitted", 
             data: { 
               originalSentiment: feedback.originalSentiment,
               correctedSentiment: feedback.correctedSentiment,
-              trainingResult: trainingResult
+              trainingResult: trainingResult,
+              feedback_id: savedFeedback.id
             } 
           });
           

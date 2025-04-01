@@ -53,6 +53,20 @@ export class PythonService {
   private setCachedConfidence(text: string, confidence: number): void {
     this.confidenceCache.set(text, confidence);
   }
+  
+  // Method to clear cache for a specific text
+  public clearCacheForText(text: string): void {
+    if (this.confidenceCache.has(text)) {
+      log(`Clearing cache entry for text: "${text.substring(0, 30)}..."`, 'python-service');
+      this.confidenceCache.delete(text);
+    }
+  }
+  
+  // Method to clear the entire cache
+  public clearCache(): void {
+    log(`Clearing entire confidence cache (${this.confidenceCache.size} entries)`, 'python-service');
+    this.confidenceCache.clear();
+  }
 
   // Process feedback and train the model with corrections
   public async trainModelWithFeedback(
@@ -334,7 +348,8 @@ export class PythonService {
     location?: string;
   }> {
     try {
-      // Check cache first
+      // We will no longer use cache as it causes the sentiment not to update after training
+      /*
       const cachedConfidence = this.getCachedConfidence(text);
       if (cachedConfidence !== undefined) {
         log(`Using cached confidence score: ${cachedConfidence}`, 'python-service');
@@ -347,6 +362,7 @@ export class PythonService {
           location: undefined
         };
       }
+      */
 
       // Pass text directly to Python script
       const pythonProcess = spawn(this.pythonBinary, [
