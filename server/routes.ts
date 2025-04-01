@@ -1172,7 +1172,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Ensure at least one correction is provided
+      // At least one correction must be provided (sentiment, location, or disaster type)
+      if (!req.body.correctedSentiment && !req.body.correctedLocation && !req.body.correctedDisasterType) {
+        console.log("No corrections provided in feedback request");
+        return res.status(400).json({
+          error: "Missing corrections",
+          details: "At least one correction field (correctedSentiment, correctedLocation, or correctedDisasterType) must be provided."
+        });
+      }
+      
+      // We already validated corrections above, this code is kept for reference but commented out
+      /* 
       if (!req.body.correctedSentiment && !req.body.correctedLocation && !req.body.correctedDisasterType) {
         console.error("No corrections provided in feedback request");
         return res.status(400).json({
@@ -1180,6 +1190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           details: "At least one of correctedSentiment, correctedLocation, or correctedDisasterType must be provided"
         });
       }
+      */
       
       // Create a properly typed object with the required fields
       const feedback = {
@@ -1217,16 +1228,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const textWords = feedback.originalText.toLowerCase().match(/\b\w+\b/g) || [];
         const textKey = textWords.join(' ');
         
-        // Create training example from feedback
-        const trainingExample = await storage.createTrainingExample({
-          text: feedback.originalText,
-          textKey: textKey,
-          sentiment: feedback.correctedSentiment,
-          language: language,
-          confidence: 0.95
-        });
-        
-        console.log(`Training example saved to database with ID: ${trainingExample.id}`);
+        // Only create training example if correctedSentiment is provided
+        if (feedback.correctedSentiment) {
+          const trainingExample = await storage.createTrainingExample({
+            text: feedback.originalText,
+            textKey: textKey,
+            sentiment: feedback.correctedSentiment,
+            language: language,
+            confidence: 0.95
+          });
+          console.log(`Training example saved to database with ID: ${trainingExample.id}`);
+        } else {
+          console.log(`No sentiment correction provided, skipping training example creation`);
+        }
       } catch (dbError) {
         console.error("Error saving training example to database:", dbError);
         // Continue even if this fails - it might be a duplicate
@@ -1256,35 +1270,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hasPanicWords ||
         (feedback.originalText.toLowerCase().includes('tulong') && feedback.originalText.toLowerCase().includes('takot'));
       
-      // TROLL PROTECTION 1: Check for PANIC text being changed to something else
-      if (isPanicText && 
-          (feedback.correctedSentiment !== 'Panic' && feedback.correctedSentiment !== 'Fear/Anxiety')
-      ) {
-        possibleTrolling = true;
-        aiTrustMessage = "AI VERIFICATION FAILED: Text contains panic indicators but user tried to change to non-panic sentiment. This is likely incorrect feedback.";
-        console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - panic text being incorrectly changed");
-      }
-      
-      // TROLL PROTECTION 2: Check for Resilience text being changed to Panic without indicators 
-      if ((feedback.originalSentiment === 'Resilience' || feedback.originalSentiment === 'Neutral') &&
-          (feedback.correctedSentiment === 'Panic') &&
-          !isPanicText
-      ) {
-        possibleTrolling = true;
-        aiTrustMessage = "AI VERIFICATION FAILED: Text does not contain any panic indicators but user tried to change to Panic sentiment. This is likely incorrect feedback.";
-        console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - non-panic text being incorrectly marked as panic");
-      }
-      
-      // TROLL PROTECTION 3: Check for disbelief/joke content being changed to serious sentiment
-      const jokeWords = ['joke', 'eme', 'charot', 'just kidding', 'kidding', 'lol', 'haha', 'jk'];
-      const hasJokeWords = jokeWords.some((word: string) => feedback.originalText.toLowerCase().includes(word));
-      
-      if (hasJokeWords && 
-          (feedback.correctedSentiment === 'Panic' || feedback.correctedSentiment === 'Fear/Anxiety')
-      ) {
-        possibleTrolling = true;
-        aiTrustMessage = "AI VERIFICATION FAILED: Text contains joke/humor indicators but user tried to set to serious panic sentiment. This is likely incorrect feedback.";
-        console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - joke text being incorrectly marked as panic");
+      // Skip all troll detection if no sentiment correction is provided
+      // This allows changing only location or disaster type without triggering troll protection
+      if (feedback.correctedSentiment) {
+        // TROLL PROTECTION 1: Check for PANIC text being changed to something else
+        if (isPanicText && 
+            (feedback.correctedSentiment !== 'Panic' && feedback.correctedSentiment !== 'Fear/Anxiety')
+        ) {
+          possibleTrolling = true;
+          aiTrustMessage = "AI VERIFICATION FAILED: Text contains panic indicators but user tried to change to non-panic sentiment. This is likely incorrect feedback.";
+          console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - panic text being incorrectly changed");
+        }
+        
+        // TROLL PROTECTION 2: Check for Resilience text being changed to Panic without indicators 
+        if ((feedback.originalSentiment === 'Resilience' || feedback.originalSentiment === 'Neutral') &&
+            (feedback.correctedSentiment === 'Panic') &&
+            !isPanicText
+        ) {
+          possibleTrolling = true;
+          aiTrustMessage = "AI VERIFICATION FAILED: Text does not contain any panic indicators but user tried to change to Panic sentiment. This is likely incorrect feedback.";
+          console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - non-panic text being incorrectly marked as panic");
+        }
+        
+        // TROLL PROTECTION 3: Check for disbelief/joke content being changed to serious sentiment
+        const jokeWords = ['joke', 'eme', 'charot', 'just kidding', 'kidding', 'lol', 'haha', 'jk'];
+        const hasJokeWords = jokeWords.some((word: string) => feedback.originalText.toLowerCase().includes(word));
+        
+        if (hasJokeWords && 
+            (feedback.correctedSentiment === 'Panic' || feedback.correctedSentiment === 'Fear/Anxiety')
+        ) {
+          possibleTrolling = true;
+          aiTrustMessage = "AI VERIFICATION FAILED: Text contains joke/humor indicators but user tried to set to serious panic sentiment. This is likely incorrect feedback.";
+          console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - joke text being incorrectly marked as panic");
+        }
+      } else {
+        console.log("Skipping troll detection since no sentiment correction was provided");
       }
       
       // Create base response
@@ -1411,7 +1431,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 .set(updateFields)
                 .where(eq(sentimentPosts.id, post.id));
                 
-              console.log(`Updated post ID ${post.id} sentiment from ${post.sentiment} to ${feedback.correctedSentiment}`);
+              // Log the update details
+              let updateMessage = `Updated post ID ${post.id}:`;
+              if (feedback.correctedSentiment) {
+                updateMessage += ` sentiment from '${post.sentiment}' to '${feedback.correctedSentiment}'`;
+              }
+              if (feedback.correctedLocation) {
+                updateMessage += ` location to '${feedback.correctedLocation}'`;
+              }
+              if (feedback.correctedDisasterType) {
+                updateMessage += ` disaster type to '${feedback.correctedDisasterType}'`;
+              }
+              console.log(updateMessage);
             }
             
             // LOOK FOR SIMILAR POSTS that have SAME MEANING using AI verification
@@ -1508,20 +1539,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                         word.length > 4 && word === word.toUpperCase() && /[A-Z]/.test(word)
                       );
                       
-                      // If post has panic indicators but sentiment isn't Panic or Fear/Anxiety, don't update
-                      if ((hasPanicWords || hasAllCaps) && 
-                          feedback.correctedSentiment !== 'Panic' && 
-                          feedback.correctedSentiment !== 'Fear/Anxiety') {
-                        console.log(`CONTEXT OVERRIDE: Post has panic indicators but target sentiment is ${feedback.correctedSentiment}`);
-                        console.log(`Refusing to update post with ID ${post.id} due to context mismatch`);
-                        return null;
-                      }
-                      
-                      // If post doesn't have panic indicators but sentiment is Panic, don't update
-                      if ((!hasPanicWords && !hasAllCaps) && feedback.correctedSentiment === 'Panic') {
-                        console.log(`CONTEXT OVERRIDE: Post lacks panic indicators but target sentiment is Panic`);
-                        console.log(`Refusing to update post with ID ${post.id} due to context mismatch`);
-                        return null;
+                      // Only check sentiment context mismatches if correctedSentiment is provided
+                      if (feedback.correctedSentiment) {
+                        // If post has panic indicators but sentiment isn't Panic or Fear/Anxiety, don't update
+                        if ((hasPanicWords || hasAllCaps) && 
+                            feedback.correctedSentiment !== 'Panic' && 
+                            feedback.correctedSentiment !== 'Fear/Anxiety') {
+                          console.log(`CONTEXT OVERRIDE: Post has panic indicators but target sentiment is ${feedback.correctedSentiment}`);
+                          console.log(`Refusing to update post with ID ${post.id} due to context mismatch`);
+                          return null;
+                        }
+                        
+                        // If post doesn't have panic indicators but sentiment is Panic, don't update
+                        if ((!hasPanicWords && !hasAllCaps) && feedback.correctedSentiment === 'Panic') {
+                          console.log(`CONTEXT OVERRIDE: Post lacks panic indicators but target sentiment is Panic`);
+                          console.log(`Refusing to update post with ID ${post.id} due to context mismatch`);
+                          return null;
+                        }
                       }
                       
                       console.log(`AI verified semantic similarity: "${post.text.substring(0, 30)}..." is similar to original`);
@@ -1579,14 +1613,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
                 
                 // If we've passed all verification, proceed with the update
+                // Create an object with the fields to update for similar posts
+                const similarUpdateFields: Record<string, any> = {
+                  confidence: 0.82 // Moderate confidence for similar posts
+                };
+                
+                // Add correctedSentiment if provided
+                if (feedback.correctedSentiment) {
+                  similarUpdateFields.sentiment = feedback.correctedSentiment;
+                }
+                
+                // Add correctedLocation if provided
+                if (feedback.correctedLocation) {
+                  similarUpdateFields.location = feedback.correctedLocation;
+                }
+                
+                // Add correctedDisasterType if provided
+                if (feedback.correctedDisasterType) {
+                  similarUpdateFields.disasterType = feedback.correctedDisasterType;
+                }
+                
                 await db.update(sentimentPosts)
-                  .set({ 
-                    sentiment: feedback.correctedSentiment, 
-                    confidence: 0.82 // Moderate confidence for similar posts
-                  })
+                  .set(similarUpdateFields)
                   .where(eq(sentimentPosts.id, post.id));
                   
-                console.log(`Updated AI-verified similar post ID ${post.id} sentiment from ${post.sentiment} to ${feedback.correctedSentiment}`);
+                // Log the update details
+                let updateMessage = `Updated AI-verified similar post ID ${post.id}:`;
+                if (feedback.correctedSentiment) {
+                  updateMessage += ` sentiment from '${post.sentiment}' to '${feedback.correctedSentiment}'`;
+                }
+                if (feedback.correctedLocation) {
+                  updateMessage += ` location to '${feedback.correctedLocation}'`;
+                }
+                if (feedback.correctedDisasterType) {
+                  updateMessage += ` disaster type to '${feedback.correctedDisasterType}'`;
+                }
+                console.log(updateMessage);
               }
             } catch (similarError) {
               console.error("Error updating similar posts with AI verification:", similarError);

@@ -198,11 +198,17 @@ export interface SentimentFeedback {
   originalText: string;
   originalSentiment: string;
   correctedSentiment: string;
+  correctedLocation?: string | null;
+  correctedDisasterType?: string | null;
   trainedOn: boolean;
   createdAt: string;
   timestamp?: string; // For backwards compatibility
   userId?: number | null;
   originalPostId?: number | null;
+  possibleTrolling?: boolean;
+  aiTrustMessage?: string;
+  aiWarning?: string;
+  updateSkipped?: boolean;
 }
 
 // Submit sentiment feedback for model improvement

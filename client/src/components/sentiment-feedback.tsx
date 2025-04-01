@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { submitSentimentFeedback } from "@/lib/api";
+import { submitSentimentFeedback, SentimentFeedback as SentimentFeedbackType } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -57,6 +66,8 @@ export function SentimentFeedback({
   const [includeLocation, setIncludeLocation] = useState<boolean>(false);
   const [includeDisasterType, setIncludeDisasterType] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [warningOpen, setWarningOpen] = useState(false);
+  const [warningMessage, setWarningMessage] = useState("");
   const { toast } = useToast();
 
   const sentimentOptions = [
@@ -140,7 +151,7 @@ export function SentimentFeedback({
 
     setIsSubmitting(true);
     try {
-      await submitSentimentFeedback(
+      const response = await submitSentimentFeedback(
         originalText,
         originalSentiment,
         correctedSentiment,
@@ -148,10 +159,22 @@ export function SentimentFeedback({
         includeDisasterType ? correctedDisasterType : undefined
       );
 
-      toast({
-        title: "Feedback submitted",
-        description: "Thank you for helping improve our analysis system",
-      });
+      console.log("Raw response from server:", JSON.stringify(response));
+      console.log("Successfully parsed sentiment feedback response:", response);
+
+      // Check if response contains a warning flag for trolling detection
+      if (response.possibleTrolling && response.aiWarning) {
+        // Show warning popup
+        setWarningMessage(response.aiWarning);
+        setWarningOpen(true);
+      } else {
+        // Show success message
+        toast({
+          title: "Feedback submitted",
+          description: "Thank you for helping improve our analysis system",
+        });
+      }
+      
       setIsOpen(false);
       resetForm();
       
@@ -160,7 +183,7 @@ export function SentimentFeedback({
         onFeedbackSubmitted();
       }
     } catch (error) {
-      console.error("Error submitting feedback:", error);
+      console.error("Error submitting sentiment feedback:", error);
       toast({
         title: "Submission failed",
         description: "There was an error submitting your feedback",
@@ -171,19 +194,73 @@ export function SentimentFeedback({
     }
   };
 
+  // Listen for WebSocket messages for feedback warnings
+  useEffect(() => {
+    const handleWebSocketMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'feedback-warning' && data.data) {
+          setWarningMessage(data.data.message);
+          setWarningOpen(true);
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+
+    // Check if WebSocket is available in the window object
+    if (typeof window !== 'undefined' && 'WebSocket' in window) {
+      // Add event listener to the existing WebSocket connection
+      const socket = new WebSocket(`ws://${window.location.host}`);
+      socket.addEventListener('message', handleWebSocketMessage);
+      
+      // Cleanup function
+      return () => {
+        socket.removeEventListener('message', handleWebSocketMessage);
+        socket.close();
+      };
+    }
+  }, []);
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost" 
-          size="sm"
-          className="text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
-          onClick={() => setIsOpen(true)}
-        >
-          <ThumbsDown className="h-4 w-4 mr-1" />
-          <span className="text-xs">Incorrect?</span>
-        </Button>
-      </DialogTrigger>
+    <>
+      <AlertDialog open={warningOpen} onOpenChange={setWarningOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600 flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5" />
+              Hindi Tamang Feedback Detected!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              <div className="p-3 border border-red-200 bg-red-50 rounded-md mb-3">
+                {warningMessage || "Inconsistency detected in your feedback."}
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Ang iyong pagbabago ay nai-save pa rin, ngunit hindi isasagawa sa buong sistema dahil 
+                sa mga potensyal na non-realistic na feedback.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white">
+              Naintindihan Ko
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button
+            variant="ghost" 
+            size="sm"
+            className="text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+            onClick={() => setIsOpen(true)}
+          >
+            <ThumbsDown className="h-4 w-4 mr-1" />
+            <span className="text-xs">Incorrect?</span>
+          </Button>
+        </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Improve Sentiment Analysis</DialogTitle>
@@ -375,5 +452,6 @@ export function SentimentFeedback({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

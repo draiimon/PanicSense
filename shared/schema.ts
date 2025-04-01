@@ -78,7 +78,7 @@ export const sentimentFeedback = pgTable("sentiment_feedback", {
   originalPostId: integer("original_post_id").references(() => sentimentPosts.id, { onDelete: "cascade" }),
   originalText: text("original_text").notNull(),
   originalSentiment: text("original_sentiment").notNull(),
-  correctedSentiment: text("corrected_sentiment").notNull(),
+  correctedSentiment: text("corrected_sentiment").default(''),
   correctedLocation: text("corrected_location"),
   correctedDisasterType: text("corrected_disaster_type"),
   trainedOn: boolean("trained_on").default(false),
