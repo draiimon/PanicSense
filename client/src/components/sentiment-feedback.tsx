@@ -361,14 +361,21 @@ export function SentimentFeedback({
         "Feedback received. AI analysis results will be updated.";
       
       // DIRECT UPDATE OF UI - MOST RELIABLE WAY!
-      // Directly call the window function exposed by the realtime monitor to fix UI instantly
+      // Directly call the window functions exposed by components to fix UI instantly
       if (correctedSentiment) {
         try {
-          // Use the dynamically added function on window object
-          const updateFn = (window as any).updateRealtimeSentiment;
-          if (typeof updateFn === 'function') {
-            updateFn(originalText, correctedSentiment, validationMessage || undefined);
-            console.log("Used direct sentiment update function to refresh UI with message:", validationMessage || "No message provided");
+          // Update realtime monitor if that function exists
+          const updateRealtimeFn = (window as any).updateRealtimeSentiment;
+          if (typeof updateRealtimeFn === 'function') {
+            updateRealtimeFn(originalText, correctedSentiment, validationMessage || undefined);
+            console.log("Used direct sentiment update function to refresh realtime UI with message:", validationMessage || "No message provided");
+          }
+          
+          // ALSO update data table if that function exists
+          const updateDataTableFn = (window as any).updateDataTable;
+          if (typeof updateDataTableFn === 'function') {
+            updateDataTableFn(originalText, correctedSentiment, validationMessage || undefined);
+            console.log("Used direct data table update function to refresh raw data view with message:", validationMessage || "No message provided");
           }
         } catch (updateError) {
           console.error("Error using direct update:", updateError);
@@ -402,7 +409,8 @@ export function SentimentFeedback({
           detail: {
             text: originalText,
             newSentiment: correctedSentiment,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            validationMessage: validationMessage // Add validation message to event detail for UI components
           }
         });
         window.dispatchEvent(refreshEvent);
