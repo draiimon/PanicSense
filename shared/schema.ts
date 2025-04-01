@@ -84,12 +84,32 @@ export const sentimentFeedback = pgTable("sentiment_feedback", {
   userId: integer("user_id").references(() => users.id)
 });
 
+// Training examples for real-time model learning
+export const trainingExamples = pgTable("training_examples", {
+  id: serial("id").primaryKey(),
+  text: text("text").notNull().unique(),
+  textKey: text("text_key").notNull().unique(), // Normalized text for matching
+  sentiment: text("sentiment").notNull(),
+  language: text("language").notNull(),
+  confidence: real("confidence").notNull().default(0.95),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertSentimentFeedbackSchema = createInsertSchema(sentimentFeedback).pick({
   originalPostId: true,
   originalText: true,
   originalSentiment: true,
   correctedSentiment: true,
   userId: true
+});
+
+export const insertTrainingExampleSchema = createInsertSchema(trainingExamples).pick({
+  text: true,
+  textKey: true,
+  sentiment: true,
+  language: true,
+  confidence: true
 });
 
 // Schema Validation
@@ -156,3 +176,6 @@ export type AnalyzedFile = typeof analyzedFiles.$inferSelect;
 
 export type InsertSentimentFeedback = z.infer<typeof insertSentimentFeedbackSchema>;
 export type SentimentFeedback = typeof sentimentFeedback.$inferSelect;
+
+export type InsertTrainingExample = z.infer<typeof insertTrainingExampleSchema>;
+export type TrainingExample = typeof trainingExamples.$inferSelect;

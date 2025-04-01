@@ -5,6 +5,7 @@ import os from 'os';
 import { nanoid } from 'nanoid';
 import { log } from './vite';
 import { usageTracker } from './utils/usage-tracker';
+import { storage } from './storage';
 
 // Global array to store console logs from Python service
 export const pythonConsoleMessages: {message: string, timestamp: Date}[] = [];
@@ -44,6 +45,83 @@ export class PythonService {
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
     }
+  }
+  
+  // Utility method to extract disaster type from text
+  private extractDisasterTypeFromText(text: string): string | null {
+    const textLower = text.toLowerCase();
+    
+    // Check for typhoon/bagyo
+    if (textLower.includes('typhoon') || textLower.includes('bagyo') || 
+        textLower.includes('cyclone') || textLower.includes('storm')) {
+      return 'Typhoon';
+    }
+    
+    // Check for flood/baha
+    if (textLower.includes('flood') || textLower.includes('baha') || 
+        textLower.includes('tubig') || textLower.includes('water rising')) {
+      return 'Flood';
+    }
+    
+    // Check for earthquake/lindol
+    if (textLower.includes('earthquake') || textLower.includes('lindol') || 
+        textLower.includes('linog') || textLower.includes('magnitude') || 
+        textLower.includes('shaking') || textLower.includes('tremor')) {
+      return 'Earthquake';
+    }
+    
+    // Check for volcano/bulkan
+    if (textLower.includes('volcano') || textLower.includes('bulkan') || 
+        textLower.includes('eruption') || textLower.includes('lava') || 
+        textLower.includes('ash fall') || textLower.includes('magma')) {
+      return 'Volcanic Eruption';
+    }
+    
+    // Check for fire/sunog
+    if (textLower.includes('fire') || textLower.includes('sunog') || 
+        textLower.includes('burning') || textLower.includes('nasusunog')) {
+      return 'Fire';
+    }
+    
+    // Check for landslide/pagguho
+    if (textLower.includes('landslide') || textLower.includes('pagguho') || 
+        textLower.includes('mudslide') || textLower.includes('rockfall') || 
+        textLower.includes('gumuho')) {
+      return 'Landslide';
+    }
+    
+    return null;
+  }
+  
+  // Utility method to extract location from text
+  private extractLocationFromText(text: string): string | null {
+    // Philippine locations - major cities and regions
+    const locations = [
+      'Manila', 'Quezon City', 'Davao', 'Cebu', 'Makati', 'Taguig', 'Pasig',
+      'Cagayan', 'Bicol', 'Samar', 'Leyte', 'Tacloban', 'Batanes', 'Mindanao',
+      'Luzon', 'Visayas', 'Palawan', 'Mindoro', 'Batangas', 'Cavite', 'Laguna',
+      'Albay', 'Baguio', 'Zambales', 'Pampanga', 'Bulacan', 'Iloilo', 'Bacolod',
+      'Zamboanga', 'General Santos', 'Cagayan de Oro', 'Butuan', 'Camarines'
+    ];
+    
+    // Convert to lowercase for case-insensitive matching
+    const textLower = text.toLowerCase();
+    
+    // Check each location
+    for (const location of locations) {
+      if (textLower.includes(location.toLowerCase())) {
+        return location;
+      }
+    }
+    
+    // Check for "sa" + location pattern in Filipino
+    const saPattern = /\bsa\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/;
+    const saMatch = text.match(saPattern);
+    if (saMatch && saMatch.length > 1) {
+      return saMatch[1]; // Return the first captured group
+    }
+    
+    return null;
   }
 
   private getCachedConfidence(text: string): number | undefined {
@@ -348,21 +426,39 @@ export class PythonService {
     location?: string;
   }> {
     try {
-      // We will no longer use cache as it causes the sentiment not to update after training
-      /*
-      const cachedConfidence = this.getCachedConfidence(text);
-      if (cachedConfidence !== undefined) {
-        log(`Using cached confidence score: ${cachedConfidence}`, 'python-service');
-        return {
-          sentiment: "", // Placeholder -  Real values should come from the cache.  This needs to be populated based on your actual cache structure
-          confidence: cachedConfidence,
-          explanation: "", // Placeholder
-          language: "", // Placeholder
-          disasterType: undefined,
-          location: undefined
-        };
+      // First check if we have a saved training example in the database
+      // This ensures persistence of training across restarts
+      try {
+        // Create normalized form of the text (lowercase, space-separated words)
+        const textWords = text.toLowerCase().match(/\b\w+\b/g) || [];
+        const textKey = textWords.join(' ');
+        
+        // Try to get a training example from the database
+        const trainingExample = await storage.getTrainingExampleByText(text);
+        
+        if (trainingExample) {
+          log(`Using training example from database for sentiment: ${trainingExample.sentiment}`, 'python-service');
+          
+          // Generate explanation based on the language
+          let explanation = `Classification based on previous user feedback: ${trainingExample.sentiment}`;
+          if (trainingExample.language === "Filipino") {
+            explanation = `Klasipikasyon batay sa nakaraang feedback ng gumagamit: ${trainingExample.sentiment}`;
+          }
+          
+          // Return the saved training example results
+          return {
+            sentiment: trainingExample.sentiment,
+            confidence: trainingExample.confidence,
+            explanation: explanation,
+            language: trainingExample.language,
+            disasterType: this.extractDisasterTypeFromText(text) || "UNKNOWN",
+            location: this.extractLocationFromText(text) || "UNKNOWN"
+          };
+        }
+      } catch (dbError) {
+        // If database lookup fails, log and continue with normal analysis
+        log(`Error checking training examples: ${dbError}. Proceeding with API analysis.`, 'python-service');
       }
-      */
 
       // Pass text directly to Python script
       const pythonProcess = spawn(this.pythonBinary, [
@@ -420,6 +516,15 @@ export class PythonService {
         this.setCachedConfidence(text, analysisResult.confidence);
       }
 
+      // Make sure None values are converted to "UNKNOWN"
+      if (!analysisResult.disasterType || analysisResult.disasterType === "None") {
+        analysisResult.disasterType = "UNKNOWN";
+      }
+      
+      if (!analysisResult.location || analysisResult.location === "None") {
+        analysisResult.location = "UNKNOWN";
+      }
+      
       return analysisResult;
     } catch (error) {
       log(`Sentiment analysis failed: ${error}`, 'python-service');

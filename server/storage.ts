@@ -4,7 +4,8 @@ import { users, type User, type InsertUser,
   analyzedFiles, type AnalyzedFile, type InsertAnalyzedFile,
   sessions, type LoginUser,
   profileImages, type ProfileImage, type InsertProfileImage,
-  sentimentFeedback, type SentimentFeedback, type InsertSentimentFeedback
+  sentimentFeedback, type SentimentFeedback, type InsertSentimentFeedback,
+  trainingExamples, type TrainingExample, type InsertTrainingExample
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -52,6 +53,13 @@ export interface IStorage {
   getUntrainedFeedback(): Promise<SentimentFeedback[]>;
   submitSentimentFeedback(feedback: InsertSentimentFeedback): Promise<SentimentFeedback>;
   markFeedbackAsTrained(id: number): Promise<void>;
+  
+  // Training Examples Management
+  getTrainingExamples(): Promise<TrainingExample[]>;
+  getTrainingExampleByText(text: string): Promise<TrainingExample | undefined>;
+  createTrainingExample(example: InsertTrainingExample): Promise<TrainingExample>;
+  updateTrainingExample(id: number, sentiment: string): Promise<TrainingExample>;
+  deleteTrainingExample(id: number): Promise<void>;
 
   // Delete All Data
   deleteAllData(): Promise<void>;
@@ -250,8 +258,60 @@ export class DatabaseStorage implements IStorage {
       .where(eq(sentimentFeedback.id, id));
   }
 
+  // Training Examples
+  async getTrainingExamples(): Promise<TrainingExample[]> {
+    return db.select().from(trainingExamples);
+  }
+
+  async getTrainingExampleByText(text: string): Promise<TrainingExample | undefined> {
+    // Generate text_key similar to how it's done in Python backend
+    const textWords = text.toLowerCase().match(/\b\w+\b/g) || [];
+    const textKey = textWords.join(' ');
+    
+    const [example] = await db.select()
+      .from(trainingExamples)
+      .where(eq(trainingExamples.textKey, textKey));
+    
+    return example;
+  }
+
+  async createTrainingExample(example: InsertTrainingExample): Promise<TrainingExample> {
+    // Attempt to find an existing entry first
+    const existingExample = await this.getTrainingExampleByText(example.text);
+    
+    if (existingExample) {
+      // If example already exists, update it rather than creating a new one
+      return this.updateTrainingExample(existingExample.id, example.sentiment);
+    }
+    
+    // Create a new training example
+    const [result] = await db.insert(trainingExamples)
+      .values(example)
+      .returning();
+    
+    return result;
+  }
+
+  async updateTrainingExample(id: number, sentiment: string): Promise<TrainingExample> {
+    const [result] = await db.update(trainingExamples)
+      .set({ 
+        sentiment, 
+        updatedAt: new Date() 
+      })
+      .where(eq(trainingExamples.id, id))
+      .returning();
+    
+    return result;
+  }
+
+  async deleteTrainingExample(id: number): Promise<void> {
+    await db.delete(trainingExamples)
+      .where(eq(trainingExamples.id, id));
+  }
+
   async deleteAllData(): Promise<void> {
     await db.delete(sentimentFeedback);
+    await db.delete(trainingExamples);
     await this.deleteAllSentimentPosts();
     await this.deleteAllDisasterEvents();
     await this.deleteAllAnalyzedFiles();

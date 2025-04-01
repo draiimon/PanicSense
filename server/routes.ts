@@ -1185,6 +1185,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const savedFeedback = await storage.submitSentimentFeedback(feedback);
       console.log("Feedback saved to database with ID:", savedFeedback.id);
       
+      // Try to detect language from text
+      let language = "English";
+      try {
+        // Try to guess language from text
+        if (feedback.originalText.match(/[ñÑáéíóúÁÉÍÓÚ]/)) {
+          language = "Filipino"; // Simple heuristic for Filipino text with accent marks
+        } else if (feedback.originalText.match(/\b(ako|namin|natin|kami|tayo|nila|sila|mo|niya|ko|kayo|ikaw|siya)\b/i)) {
+          language = "Filipino"; // Check for common Filipino pronouns
+        }
+      } catch (e) {
+        console.log("Language detection failed, defaulting to English");
+      }
+
+      // Also save to training examples database for persistent learning
+      try {
+        // Create text_key from the original text by normalizing to lowercase and joining words
+        const textWords = feedback.originalText.toLowerCase().match(/\b\w+\b/g) || [];
+        const textKey = textWords.join(' ');
+        
+        // Create training example from feedback
+        const trainingExample = await storage.createTrainingExample({
+          text: feedback.originalText,
+          textKey: textKey,
+          sentiment: feedback.correctedSentiment,
+          language: language,
+          confidence: 0.95
+        });
+        
+        console.log(`Training example saved to database with ID: ${trainingExample.id}`);
+      } catch (dbError) {
+        console.error("Error saving training example to database:", dbError);
+        // Continue even if this fails - it might be a duplicate
+      }
+      
       // Create base response
       const baseResponse = {
         id: savedFeedback.id,
@@ -1295,6 +1329,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error marking feedback as trained:", error);
       return res.status(500).json({ error: "Failed to mark feedback as trained" });
+    }
+  });
+  
+  // Get all training examples
+  app.get('/api/training-examples', async (req: Request, res: Response) => {
+    try {
+      const examples = await storage.getTrainingExamples();
+      return res.status(200).json(examples);
+    } catch (error) {
+      console.error("Error getting training examples:", error);
+      return res.status(500).json({ error: "Failed to get training examples" });
     }
   });
 
