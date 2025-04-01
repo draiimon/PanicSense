@@ -119,50 +119,11 @@ export function SentimentFeedback({
     setActiveTab("sentiment");
   };
   
-  // General purpose client-side validation function for all sentiment changes
+  // This is now a pure pass-through function - all validation is done by the Python AI model
   const validateSentimentChange = (): { valid: boolean, message: string | null } => {
-    // Default to valid
-    let result = { valid: true, message: null };
-    
-    // ===== BASIC CONTENT CLASSIFICATION =====
-    const hasJokeIndicators = containsJokeIndicators(originalText);
-    const hasDisasterKeywords = containsDisasterKeywords(originalText);
-    const hasQuestionForm = containsQuestionForm(originalText);
-    const hasEmojis = originalText.includes("😂") || originalText.includes("🤣") || originalText.includes("😆");
-    
-    // ===== SENTIMENT CLASSIFICATION RULES =====
-    
-    // RULE 1: Joking text should be classified as Disbelief
-    if (correctedSentiment !== "Disbelief" && hasJokeIndicators && !hasSeriosDisasterIndication(originalText)) {
-      if (hasJokeIndicators && (hasDisasterKeywords || hasEmojis)) {
-        return {
-          valid: false,
-          message: "This text appears to be joking or sarcastic. It should be classified as Disbelief, not " + correctedSentiment
-        };
-      }
-    }
-    
-    // RULE 2: Clear disaster text without humor should not be classified as Disbelief
-    if (correctedSentiment === "Disbelief" && hasDisasterKeywords && !hasJokeIndicators && !hasQuestionForm) {
-      return {
-        valid: false,
-        message: "This text appears to contain serious disaster content without humor indicators. It should not be classified as Disbelief."
-      };
-    }
-    
-    // RULE 3: Text with both disaster keywords AND joke indicators is valid as Disbelief
-    if (correctedSentiment === "Disbelief" && hasJokeIndicators && hasDisasterKeywords) {
-      // Allow the change - if someone is joking about a disaster, it's valid to mark as Disbelief
-      return { valid: true, message: null };
-    }
-    
-    // RULE 4: Text with emojis and question markers should be allowed to be Disbelief 
-    if (correctedSentiment === "Disbelief" && hasEmojis && hasQuestionForm) {
-      // Specifically for the "MA SUNOG DAW?" text with laughing emojis
-      return { valid: true, message: null };
-    }
-    
-    return result;
+    // Always return valid - the real verification happens on the server using the Python AI model
+    // We've removed all client-side validation rules to focus purely on AI-based validation
+    return { valid: true, message: null };
   };
   
   // Helper function to check if text is in question form (daw/raw/?, etc)
@@ -520,7 +481,9 @@ export function SentimentFeedback({
                       <div>
                         <h3 className="text-sm font-medium mb-2">Current Disaster Type</h3>
                         <div className="px-3 py-2 bg-amber-50 text-amber-700 rounded border border-amber-200">
-                          {originalDisasterType === "UNKNOWN" ? "Not detected" : originalDisasterType}
+                          {originalDisasterType === "UNKNOWN" || originalDisasterType === "Not Specified" 
+                            ? "Not detected" 
+                            : originalDisasterType}
                         </div>
                       </div>
                       

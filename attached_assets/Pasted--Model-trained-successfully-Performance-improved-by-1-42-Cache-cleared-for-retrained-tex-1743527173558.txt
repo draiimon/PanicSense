@@ -1,0 +1,51 @@
+}
+}
+🚀 Model trained successfully - Performance improved by 1.42%
+Cache cleared for retrained text: "😂 TULONG HAHAHA !..."
+Found 2 posts with the same text to update sentiment
+Applying user-requested changes to post ID 61 - Admin/user feedback takes priority
+Updated post ID 61: sentiment from 'Panic' to 'Disbelief'
+Applying user-requested changes to post ID 56 - Admin/user feedback takes priority
+Updated post ID 56: sentiment from 'Panic' to 'Disbelief'
+Context differs: Length ratio too high (3.6)
+Context differs: Length ratio too high (3.6)
+Context differs: Emoji presence mismatch between texts
+Context differs: Length ratio too high (3.8)
+Context differs: Emoji presence mismatch between texts
+Context differs: Emoji presence mismatch between texts
+Context differs: Emoji presence mismatch between texts
+Context differs: Language mismatch (Filipino vs English)
+Context differs: Length ratio too high (3.6)
+Context differs: Length ratio too high (5.4)
+Context differs: Length ratio too high (5.4)
+Context differs: Length ratio too high (4.2)
+Context differs: Emoji presence mismatch between texts
+Context differs: Emoji presence mismatch between texts
+Context differs: Length ratio too high (4.2)
+Context differs: Emoji presence mismatch between texts
+Context differs: Emoji presence mismatch between texts
+Context differs: Length ratio too high (4.2)
+Context differs: Length ratio too high (5.3)
+Context differs: Length ratio too high (3.8)
+Context differs: Language mismatch (Filipino vs English)
+Context differs: Length ratio too high (4.7)
+Context differs: Emoji presence mismatch between texts
+Context differs: Length ratio too high (4.0)
+Context differs: Length ratio too high (3.7)
+Context differs: Length ratio too high (5.0)
+Context differs: Length ratio too high (4.1)
+Context differs: Length ratio too high (4.4)
+Context differs: Length ratio too high (3.5)
+Context differs: Length ratio too high (3.8)
+Context differs: Emoji presence mismatch between texts
+Context differs: Length ratio too high (3.9)
+Context differs: Length ratio too high (4.2)
+Context differs: Emoji presence mismatch between texts
+Context differs: Length ratio too high (3.7)
+Context differs: Length ratio too high (4.3)
+Context differs: Length ratio too high (3.6)
+Context differs: Length ratio too high (3.9)
+Context differs: Length ratio too high (3.6)
+After context-based filtering, only 0 posts need AI verification
+No additional posts to check for semantic similarity
+5:05:32 PM [express] GET /api/usage-stats 304 in 1ms :: {"used":21,"limit":10000,"remaining":9979,"resetAt":"2025-04-01T16:01:44.224Z"}

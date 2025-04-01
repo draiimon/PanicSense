@@ -1738,7 +1738,7 @@ class DisasterSentimentBackend:
 
     def _validate_sentiment_correction(self, text, original_sentiment, corrected_sentiment):
         """
-        Advanced AI-based validation of sentiment corrections to prevent trolling
+        Pure AI-based validation of sentiment corrections to prevent trolling
         
         Args:
             text (str): The original text
@@ -1754,69 +1754,48 @@ class DisasterSentimentBackend:
         # Get AI analysis of the text independent of user corrections
         ai_analysis = self.analyze_sentiment(text)
         ai_sentiment = ai_analysis["sentiment"]
+        ai_confidence = ai_analysis["confidence"]
         ai_explanation = ai_analysis["explanation"]
         
-        # CASE 1: Check for joke/sarcasm content being incorrectly changed from Disbelief to Neutral
-        is_joke_content = False
+        logging.info(f"PURE AI VALIDATION: AI model classified text as '{ai_sentiment}' with confidence {ai_confidence}")
+        logging.info(f"PURE AI VALIDATION: Explanation: {ai_explanation}")
+        logging.info(f"PURE AI VALIDATION: User wants to change from '{original_sentiment}' to '{corrected_sentiment}'")
         
-        # Check for laughter and mockery patterns (strong indicators of disbelief or joking)
-        laughter_patterns = ["haha", "hehe", "lol", "lmao", "ulol", "gago", "tanga", "daw?", "raw?"]
-        laughter_count = 0
-        
-        # Count frequency of joke indicators
-        for pattern in laughter_patterns:
-            if pattern in text.lower():
-                laughter_count += text.lower().count(pattern)
-        
-        # Check for exclamation marks (especially multiple)
-        exclamation_count = text.count('!')
-        
-        # Determine if this is likely joking/sarcastic text
-        is_joke_content = (
-            laughter_count >= 2 or 
-            (laughter_count >= 1 and exclamation_count >= 2) or
-            "HAHAA" in text.upper() or
-            "HEHE" in text.upper() or
-            ai_sentiment == "Disbelief" or
-            (ai_explanation and "humor" in ai_explanation.lower()) or
-            (ai_explanation and "joke" in ai_explanation.lower()) or
-            (ai_explanation and "sarcasm" in ai_explanation.lower()) or
-            (ai_explanation and "laughter" in ai_explanation.lower())
-        )
-        
-        # If this is joke content and trying to change from Disbelief to Neutral
-        if is_joke_content and original_sentiment == "Disbelief" and corrected_sentiment == "Neutral":
-            result["valid"] = False
-            result["reason"] = "Our AI analysis detected this text contains joke/sarcasm indicators which should be classified as Disbelief, not Neutral."
-            logging.warning(f"AI VALIDATION: Prevented changing joke content from Disbelief to Neutral")
+        # For highly confident predictions, verify the correction makes sense
+        if ai_confidence > 0.85:
+            # Check if user correction does not match AI sentiment and is not an adjacent sentiment category
+            sentiment_categories = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"]
+            ai_index = sentiment_categories.index(ai_sentiment) if ai_sentiment in sentiment_categories else -1
+            corrected_index = sentiment_categories.index(corrected_sentiment) if corrected_sentiment in sentiment_categories else -1
             
-        # CASE 2: Check if trying to change serious disaster content to joke classification
-        has_disaster_keywords = any(word in text.lower() for word in [
-            "earthquake", "lindol", "fire", "sunog", "flood", "baha", "typhoon", "bagyo"
-        ])
+            # If AI has high confidence and correction is very different (not adjacent categories)
+            if ai_index != -1 and corrected_index != -1 and abs(ai_index - corrected_index) > 1:
+                result["valid"] = False
+                result["reason"] = f"Our AI analysis classified this as '{ai_sentiment}' with high confidence. The suggested classification '{corrected_sentiment}' differs significantly from our analysis."
+                logging.warning(f"PURE AI VALIDATION: High confidence AI prediction conflicts with user correction")
         
-        is_serious_content = (
-            has_disaster_keywords and 
-            not is_joke_content and
-            (original_sentiment in ["Panic", "Fear/Anxiety", "Neutral"])
-        )
+        # Deep semantic analysis for sarcasm or joke content
+        joke_indicators = ["haha", "joke", "sarcasm", "humor", "kidding", "laughter", "mocking"]
+        has_joke_context = any(indicator in ai_explanation.lower() for indicator in joke_indicators)
         
-        if is_serious_content and corrected_sentiment == "Disbelief":
+        # For emotion-specific validations based on AI explanation
+        if "panic" in ai_explanation.lower() and corrected_sentiment not in ["Panic", "Fear/Anxiety"]:
             result["valid"] = False
-            result["reason"] = "Our AI analysis found that this text contains serious disaster content without humor indicators. It should not be classified as Disbelief."
-            logging.warning(f"AI VALIDATION: Prevented changing serious content to Disbelief classification")
-            
-        # CASE 3: Special check for content with exclamation marks but no panic keywords
-        if (exclamation_count >= 2 and 
-            original_sentiment in ["Neutral", "Resilience"] and 
-            corrected_sentiment == "Panic" and
-            not any(word in text.lower() for word in [
-                "help", "tulong", "save", "saklolo", "rescue", "danger", "emergency", "trapped"
-            ])):
+            result["reason"] = f"Our AI analysis detected panic indicators in this text, which conflicts with the '{corrected_sentiment}' classification."
+        
+        # Special case for disbelief/humor context
+        if has_joke_context and corrected_sentiment not in ["Disbelief"]:
             result["valid"] = False
-            result["reason"] = "Our AI analysis found that while this text contains exclamation marks, it lacks panic indicators that would justify a Panic classification."
-            
-        logging.info(f"AI Validation result for '{text}': {result}")
+            result["reason"] = f"Our AI analysis detected humor or sarcasm in this text, which suggests a 'Disbelief' classification is more appropriate than '{corrected_sentiment}'."
+        
+        # If validation fails but original sentiment also doesn't match AI sentiment, allow the change
+        # This handles cases where the original AI prediction may have been wrong
+        if not result["valid"] and original_sentiment != ai_sentiment:
+            logging.info(f"PURE AI VALIDATION: Allowing correction despite validation failure because original prediction may be incorrect")
+            result["valid"] = True
+            result["reason"] = ""
+        
+        logging.info(f"PURE AI VALIDATION result for '{text}': {result}")
         return result
 
     def calculate_real_metrics(self, results):
