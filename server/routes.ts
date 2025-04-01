@@ -1236,6 +1236,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             possibleTrolling = true;
             console.log("⚠️ AI QUIZ VALIDATION: Quiz suggests a potential problem with this feedback");
           }
+        } else if (quizValidation.status === "success") {
+          // Make sure we always have a message even if the validation passed
+          aiTrustMessage = `VALIDATION PASSED: Your correction from "${feedback.originalSentiment}" to "${feedback.correctedSentiment}" has been accepted. Thank you for helping improve our system!`;
+          console.log("Setting default success message for AI trust validation");
         }
       } catch (aiError) {
         console.error("Error during AI quiz validation:", aiError);

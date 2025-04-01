@@ -359,11 +359,25 @@ export function SentimentFeedback({
         response.aiTrustMessage ? response.aiTrustMessage :
         // Default message if all else fails
         "Feedback received. AI analysis results will be updated.";
-        
-      // Always show the popup dialog with the message
+      
+      // DIRECT UPDATE OF UI - MOST RELIABLE WAY!
+      // Directly call the window function exposed by the realtime monitor to fix UI instantly
+      if (
+        // @ts-ignore - we know this exists because we added it
+        window.updateRealtimeSentiment && 
+        typeof window.updateRealtimeSentiment === 'function' && 
+        correctedSentiment
+      ) {
+        // @ts-ignore - we know this exists because we added it
+        window.updateRealtimeSentiment(originalText, correctedSentiment);
+        console.log("Used direct sentiment update function to refresh UI");
+      }
+
+      // Always show the popup dialog with the message after the update
       setWarningMessage(validationMessage);
       setWarningOpen(true);
       
+      // Close dialog and reset form
       setIsOpen(false);
       resetForm();
       

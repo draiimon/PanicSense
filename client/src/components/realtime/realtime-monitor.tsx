@@ -115,7 +115,48 @@ export function RealtimeMonitor() {
     return () => window.removeEventListener('message', progressEventHandler);
   }, []);
   
-  // Listen for sentiment changes from the correction UI
+  // DIRECT ACCESS to override sentiment data on the fly
+  // This function will be called from the sentiment-feedback component through the window object
+  const directlySentimentUpdate = (text: string, newSentiment: string) => {
+    console.log(`DIRECT UPDATE called for text: "${text}" -> "${newSentiment}"`);
+    
+    // Update the matching text in our list with the new sentiment
+    setAnalyzedTexts(prevTexts => {
+      const updatedTexts = prevTexts.map(item => {
+        if (item.text === text) {
+          console.log(`Found matching text! Updating sentiment: ${item.sentiment} -> ${newSentiment}`);
+          // Update the sentiment and keep everything else
+          return {
+            ...item,
+            sentiment: newSentiment,
+            // Add a visual indicator that this was manually corrected
+            corrected: true
+          };
+        }
+        return item;
+      });
+      
+      console.log("Updated analyzed texts:", updatedTexts);
+      return updatedTexts;
+    });
+    
+    // Also refresh the global data to update charts and stats
+    refreshData();
+  };
+  
+  // Add direct function to window object for global access
+  useEffect(() => {
+    // @ts-ignore - adding custom property to window
+    window.updateRealtimeSentiment = directlySentimentUpdate;
+    
+    return () => {
+      // Clean up when component unmounts
+      // @ts-ignore
+      delete window.updateRealtimeSentiment;
+    };
+  }, [refreshData]);
+  
+  // ALSO Listen for sentiment changes from the correction UI for backward compatibility
   useEffect(() => {
     const sentimentChangeHandler = (event: CustomEvent) => {
       console.log("Sentiment change event received:", event);
