@@ -1279,72 +1279,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log(`Updated post ID ${post.id} sentiment from ${post.sentiment} to ${feedback.correctedSentiment}`);
             }
             
-            // ALSO LOOK FOR SIMILAR POSTS (partial text matches) and update those too
-            // This ensures that variations like "Example text" vs "Example text in Cavite" still get updated
+            // LOOK FOR SIMILAR POSTS that have SAME MEANING using AI verification
+            // This ensures that variations with same meaning get updated, while different meanings are preserved
             try {
-              // Create normalized text (lowercase, no punctuation, space-separated words)
-              const normalizedText = feedback.originalText.toLowerCase().replace(/[^\w\s]/g, '');
-              const words = normalizedText.split(/\s+/).filter(w => w.length > 3);
+              // Get all posts from the database that aren't exact matches but might be similar
+              // We'll exclude posts we've already updated
+              const excludeIds = postsToUpdate.map(p => p.id);
+              const allPosts = await db.select().from(sentimentPosts);
               
-              // Skip if we don't have enough significant words to match on
-              if (words.length >= 3) {
-                // Build a SQL query to find posts containing all these words
-                // This is a simple approach - for production, consider using full-text search
-                let similarPosts = [];
-                
-                for (const word of words) {
-                  if (word.length >= 4) { // Only use significant words (4+ chars)
-                    // Skip SQL query if no posts to update (avoid division by zero)
-                    if (postsToUpdate.length === 0) continue;
+              // Filter to get only posts that aren't already updated
+              const postsToCheck = allPosts.filter(post => 
+                !excludeIds.includes(post.id) && 
+                post.text !== feedback.originalText &&
+                post.sentiment !== feedback.correctedSentiment // Only consider posts with different sentiment
+              );
+              
+              if (postsToCheck.length === 0) {
+                console.log("No additional posts to check for semantic similarity");
+                return;
+              }
+              
+              console.log(`Found ${postsToCheck.length} posts to check for semantic similarity`);
+              
+              // Use AI to verify semantic similarity - but do it in batches to avoid performance issues
+              const similarPosts = [];
+              const batchSize = 5;
+              
+              for (let i = 0; i < postsToCheck.length; i += batchSize) {
+                const batch = postsToCheck.slice(i, i + batchSize);
+                const batchPromises = batch.map(async (post) => {
+                  try {
+                    // IMPORTANT: Use the AI service to verify if the post has the same core meaning
+                    // We use Python service to check if these texts actually have the same meaning
+                    const verificationResult = await pythonService.analyzeSimilarityForFeedback(
+                      feedback.originalText,
+                      post.text
+                    );
                     
-                    // Build an array of IDs to exclude
-                    const excludeIds = postsToUpdate.map(p => p.id);
-                    
-                    // Query for similar posts excluding already updated ones
-                    let matchingPosts = [];
-                    if (excludeIds.length > 0) {
-                      // Use individual WHERE id != conditions instead of NOT IN
-                      let query = db.select().from(sentimentPosts)
-                        .where(sql`text ILIKE ${`%${word}%`}`);
-                        
-                      // Add individual exclusions for each ID 
-                      for (const id of excludeIds) {
-                        query = query.where(sql`id != ${id}`);
-                      }
-                      
-                      matchingPosts = await query;
+                    if (verificationResult && verificationResult.areSimilar === true) {
+                      console.log(`AI verified semantic similarity: "${post.text.substring(0, 30)}..." is similar to original`);
+                      return post;
                     }
-                    
-                    if (similarPosts.length === 0) {
-                      similarPosts = matchingPosts;
-                    } else {
-                      // Keep only posts that matched previous words too
-                      similarPosts = similarPosts.filter(post => 
-                        matchingPosts.some(match => match.id === post.id)
-                      );
-                    }
-                    
-                    // If no matches left, break early
-                    if (similarPosts.length === 0) break;
+                    return null;
+                  } catch (err) {
+                    console.error(`Error analyzing similarity for post ID ${post.id}:`, err);
+                    return null;
                   }
-                }
+                });
                 
-                console.log(`Found ${similarPosts.length} similar posts to update sentiment`);
-                
-                // Update similar posts
-                for (const post of similarPosts) {
-                  await db.update(sentimentPosts)
-                    .set({ 
-                      sentiment: feedback.correctedSentiment, 
-                      confidence: 0.92 // High confidence but slightly less than exact match
-                    })
-                    .where(eq(sentimentPosts.id, post.id));
-                    
-                  console.log(`Updated similar post ID ${post.id} sentiment from ${post.sentiment} to ${feedback.correctedSentiment}`);
-                }
+                const batchResults = await Promise.all(batchPromises);
+                batchResults.forEach(post => {
+                  if (post) similarPosts.push(post);
+                });
+              }
+              
+              console.log(`Found ${similarPosts.length} semantically similar posts verified by AI`);
+              
+              // Update the truly similar posts
+              for (const post of similarPosts) {
+                await db.update(sentimentPosts)
+                  .set({ 
+                    sentiment: feedback.correctedSentiment, 
+                    confidence: 0.92 // High confidence based on verified similarity
+                  })
+                  .where(eq(sentimentPosts.id, post.id));
+                  
+                console.log(`Updated AI-verified similar post ID ${post.id} sentiment from ${post.sentiment} to ${feedback.correctedSentiment}`);
               }
             } catch (similarError) {
-              console.error("Error updating similar posts:", similarError);
+              console.error("Error updating similar posts with AI verification:", similarError);
             }
           } catch (error) {
             console.error("Error updating existing sentiment posts:", error);

@@ -35,12 +35,14 @@ export class PythonService {
   private tempDir: string;
   private scriptPath: string;
   private confidenceCache: Map<string, number>;  // Cache for confidence scores
+  private similarityCache: Map<string, boolean>; // Cache for text similarity checks
 
   constructor() {
     this.pythonBinary = 'python3';
     this.tempDir = path.join(os.tmpdir(), 'disaster-sentiment');
     this.scriptPath = path.join(process.cwd(), 'server', 'python', 'process.py');
     this.confidenceCache = new Map();  // Initialize confidence cache
+    this.similarityCache = new Map();  // Initialize similarity cache
 
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
@@ -144,6 +146,118 @@ export class PythonService {
   public clearCache(): void {
     log(`Clearing entire confidence cache (${this.confidenceCache.size} entries)`, 'python-service');
     this.confidenceCache.clear();
+    this.similarityCache.clear();
+  }
+  
+  // New method to analyze if two texts have similar semantic meaning
+  public async analyzeSimilarityForFeedback(
+    text1: string, 
+    text2: string
+  ): Promise<{
+    areSimilar: boolean;
+    score: number;
+    explanation?: string;
+  }> {
+    try {
+      // Create a cache key for these two texts
+      const cacheKey = `${text1.trim().toLowerCase()}|${text2.trim().toLowerCase()}`;
+      
+      // Check cache first
+      if (this.similarityCache.has(cacheKey)) {
+        const cached = this.similarityCache.get(cacheKey);
+        return {
+          areSimilar: cached === true,
+          score: cached === true ? 0.95 : 0.2,
+          explanation: cached === true ? 
+            "Cached result: Texts have similar semantic meaning" : 
+            "Cached result: Texts have different semantic meanings"
+        };
+      }
+      
+      // Simple rule-based check for exact match
+      if (text1.trim().toLowerCase() === text2.trim().toLowerCase()) {
+        this.similarityCache.set(cacheKey, true);
+        return {
+          areSimilar: true,
+          score: 1.0,
+          explanation: "Exact match"
+        };
+      }
+      
+      // Check if one text contains the other (ignoring case)
+      if (text1.trim().toLowerCase().includes(text2.trim().toLowerCase()) || 
+          text2.trim().toLowerCase().includes(text1.trim().toLowerCase())) {
+        this.similarityCache.set(cacheKey, true);
+        return {
+          areSimilar: true,
+          score: 0.9,
+          explanation: "One text contains the other"
+        };
+      }
+      
+      // If one has "joke" or "eme" and the other doesn't, they're likely different
+      const jokeWords = ['joke', 'eme', 'charot', 'just kidding', 'kidding', 'lol', 'haha'];
+      const text1HasJoke = jokeWords.some(word => text1.toLowerCase().includes(word));
+      const text2HasJoke = jokeWords.some(word => text2.toLowerCase().includes(word));
+      
+      if (text1HasJoke !== text2HasJoke) {
+        // One has joke indicators and the other doesn't - likely different meanings
+        this.similarityCache.set(cacheKey, false);
+        return {
+          areSimilar: false,
+          score: 0.1,
+          explanation: "One text contains joke indicators while the other doesn't"
+        };
+      }
+      
+      // Check if both contain negation words
+      const negationWords = ['hindi', 'wala', 'walang', 'not', "isn't", "aren't", "wasn't", "didn't", "doesn't", "won't"];
+      const text1HasNegation = negationWords.some(word => text1.toLowerCase().includes(word));
+      const text2HasNegation = negationWords.some(word => text2.toLowerCase().includes(word));
+      
+      if (text1HasNegation !== text2HasNegation) {
+        // One has negation and the other doesn't - likely different meanings
+        this.similarityCache.set(cacheKey, false);
+        return {
+          areSimilar: false,
+          score: 0.15,
+          explanation: "One text contains negation while the other doesn't"
+        };
+      }
+      
+      // Calculate word overlap 
+      const words1 = new Set(text1.toLowerCase().match(/\b\w+\b/g) || []);
+      const words2 = new Set(text2.toLowerCase().match(/\b\w+\b/g) || []);
+      
+      // Find common words
+      const commonWords = [...words1].filter(word => words2.has(word));
+      
+      // If there are enough common significant words, they might be similar
+      if (commonWords.length >= 4 && 
+          (commonWords.length / Math.max(words1.size, words2.size)) > 0.6) {
+        this.similarityCache.set(cacheKey, true);
+        return {
+          areSimilar: true,
+          score: 0.8,
+          explanation: "Texts share significant common words and context"
+        };
+      }
+      
+      // Default to not similar for now
+      this.similarityCache.set(cacheKey, false);
+      return {
+        areSimilar: false,
+        score: 0.3,
+        explanation: "Texts don't share enough common context to determine similarity"
+      };
+    } catch (error) {
+      log(`Error analyzing text similarity: ${error}`, 'python-service');
+      return {
+        areSimilar: false,
+        score: 0,
+        explanation: `Error analyzing similarity: ${error}`
+      };
+    }
   }
 
   // Process feedback and train the model with corrections
