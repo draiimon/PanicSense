@@ -194,39 +194,8 @@ export function SentimentFeedback({
     }
   };
 
-  // Listen for WebSocket messages for feedback warnings
-  useEffect(() => {
-    const handleWebSocketMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'feedback-warning' && data.data) {
-          setWarningMessage(data.data.message);
-          setWarningOpen(true);
-        }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
-    };
-
-    // Check if WebSocket is available in the window object
-    if (typeof window !== 'undefined' && 'WebSocket' in window) {
-      try {
-        // Use the same protocol (http->ws, https->wss) to avoid mixed content errors
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        // Add event listener to the existing WebSocket connection
-        const socket = new WebSocket(`${protocol}//${window.location.host}`);
-        socket.addEventListener('message', handleWebSocketMessage);
-        
-        // Cleanup function
-        return () => {
-          socket.removeEventListener('message', handleWebSocketMessage);
-          socket.close();
-        };
-      } catch (err) {
-        console.error("Failed to connect to WebSocket:", err);
-      }
-    }
-  }, []);
+  // We removed the WebSocket connection as it was causing issues
+  // Instead, we're directly showing warnings based on API responses
 
   return (
     <>
