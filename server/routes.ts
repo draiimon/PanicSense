@@ -1339,14 +1339,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
               (aiAnalysisResult.explanation && aiAnalysisResult.explanation.toLowerCase().includes('humor')) ||
               (aiAnalysisResult.explanation && aiAnalysisResult.explanation.toLowerCase().includes('joke')) ||
               (aiAnalysisResult.explanation && aiAnalysisResult.explanation.toLowerCase().includes('kidding')) ||
-              (aiAnalysisResult.explanation && aiAnalysisResult.explanation.toLowerCase().includes('laughter'));
+              (aiAnalysisResult.explanation && aiAnalysisResult.explanation.toLowerCase().includes('laughter')) ||
+              (aiAnalysisResult.explanation && aiAnalysisResult.explanation.toLowerCase().includes('sarcasm')) ||
+              (aiAnalysisResult.explanation && aiAnalysisResult.explanation.toLowerCase().includes('not serious')) ||
+              // Check for common Filipino joke indicators
+              (feedback.originalText.toLowerCase().includes('haha') && feedback.originalText.includes('!')) ||
+              (feedback.originalText.toLowerCase().includes('ulol') || feedback.originalText.toLowerCase().includes('gago')) ||
+              (feedback.originalText.toUpperCase().includes('DAW?') || feedback.originalText.includes('DAW!'));
             
+            // CASE 1: Changing joke content to Panic/Fear (serious emotion)
+            // NOTE: This TypeScript validation is now just a backup
+            // The primary validation is now done by the Python AI model
             if (isJokeOrDisbelief && 
                 (feedback.correctedSentiment === 'Panic' || feedback.correctedSentiment === 'Fear/Anxiety')
             ) {
               possibleTrolling = true;
               aiTrustMessage = "Our AI analysis found that this text contains humor or disbelief indicators which may not align with a serious Panic sentiment. Please review your correction.";
-              console.log("⚠️ AI TRUST VERIFICATION: Detected potential mismatch - humorous/disbelief text marked as panic");
+              console.log("⚠️ AI TRUST VERIFICATION (Fallback): Detected potential mismatch - humorous/disbelief text marked as panic");
+            }
+            
+            // CASE 2: Changing joke/Disbelief content to Neutral (incorrect behavior)
+            // NOTE: This TypeScript validation is now just a backup
+            // The primary, more advanced validation is now done in the Python AI model
+            // We keep this as a fallback only, in case the Python validation fails
+            if (isJokeOrDisbelief && 
+                (feedback.originalSentiment === 'Disbelief' && feedback.correctedSentiment === 'Neutral')
+            ) {
+              possibleTrolling = true;
+              aiTrustMessage = "Our AI analysis found that this text contains joke/sarcasm indicators which should be classified as Disbelief, not Neutral. Please verify your correction.";
+              console.log("⚠️ AI TRUST VERIFICATION (Fallback): Detected potential mismatch - joke/sarcasm text being changed from Disbelief to Neutral");
+            }
+            
+            // CASE 3: Changing Neutral content to Disbelief without humor/sarcasm markers
+            // NOTE: This is also a fallback validation - primary validation is in Python model
+            if (!isJokeOrDisbelief && 
+                (feedback.originalSentiment === 'Neutral' && feedback.correctedSentiment === 'Disbelief') &&
+                !feedback.originalText.toLowerCase().includes('haha') &&
+                !feedback.originalText.includes('!!')
+            ) {
+              possibleTrolling = true;
+              aiTrustMessage = "Our AI analysis found that this text doesn't contain clear humor or sarcasm indicators that would justify a Disbelief classification. Please verify your correction.";
+              console.log("⚠️ AI TRUST VERIFICATION (Fallback): Detected potential mismatch - neutral text being marked as Disbelief without joke indicators");
             }
           }
         } catch (jokeCheckError) {
