@@ -1630,21 +1630,12 @@ class DisasterSentimentBackend:
             
             # Always proceed with the correction, but include the validation details
             # in the response for the frontend to display the interactive quiz results
-            result_separator = "=" * 50
-            quiz_result = f"""
-{result_separator}
-📋 AI QUIZ VALIDATION RESULTS 📋
-{result_separator}
-✅ Valid: {validation_result['valid']}
-📝 Original Text: "{original_text}"
-🔄 Sentiment Change: {original_sentiment} ➡️ {corrected_sentiment}
-
-📢 AI Feedback: 
-{validation_result['reason']}
-{result_separator}
-"""
-            print(quiz_result)  # Print to console
-            logging.info(quiz_result)  # Also log it
+            # DON'T PRINT ANYTHING TO STDOUT, ONLY LOG TO FILE
+            # This prevents JSON parsing errors in the client
+            logging.info(f"Validation result: {validation_result['valid']}")
+            logging.info(f"Original text: {original_text}")
+            logging.info(f"Sentiment change: {original_sentiment} → {corrected_sentiment}")
+            logging.info(f"Feedback reason: {validation_result['reason']}")
             
             # Calculate a simulated improvement
             improvement = random.uniform(0.008, 0.015)
@@ -1874,7 +1865,7 @@ class DisasterSentimentBackend:
         # Use ONLY ONE API key for validation to prevent rate limiting
         # This strictly follows the requirement of using just one API key
         validation_api_key = self.groq_api_keys[0] if len(self.groq_api_keys) > 0 else None
-        logging.info(f"Using 1 key(s) for validation")
+        logging.info(f"Using 1 key(s) for validation - ENABLED LESS STRICT VALIDATION")
         
         if validation_api_key:
             # Manual API call with a single key instead of using analyze_sentiment
@@ -1945,42 +1936,49 @@ class DisasterSentimentBackend:
         # This prevents double messages and JSON parsing errors
         logging.info("AI QUIZ VALIDATION: Validating user correction")
         
-        # Default to valid
+        # Default to valid - LESS STRICT VALIDATION
         result = {"valid": True, "reason": ""}
         
-        # Compare the user's choice with the AI's choice - STRICT VALIDATION
+        # Compare the user's choice with the AI's choice - LESS STRICT VALIDATION
         if corrected_sentiment != ai_sentiment:
-            # If sentiment is different from AI analysis, make it invalid for most cases
+            # If sentiment is different from AI analysis, apply more lenient validation
             ai_index = sentiment_categories.index(ai_sentiment) if ai_sentiment in sentiment_categories else -1
             corrected_index = sentiment_categories.index(corrected_sentiment) if corrected_sentiment in sentiment_categories else -1
             
-            # If the selections are more than 1 sentiment category apart
-            if ai_index != -1 and corrected_index != -1 and abs(ai_index - corrected_index) > 1:
-                quiz_explanation = (
-                    f"VALIDATION FAILED! Our AI analyzed this text and chose: {ai_answer}\n\n"
-                    f"Explanation: {ai_explanation}\n\n"
-                    f"Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) "
-                    f"differs significantly from our analysis. This correction is TOO DIFFERENT from our analysis to be valid."
-                )
-                result["valid"] = False
-                result["reason"] = quiz_explanation
-                logging.warning(f"AI QUIZ VALIDATION: FAILED - User answer is too different from AI assessment")
-            # If the selections are 1 sentiment category apart, check AI confidence
-            elif ai_index != -1 and corrected_index != -1 and abs(ai_index - corrected_index) == 1:
-                # If confident, still fail, but explain it's close
-                if ai_confidence > 0.85:
+            # Only if the selections are more than 2 categories apart (very different)
+            if ai_index != -1 and corrected_index != -1 and abs(ai_index - corrected_index) > 2:
+                # Only fail for very different classifications with high confidence
+                if ai_confidence > 0.90:
                     quiz_explanation = (
-                        f"VALIDATION FAILED! Our AI analyzed this text with HIGH CONFIDENCE as: {ai_answer}\n\n"
+                        f"VALIDATION NOTICE: Our AI analyzed this text and chose: {ai_answer}\n\n"
                         f"Explanation: {ai_explanation}\n\n"
                         f"Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) "
-                        f"is close but still conflicts with our high-confidence analysis."
+                        f"is quite different from our analysis, but we've accepted your feedback to improve our system."
                     )
-                    result["valid"] = False
-                    result["reason"] = quiz_explanation
-                # Otherwise, allow it
-                else:
+                    # Still valid even when different - just show explanation
                     result["valid"] = True
-                    result["reason"] = f"Validation PASSED but with caution. Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) is close to our analysis of {ai_answer}.\n\nExplanation from AI: {ai_explanation}"
+                    result["reason"] = quiz_explanation
+                    logging.warning(f"AI QUIZ VALIDATION: ACCEPTED DESPITE DIFFERENCES - User feedback will help improve model")
+                else:
+                    # For low confidence analyses, always accept corrections
+                    quiz_explanation = (
+                        f"VALIDATION ACCEPTED: Our AI analyzed this text with lower confidence as: {ai_answer}\n\n"
+                        f"Explanation: {ai_explanation}\n\n"
+                        f"Your correction has been accepted and will help us improve our model."
+                    )
+                    result["valid"] = True
+                    result["reason"] = quiz_explanation
+            # Accept all corrections that are 1-2 categories apart
+            else:
+                # ALWAYS valid if close
+                quiz_explanation = (
+                    f"VALIDATION ACCEPTED: Our AI analyzed this text as: {ai_answer}\n\n"
+                    f"Explanation: {ai_explanation}\n\n"
+                    f"Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) "
+                    f"has been accepted as a reasonable interpretation that will help train our model."
+                )
+                result["valid"] = True
+                result["reason"] = quiz_explanation
         
         # Keep invalid results invalid - no exceptions
         if not result["valid"]:
@@ -2100,51 +2098,23 @@ def main():
                 # Analyze sentiment with normal approach
                 result = backend.analyze_sentiment(text)
                 
-                # Add quiz-style format information to the result
-                sentiment_map = {
-                    "Panic": "a) Panic",
-                    "Fear/Anxiety": "b) Fear/Anxiety", 
-                    "Neutral": "c) Neutral",
-                    "Disbelief": "d) Disbelief", 
-                    "Resilience": "e) Resilience"
+                # Don't add quiz-style format information to regular analysis result
+                # This should ONLY be used for validation feedback, not for regular analysis
+                
+                # Instead just use a simpler format for the client display
+                # Add internal sentiment data (not displayed to the user in quiz format)
+                result["_sentimentInfo"] = {
+                    "confidence": result["confidence"],
+                    "explanation": result["explanation"]
                 }
                 
-                # Create a quiz-style question and answer
-                quiz_question = f"Analyzing text: '{text}'\nWhat sentiment classification is most appropriate?"
-                quiz_options = "a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience"
-                quiz_answer = sentiment_map.get(result["sentiment"], f"({result['sentiment']})")
+                # Log that we're NOT using quiz format for regular analysis
+                logging.info("REGULAR ANALYSIS: Not using quiz format for regular sentiment analysis")
                 
-                # Generate quiz-style feedback message
-                quiz_feedback = f"""
-Based on our AI analysis, this text shows characteristics of {quiz_answer}.
-
-Explanation: {result["explanation"]}
-
-The level of confidence in this analysis is {int(result["confidence"] * 100)}%.
-"""
-                
-                # Add the quiz format information to the result
-                result["quizFormat"] = True
-                result["quizQuestion"] = quiz_question
-                result["quizOptions"] = quiz_options
-                result["quizAnswer"] = quiz_answer
-                result["quizFeedback"] = quiz_feedback
-                
-                # Print the quiz in the console for visual display
-                console_separator = "=" * 50
-                quiz_frame = f"""
-{console_separator}
-📝 AI QUIZ ANALYSIS 📝
-{console_separator}
-Question: {quiz_question}
-Options: {quiz_options}
-
-🤖 AI's Answer: {quiz_answer}
-
-💡 AI's Reasoning: {result["explanation"]}
-{console_separator}
-"""
-                print(quiz_frame)  # Print to console for immediate visibility
+                # DON'T PRINT TO CONSOLE OR STDOUT - ONLY LOG TO FILE
+                # Logging is retained for diagnostic purposes but won't appear in console or interfere with JSON output
+                logging.info(f"AI analysis result: {result['sentiment']} (conf: {result['confidence']})")
+                logging.info(f"AI explanation: {result['explanation']}")
                 
                 # Return the full result with quiz information
                 print(json.dumps(result))

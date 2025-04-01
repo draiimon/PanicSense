@@ -341,6 +341,7 @@ export function SentimentFeedback({
       // This ensures that the explanation always shows up regardless of response format
       
       // Extract the message from any of the possible fields or fallback to default
+      // SIMPLIFIED MESSAGE EXTRACTION - no more trainingError field
       const validationMessage = 
         // If status is error, use the message directly  
         response.status === "error" ? response.message : 
@@ -348,8 +349,6 @@ export function SentimentFeedback({
         response.message ? response.message :
         // If we have AI trust message (from trolling detection)
         response.aiTrustMessage ? response.aiTrustMessage :
-        // If we have training error
-        response.trainingError ? response.trainingError :
         // Default message if all else fails
         "Feedback received. AI analysis results will be updated.";
         
