@@ -275,32 +275,65 @@ export class PythonService {
         
         // 2. Check for fear/panic indicators vs sentiment
         const panicWords = ['natatakot', 'takot', 'kame', 'kami', 'tulong', 'help', 'emergency', 'scared', 'afraid', '!!!'];
-        const text1HasPanic = panicWords.some(word => text1.toLowerCase().includes(word)) || 
-                            text1.toUpperCase() === text1 || // ALL CAPS suggests panic
-                            text1.includes('!!!');
-        const text2HasPanic = panicWords.some(word => text2.toLowerCase().includes(word)) || 
-                            text2.toUpperCase() === text2 ||
-                            text2.includes('!!!');
-                            
-        // If panic indicators are different between texts, they should have different sentiments
-        if (text1HasPanic !== text2HasPanic) {
-          console.log(`Panic indicators mismatch: "${text1.substring(0, 20)}..." vs "${text2.substring(0, 20)}..."`, 
-                      `(has panic: ${text1HasPanic} vs ${text2HasPanic})`);
+        
+        // Define function to check strong panic indicators - CRITICAL improvement
+        const hasStrongPanicIndicators = (text: string): boolean => {
+          // Check for ALL CAPS words that are at least 5 letters long
+          const hasAllCaps = text.split(/\s+/).some(word => word.length >= 5 && word === word.toUpperCase() && /[A-Z]/.test(word));
           
-          // Text with panic should have Panic or Fear/Anxiety sentiment
-          const panicText = text1HasPanic ? text1 : text2;
-          const panicTextSentiment = text1HasPanic ? originalSentiment : correctedSentiment;
+          // Check for multiple exclamation marks
+          const hasMultipleExclamations = (text.match(/!/g) || []).length >= 2;
           
-          // If text has panic indicators but sentiment is not Panic, texts are likely different
-          if (text1HasPanic && panicTextSentiment !== 'Panic' && panicTextSentiment !== 'Fear/Anxiety') {
-            console.log('Sentiment verification failed: Text has panic indicators but sentiment is not Panic');
+          // Check for explicit fear words
+          const hasFearWords = ['natatakot', 'takot', 'kame', 'kami', 'nakakatakot', 'scary'].some(
+            word => text.toLowerCase().includes(word)
+          );
+          
+          return hasAllCaps || hasMultipleExclamations || hasFearWords;
+        };
+        
+        const text1HasBasicPanic = panicWords.some(word => text1.toLowerCase().includes(word));
+        const text2HasBasicPanic = panicWords.some(word => text2.toLowerCase().includes(word));
+        
+        // Check for stronger panic indicators
+        const text1HasStrongPanic = hasStrongPanicIndicators(text1);
+        const text2HasStrongPanic = hasStrongPanicIndicators(text2);
+        
+        // CRITICAL: Different handling for texts with strong vs basic panic indicators
+        // If one text has strong panic indicators and the other doesn't, they are DEFINITELY different
+        if (text1HasStrongPanic !== text2HasStrongPanic) {
+          console.log(`Strong panic indicators mismatch: "${text1.substring(0, 20)}..." vs "${text2.substring(0, 20)}..."`, 
+                    `(has strong panic: ${text1HasStrongPanic} vs ${text2HasStrongPanic})`);
+          
+          // Text with strong panic should be Panic sentiment
+          if (text1HasStrongPanic) {
+            // If one text has strong panic indicators and is NOT set as Panic sentiment, texts are different
+            if (originalSentiment !== 'Panic') {
+              console.log('CRITICAL: Text has strong panic indicators but sentiment is not Panic');
+              this.similarityCache.set(cacheKey, false);
+              return {
+                areSimilar: false,
+                score: 0.05, // Very low similarity score
+                explanation: "Texts have fundamentally different emotional contexts (panic vs non-panic)"
+              };
+            }
+          } else if (text2HasStrongPanic && correctedSentiment !== 'Panic') {
+            console.log('CRITICAL: Second text has strong panic indicators but sentiment is not Panic');
             this.similarityCache.set(cacheKey, false);
             return {
               areSimilar: false,
-              score: 0.15,
-              explanation: "Texts have different emotional contexts (panic indicators mismatch)"
+              score: 0.05,
+              explanation: "Texts have fundamentally different emotional contexts (panic vs non-panic)"
             };
           }
+          
+          // Even if we don't have the right sentiments to check, the texts are still different
+          this.similarityCache.set(cacheKey, false);
+          return {
+            areSimilar: false,
+            score: 0.1,
+            explanation: "Texts have different emotional intensity (strong panic vs mild or no panic)"
+          };
         }
         
         // 3. Check if text contains both action phrase (tulungan) and fear indicators (takot)
@@ -314,6 +347,19 @@ export class PythonService {
             score: 0.1,
             explanation: "Texts have different emotional complexity (help+fear vs single emotion)"
           };
+        }
+        
+        // 4. NEW CHECK - Look for "KAME" or "KAMI" which indicates personal involvement in panic
+        if (text1.toLowerCase().includes('kame') || text1.toLowerCase().includes('kami')) {
+          if (!(text2.toLowerCase().includes('kame') || text2.toLowerCase().includes('kami'))) {
+            console.log('Personal involvement mismatch: One text has personal involvement (kami/kame), other does not');
+            this.similarityCache.set(cacheKey, false);
+            return {
+              areSimilar: false,
+              score: 0.2,
+              explanation: "Texts have different personal involvement (one has 'kami' or 'kame', other doesn't)"
+            };
+          }
         }
       }
       

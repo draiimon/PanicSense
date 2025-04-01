@@ -8,7 +8,7 @@ import path from "path";
 import multer from "multer";
 import fs from "fs";
 import { pythonService, pythonConsoleMessages } from "./python-service";
-import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts } from "@shared/schema";
+import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts, type SentimentPost } from "@shared/schema";
 import { usageTracker } from "./utils/usage-tracker";
 import { EventEmitter } from 'events';
 
@@ -1267,8 +1267,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const postsToUpdate = await query;
             console.log(`Found ${postsToUpdate.length} posts with the same text to update sentiment`);
             
-            // Update each post with the new corrected sentiment
+            // Update each post with the new corrected sentiment, but with verification
             for (const post of postsToUpdate) {
+              // CRITICAL SAFEGUARD: First check if this text has panic indicators
+              const isPanicText = 
+                post.text.includes('NATATAKOT') || 
+                post.text.includes('KAME') || 
+                post.text.includes('KAMI') || 
+                post.text.includes('!!!') ||
+                post.text.toUpperCase() === post.text ||
+                (post.text.toLowerCase().includes('tulungan') && post.text.toLowerCase().includes('takot'));
+              
+              // Determine if the new sentiment is appropriate for the text
+              const isPanicSentiment = feedback.correctedSentiment === 'Panic' || feedback.correctedSentiment === 'Fear/Anxiety';
+              
+              // If this text clearly shows panic indicators, but we're trying to change to a non-panic sentiment,
+              // log but DON'T update the post - this is a forced override protection mechanism
+              if (isPanicText && !isPanicSentiment) {
+                console.log(`PROTECTED POST ID ${post.id} from incorrect sentiment change: has panic indicators but trying to set ${feedback.correctedSentiment}`);
+                // Skip this update
+                continue;
+              }
+              
               await db.update(sentimentPosts)
                 .set({ 
                   sentiment: feedback.correctedSentiment, 
@@ -1287,13 +1307,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const excludeIds = postsToUpdate.map(p => p.id);
               const allPosts = await db.select().from(sentimentPosts);
               
-              // Filter to get only posts that aren't already updated
+              // Define outside the block to fix strict mode error
+              const hasObviouslyDifferentContext = (originalText: string, postText: string): boolean => {
+                // 1. Check for ALL CAPS vs normal case (indicates emotional intensity)
+                const originalHasAllCaps = originalText.split(' ').some(word => 
+                  word.length > 4 && word === word.toUpperCase() && /[A-Z]/.test(word)
+                );
+                const postHasAllCaps = postText.split(' ').some(word => 
+                  word.length > 4 && word === word.toUpperCase() && /[A-Z]/.test(word)
+                );
+                
+                if (originalHasAllCaps !== postHasAllCaps) {
+                  console.log(`Context differs: ALL CAPS presence mismatch between texts`);
+                  return true;
+                }
+                
+                // 2. Check for panic phrases like "NATATAKOT", "KAME/KAMI"
+                const panicPhrases = ['natatakot', 'takot', 'kame', 'kami', 'natakot', 'scared'];
+                const originalHasPanic = panicPhrases.some(phrase => originalText.toLowerCase().includes(phrase));
+                const postHasPanic = panicPhrases.some(phrase => postText.toLowerCase().includes(phrase));
+                
+                if (originalHasPanic !== postHasPanic) {
+                  console.log(`Context differs: Panic indicators mismatch between texts`);
+                  return true;
+                }
+                
+                // 3. Check for multiple exclamation marks (emotional intensity)
+                const originalExclamations = (originalText.match(/!/g) || []).length;
+                const postExclamations = (postText.match(/!/g) || []).length;
+                
+                if ((originalExclamations >= 2) !== (postExclamations >= 2)) {
+                  console.log(`Context differs: Exclamation mark intensity mismatch`);
+                  return true;
+                }
+                
+                // Texts don't have obvious context differences that would make them semantically different
+                return false;
+              }
+              
+              // Filter to get only posts that aren't already updated AND don't have obviously different context
               const postsToCheck = allPosts.filter(post => 
                 !excludeIds.includes(post.id) && 
-                post.text !== feedback.originalText
-                // Critical: Remove automatic filtering by sentiment, as we need to verify ALL similar posts
-                // regardless of their current sentiment - the text is what matters
+                post.text !== feedback.originalText &&
+                !hasObviouslyDifferentContext(feedback.originalText, post.text)
               );
+              
+              console.log(`After context-based filtering, only ${postsToCheck.length} posts need AI verification`);
               
               if (postsToCheck.length === 0) {
                 console.log("No additional posts to check for semantic similarity");
@@ -1303,12 +1362,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log(`Found ${postsToCheck.length} posts to check for semantic similarity`);
               
               // Use AI to verify semantic similarity - but do it in batches to avoid performance issues
-              const similarPosts = [];
+              const similarPosts: SentimentPost[] = [];
               const batchSize = 5;
               
               for (let i = 0; i < postsToCheck.length; i += batchSize) {
                 const batch = postsToCheck.slice(i, i + batchSize);
-                const batchPromises = batch.map(async (post) => {
+                const batchPromises = batch.map(async (post): Promise<SentimentPost | null> => {
                   try {
                     // IMPORTANT: Use the AI service to verify if the post has the same core meaning
                     // We use Python service to check if these texts actually have the same meaning
@@ -1321,8 +1380,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     );
                     
                     if (verificationResult && verificationResult.areSimilar === true) {
+                      // Even with our advanced verification, double-check context again
+                      // This ensures that even if the AI says it's similar, we confirm it makes sense
+                      
+                      // Check for obvious context mismatches that would lead to wrong sentiment
+                      const hasPanicWords = post.text.toLowerCase().includes('takot') || 
+                                          post.text.toLowerCase().includes('natatakot') ||
+                                          post.text.toLowerCase().includes('kame') || 
+                                          post.text.toLowerCase().includes('kami');
+                                          
+                      const hasAllCaps = post.text.split(' ').some(word => 
+                        word.length > 4 && word === word.toUpperCase() && /[A-Z]/.test(word)
+                      );
+                      
+                      // If post has panic indicators but sentiment isn't Panic or Fear/Anxiety, don't update
+                      if ((hasPanicWords || hasAllCaps) && 
+                          feedback.correctedSentiment !== 'Panic' && 
+                          feedback.correctedSentiment !== 'Fear/Anxiety') {
+                        console.log(`CONTEXT OVERRIDE: Post has panic indicators but target sentiment is ${feedback.correctedSentiment}`);
+                        console.log(`Refusing to update post with ID ${post.id} due to context mismatch`);
+                        return null;
+                      }
+                      
+                      // If post doesn't have panic indicators but sentiment is Panic, don't update
+                      if ((!hasPanicWords && !hasAllCaps) && feedback.correctedSentiment === 'Panic') {
+                        console.log(`CONTEXT OVERRIDE: Post lacks panic indicators but target sentiment is Panic`);
+                        console.log(`Refusing to update post with ID ${post.id} due to context mismatch`);
+                        return null;
+                      }
+                      
                       console.log(`AI verified semantic similarity: "${post.text.substring(0, 30)}..." is similar to original`);
+                      console.log(`Context verification PASSED - can safely update sentiment to ${feedback.correctedSentiment}`);
                       return post;
+                    } else {
+                      console.log(`AI rejected similarity: "${post.text.substring(0, 30)}..." with reason: ${verificationResult?.explanation || 'Unknown'}`);
                     }
                     return null;
                   } catch (err) {
@@ -1332,15 +1423,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 });
                 
                 const batchResults = await Promise.all(batchPromises);
-                batchResults.forEach(post => {
+                batchResults.forEach((post: SentimentPost | null) => {
                   if (post) similarPosts.push(post);
                 });
               }
               
               console.log(`Found ${similarPosts.length} semantically similar posts verified by AI`);
               
-              // Update the truly similar posts
+              // CRITICAL VERIFICATION: Double check post content before updating
               for (const post of similarPosts) {
+                // Special verification for panic text - if text has "NATATAKOT", "KAME", "!!!" or uppercase text,
+                // only allow certain sentiment changes
+                const isPanicText = 
+                  post.text.includes('NATATAKOT') || 
+                  post.text.includes('KAME') || 
+                  post.text.includes('KAMI') || 
+                  post.text.includes('!!!') ||
+                  post.text.toUpperCase() === post.text;
+                
+                const isPanicSentiment = feedback.correctedSentiment === 'Panic' || feedback.correctedSentiment === 'Fear/Anxiety';
+                
+                // If post has panic indicators but we're trying to change to non-panic sentiment, skip it
+                if (isPanicText && !isPanicSentiment) {
+                  console.log(`SKIPPING update of post ID ${post.id} - has panic indicators but trying to set ${feedback.correctedSentiment}`);
+                  continue;
+                }
+                
+                // If text shows both fear and help (tulungan + takot), it's definitely Panic
+                if (post.text.toLowerCase().includes('tulungan') && 
+                    post.text.toLowerCase().includes('takot') &&
+                    feedback.correctedSentiment !== 'Panic') {
+                  console.log(`SKIPPING update of post ID ${post.id} - has both help request and fear indicators but trying to set ${feedback.correctedSentiment}`);
+                  continue;
+                }
+                
+                // If we've passed the verification, proceed with the update
                 await db.update(sentimentPosts)
                   .set({ 
                     sentiment: feedback.correctedSentiment, 
