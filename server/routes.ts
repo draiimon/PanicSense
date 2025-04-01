@@ -1290,8 +1290,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Filter to get only posts that aren't already updated
               const postsToCheck = allPosts.filter(post => 
                 !excludeIds.includes(post.id) && 
-                post.text !== feedback.originalText &&
-                post.sentiment !== feedback.correctedSentiment // Only consider posts with different sentiment
+                post.text !== feedback.originalText
+                // Critical: Remove automatic filtering by sentiment, as we need to verify ALL similar posts
+                // regardless of their current sentiment - the text is what matters
               );
               
               if (postsToCheck.length === 0) {
@@ -1311,9 +1312,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   try {
                     // IMPORTANT: Use the AI service to verify if the post has the same core meaning
                     // We use Python service to check if these texts actually have the same meaning
+                    // Pass the sentiment context to help determine if these texts should be similar
                     const verificationResult = await pythonService.analyzeSimilarityForFeedback(
                       feedback.originalText,
-                      post.text
+                      post.text,
+                      feedback.originalSentiment,  // Pass original sentiment
+                      feedback.correctedSentiment  // Pass corrected sentiment
                     );
                     
                     if (verificationResult && verificationResult.areSimilar === true) {

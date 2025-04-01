@@ -152,7 +152,9 @@ export class PythonService {
   // New method to analyze if two texts have similar semantic meaning
   public async analyzeSimilarityForFeedback(
     text1: string, 
-    text2: string
+    text2: string,
+    originalSentiment?: string,
+    correctedSentiment?: string
   ): Promise<{
     areSimilar: boolean;
     score: number;
@@ -184,30 +186,39 @@ export class PythonService {
         };
       }
       
-      // Check if one text contains the other (ignoring case)
-      if (text1.trim().toLowerCase().includes(text2.trim().toLowerCase()) || 
-          text2.trim().toLowerCase().includes(text1.trim().toLowerCase())) {
-        this.similarityCache.set(cacheKey, true);
-        return {
-          areSimilar: true,
-          score: 0.9,
-          explanation: "One text contains the other"
-        };
-      }
-      
-      // If one has "joke" or "eme" and the other doesn't, they're likely different
+      // CRITICAL: Check joke indicators FIRST before checking containment
+      // If one has "joke" or "eme" and the other doesn't, they're likely different 
+      // This should be checked before containment since joke indicators change meaning
       const jokeWords = ['joke', 'eme', 'charot', 'just kidding', 'kidding', 'lol', 'haha'];
       const text1HasJoke = jokeWords.some(word => text1.toLowerCase().includes(word));
       const text2HasJoke = jokeWords.some(word => text2.toLowerCase().includes(word));
       
       if (text1HasJoke !== text2HasJoke) {
         // One has joke indicators and the other doesn't - likely different meanings
+        console.log(`Joke indicators mismatch: "${text1.substring(0, 20)}..." vs "${text2.substring(0, 20)}..."`, 
+                    `(has joke: ${text1HasJoke} vs ${text2HasJoke})`);
         this.similarityCache.set(cacheKey, false);
         return {
           areSimilar: false,
           score: 0.1,
           explanation: "One text contains joke indicators while the other doesn't"
         };
+      }
+      
+      // AFTER checking joke words, now check if one contains the other
+      // But ONLY if neither or both have joke indicators
+      if (text1.trim().toLowerCase().includes(text2.trim().toLowerCase()) || 
+          text2.trim().toLowerCase().includes(text1.trim().toLowerCase())) {
+        // Double check if both have joke words or neither have joke words
+        if (text1HasJoke === text2HasJoke) {
+          console.log(`Text containment with matching joke context: "${text1.substring(0, 20)}..." vs "${text2.substring(0, 20)}..."`);
+          this.similarityCache.set(cacheKey, true);
+          return {
+            areSimilar: true,
+            score: 0.9,
+            explanation: "One text contains the other (with matching joke context)"
+          };
+        }
       }
       
       // Check if both contain negation words
@@ -243,7 +254,29 @@ export class PythonService {
         };
       }
       
-      // Default to not similar for now
+      // Check sentiment context if both were provided
+      if (originalSentiment && correctedSentiment) {
+        // If one text is a joke and the other isn't, they should have different sentiments
+        if (text1HasJoke !== text2HasJoke) {
+          // Joke text should likely be Disbelief, non-joke likely Resilience
+          const jokeTextSentiment = text1HasJoke ? originalSentiment : correctedSentiment;
+          
+          if (jokeTextSentiment === 'Disbelief') {
+            console.log('Sentiment verification passed: Joke text has Disbelief sentiment');
+            // This makes sense - joke should be Disbelief
+            this.similarityCache.set(cacheKey, false);  // Still not similar
+            return {
+              areSimilar: false,
+              score: 0.2,
+              explanation: "Texts have appropriately different sentiments (joke has Disbelief)"
+            };
+          } else {
+            console.log('Sentiment check failed: Joke text should have Disbelief sentiment');
+          }
+        }
+      }
+      
+      // Default to not similar
       this.similarityCache.set(cacheKey, false);
       return {
         areSimilar: false,
