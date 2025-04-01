@@ -49,6 +49,7 @@ export const sentimentPosts = pgTable("sentiment_posts", {
   fileId: integer("file_id"),
   explanation: text("explanation"),
   processedBy: integer("processed_by").references(() => users.id),
+  aiTrustMessage: text("ai_trust_message"), // Added for validation messages
 });
 
 export const disasterEvents = pgTable("disaster_events", {
@@ -83,7 +84,9 @@ export const sentimentFeedback = pgTable("sentiment_feedback", {
   correctedDisasterType: text("corrected_disaster_type"),
   trainedOn: boolean("trained_on").default(false),
   createdAt: timestamp("created_at").defaultNow(),
-  userId: integer("user_id").references(() => users.id)
+  userId: integer("user_id").references(() => users.id),
+  aiTrustMessage: text("ai_trust_message"), // Added for validation messages
+  possibleTrolling: boolean("possible_trolling").default(false) // Added for validation flags
 });
 
 // Training examples for real-time model learning
@@ -105,7 +108,9 @@ export const insertSentimentFeedbackSchema = createInsertSchema(sentimentFeedbac
   correctedSentiment: true,
   correctedLocation: true,
   correctedDisasterType: true,
-  userId: true
+  userId: true,
+  aiTrustMessage: true,
+  possibleTrolling: true
 });
 
 export const insertTrainingExampleSchema = createInsertSchema(trainingExamples).pick({
@@ -144,6 +149,7 @@ export const insertSentimentPostSchema = createInsertSchema(sentimentPosts).pick
   fileId: true,
   explanation: true,
   processedBy: true,
+  aiTrustMessage: true,
 });
 
 export const insertDisasterEventSchema = createInsertSchema(disasterEvents).pick({

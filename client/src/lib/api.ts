@@ -12,6 +12,7 @@ export interface SentimentPost {
   disasterType: string | null;
   fileId: number | null;
   explanation?: string | null;
+  aiTrustMessage?: string | null; // Added for validation messages in data-table
 }
 
 export interface DisasterEvent {

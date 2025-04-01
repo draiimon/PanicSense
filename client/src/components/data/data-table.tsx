@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -31,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getSentimentBadgeClasses } from "@/lib/colors";
 import { SentimentPost, deleteSentimentPost } from "@/lib/api";
 import { format } from "date-fns";
-import { Trash2, Search, Filter, Maximize2, Calendar, ExternalLink, Languages, MessageSquare, Loader2 } from 'lucide-react';
+import { Trash2, Search, Filter, Maximize2, Calendar, ExternalLink, Languages, MessageSquare, Loader2, BrainCircuit, Shield } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -338,6 +338,32 @@ export function DataTable({
                                       <div className={`inline-flex items-center px-2 py-1 rounded-full text-sm ${getDisasterTypeStyles(item.disasterType)}`}>
                                         {item.disasterType}
                                       </div>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* AI Explanation Section - NEW */}
+                                {item.explanation && (
+                                  <div className="col-span-1 sm:col-span-2 space-y-1 mt-2">
+                                    <div className="flex items-center text-xs font-medium text-blue-600 uppercase tracking-wider">
+                                      <BrainCircuit className="h-3.5 w-3.5 mr-1.5 text-blue-500" />
+                                      AI Sentiment Analysis
+                                    </div>
+                                    <div className="text-sm text-slate-700 bg-blue-50/70 border border-blue-200/70 rounded-md p-3">
+                                      {item.explanation}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* AI Trust Message / Validation Message - NEW */}
+                                {item.aiTrustMessage && (
+                                  <div className="col-span-1 sm:col-span-2 space-y-1 mt-2">
+                                    <div className="flex items-center text-xs font-medium text-amber-600 uppercase tracking-wider">
+                                      <Shield className="h-3.5 w-3.5 mr-1.5 text-amber-500" />
+                                      Validation Message
+                                    </div>
+                                    <div className="text-sm text-amber-800 bg-amber-50/70 border border-amber-200/70 rounded-md p-3">
+                                      {item.aiTrustMessage}
                                     </div>
                                   </div>
                                 )}
