@@ -1221,6 +1221,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue even if this fails - it might be a duplicate
       }
       
+      // TROLL PROTECTION: Check if the feedback seems invalid or trolling
+      // This checks if there's an obvious mismatch between text content and requested sentiment
+      let possibleTrolling = false;
+      let aiTrustMessage = "";
+      
+      // Check for PANIC text being changed to something else
+      if (
+        (feedback.originalText.includes('NATATAKOT') || 
+         feedback.originalText.includes('KAME') || 
+         feedback.originalText.includes('KAMI') || 
+         feedback.originalText.includes('!!!') ||
+         (feedback.originalText.toLowerCase().includes('tulong') && feedback.originalText.toLowerCase().includes('takot'))) && 
+        (feedback.correctedSentiment !== 'Panic' && feedback.correctedSentiment !== 'Fear/Anxiety')
+      ) {
+        possibleTrolling = true;
+        aiTrustMessage = "AI VERIFICATION FAILED: Text contains strong panic indicators but user tried to change to non-panic sentiment. This likely incorrect feedback.";
+        console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - panic text being incorrectly changed");
+      }
+      
+      // Check for Resilience text being changed to Panic without indicators 
+      if (
+        (feedback.originalSentiment === 'Resilience') &&
+        (feedback.correctedSentiment === 'Panic') &&
+        !(feedback.originalText.includes('NATATAKOT') || 
+          feedback.originalText.includes('KAME') || 
+          feedback.originalText.includes('KAMI') || 
+          feedback.originalText.includes('!!!') ||
+          feedback.originalText.toLowerCase().includes('takot'))
+      ) {
+        possibleTrolling = true;
+        aiTrustMessage = "AI VERIFICATION FAILED: Text does not contain any panic indicators but user tried to change from Resilience to Panic. This is likely incorrect feedback.";
+        console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - non-panic text being incorrectly marked as panic");
+      }
+      
       // Create base response
       const baseResponse = {
         id: savedFeedback.id,
@@ -1230,7 +1264,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trainedOn: false,
         createdAt: savedFeedback.createdAt,
         userId: savedFeedback.userId,
-        originalPostId: savedFeedback.originalPostId
+        originalPostId: savedFeedback.originalPostId,
+        possibleTrolling: possibleTrolling,
+        aiTrustMessage: aiTrustMessage
       };
       
       // Execute training in a separate try/catch to handle training errors independently
@@ -1257,6 +1293,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Clear the cache entry for this text to force re-analysis next time
           pythonService.clearCacheForText(feedback.originalText);
           console.log(`Cache cleared for retrained text: "${feedback.originalText.substring(0, 30)}..."`);
+          
+          // Skip updating posts if AI detected that feedback is likely incorrect or trolling
+          if (possibleTrolling) {
+            console.log(`⚠️ TROLL PROTECTION: Not updating any posts. AI detected possible trolling or incorrect feedback.`);
+            console.log(`AI Message: ${aiTrustMessage}`);
+            
+            // Broadcast warning to any connected clients
+            broadcastUpdate({ 
+              type: "feedback-warning", 
+              data: { 
+                message: aiTrustMessage,
+                originalText: feedback.originalText,
+                feedbackId: savedFeedback.id
+              } 
+            });
+            
+            // Still return success since we saved feedback but include AI warning
+            return res.status(200).json({
+              ...baseResponse,
+              trainedOn: true,
+              trainingResult: trainingResult,
+              aiWarning: aiTrustMessage,
+              updateSkipped: true
+            });
+          }
           
           // UPDATE ALL EXISTING POSTS WITH SAME TEXT TO NEW SENTIMENT
           try {
@@ -1457,7 +1518,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   continue;
                 }
                 
-                // If we've passed the verification, proceed with the update
+                // If the user feedback is potentially trolling, don't make any updates
+                if (possibleTrolling) {
+                  console.log(`TROLL PROTECTION: Not updating post ID ${post.id} due to possible invalid user feedback`);
+                  continue;
+                }
+                
+                // If we've passed all verification, proceed with the update
                 await db.update(sentimentPosts)
                   .set({ 
                     sentiment: feedback.correctedSentiment, 

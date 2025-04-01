@@ -113,8 +113,8 @@ class DisasterSentimentBackend:
 
     def extract_disaster_type(self, text):
         """
-        Enhanced disaster type extraction that analyzes full context of the text
-        instead of simple keyword matching
+        Advanced disaster type extraction with context awareness, co-occurrence patterns,
+        typo correction, and fuzzy matching for improved accuracy
         """
         if not text or len(text.strip()) == 0:
             return "Not Specified"
@@ -275,120 +275,185 @@ class DisasterSentimentBackend:
             return top_disasters[0]
 
     def extract_location(self, text):
-        """Extract location from text using Philippine location names"""
+        """Enhanced location extraction with typo tolerance and fuzzy matching for Philippine locations"""
         text_lower = text.lower()
-
-        # STRICT list of Philippine locations - top-level regions and popular cities
+        
+        # First, preprocess the text to handle common misspellings/shortcuts
+        # Map of common misspellings and shortcuts to correct forms
+        misspelling_map = {
+            "maynila": "manila",
+            "mnl": "manila", 
+            "mnla": "manila",
+            "manilla": "manila",
+            "kyusi": "quezon city",
+            "qc": "quezon city",
+            "q.c": "quezon city",
+            "quiapo": "manila",
+            "makate": "makati",
+            "bgc": "taguig",
+            "baguio city": "baguio",
+            "m.manila": "metro manila",
+            "metromanila": "metro manila",
+            "calocan": "caloocan",
+            "kalookan": "caloocan",
+            "kalokan": "caloocan",
+            "pasay city": "pasay",
+            "muntinlupa city": "muntinlupa",
+            "valenzuela city": "valenzuela",
+            "las pinas": "las piñas",
+            "laspinas": "las piñas",
+            "sampaloc": "manila",
+            "intramuros": "manila",
+            "pandacan": "manila",
+            "paco": "manila",
+        }
+        
+        # COMPREHENSIVE list of Philippine locations - regions, cities, municipalities
         ph_locations = [
             # Regions
-            "NCR",
-            "Metro Manila",
-            "CAR",
-            "Cordillera",
-            "Ilocos",
-            "Cagayan Valley",
-            "Central Luzon",
-            "CALABARZON",
-            "MIMAROPA",
-            "Bicol",
-            "Western Visayas",
-            "Central Visayas",
-            "Eastern Visayas",
-            "Zamboanga Peninsula",
-            "Northern Mindanao",
-            "Davao Region",
-            "SOCCSKSARGEN",
-            "Caraga",
-            "BARMM",
-            "Bangsamoro",
+            "NCR", "Metro Manila", "CAR", "Cordillera", "Ilocos", "Cagayan Valley",
+            "Central Luzon", "CALABARZON", "MIMAROPA", "Bicol", "Western Visayas",
+            "Central Visayas", "Eastern Visayas", "Zamboanga Peninsula", "Northern Mindanao",
+            "Davao Region", "SOCCSKSARGEN", "Caraga", "BARMM", "Bangsamoro",
 
-            # Popular cities
-            "Manila",
-            "Quezon City",
-            "Makati",
-            "Taguig",
-            "Pasig",
-            "Mandaluyong",
-            "Pasay",
-            "Baguio",
-            "Cebu",
-            "Davao",
-            "Iloilo",
-            "Cagayan de Oro",
-            "Zamboanga",
-            "Bacolod",
-            "General Santos",
-            "Tacloban",
-            "Angeles",
-            "Olongapo",
-            "Naga",
-            "Butuan",
-            "Cotabato",
-            "Dagupan",
-            "Iligan"
+            # NCR Cities and Municipalities
+            "Manila", "Quezon City", "Makati", "Taguig", "Pasig", "Mandaluyong", "Pasay",
+            "Caloocan", "Parañaque", "Las Piñas", "Muntinlupa", "Marikina", "Valenzuela",
+            "Malabon", "Navotas", "San Juan", "Pateros",
+            
+            # Major Cities Outside NCR
+            "Baguio", "Cebu", "Davao", "Iloilo", "Cagayan de Oro", "Zamboanga", "Bacolod",
+            "General Santos", "Tacloban", "Angeles", "Olongapo", "Naga", "Butuan", "Cotabato",
+            "Dagupan", "Iligan", "Laoag", "Legazpi", "Lucena", "Puerto Princesa", "Roxas",
+            "Tagaytay", "Tagbilaran", "Tarlac", "Tuguegarao", "Vigan", "Cabanatuan", "Bago",
+            "Batangas City", "Bayawan", "Calbayog", "Cauayan", "Dapitan", "Digos", "Dipolog",
+            "Dumaguete", "El Salvador", "Gingoog", "Himamaylan", "Iriga", "Kabankalan", "Kidapawan",
+            "La Carlota", "Lamitan", "Lipa", "Maasin", "Malaybalay", "Malolos", "Mati", "Meycauayan",
+            "Oroquieta", "Ozamiz", "Pagadian", "Palayan", "Panabo", "Sorsogon City", "Surigao City",
+            "Tabuk", "Tandag", "Tangub", "Tanjay", "Urdaneta", "Valencia", "Zamboanga City"
         ]
 
-        # Top provinces
+        # Provinces
         provinces = [
-            "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay",
-            "Antique", "Apayao", "Aurora", "Basilan", "Bataan", "Batanes",
-            "Batangas", "Benguet", "Biliran", "Bohol", "Bukidnon", "Bulacan",
-            "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz",
-            "Catanduanes", "Cavite", "Cebu", "Cotabato", "Davao de Oro",
-            "Davao del Norte", "Davao del Sur", "Davao Oriental",
-            "Dinagat Islands", "Eastern Samar", "Guimaras", "Ifugao",
-            "Ilocos Norte", "Ilocos Sur", "Iloilo", "Isabela", "Kalinga",
-            "La Union", "Laguna", "Lanao del Norte", "Lanao del Sur", "Leyte",
-            "Maguindanao", "Marinduque", "Masbate", "Misamis Occidental",
-            "Misamis Oriental", "Mountain Province", "Negros Occidental",
-            "Negros Oriental", "Northern Samar", "Nueva Ecija",
-            "Nueva Vizcaya", "Occidental Mindoro", "Oriental Mindoro",
-            "Palawan", "Pampanga", "Pangasinan", "Quezon", "Quirino", "Rizal",
-            "Romblon", "Samar", "Sarangani", "Siquijor", "Sorsogon",
-            "South Cotabato", "Southern Leyte", "Sultan Kudarat", "Sulu",
-            "Surigao del Norte", "Surigao del Sur", "Tarlac", "Tawi-Tawi",
-            "Zambales", "Zamboanga del Norte", "Zamboanga del Sur",
-            "Zamboanga Sibugay"
+            "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay", "Antique", "Apayao", 
+            "Aurora", "Basilan", "Bataan", "Batanes", "Batangas", "Benguet", "Biliran", "Bohol", 
+            "Bukidnon", "Bulacan", "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz",
+            "Catanduanes", "Cavite", "Cebu", "Cotabato", "Davao de Oro", "Davao del Norte", 
+            "Davao del Sur", "Davao Oriental", "Dinagat Islands", "Eastern Samar", "Guimaras", "Ifugao",
+            "Ilocos Norte", "Ilocos Sur", "Iloilo", "Isabela", "Kalinga", "La Union", "Laguna", 
+            "Lanao del Norte", "Lanao del Sur", "Leyte", "Maguindanao", "Marinduque", "Masbate", 
+            "Misamis Occidental", "Misamis Oriental", "Mountain Province", "Negros Occidental",
+            "Negros Oriental", "Northern Samar", "Nueva Ecija", "Nueva Vizcaya", "Occidental Mindoro", 
+            "Oriental Mindoro", "Palawan", "Pampanga", "Pangasinan", "Quezon", "Quirino", "Rizal",
+            "Romblon", "Samar", "Sarangani", "Siquijor", "Sorsogon", "South Cotabato", "Southern Leyte", 
+            "Sultan Kudarat", "Sulu", "Surigao del Norte", "Surigao del Sur", "Tarlac", "Tawi-Tawi",
+            "Zambales", "Zamboanga del Norte", "Zamboanga del Sur", "Zamboanga Sibugay"
         ]
 
         ph_locations.extend(provinces)
-
-        # Convert locations to regular expressions for whole-word matching
+        
+        # Step 1: Check if any known misspellings are in the text
+        for misspelling, correct in misspelling_map.items():
+            if misspelling in text_lower:
+                # Find the correct location name
+                for loc in ph_locations:
+                    if loc.lower() == correct:
+                        print(f"Found location from misspelling: {misspelling} → {loc}")
+                        return loc
+                        
+        # Step 2: Check for exact whole-word matches
         location_patterns = [
             re.compile(r'\b' + re.escape(loc.lower()) + r'\b')
             for loc in ph_locations
         ]
-
-        # First, check for exact matches
+        
         locations_found = []
         for i, pattern in enumerate(location_patterns):
             if pattern.search(text_lower):
                 locations_found.append(ph_locations[i])
 
         if locations_found:
-            # Return first found location
             return locations_found[0]
-
-        # Second, check for substring matches that may not be complete words
+            
+        # Step 3: Check for substring matches (allowing for partial words)
         for loc in ph_locations:
             if loc.lower() in text_lower:
                 return loc
-
-        # Attempt to extract place names via specific patterns
+                
+        # Step 4: Use fuzzy matching for typo tolerance
+        words = re.findall(r'\b\w+\b', text_lower)
+        
+        # Check each word against our locations with fuzzy matching
+        for word in words:
+            if len(word) > 3:  # Only check meaningful words
+                for loc in ph_locations:
+                    # Calculate Levenshtein distance (edit distance)
+                    # This measures how many single character edits needed to change one word to another
+                    if len(loc) > 3:  # Only check meaningful locations
+                        loc_lower = loc.lower()
+                        
+                        # Check each word in multi-word locations (like "Quezon City")
+                        loc_parts = loc_lower.split()
+                        for part in loc_parts:
+                            if len(part) > 3:  # Only check meaningful parts
+                                # Simple edit distance calculation: if word is within 1-2 edits of location part
+                                # For longer words, allow more edits (proportional to length)
+                                max_edits = 1 if len(part) <= 5 else 2
+                                
+                                # Simple edit distance check - accept word that's very close to location name
+                                if abs(len(word) - len(part)) <= max_edits:
+                                    # Count differing characters
+                                    diff_count = sum(1 for a, b in zip(word, part) if a != b)
+                                    diff_count += abs(len(word) - len(part))  # Add difference in length
+                                    
+                                    if diff_count <= max_edits:
+                                        print(f"Found location via fuzzy match: {word} ≈ {loc} (edit distance: {diff_count})")
+                                        return loc
+        
+        # Step 5: Check for Philippine location patterns in the text
+        # Common prepositions indicating locations
         place_patterns = [
-            r'(?:in|at|from|to|near)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)',
-            r'(?:sa|mula|papunta|malapit)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)'
+            r'(?:in|at|from|to|near)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)',  # English
+            r'(?:sa|ng|mula|papunta|malapit)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)'  # Filipino
         ]
 
         for pattern in place_patterns:
             matches = re.findall(pattern, text)
             if matches:
                 for match in matches:
-                    # Check if extracted place is in our list (case-insensitive)
+                    # Check if extracted place is similar to a location in our list (with fuzzy matching)
+                    match_lower = match.lower()
                     for loc in ph_locations:
-                        if match.lower() == loc.lower():
+                        loc_lower = loc.lower()
+                        
+                        # Exact match
+                        if match_lower == loc_lower:
                             return loc
+                            
+                        # Fuzzy match for place name
+                        if len(match_lower) > 3 and len(loc_lower) > 3:
+                            # Check each word in multi-word locations
+                            loc_parts = loc_lower.split()
+                            for part in loc_parts:
+                                if len(part) > 3:
+                                    max_edits = 1 if len(part) <= 5 else 2
+                                    
+                                    # Simple edit distance check
+                                    if abs(len(match_lower) - len(part)) <= max_edits:
+                                        diff_count = sum(1 for a, b in zip(match_lower, part) if a != b)
+                                        diff_count += abs(len(match_lower) - len(part))
+                                        
+                                        if diff_count <= max_edits:
+                                            print(f"Found location via pattern + fuzzy match: {match} ≈ {loc}")
+                                            return loc
 
+        # If location detection completely fails, check for flood-related keywords
+        # that might indicate a generic location 
+        if "baha" in text_lower and ("kalsada" in text_lower or "daan" in text_lower or "street" in text_lower):
+            # Check for Manila-related terms
+            if any(term in text_lower for term in ["manila", "maynila", "mnl", "ncr", "metro"]):
+                return "Manila"
+        
         return "UNKNOWN"
 
     def detect_social_media_source(self, text):
