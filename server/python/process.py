@@ -658,6 +658,12 @@ class DisasterSentimentBackend:
                     - Perspective: personal danger vs. witnessing danger vs. recovery
                     - Implied action: need rescue vs. providing rescue
                     
+                    HUMOR & EMOJI INDICATORS (ESSENTIAL TO ANALYZE):
+                    - Messages containing "HAHA", "LOL", laughing emojis (😂🤣), or other humor markers indicate the speaker is not in actual distress
+                    - Messages with laughing emojis followed by "TULONG" are usually expressing 'Disbelief' or making a joke
+                    - When emojis contradict the text (like 😂 + "TULONG"), prioritize the emoji's emotional signal as it represents the sender's true feeling
+                    - Humor indicators (HAHA, emoji) almost always indicate the message is NOT expressing genuine panic or fear, but more likely disbelief
+                    
                     Also identify what type of disaster is mentioned STRICTLY from this list with capitalized first letter:
                     - Flood
                     - Typhoon
@@ -787,6 +793,23 @@ class DisasterSentimentBackend:
     def _rule_based_sentiment_analysis(self, text, language):
         """Fallback rule-based sentiment analysis"""
         text_lower = text.lower()
+        
+        # Check specifically for laughing emoji + TULONG pattern first
+        # This is a common Filipino pattern expressing disbelief or humor
+        if ('😂' in text or '🤣' in text) and ('TULONG' in text.upper() or 'SAKLOLO' in text.upper() or 'HELP' in text.upper()):
+            return {
+                "sentiment": "Disbelief",
+                "confidence": 0.95,
+                "explanation": "The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress."
+            }
+        
+        # Check for HAHA + TULONG pattern (common in Filipino social media)
+        if ('HAHA' in text.upper() or 'HEHE' in text.upper()) and ('TULONG' in text.upper() or 'SAKLOLO' in text.upper() or 'HELP' in text.upper()):
+            return {
+                "sentiment": "Disbelief",
+                "confidence": 0.92,
+                "explanation": "The combination of laughter ('HAHA') and words like 'TULONG' indicates this is expressing humor or disbelief, not actual panic."
+            }
 
         # Keywords associated with each sentiment
         sentiment_keywords = {
