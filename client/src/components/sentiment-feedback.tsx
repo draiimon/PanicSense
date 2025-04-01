@@ -204,21 +204,21 @@ export function SentimentFeedback({
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-600 flex items-center">
               <AlertCircle className="mr-2 h-5 w-5" />
-              Hindi Tamang Feedback Detected!
+              Potential Feedback Issue Detected
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base">
               <div className="p-3 border border-red-200 bg-red-50 rounded-md mb-3">
-                {warningMessage || "Inconsistency detected in your feedback."}
+                {warningMessage || "Our AI detected an inconsistency in your feedback."}
               </div>
               <p className="text-sm text-gray-600 mt-2">
-                Ang iyong pagbabago ay nai-save pa rin, ngunit hindi isasagawa sa buong sistema dahil 
-                sa mga potensyal na non-realistic na feedback.
+                Your feedback has been saved and processed for training purposes, but some 
+                posts might not be updated if our AI detected potential issues.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white">
-              Naintindihan Ko
+              I Understand
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

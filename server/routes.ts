@@ -1278,8 +1278,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             (feedback.correctedSentiment !== 'Panic' && feedback.correctedSentiment !== 'Fear/Anxiety')
         ) {
           possibleTrolling = true;
-          aiTrustMessage = "AI VERIFICATION FAILED: Text contains panic indicators but user tried to change to non-panic sentiment. This is likely incorrect feedback.";
-          console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - panic text being incorrectly changed");
+          aiTrustMessage = "Our AI analysis detected that this text contains panic indicators that don't match the suggested sentiment. Please verify your correction.";
+          console.log("⚠️ AI TRUST VERIFICATION: Detected possible mismatch - panic text being changed to non-panic sentiment");
         }
         
         // TROLL PROTECTION 2: Check for Resilience text being changed to Panic without indicators 
@@ -1288,8 +1288,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             !isPanicText
         ) {
           possibleTrolling = true;
-          aiTrustMessage = "AI VERIFICATION FAILED: Text does not contain any panic indicators but user tried to change to Panic sentiment. This is likely incorrect feedback.";
-          console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - non-panic text being incorrectly marked as panic");
+          aiTrustMessage = "Our AI analysis found that this text doesn't contain panic indicators that would justify a Panic sentiment classification. Please verify your correction.";
+          console.log("⚠️ AI TRUST VERIFICATION: Detected possible mismatch - non-panic text being marked as panic");
         }
         
         // TROLL PROTECTION 3: Check for disbelief/joke content being changed to serious sentiment
@@ -1300,8 +1300,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             (feedback.correctedSentiment === 'Panic' || feedback.correctedSentiment === 'Fear/Anxiety')
         ) {
           possibleTrolling = true;
-          aiTrustMessage = "AI VERIFICATION FAILED: Text contains joke/humor indicators but user tried to set to serious panic sentiment. This is likely incorrect feedback.";
-          console.log("⚠️ AI TRUST VERIFICATION: Detected possible trolling - joke text being incorrectly marked as panic");
+          aiTrustMessage = "Our AI analysis found that this text contains humor or joke indicators which may not align with a serious Panic sentiment. Please review your correction.";
+          console.log("⚠️ AI TRUST VERIFICATION: Detected possible mismatch - humorous text being marked as panic");
         }
       } else {
         console.log("Skipping troll detection since no sentiment correction was provided");
@@ -1350,29 +1350,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           pythonService.clearCacheForText(feedback.originalText);
           console.log(`Cache cleared for retrained text: "${feedback.originalText.substring(0, 30)}..."`);
           
-          // Skip updating posts if AI detected that feedback is likely incorrect or trolling
+          // Don't skip updates - always update posts even if AI is unsure
+          // But include warning/info in response for the frontend
           if (possibleTrolling) {
-            console.log(`⚠️ TROLL PROTECTION: Not updating any posts. AI detected possible trolling or incorrect feedback.`);
+            console.log(`⚠️ AI WARNING: Detected potential irregular feedback but will still update posts.`);
             console.log(`AI Message: ${aiTrustMessage}`);
             
-            // Broadcast warning to any connected clients
-            broadcastUpdate({ 
-              type: "feedback-warning", 
-              data: { 
-                message: aiTrustMessage,
-                originalText: feedback.originalText,
-                feedbackId: savedFeedback.id
-              } 
-            });
-            
-            // Still return success since we saved feedback but include AI warning
-            return res.status(200).json({
-              ...baseResponse,
-              trainedOn: true,
-              trainingResult: trainingResult,
-              aiWarning: aiTrustMessage,
-              updateSkipped: true
-            });
+            // Just log the info but continue with updates
           }
           
           // UPDATE ALL EXISTING POSTS WITH SAME TEXT TO NEW SENTIMENT
