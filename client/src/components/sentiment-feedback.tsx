@@ -210,15 +210,21 @@ export function SentimentFeedback({
 
     // Check if WebSocket is available in the window object
     if (typeof window !== 'undefined' && 'WebSocket' in window) {
-      // Add event listener to the existing WebSocket connection
-      const socket = new WebSocket(`ws://${window.location.host}`);
-      socket.addEventListener('message', handleWebSocketMessage);
-      
-      // Cleanup function
-      return () => {
-        socket.removeEventListener('message', handleWebSocketMessage);
-        socket.close();
-      };
+      try {
+        // Use the same protocol (http->ws, https->wss) to avoid mixed content errors
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        // Add event listener to the existing WebSocket connection
+        const socket = new WebSocket(`${protocol}//${window.location.host}`);
+        socket.addEventListener('message', handleWebSocketMessage);
+        
+        // Cleanup function
+        return () => {
+          socket.removeEventListener('message', handleWebSocketMessage);
+          socket.close();
+        };
+      } catch (err) {
+        console.error("Failed to connect to WebSocket:", err);
+      }
     }
   }, []);
 
