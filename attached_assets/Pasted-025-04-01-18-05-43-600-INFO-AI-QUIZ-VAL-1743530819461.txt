@@ -1,0 +1,636 @@
+025-04-01 18:05:43,600 - INFO - 
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+6:05:43 PM [python-service] Python stdout: ==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8290195590956639, "improvement": 0.00901955909566399}}
+6:05:43 PM [python-service] Raw Python output: "==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8290195590956639, "improvement": 0.00901955909566399}}"
+6:05:43 PM [python-service] Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 99. Raw output: "==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8290195590956639, "improvement": 0.00901955909566399}}"
+Error during AI quiz validation: Error: Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 99. Raw output: "==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8290195590956639, "improvement": 0.00901955909566399}}"
+    at ChildProcess.<anonymous> (/home/runner/workspace/server/python-service.ts:528:20)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+Feedback saved to database with ID: 110
+Training example saved to database with ID: 4
+6:05:48 PM [python-service] Analyzing sentiment for text: 😂 TULONG HAHAHA !...
+6:05:48 PM [python-service] Using training example from database for sentiment: Fear/Anxiety
+🧠 AI Analysis result: {
+  sentiment: 'Fear/Anxiety',
+  confidence: 0.95,
+  explanation: 'The message expresses concern and worry about the situation. The language shows anxiety and apprehension about potential impacts. The use of laughter suggests disbelief or nervous humor about the situation. The use of all caps indicates heightened emotional intensity.',
+  language: 'English',
+  disasterType: 'UNKNOWN',
+  location: 'UNKNOWN'
+}
+🧠 AI determined this IS panic text with confidence 0.95
+⚠️ AI TRUST VERIFICATION (Fallback): Detected potential mismatch - humorous/disbelief text marked as panic
+Starting model training with feedback
+6:05:48 PM [python-service] Training model with feedback: "😂 TULONG HAHAHA !..." - Disbelief → Fear/Anxiety
+6:05:48 PM [python-service] Sending feedback payload to Python: {"feedback":true,"originalText":"😂 TULONG HAHAHA !","originalSentiment":"Disbelief","correctedSentiment":"Fear/Anxiety"}
+6:05:49 PM [python-service] Python process error: 2025-04-01 18:05:49,503 - INFO - Loaded 22 API keys for rotation
+2025-04-01 18:05:49,503 - INFO - Applying sentiment correction: Disbelief -> Fear/Anxiety
+6:05:50 PM [python-service] Python process error: 2025-04-01 18:05:50,655 - ERROR - Error processing LLM response: No valid JSON found in response
+6:05:50 PM [python-service] Python process error: 2025-04-01 18:05:50,655 - INFO - API validation used single key successfully
+2025-04-01 18:05:50,655 - INFO - 
+==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+2025-04-01 18:05:50,655 - INFO - AI QUIZ VALIDATION result: {'valid': True, 'reason': "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses."}
+2025-04-01 18:05:50,656 - INFO - 
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+6:05:50 PM [python-service] Python stdout: ==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8299473391469887, "improvement": 0.009947339146988728}}
+6:05:50 PM [python-service] Raw Python output: "==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8299473391469887, "improvement": 0.009947339146988728}}"
+6:05:50 PM [python-service] Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 100. Raw output: "==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8299473391469887, "improvement": 0.009947339146988728}}"
+Error training model with feedback: Error: Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 100. Raw output: "==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8299473391469887, "improvement": 0.009947339146988728}}"
+    at ChildProcess.<anonymous> (/home/runner/workspace/server/python-service.ts:528:20)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+6:05:50 PM [express] POST /api/sentiment-feedback 200 in 9706ms :: {"id":110,"originalText":"😂 TULONG HAHAHA !","originalSentiment":"Disbelief","correctedSentiment":"...
+6:05:51 PM [express] GET /api/sentiment-posts 304 in 451ms :: [{"id":61,"text":"😂 TULONG HAHAHA !","timestamp":"2025-04-01T14:53:00.252Z","source":"Manual Input"...
+6:05:54 PM [express] GET /api/analyzed-files 304 in 3507ms :: [{"id":1,"originalName":"MAGULONG DATA!.csv","storedName":"46fGDgrcRIsbpdNxsB3df-MAGULONG DATA!.csv"...
+6:05:54 PM [express] GET /api/disaster-events 304 in 3523ms :: [{"id":4,"name":"UNKNOWN Event","description":"Based on 9 reports from the community. Sentiment dist...
+Received sentiment feedback request: {
+  "originalText": "😂 TULONG HAHAHA !",
+  "originalSentiment": "Disbelief",
+  "correctedSentiment": "Fear/Anxiety",
+  "originalPostId": null,
+  "userId": null
+}
+Processing feedback for training: {
+  originalText: '😂 TULONG HAHAHA !',
+  originalSentiment: 'Disbelief',
+  correctedSentiment: 'Fear/Anxiety',
+  correctedLocation: null,
+  correctedDisasterType: null,
+  originalPostId: null,
+  userId: null
+}
+Performing AI quiz validation before saving feedback...
+6:06:16 PM [python-service] Training model with feedback: "😂 TULONG HAHAHA !..." - Disbelief → Fear/Anxiety
+6:06:16 PM [python-service] Sending feedback payload to Python: {"feedback":true,"originalText":"😂 TULONG HAHAHA !","originalSentiment":"Disbelief","correctedSentiment":"Fear/Anxiety"}
+6:06:16 PM [python-service] Python process error: 2025-04-01 18:06:16,677 - INFO - Loaded 22 API keys for rotation
+6:06:16 PM [python-service] Python process error: 2025-04-01 18:06:16,677 - INFO - Applying sentiment correction: Disbelief -> Fear/Anxiety
+6:06:17 PM [python-service] Python process error: 2025-04-01 18:06:17,660 - ERROR - Error processing LLM response: No valid JSON found in response
+6:06:17 PM [python-service] Python process error: 2025-04-01 18:06:17,660 - INFO - API validation used single key successfully
+2025-04-01 18:06:17,660 - INFO - 
+==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+2025-04-01 18:06:17,660 - INFO - AI QUIZ VALIDATION result: {'valid': True, 'reason': "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses."}
+2025-04-01 18:06:17,661 - INFO - 
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+6:06:17 PM [python-service] Python stdout: ==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8299932499400422, "improvement": 0.009993249940042224}}
+6:06:17 PM [python-service] Raw Python output: "==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8299932499400422, "improvement": 0.009993249940042224}}"
+6:06:17 PM [python-service] Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 100. Raw output: "==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8299932499400422, "improvement": 0.009993249940042224}}"
+Error during AI quiz validation: Error: Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 100. Raw output: "==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8299932499400422, "improvement": 0.009993249940042224}}"
+    at ChildProcess.<anonymous> (/home/runner/workspace/server/python-service.ts:528:20)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+Feedback saved to database with ID: 111
+Training example saved to database with ID: 4
+6:06:19 PM [python-service] Analyzing sentiment for text: 😂 TULONG HAHAHA !...
+6:06:20 PM [python-service] Using training example from database for sentiment: Fear/Anxiety
+🧠 AI Analysis result: {
+  sentiment: 'Fear/Anxiety',
+  confidence: 0.95,
+  explanation: 'The message expresses concern and worry about the situation. The language shows anxiety and apprehension about potential impacts. The use of laughter suggests disbelief or nervous humor about the situation. The use of all caps indicates heightened emotional intensity.',
+  language: 'English',
+  disasterType: 'UNKNOWN',
+  location: 'UNKNOWN'
+}
+🧠 AI determined this IS panic text with confidence 0.95
+⚠️ AI TRUST VERIFICATION (Fallback): Detected potential mismatch - humorous/disbelief text marked as panic
+Starting model training with feedback
+6:06:20 PM [python-service] Training model with feedback: "😂 TULONG HAHAHA !..." - Disbelief → Fear/Anxiety
+6:06:20 PM [python-service] Sending feedback payload to Python: {"feedback":true,"originalText":"😂 TULONG HAHAHA !","originalSentiment":"Disbelief","correctedSentiment":"Fear/Anxiety"}
+6:06:20 PM [python-service] Python process error: 2025-04-01 18:06:20,442 - INFO - Loaded 22 API keys for rotation
+6:06:20 PM [python-service] Python process error: 2025-04-01 18:06:20,442 - INFO - Applying sentiment correction: Disbelief -> Fear/Anxiety
+6:06:21 PM [python-service] Python process error: 2025-04-01 18:06:21,439 - ERROR - Error processing LLM response: No valid JSON found in response
+6:06:21 PM [python-service] Python process error: 2025-04-01 18:06:21,439 - INFO - API validation used single key successfully
+2025-04-01 18:06:21,439 - INFO - 
+==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+2025-04-01 18:06:21,439 - INFO - AI QUIZ VALIDATION result: {'valid': True, 'reason': "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses."}
+2025-04-01 18:06:21,439 - INFO - 
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+6:06:21 PM [python-service] Python stdout: ==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8342458824705068, "improvement": 0.014245882470506895}}
+6:06:21 PM [python-service] Raw Python output: "==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8342458824705068, "improvement": 0.014245882470506895}}"
+6:06:21 PM [python-service] Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 100. Raw output: "==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8342458824705068, "improvement": 0.014245882470506895}}"
+Error training model with feedback: Error: Failed to parse Python output: SyntaxError: Unexpected non-whitespace character after JSON at position 100. Raw output: "==================================================
+📝 AI QUIZ VALIDATION STARTED 📝
+==================================================
+Question: Analyzing text: '😂 TULONG HAHAHA !'
+What sentiment classification is most appropriate?
+Options: a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience
+
+🤖 AI's Answer: d) Disbelief
+👨‍💼 User Selected: b) Fear/Anxiety
+
+💡 AI's Reasoning: The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress.
+==================================================
+
+
+==================================================
+📋 AI QUIZ VALIDATION RESULTS 📋
+==================================================
+✅ Valid: True
+📝 Original Text: "😂 TULONG HAHAHA !"
+🔄 Sentiment Change: Disbelief ➡️ Fear/Anxiety
+
+📢 AI Feedback: 
+Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.
+
+Our system will learn from your input to improve future analyses.
+==================================================
+
+{"status": "success", "message": "Thank you for your feedback. While our AI suggested d) Disbelief, we've accepted your classification as b) Fear/Anxiety.\n\nOur system will learn from your input to improve future analyses.", "performance": {"previous_accuracy": 0.82, "new_accuracy": 0.8342458824705068, "improvement": 0.014245882470506895}}"
+    at ChildProcess.<anonymous> (/home/runner/workspace/server/python-service.ts:528:20)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at Socket.<anonymous> (node:internal/child_process:456:11)
+    at Socket.emit (node:events:518:28)
+    at Pipe.<anonymous> (node:net:343:12)
+6:06:21 PM [express] POST /api/sentiment-feedback 200 in 5436ms :: {"id":111,"originalText":"😂 TULONG HAHAHA !","originalSentiment":"Disbelief","correctedSentiment":"...
+6:06:22 PM [express] GET /api/sentiment-posts 304 in 425ms :: [{"id":61,"text":"😂 TULONG HAHAHA !","timestamp":"2025-04-01T14:53:00.252Z","source":"Manual Input"...
+6:06:23 PM [express] GET /api/disaster-events 304 in 1527ms :: [{"id":4,"name":"UNKNOWN Event","description":"Based on 9 reports from the community. Sentiment dist...
+6:06:23 PM [express] GET /api/analyzed-files 304 in 1570ms :: [{"id":1,"originalName":"MAGULONG DATA!.csv","storedName":"46fGDgrcRIsbpdNxsB3df-MAGULONG DATA!.csv"...

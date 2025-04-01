@@ -48,53 +48,61 @@ class DisasterSentimentBackend:
         self.sentiment_labels = [
             'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'
         ]
+        
+        # For API calls in regular analysis
         self.api_keys = []
+        # For validation use only (1 key maximum)
         self.groq_api_keys = []
+        
+        # First check for a dedicated validation key
+        validation_key = os.getenv("VALIDATION_API_KEY")
+        if validation_key:
+            # If we have a dedicated validation key, use it
+            self.groq_api_keys.append(validation_key)
+            logging.info(f"Using dedicated validation API key")
 
-        # Load API keys from environment
+        # Load API keys from environment (for regular analysis)
         i = 1
         while True:
             key_name = f"API_KEY_{i}"
             api_key = os.getenv(key_name)
             if api_key:
                 self.api_keys.append(api_key)
-                self.groq_api_keys.append(api_key)
+                # Only add to validation keys if we don't already have a dedicated one
+                if not self.groq_api_keys and i == 1:
+                    self.groq_api_keys.append(api_key)
                 i += 1
             else:
                 break
 
         # Fallback to a single API key if no numbered keys
         if not self.api_keys and os.getenv("API_KEY"):
-            self.api_keys.append(os.getenv("API_KEY"))
-            self.groq_api_keys.append(os.getenv("API_KEY"))
+            api_key = os.getenv("API_KEY")
+            self.api_keys.append(api_key)
+            # Only add to validation keys if we don't already have one
+            if not self.groq_api_keys:
+                self.groq_api_keys.append(api_key)
 
-        # Default keys if none provided
+        # Default keys if none provided - IMPORTANT: Limit validation to ONE key
         if not self.api_keys:
+            # Full set of keys for regular analysis
             self.api_keys = [
                 "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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"
+                "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"
             ]
-            self.groq_api_keys = self.api_keys.copy()
+            
+            # Only one key for validation
+            if not self.groq_api_keys:
+                self.groq_api_keys = [self.api_keys[0]]
+        
+        # Log how many keys we're using
+        logging.info(f"Loaded {len(self.api_keys)} API keys for rotation")
+        logging.info(f"Using {len(self.groq_api_keys)} key(s) for validation")
+        
+        # Safety check - validation should have max 1 key
+        if len(self.groq_api_keys) > 1:
+            logging.warning(f"More than 1 validation key detected, limiting to 1 key")
+            self.groq_api_keys = [self.groq_api_keys[0]]
 
         # API configuration
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
@@ -1946,46 +1954,65 @@ Options: {quiz_options}
 💡 AI's Reasoning: {ai_explanation}
 {console_separator}
 """
-        print(quiz_frame)  # Print to console for immediate visibility
-        logging.info(quiz_frame)  # Also log it
+        # Just log it to the logging system - don't print to stdout to avoid duplicate messages
+        logging.info(quiz_frame)
         
         # Default to valid
         result = {"valid": True, "reason": ""}
         
-        # Compare the user's choice with the AI's choice
+        # Compare the user's choice with the AI's choice - STRICT VALIDATION
         if corrected_sentiment != ai_sentiment:
-            # If the AI is very confident and the user's choice conflicts with AI analysis
-            if ai_confidence > 0.85:
-                ai_index = sentiment_categories.index(ai_sentiment) if ai_sentiment in sentiment_categories else -1
-                corrected_index = sentiment_categories.index(corrected_sentiment) if corrected_sentiment in sentiment_categories else -1
-                
-                # If the selections are far apart in the sentiment spectrum
-                if ai_index != -1 and corrected_index != -1 and abs(ai_index - corrected_index) > 1:
+            # If sentiment is different from AI analysis, make it invalid for most cases
+            ai_index = sentiment_categories.index(ai_sentiment) if ai_sentiment in sentiment_categories else -1
+            corrected_index = sentiment_categories.index(corrected_sentiment) if corrected_sentiment in sentiment_categories else -1
+            
+            # If the selections are more than 1 sentiment category apart
+            if ai_index != -1 and corrected_index != -1 and abs(ai_index - corrected_index) > 1:
+                quiz_explanation = (
+                    f"VALIDATION FAILED! Our AI analyzed this text and chose: {ai_answer}\n\n"
+                    f"Explanation: {ai_explanation}\n\n"
+                    f"Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) "
+                    f"differs significantly from our analysis. This correction is TOO DIFFERENT from our analysis to be valid."
+                )
+                result["valid"] = False
+                result["reason"] = quiz_explanation
+                logging.warning(f"AI QUIZ VALIDATION: FAILED - User answer is too different from AI assessment")
+            # If the selections are 1 sentiment category apart, check AI confidence
+            elif ai_index != -1 and corrected_index != -1 and abs(ai_index - corrected_index) == 1:
+                # If confident, still fail, but explain it's close
+                if ai_confidence > 0.85:
                     quiz_explanation = (
-                        f"Our AI analyzed this text and chose: {ai_answer}\n\n"
+                        f"VALIDATION FAILED! Our AI analyzed this text with HIGH CONFIDENCE as: {ai_answer}\n\n"
                         f"Explanation: {ai_explanation}\n\n"
                         f"Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) "
-                        f"differs significantly from our analysis."
+                        f"is close but still conflicts with our high-confidence analysis."
                     )
                     result["valid"] = False
                     result["reason"] = quiz_explanation
-                    logging.warning(f"AI QUIZ VALIDATION: User answer conflicts with high-confidence AI assessment")
+                # Otherwise, allow it
+                else:
+                    result["valid"] = True
+                    result["reason"] = f"Validation PASSED but with caution. Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) is close to our analysis of {ai_answer}.\n\nExplanation from AI: {ai_explanation}"
         
-        # If validation fails but original sentiment also doesn't match AI sentiment,
-        # give the user the benefit of the doubt (the original may be wrong)
-        if not result["valid"] and original_sentiment != ai_sentiment:
-            logging.info(f"AI QUIZ VALIDATION: Allowing correction despite validation failure because original prediction may be incorrect")
-            result["valid"] = True
-            result["reason"] = f"While our AI chose '{ai_sentiment}', we're accepting your correction as the original classification '{original_sentiment}' might need improvement."
+        # Keep invalid results invalid - no exceptions
+        if not result["valid"]:
+            logging.warning(f"AI QUIZ VALIDATION: STRICTLY REJECTING correction due to validation failure")
+            # No "we accept your feedback" for invalid results - user needs to provide a correct answer
+            result["reason"] = (
+                f"VALIDATION FAILED!\n\n"
+                f"Our AI analyzed this text as: {ai_answer}\n\n"
+                f"Explanation: {ai_explanation}\n\n"
+                f"Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) "
+                f"was NOT accepted because it conflicts with our analysis."
+            )
         
-        # If result is valid, provide confirmation and explanation
+        # Only for VALID results (match AI or very close to AI analysis)
         if result["valid"]:
             if corrected_sentiment == ai_sentiment:
-                result["reason"] = f"Great! Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) matches our AI analysis.\n\nExplanation: {ai_explanation}"
+                result["reason"] = f"VALIDATION PASSED! Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) EXACTLY matches our AI analysis.\n\nExplanation: {ai_explanation}"
             else:
-                # Generate a polite message that doesn't repeat the whole AI explanation
-                # This avoids potential offensive content from being repeated in the AI explanation
-                result["reason"] = f"Thank you for your feedback. While our AI suggested {ai_answer}, we've accepted your classification as {option_map.get(corrected_sentiment, corrected_sentiment)}.\n\nOur system will learn from your input to improve future analyses."
+                # Only slight differences are accepted
+                result["reason"] = f"VALIDATION PASSED with minor difference. Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) is reasonably close to our AI analysis of {ai_answer}.\n\nAI Explanation: {ai_explanation}"
         
         logging.info(f"AI QUIZ VALIDATION result: {result}")
         return result
@@ -2046,16 +2073,28 @@ def main():
                             if has_disaster_correction:
                                 logging.info(f"Applying disaster type correction: -> {corrected_disaster_type}")
                             
-                            # Train the model
-                            training_result = backend.train_on_feedback(
-                                original_text, 
-                                original_sentiment, 
-                                corrected_sentiment_to_use,
-                                corrected_location,
-                                corrected_disaster_type
-                            )
-                            print(json.dumps(training_result))
-                            sys.stdout.flush()
+                            try:
+                                # Train the model
+                                training_result = backend.train_on_feedback(
+                                    original_text, 
+                                    original_sentiment, 
+                                    corrected_sentiment_to_use,
+                                    corrected_location,
+                                    corrected_disaster_type
+                                )
+                                
+                                # Make sure no logging or validation messages are in the output
+                                # We want ONLY ONE clean JSON output for the frontend to parse
+                                print(json.dumps(training_result))
+                                sys.stdout.flush()
+                            except Exception as e:
+                                logging.error(f"Error training model: {str(e)}")
+                                error_response = {
+                                    "status": "error",
+                                    "message": f"Error during model training: {str(e)}"
+                                }
+                                print(json.dumps(error_response))
+                                sys.stdout.flush()
                             return
                         else:
                             logging.error("No valid corrections provided in feedback")
