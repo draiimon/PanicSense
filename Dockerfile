@@ -3,20 +3,31 @@ FROM node:20-alpine AS build
 # Set working directory
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm with specific version to avoid unexpected breaks
+RUN npm install -g pnpm@10.7.1
 
 # Install Python and required system packages for canvas and other dependencies
-RUN apk add --no-cache python3 py3-pip make g++ pkgconfig pixman-dev cairo-dev pango-dev jpeg-dev giflib-dev
+# Grouped into one layer to reduce image size
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    make \
+    g++ \
+    pkgconfig \
+    pixman-dev \
+    cairo-dev \
+    pango-dev \
+    jpeg-dev \
+    giflib-dev
 
 # Copy package files first (better layer caching)
 COPY package.json ./
 
-# Install dependencies with pnpm (more robust implementation)
-RUN pnpm config set ignore-pnpmfile true
-RUN pnpm config set auto-install-peers true
-RUN pnpm install --prod --no-optional
-RUN pnpm install -D esbuild
+# Install dependencies with pnpm (consolidated for fewer layers)
+RUN pnpm config set ignore-pnpmfile true && \
+    pnpm config set auto-install-peers true && \
+    pnpm install --prod --no-optional && \
+    pnpm install -D esbuild
 
 # Set up Python virtual environment
 RUN python3 -m venv /app/venv
@@ -26,9 +37,10 @@ ENV PATH="/app/venv/bin:$PATH"
 COPY server/python/requirements.txt ./server/python/
 
 # Install Python packages in the virtual environment
+# Increased timeout for pip to avoid build failures
 RUN pip install --upgrade pip && \
     pip install setuptools wheel && \
-    pip install -r server/python/requirements.txt
+    pip --default-timeout=100 install -r server/python/requirements.txt
 
 # Download NLTK data
 RUN python -c "import nltk; nltk.download('punkt', download_dir='/app/nltk_data')"
@@ -46,11 +58,18 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm with specific version
+RUN npm install -g pnpm@10.7.1
 
-# Install Python and runtime dependencies for canvas
-RUN apk add --no-cache python3 python3-dev pixman cairo pango jpeg giflib
+# Install Python and runtime dependencies for canvas - grouped to reduce layers
+RUN apk add --no-cache \
+    python3 \
+    python3-dev \
+    pixman \
+    cairo \
+    pango \
+    jpeg \
+    giflib
 
 # Copy built app and dependencies from build stage
 COPY --from=build /app/dist ./dist
