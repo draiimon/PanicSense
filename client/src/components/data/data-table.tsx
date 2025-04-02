@@ -66,11 +66,42 @@ export function DataTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSentiment, setSelectedSentiment] = useState<string>("All");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [localData, setLocalData] = useState<SentimentPost[]>([]);
   
   // Performance optimization - memoize expensive operations
   const isSmallScreen = useState(window.innerWidth < 768)[0];
   const [postToDelete, setPostToDelete] = useState<number | null>(null);
   const rowsPerPage = 10;
+  
+  // Initialize local data from props
+  useEffect(() => {
+    setLocalData(data);
+  }, [data]);
+  
+  // Listen for real-time updates via the custom event
+  useEffect(() => {
+    const handleSentimentChange = (event: CustomEvent) => {
+      console.log("Sentiment change event received:", event);
+      
+      if (event.detail && event.detail.id) {
+        // Update the local data without needing a full refresh
+        setLocalData(prevData => 
+          prevData.map(post => 
+            post.id === event.detail.id 
+              ? { ...post, ...event.detail.updates, updatedAt: new Date().toISOString() } 
+              : post
+          )
+        );
+      }
+    };
+    
+    // TypeScript needs us to cast the event type
+    window.addEventListener('sentiment-change', handleSentimentChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('sentiment-change', handleSentimentChange as EventListener);
+    };
+  }, []);
 
   // Handle delete post
   const handleDeletePost = async (id: number) => {
@@ -96,7 +127,7 @@ export function DataTable({
   };
 
   // Filter data based on search term and sentiment filter
-  const filteredData = data.filter(item => {
+  const filteredData = localData.filter(item => {
     const matchesSearch = 
       item.text.toLowerCase().includes(searchTerm.toLowerCase()) || 
       item.source?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -347,7 +378,7 @@ export function DataTable({
                                   <div className="col-span-1 sm:col-span-2 space-y-1 mt-2">
                                     <div className="flex items-center text-xs font-medium text-blue-600 uppercase tracking-wider">
                                       <BrainCircuit className="h-3.5 w-3.5 mr-1.5 text-blue-500" />
-                                      AI Sentiment Analysis
+                                      Sentiment Analysis
                                     </div>
                                     <div className="text-sm text-slate-700 bg-blue-50/70 border border-blue-200/70 rounded-md p-3">
                                       {item.explanation}
@@ -436,7 +467,7 @@ export function DataTable({
                         ></div>
                       </div>
                       <div className="mt-1 text-xs font-medium text-slate-600">
-                        {(item.confidence * 100).toFixed(1)}%
+                        {(item.confidence * 100).toFixed(2)}%
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">

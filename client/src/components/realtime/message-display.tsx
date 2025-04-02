@@ -76,7 +76,7 @@ export function MessageDisplay({
 
         <div className="flex flex-wrap justify-between items-center text-xs text-slate-500">
           <div className="flex items-center gap-2">
-            <span>Confidence: {(confidence * 100).toFixed(0)}%</span>
+            <span>Confidence: {(confidence * 100).toFixed(2)}%</span>
           </div>
           <span>{formatTime(timestamp)}</span>
         </div>
@@ -100,7 +100,7 @@ export function MessageDisplay({
             <div className="flex items-start gap-2">
               <BrainCircuit className="h-5 w-5 text-blue-600 mt-0.5" />
               <div className="w-full">
-                <h4 className="text-sm font-medium mb-1 text-blue-800">AI Sentiment Analysis</h4>
+                <h4 className="text-sm font-medium mb-1 text-blue-800">Sentiment Analysis</h4>
                 
                 <div className="text-sm text-slate-700 p-2 bg-white/80 rounded border border-blue-100">
                   <span className="text-slate-700">{explanation}</span>

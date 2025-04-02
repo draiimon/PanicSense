@@ -111,7 +111,7 @@ export function RecentPostsTable({
               
               <div className="flex items-center gap-1 ml-auto">
                 <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 font-medium">
-                  {(post.confidence * 100).toFixed(0)}% confidence
+                  {(post.confidence * 100).toFixed(2)}% confidence
                 </span>
               </div>
             </div>
