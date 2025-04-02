@@ -144,7 +144,7 @@ For detailed step-by-step instructions, see [LOCAL_SETUP.md](LOCAL_SETUP.md)
 3. **Deploy with Render Blueprint**
    - In the Render dashboard, click "New" and select "Blueprint"
    - Select the repository containing this project
-   - Render will automatically detect the `render.yaml` file which uses `Dockerfile.working` for deployment
+   - Render will automatically detect the `render.yaml` file which uses `Dockerfile.final` for deployment
 
 4. **Environment Variables**
    - The database connection string will be automatically configured
