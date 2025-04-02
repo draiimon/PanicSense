@@ -48,3 +48,11 @@ replit.nix
 # Operating System Files
 .DS_Store
 Thumbs.db
+
+# Temporary asset files
+attached_assets/*
+temp/
+tmp/
+*~
+*.bak
+*.tmp

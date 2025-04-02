@@ -75,7 +75,7 @@ class DisasterSentimentBackend:
             else:
                 break
 
-        # Fallback to a single API key if no numbered keys
+        # Handle API key legacy format if present
         if not self.api_keys and os.getenv("API_KEY"):
             api_key = os.getenv("API_KEY")
             self.api_keys.append(api_key)
@@ -83,56 +83,30 @@ class DisasterSentimentBackend:
             if not self.groq_api_keys:
                 self.groq_api_keys.append(api_key)
 
-        # Default keys if none provided - IMPORTANT: Limit validation to ONE key
+        # Get keys using the new GROQ_API_KEY_N format from environment variables
         if not self.api_keys:
-            # Load API keys from attached file instead of hardcoding
             api_key_list = []
-            # Get keys from environment variables first
-            for i in range(1, 30):  # Try up to 30 keys
+            # Try up to 30 keys - this allows for API key rotation to avoid rate limiting
+            for i in range(1, 30):
                 env_key = os.getenv(f"GROQ_API_KEY_{i}")
-                if env_key:
-                    api_key_list.append(env_key)
+                if env_key and env_key.strip():
+                    api_key_list.append(env_key.strip())
+                    logging.info(f"Loaded API key #{i} from environment")
             
-            # If no environment keys, use the keys provided by the user
-            if not api_key_list:
-                api_key_list = [
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",     
-                    "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"
-                ]
-                # We'll only use one key for validation to avoid rate limiting
-                logging.info(f"Using {len(api_key_list)} hardcoded API keys")
-            
-            self.api_keys = api_key_list
-            
-            # Only use one key for validation - this is critical to avoid rate limiting
-            if not self.groq_api_keys:
-                self.groq_api_keys = [self.api_keys[0]]
+            if api_key_list:
+                self.api_keys = api_key_list
+                logging.info(f"Using {len(api_key_list)} API keys from environment for rotation")
+                
+                # Only use one key for validation if we don't already have a dedicated one
+                if not self.groq_api_keys:
+                    self.groq_api_keys = [self.api_keys[0]]
+                    logging.info("Using first API key for validation")
+            else:
+                logging.warning("No API keys found in environment. Sentiment analysis will fall back to rule-based methods.")
+                # Initialize with empty lists - will cause rule-based fallback
+                self.api_keys = []
+                if not self.groq_api_keys:
+                    self.groq_api_keys = []
         
         # Log how many keys we're using
         logging.info(f"Loaded {len(self.api_keys)} API keys for rotation")
