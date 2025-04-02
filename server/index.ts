@@ -3,13 +3,40 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { checkPortPeriodically, checkPort } from "./debug-port";
+import compression from 'compression'; // Will add this package next
+import cors from 'cors';
+
+// Detect environment for optimized settings
+const isProduction = process.env.NODE_ENV === 'production';
+const isRender = Boolean(process.env.RENDER);
+const isReplit = Boolean(process.env.REPL_ID);
+
+console.log(`Running in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
+console.log(`Platform: ${isRender ? 'Render' : isReplit ? 'Replit' : 'Local'}`);
 
 const app = express();
+
+// Performance optimizations
+app.use(compression()); // Compress all responses
+app.use(cors()); // Enable CORS for API requests
 app.use(express.json({ limit: '50mb' })); // Increased limit for better performance
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
 // Enhanced logging middleware with better performance metrics
 app.use((req, res, next) => {
+  // Skip logging for static assets to reduce noise
+  if (req.path.startsWith('/assets/') || req.path.endsWith('.ico')) {
+    return next();
+  }
+  
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
