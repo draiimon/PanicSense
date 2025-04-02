@@ -33,7 +33,8 @@ RUN pip install --upgrade pip setuptools wheel && \
     pip install numpy==1.26.4 && \
     pip install torch==2.2.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu && \
     # Use a prebuilt wheel for scikit-learn
-    pip install --only-binary=scikit-learn scikit-learn==1.3.2
+    pip install --only-binary=scikit-learn scikit-learn==1.3.2 && \
+    pip install tqdm
 
 # Copy Python requirements file
 COPY server/python/requirements.txt server/python/requirements-lock.txt ./server/python/
