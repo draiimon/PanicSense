@@ -626,64 +626,17 @@ class DisasterSentimentBackend:
             }
         
         # If no exact match, proceed with regular API-based analysis
-        initial_result = self.get_api_sentiment_analysis(text, language)
-        
+        result = self.get_api_sentiment_analysis(text, language)
+
         # Add additional metadata
-        if "disasterType" not in initial_result:
-            initial_result["disasterType"] = self.extract_disaster_type(text)
-        if "location" not in initial_result:
-            initial_result["location"] = self.extract_location(text)
-        if "language" not in initial_result:
-            initial_result["language"] = language
-            
-        # NEW: Apply quiz-style validation to regular sentiment analysis for enhanced accuracy
-        # This uses the same validation approach used in feedback correction to double-check the initial sentiment analysis
-        try:
-            initial_sentiment = initial_result.get("sentiment", "Neutral")
-            
-            # Try to determine a reasonable alternative sentiment for validation
-            alt_sentiments = {"Panic": "Fear/Anxiety", "Fear/Anxiety": "Panic", 
-                             "Disbelief": "Neutral", "Neutral": "Disbelief",
-                             "Resilience": "Neutral"}
-            
-            # Get a reasonable alternative sentiment
-            alternative_sentiment = alt_sentiments.get(initial_sentiment, "Neutral")
-            
-            # Run validation quiz between the initial sentiment and an alternative
-            # This makes the model critically re-evaluate its own judgment
-            logging.info(f"Running validation quiz on regular sentiment analysis: '{initial_sentiment}' vs '{alternative_sentiment}'")
-            validation_result = self._validate_sentiment_correction(text, alternative_sentiment, initial_sentiment)
-            
-            # Log the validation result
-            logging.info(f"Sentiment validation result for '{text[:50]}...': {validation_result['valid']}")
-            logging.info(f"Validation reasoning: {validation_result.get('reason', 'No reason provided')}")
-            
-            # If validation fails (our initial sentiment doesn't pass validation against the alternative)
-            # This means the initial sentiment is less reliable than expected
-            if not validation_result.get('valid', True):
-                # Lower confidence to reflect this uncertainty
-                initial_result["confidence"] = round(initial_result.get("confidence", 0.75) * 0.85, 2)
-                logging.info(f"Lowering confidence due to failed validation: {initial_result['confidence']}")
-                
-                # Update explanation to include uncertainty 
-                initial_result["explanation"] = f"{initial_result.get('explanation', '')} (Note: Some uncertainty between {initial_sentiment} and {alternative_sentiment}.)"
-                
-                # Include validation note for debugging
-                initial_result["validationNote"] = validation_result.get('reason', 'Validation uncertain')
-            else:
-                # Validation confirms our initial sentiment - increase confidence slightly
-                initial_result["confidence"] = min(0.98, round(initial_result.get("confidence", 0.75) * 1.05, 2))
-                logging.info(f"Validation confirms sentiment, confidence: {initial_result['confidence']}")
-                
-                # Include validation reason in explanation
-                if validation_result.get('reason'):
-                    initial_result["validationNote"] = f"Confidence in {initial_sentiment}: {validation_result.get('reason')}"
-        except Exception as e:
-            logging.error(f"Error in sentiment validation quiz: {str(e)}")
-            # If validation fails, use original result without modification
-            
-        # Return the final result with validation insights
-        return initial_result
+        if "disasterType" not in result:
+            result["disasterType"] = self.extract_disaster_type(text)
+        if "location" not in result:
+            result["location"] = self.extract_location(text)
+        if "language" not in result:
+            result["language"] = language
+
+        return result
 
     def get_api_sentiment_analysis(self, text, language):
         """Get sentiment analysis from API using proper key rotation across all available keys"""
@@ -1557,35 +1510,6 @@ class DisasterSentimentBackend:
                                 analysis_result = self.analyze_sentiment(text)
                                 analysis_success = True
                                 
-                                # Enhanced detailed output for each CSV entry (matching real-time analysis format)
-                                sentiment = analysis_result.get('sentiment', 'Unknown')
-                                confidence = analysis_result.get('confidence', 0.0)
-                                explanation = analysis_result.get('explanation', '')
-                                
-                                # Get adjusted confidence for more natural, non-rounded values
-                                adjusted_confidence = get_natural_confidence(confidence, text)
-                                analysis_result['confidence'] = adjusted_confidence  # Update result with adjusted confidence
-                                
-                                # Print out detailed labeled information for each record (matching real-time format)
-                                logging.info(f"CSV ANALYSIS RESULT FOR RECORD {record_num}/{total_records}:")
-                                logging.info(f"TEXT: {text[:150]}...")
-                                logging.info(f"SENTIMENT: {sentiment}")
-                                logging.info(f"CONFIDENCE: {confidence} → ADJUSTED: {adjusted_confidence}")
-                                logging.info(f"EXPLANATION: {explanation}")
-                                logging.info(f"SOURCE: {source}")
-                                logging.info(f"TIMESTAMP: {timestamp}")
-                                if csv_location:
-                                    logging.info(f"LOCATION: {csv_location}")
-                                if csv_disaster:
-                                    logging.info(f"DISASTER TYPE: {csv_disaster}")
-                                
-                                # Special marker for successful analysis
-                                logging.info(f"LABELING {record_num}SUCCEEDED💙 (SUCCESSES: {idx+1})")
-                                
-                                # Explicitly print to stdout for matching the real-time format
-                                print(f"CSV ANALYSIS: {sentiment} (conf: {adjusted_confidence}, RECORD: {record_num}/{total_records})")
-                                print(json.dumps(analysis_result))
-                                
                                 # Log when sentiment is different from CSV data for debugging
                                 if original_csv_sentiment and original_csv_sentiment != analysis_result.get("sentiment"):
                                     logging.info(f"📊 CSV sentiment ({original_csv_sentiment}) differs from analyzed sentiment ({analysis_result.get('sentiment')}) for text: {text[:50]}...")
@@ -1795,17 +1719,8 @@ class DisasterSentimentBackend:
 
                         while not analysis_success and retry_count < max_retries:
                             try:
-                                # This calls the same analyze_sentiment method used by real-time analysis
                                 analysis_result = self.analyze_sentiment(text)
                                 analysis_success = True
-                                
-                                # Print output for debugging (similar to real-time analysis)
-                                logging.info(f"CSV RETRY ANALYSIS: {analysis_result.get('sentiment')} (conf: {analysis_result.get('confidence')})")
-                                if 'explanation' in analysis_result:
-                                    logging.info(f"CSV RETRY explanation: {analysis_result.get('explanation')}")
-                                
-                                # Explicitly print to stdout for matching the real-time format
-                                print(json.dumps(analysis_result))
                             except Exception as analysis_err:
                                 retry_count += 1
                                 logging.error(
@@ -1834,10 +1749,6 @@ class DisasterSentimentBackend:
                                         "language": "English",
                                         "text": text  # Include text for confidence adjustment
                                     }
-                                    
-                                    # Print output for fallback case too
-                                    logging.info(f"CSV FALLBACK ANALYSIS: Neutral (conf: {natural_confidence})")
-                                    print(json.dumps(analysis_result))
 
                         # Use exact same format as the main processing code above
                         processed_results.append({

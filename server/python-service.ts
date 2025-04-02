@@ -664,15 +664,9 @@ export class PythonService {
           
           if (onProgress && dataStr.includes('PROGRESS:')) {
             try {
-              // Handle multiple PROGRESS messages in a single dataStr
-              const progMatches = dataStr.match(/PROGRESS:(\{[^}]+\})/g);
-              if (progMatches && progMatches.length > 0) {
-                // Take the last progress update to avoid conflicts
-                const lastMatch = progMatches[progMatches.length - 1];
-                const jsonStr = lastMatch.replace('PROGRESS:', '').trim();
-                const progressData = JSON.parse(jsonStr);
-                const rawMessage = data.toString().trim();
-                log(`Progress update: ${JSON.stringify(progressData)}`, 'python-service');
+              const progressData = JSON.parse(dataStr.split('PROGRESS:')[1]);
+              const rawMessage = data.toString().trim();
+              log(`Progress update: ${JSON.stringify(progressData)}`, 'python-service');
               onProgress(
                 progressData.processed,
                 rawMessage, // Send the raw message instead of just the stage
