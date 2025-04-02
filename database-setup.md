@@ -1,6 +1,8 @@
 # Database Setup Instructions for Render
 
-After deploying to Render, you need to run the migration script manually to add the missing columns. Here's how:
+> **UPDATE**: We've now updated the Dockerfile and render.yaml to automatically run database migrations on startup. The steps below should no longer be necessary for new deployments after April 2, 2025.
+
+If you still need to run migrations manually, here's how:
 
 1. Go to your Render dashboard
 2. Open the PostgreSQL database instance

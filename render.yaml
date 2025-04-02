@@ -3,7 +3,7 @@ services:
     name: disaster-monitoring-app
     env: docker
     dockerfilePath: ./Dockerfile
-    dockerCommand: node dist/index.js
+    dockerCommand: /app/start.sh
     healthCheckPath: /
     numInstances: 1
     plan: starter
