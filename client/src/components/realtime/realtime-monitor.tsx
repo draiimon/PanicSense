@@ -516,7 +516,7 @@ export function RealtimeMonitor() {
 
                         <div className="mt-2 flex justify-between items-center text-xs text-slate-500">
                           <div className="flex items-center gap-2">
-                            <span>Confidence: {(item.confidence * 100).toFixed(0)}%</span>
+                            <span>Confidence: {(item.confidence * 100).toFixed(1)}%</span>
                             <SentimentFeedback 
                               originalText={item.text}
                               originalSentiment={item.sentiment}
