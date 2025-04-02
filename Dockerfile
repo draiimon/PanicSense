@@ -1,5 +1,5 @@
 # Start with the official Python image that has Python.h included
-FROM python:3.11-slim-bullseye
+FROM python:3.11-slim-bullseye AS builder
 
 WORKDIR /app
 
