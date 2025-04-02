@@ -633,19 +633,13 @@ class DisasterSentimentBackend:
             # Ensure consistent confidence format with fallback
             fallback_result = self._rule_based_sentiment_analysis(text, language)
             
-            # Normalize confidence to be a floating point in the acceptable range
+            # Normalize confidence to be a floating point with consistent decimal places
             if isinstance(fallback_result["confidence"], int):
                 fallback_result["confidence"] = float(fallback_result["confidence"])
-                
-            # Set minimum confidence threshold
-            if fallback_result["confidence"] < 0.7:
-                fallback_result["confidence"] = 0.7
-                
-            # Cap at reasonable confidence
-            fallback_result["confidence"] = min(0.88, fallback_result["confidence"])
             
-            # Round to consistent decimal places
-            fallback_result["confidence"] = round(fallback_result["confidence"], 5)
+            # Keep the actual confidence value from the analysis - don't artificially change it
+            # Just round to 2 decimal places for display consistency 
+            fallback_result["confidence"] = round(fallback_result["confidence"], 2)
             
             return fallback_result
 
@@ -865,19 +859,13 @@ class DisasterSentimentBackend:
         fallback_result["location"] = self.extract_location(text)
         fallback_result["language"] = language
         
-        # Normalize confidence to be a floating point in the acceptable range
+        # Normalize confidence to be a floating point with consistent decimal places
         if isinstance(fallback_result["confidence"], int):
             fallback_result["confidence"] = float(fallback_result["confidence"])
             
-        # Set minimum confidence threshold
-        if fallback_result["confidence"] < 0.7:
-            fallback_result["confidence"] = 0.7
-            
-        # Cap at reasonable confidence
-        fallback_result["confidence"] = min(0.88, fallback_result["confidence"])
-        
-        # Round to consistent decimal places
-        fallback_result["confidence"] = round(fallback_result["confidence"], 5)
+        # Keep the actual confidence value from the analysis - don't artificially change it
+        # Just round to 2 decimal places for display consistency 
+        fallback_result["confidence"] = round(fallback_result["confidence"], 2)
 
         return fallback_result
 
@@ -1084,17 +1072,16 @@ class DisasterSentimentBackend:
                     break
 
         # Calculate confidence based on the score and text length
-        # MODIFIED: Ensure confidence stays in our consistent range (0.70-0.88)
-        # 0.70 is our absolute minimum confidence, 0.88 is our maximum
-        base_confidence = 0.75  # Start with a reasonable minimum
-        score_factor = min(0.13, (max_score / 10))  # Scale based on matched indicators
-        confidence = base_confidence + score_factor
-        
-        # Ensure confidence stays within consistent bounds
-        confidence = min(0.88, max(0.70, confidence))
-        
-        # Always format as floating point with consistent decimal precision
-        confidence = round(confidence, 5)
+        # Calculate confidence directly based on score
+        # Higher scores mean more matching indicators, which means higher confidence
+        if max_score == 0:
+            confidence = 0.70  # Default minimum
+        else:
+            # Direct scaling with no artificial limits - let AI determine confidence
+            confidence = 0.70 + (max_score * 0.03)
+            
+        # Always format as floating point with consistent 2 decimal places
+        confidence = round(confidence, 2)
 
         # Generate more detailed explanation based on sentiment
         explanation = ""
@@ -1373,13 +1360,9 @@ class DisasterSentimentBackend:
                             if isinstance(csv_confidence, int):
                                 csv_confidence = float(csv_confidence)
                                 
-                            # Enforce reasonable confidence bounds
-                            if csv_confidence < 0.7:
-                                csv_confidence = 0.7 + (csv_confidence * 0.1)
-                            csv_confidence = min(0.88, csv_confidence)
-                            
-                            # Format with consistent decimal places
-                            csv_confidence = round(csv_confidence, 5)
+                            # Keep the actual confidence values from the CSV data
+                            # Just ensure it's a float and round to 2 decimal places for consistency
+                            csv_confidence = round(float(csv_confidence), 2)
                             
                             analysis_result = {
                                 "sentiment": csv_sentiment,
@@ -2168,26 +2151,17 @@ class DisasterSentimentBackend:
         if hasattr(self, 'disaster_examples'):
             self.disaster_examples = {}
         
-        # Calculate and format confidence values consistently
-        # First ensure every record has confidence in decimal format with consistent scale
+        # Calculate and format confidence values using the actual AI confidence
+        # First ensure every record has confidence in proper decimal format
         for result in results:
             if "confidence" in result:
-                # Ensure all confidence values follow the same format pattern - convert to floating point if integer
+                # Ensure all confidence values are in floating point format (not integer)
                 if isinstance(result["confidence"], int):
                     result["confidence"] = float(result["confidence"])
                 
-                # Set a minimum confidence floor
-                if result["confidence"] < 0.7:
-                    result["confidence"] = 0.7 + (result["confidence"] * 0.1)  # Scale up to sensible range
-                    
-                # Cap at reasonable upper limit
-                result["confidence"] = min(0.88, result["confidence"])
-                
-                # Adjust confidence based on sentiment reliability
-                if result["sentiment"] in ["Panic", "Fear/Anxiety"] and any(term in result.get("text", "").lower() 
-                                                                       for term in ["tulong", "help", "emergency", "rescue"]):
-                    # Boost confidence for clear disaster signals
-                    result["confidence"] = min(0.88, result["confidence"] + 0.02)
+                # Use the AI's actual confidence score - don't artificially change it
+                # Only round to 2 decimal places for display consistency
+                result["confidence"] = round(result["confidence"], 2)
 
         # Calculate confusion matrix statistics per sentiment class
         # This will be a simulated confusion matrix based on confidence scores
