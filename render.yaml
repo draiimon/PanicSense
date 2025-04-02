@@ -6,6 +6,7 @@ services:
     dockerCommand: node dist/index.js
     healthCheckPath: /
     numInstances: 1
+    plan: starter
     envVars:
       - key: NODE_ENV
         value: production
