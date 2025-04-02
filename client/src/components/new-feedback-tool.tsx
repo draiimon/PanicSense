@@ -168,6 +168,11 @@ export function NewFeedbackTool({
         response.aiTrustMessage ? response.aiTrustMessage :
         "Feedback received. Thank you for helping improve our analysis.";
       
+      // Ensure we always have a valid message
+      if (!validationMessage) {
+        validationMessage = "Feedback received. Thank you for helping improve our analysis.";
+      }
+      
       // Remove any AI terms
       validationMessage = validationMessage.replace(/AI|artificial intelligence/gi, "model").replace(/quiz/gi, "validation");
       

@@ -504,9 +504,9 @@ export function DataTable({
                           originalSentiment={item.sentiment}
                           originalLocation={item.location || "Unknown"}
                           originalDisasterType={item.disasterType || "Unknown"}
-                          onFeedbackSubmitted={() => {}}
+                          onFeedbackSubmitted={() => refreshData()}
                           buttonIcon={<Edit className="h-4 w-4" />}
-                          buttonLabel="Edit"
+                          buttonLabel=""
                           buttonClassName="h-8 w-8 text-slate-400 hover:text-blue-500 hover:bg-blue-50 hover:shadow-sm transition-all duration-200 rounded-full flex items-center justify-center cursor-pointer"
                         />
                         
