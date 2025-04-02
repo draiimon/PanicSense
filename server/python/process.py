@@ -1481,99 +1481,83 @@ class DisasterSentimentBackend:
                             else:
                                 csv_language = "English"
 
-                        # Check if sentiment is already provided in the CSV
-                        if sentiment_col and row.get(
-                                sentiment_col) in sentiment_values:
+                        # Even if sentiment is provided in CSV, we want to analyze each text properly
+                        # to maintain consistency with real-time analysis.
+                        # We'll still use the CSV values for comparison and metrics calculation,
+                        # but we'll perform sentiment analysis on each text.
+                        csv_sentiment = None
+                        csv_confidence = None
+                        
+                        # For metrics purposes, still track the original CSV sentiment if provided
+                        if sentiment_col and row.get(sentiment_col) in sentiment_values:
                             csv_sentiment = str(row.get(sentiment_col))
                             csv_confidence = float(row.get(
                                 confidence_col,
                                 float("0.70"))) if confidence_col else float("0.70")
-
-                            # Skip API analysis if sentiment is already provided
-                            # Ensure confidence is properly formatted as a float
-                            if isinstance(csv_confidence, int):
-                                csv_confidence = float(csv_confidence)
                                 
-                            # Apply our natural confidence scoring function that was defined above
-                            # This avoids whole numbers and ensures natural decimals 
-                            csv_confidence = get_natural_confidence(float(csv_confidence), text)
-                            
-                            analysis_result = {
-                                "sentiment": csv_sentiment,
-                                "confidence": csv_confidence,
-                                "explanation": "Sentiment provided in CSV",
-                                "disasterType": csv_disaster if csv_disaster else self.extract_disaster_type(text),
-                                "location": csv_location if csv_location else self.extract_location(text),
-                                "language": csv_language if csv_language else "English",
-                                "text": text  # Add text for confidence adjustment in metrics calculation
-                            }
-                        else:
-                            # Run sentiment analysis with persistent retry mechanism
-                            max_retries = 5
-                            retry_count = 0
-                            analysis_success = False
+                        # ALWAYS run sentiment analysis for each text, even if CSV provides sentiment values
+                        # This ensures consistency with real-time analysis
+                        original_csv_sentiment = csv_sentiment  # Save original for comparison
+                        
+                        # Run sentiment analysis with persistent retry mechanism
+                        max_retries = 5
+                        retry_count = 0
+                        analysis_success = False
 
-                            while not analysis_success and retry_count < max_retries:
-                                try:
-                                    # This calls the API with racing mechanism
-                                    analysis_result = self.analyze_sentiment(
-                                        text)
-                                    analysis_success = True
-                                except Exception as analysis_err:
-                                    retry_count += 1
-                                    logging.error(
-                                        f"API analysis attempt {retry_count} failed: {str(analysis_err)}"
+                        while not analysis_success and retry_count < max_retries:
+                            try:
+                                # This calls the same analyze_sentiment method used by real-time analysis
+                                analysis_result = self.analyze_sentiment(text)
+                                analysis_success = True
+                                
+                                # Log when sentiment is different from CSV data for debugging
+                                if original_csv_sentiment and original_csv_sentiment != analysis_result.get("sentiment"):
+                                    logging.info(f"📊 CSV sentiment ({original_csv_sentiment}) differs from analyzed sentiment ({analysis_result.get('sentiment')}) for text: {text[:50]}...")
+                                    
+                            except Exception as analysis_err:
+                                retry_count += 1
+                                logging.error(
+                                    f"API analysis attempt {retry_count} failed: {str(analysis_err)}"
+                                )
+                                if retry_count < max_retries:
+                                    logging.info(
+                                        f"Retrying analysis (attempt {retry_count+1}/{max_retries})..."
                                     )
-                                    if retry_count < max_retries:
-                                        logging.info(
-                                            f"Retrying analysis (attempt {retry_count+1}/{max_retries})..."
-                                        )
-                                        time.sleep(
-                                            2 *
-                                            retry_count)  # Exponential backoff
-                                    else:
-                                        logging.error(
-                                            "Maximum retries reached, falling back to rule-based analysis"
-                                        )
-                                        # Create a fallback analysis
-                                        # Fallback to rule-based with natural confidence format
-                                        base_confidence = 0.75
-                                        natural_confidence = get_natural_confidence(base_confidence, text)
-                                        analysis_result = {
-                                            "sentiment": "Neutral",
-                                            "confidence": natural_confidence,  # Apply natural confidence calculation
-                                            "explanation": "Fallback after API failures",
-                                            "disasterType": self.extract_disaster_type(text),
-                                            "location": self.extract_location(text),
-                                            "language": "English",
-                                            "text": text  # Include text for confidence adjustment
-                                        }
+                                    time.sleep(
+                                        2 *
+                                        retry_count)  # Exponential backoff
+                                else:
+                                    logging.error(
+                                        "Maximum retries reached, falling back to rule-based analysis"
+                                    )
+                                    # Create a fallback analysis
+                                    # Fallback to rule-based with natural confidence format
+                                    base_confidence = 0.75
+                                    natural_confidence = get_natural_confidence(base_confidence, text)
+                                    analysis_result = {
+                                        "sentiment": "Neutral",
+                                        "confidence": natural_confidence,  # Apply natural confidence calculation
+                                        "explanation": "Fallback after API failures",
+                                        "disasterType": self.extract_disaster_type(text),
+                                        "location": self.extract_location(text),
+                                        "language": "English",
+                                        "text": text  # Include text for confidence adjustment
+                                    }
+                        # Note: we removed the 'else' block here because it was duplicate code
 
-                        # Store the processed result
+                        # Store the processed result - ALWAYS use the analyze_sentiment result
+                        # NOT the csv_sentiment to ensure consistency with real-time analysis
                         processed_results.append({
-                            "text":
-                            text,
-                            "timestamp":
-                            timestamp,
-                            "source":
-                            source,
-                            "language":
-                            csv_language if csv_language else
-                            analysis_result.get("language", "English"),
-                            "sentiment":
-                            csv_sentiment if csv_sentiment else
-                            analysis_result.get("sentiment", "Neutral"),
-                            "confidence":
-                            analysis_result.get("confidence", get_natural_confidence(0.70, text)),
-                            "explanation":
-                            analysis_result.get("explanation", ""),
-                            "disasterType":
-                            csv_disaster
-                            if csv_disaster else analysis_result.get(
-                                "disasterType", "Not Specified"),
-                            "location":
-                            csv_location if csv_location else
-                            analysis_result.get("location")
+                            "text": text,
+                            "timestamp": timestamp,
+                            "source": source,
+                            # Always use the analyzed results for consistency, not CSV values
+                            "language": analysis_result.get("language", "English"),
+                            "sentiment": analysis_result.get("sentiment", "Neutral"),
+                            "confidence": analysis_result.get("confidence", get_natural_confidence(0.70, text)),
+                            "explanation": analysis_result.get("explanation", ""),
+                            "disasterType": analysis_result.get("disasterType", "Not Specified"),
+                            "location": analysis_result.get("location", "Unknown")
                         })
 
                         # Add a substantial delay for sequential processing
@@ -1766,29 +1750,18 @@ class DisasterSentimentBackend:
                                         "text": text  # Include text for confidence adjustment
                                     }
 
+                        # Use exact same format as the main processing code above
                         processed_results.append({
-                            "text":
-                            text,
-                            "timestamp":
-                            timestamp,
-                            "source":
-                            source,
-                            "language":
-                            csv_language if csv_language else
-                            analysis_result.get("language", "English"),
-                            "sentiment":
-                            analysis_result.get("sentiment", "Neutral"),
-                            "confidence":
-                            analysis_result.get("confidence", get_natural_confidence(0.70, text)),
-                            "explanation":
-                            analysis_result.get("explanation", ""),
-                            "disasterType":
-                            csv_disaster
-                            if csv_disaster else analysis_result.get(
-                                "disasterType", "Not Specified"),
-                            "location":
-                            csv_location if csv_location else
-                            analysis_result.get("location")
+                            "text": text,
+                            "timestamp": timestamp,
+                            "source": source,
+                            # Always use the analyzed results for consistency, not CSV values
+                            "language": analysis_result.get("language", "English"),
+                            "sentiment": analysis_result.get("sentiment", "Neutral"),
+                            "confidence": analysis_result.get("confidence", get_natural_confidence(0.70, text)),
+                            "explanation": analysis_result.get("explanation", ""),
+                            "disasterType": analysis_result.get("disasterType", "Not Specified"),
+                            "location": analysis_result.get("location", "Unknown")
                         })
 
                         time.sleep(1.0)  # Wait 1 second between retries
