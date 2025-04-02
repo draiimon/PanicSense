@@ -9,8 +9,9 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-const isProduction = process.env.NODE_ENV === 'production';
-const sslConfig = isProduction ? { ssl: { rejectUnauthorized: false } } : {};
+// Always use SSL for Neon PostgreSQL database regardless of environment
+const isNeonDb = process.env.DATABASE_URL?.includes('neon.tech') || false;
+const sslConfig = isNeonDb ? { ssl: { rejectUnauthorized: false } } : {};
 
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
@@ -24,4 +25,4 @@ pool.on('error', (err) => {
   console.error('Unexpected database error:', err);
 });
 
-console.log(`Database connection initialized with${isProduction ? '' : 'out'} SSL`);
+console.log(`Database connection initialized ${isNeonDb ? 'with SSL for Neon PostgreSQL' : 'without SSL'}`);
