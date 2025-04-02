@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useDisasterContext } from "@/context/disaster-context";
-import { DisasterComparison } from "@/components/comparison/disaster-comparison-new";
+import { DisasterComparison } from "@/components/comparison/disaster-comparison";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SentimentChart } from "@/components/dashboard/sentiment-chart";

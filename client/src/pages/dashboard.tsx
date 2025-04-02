@@ -2,7 +2,7 @@ import { useDisasterContext } from "@/context/disaster-context";
 import { StatusCard } from "@/components/dashboard/status-card";
 import { OptimizedSentimentChart } from "@/components/dashboard/optimized-sentiment-chart";
 import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
-import { AffectedAreasCard } from "@/components/dashboard/affected-areas-card-new";
+import { AffectedAreasCard } from "@/components/dashboard/affected-areas-card";
 import { UsageStatsCard } from "@/components/dashboard/usage-stats-card";
 import { FileUploader } from "@/components/file-uploader";
 import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
