@@ -128,6 +128,31 @@ export function RealtimeMonitor() {
       const updatedTexts = prevTexts.map(item => {
         if (item.text === text) {
           console.log(`Found matching text! Updating sentiment: ${item.sentiment} -> ${newSentiment}`);
+          
+          // Format a better explanation message that combines the existing information
+          // with the validation message for maximum clarity
+          let detailedExplanation = "";
+          
+          if (validationMessage) {
+            // Format validation message for better display
+            if (validationMessage.includes("VALIDATION PASSED")) {
+              // Extract the explanation part from the validation message
+              const parts = validationMessage.split("Explanation:");
+              if (parts.length > 1) {
+                detailedExplanation = parts[1].trim();
+              } else {
+                detailedExplanation = validationMessage;
+              }
+            } else {
+              detailedExplanation = validationMessage;
+            }
+          }
+          
+          // Fallback if no good validation message received
+          if (!detailedExplanation) {
+            detailedExplanation = `Sentiment corrected from ${item.sentiment} to ${newSentiment} based on user feedback.`;
+          }
+          
           // Update the sentiment and keep everything else
           return {
             ...item,
@@ -135,7 +160,9 @@ export function RealtimeMonitor() {
             // Add a visual indicator that this was manually corrected
             corrected: true,
             // Store validation message as explanation for popup display
-            explanation: validationMessage || `User corrected sentiment from ${item.sentiment} to ${newSentiment}`,
+            explanation: detailedExplanation,
+            // Also store the original validation message in full
+            aiTrustMessage: validationMessage,
             // Add timestamp to track when the update happened
             updatedAt: new Date().toISOString()
           };
@@ -146,6 +173,16 @@ export function RealtimeMonitor() {
       console.log("Updated analyzed texts:", updatedTexts);
       return updatedTexts;
     });
+    
+    // Also show a toast with the validation message for high visibility
+    if (validationMessage) {
+      toast({
+        title: "Validation Result",
+        description: validationMessage,
+        variant: "default",
+        duration: 8000
+      });
+    }
     
     // Also refresh the global data to update charts and stats
     refreshData();
@@ -173,14 +210,42 @@ export function RealtimeMonitor() {
         setAnalyzedTexts(prevTexts => {
           return prevTexts.map(item => {
             if (item.text === event.detail.text) {
+              // Format a better explanation message
+              let detailedExplanation = "";
+              let validationMessage = "";
+              
+              if (event.detail.validationMessage) {
+                validationMessage = event.detail.validationMessage;
+                
+                // Format validation message for better display
+                if (validationMessage.includes("VALIDATION PASSED")) {
+                  // Extract the explanation part from the validation message
+                  const parts = validationMessage.split("Explanation:");
+                  if (parts.length > 1) {
+                    detailedExplanation = parts[1].trim();
+                  } else {
+                    detailedExplanation = validationMessage;
+                  }
+                } else {
+                  detailedExplanation = validationMessage;
+                }
+              }
+              
+              // Fallback if no good validation message received
+              if (!detailedExplanation) {
+                detailedExplanation = `Sentiment corrected from ${item.sentiment} to ${event.detail.newSentiment} based on user feedback.`;
+              }
+              
               // Update the sentiment and keep everything else
               return {
                 ...item,
                 sentiment: event.detail.newSentiment || item.sentiment,
                 // Add a visual indicator that this was manually corrected
                 corrected: true,
-                // Also store any explanation or message that came with the update
-                explanation: event.detail.message || `User corrected sentiment from ${item.sentiment} to ${event.detail.newSentiment}`,
+                // Store validation message as explanation for popup display
+                explanation: detailedExplanation,
+                // Also store the original validation message in full
+                aiTrustMessage: validationMessage,
                 // Add timestamp to track when the update happened
                 updatedAt: new Date().toISOString()
               };
@@ -188,6 +253,16 @@ export function RealtimeMonitor() {
             return item;
           });
         });
+        
+        // Also show a toast with the validation message for high visibility
+        if (event.detail.validationMessage) {
+          toast({
+            title: "Validation Result",
+            description: event.detail.validationMessage,
+            variant: "default",
+            duration: 8000
+          });
+        }
         
         // Also refresh the global data to update charts and stats
         refreshData();
@@ -469,10 +544,35 @@ export function RealtimeMonitor() {
                             <div className="flex items-start gap-2">
                               <BrainCircuit className="h-5 w-5 text-blue-600 mt-0.5" />
                               <div className="w-full">
-                                <h4 className="text-sm font-medium mb-1 text-blue-800">AI Sentiment Analysis</h4>
+                                <h4 className="text-sm font-medium mb-1 text-blue-800">Sentiment Analysis</h4>
                                 
                                 <div className="text-sm text-slate-700 p-2 bg-white/80 rounded border border-blue-100">
                                   <span className="text-slate-700">{item.explanation}</span>
+                                </div>
+                                
+                                {/* Show when this was corrected if applicable */}
+                                {item.corrected && item.updatedAt && (
+                                  <div className="mt-1 text-xs text-blue-600 font-medium flex items-center">
+                                    <Shield className="h-3 w-3 mr-1" />
+                                    <span>User-validated sentiment</span>
+                                    <span className="ml-auto text-blue-500">{new Date(item.updatedAt).toLocaleTimeString()}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Show AI Trust Message (Validation Message) if it exists */}
+                        {item.aiTrustMessage && (
+                          <div className="bg-gradient-to-r from-amber-50/90 to-yellow-50/90 backdrop-blur-sm p-3 rounded-md border border-amber-200/50 mt-2 shadow-sm">
+                            <div className="flex items-start gap-2">
+                              <Shield className="h-5 w-5 text-amber-600 mt-0.5" />
+                              <div className="w-full">
+                                <h4 className="text-sm font-medium mb-1 text-amber-800">Validation Result</h4>
+                                
+                                <div className="text-sm text-slate-700 p-2 bg-white/80 rounded border border-amber-100">
+                                  <span className="text-amber-700 whitespace-pre-line">{item.aiTrustMessage}</span>
                                 </div>
                               </div>
                             </div>
