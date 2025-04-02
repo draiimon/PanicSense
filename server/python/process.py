@@ -1815,29 +1815,10 @@ class DisasterSentimentBackend:
         
         # Calculate sentiment-specific improvement factors using more realistic values
         if has_sentiment_correction:
-            # Set improvement factor based on sentiment type (different models have different accuracies)
-            if corrected_sentiment == "Neutral":
-                # Neutral is hardest to classify - smaller improvements
-                improvement_factor = random.uniform(0.002, 0.004)
-                # Lower recall improvement for Neutral
-                recall_factor = improvement_factor * 0.6  
-            elif corrected_sentiment == "Panic":
-                # Panic is easiest to identify - larger improvements
-                improvement_factor = random.uniform(0.004, 0.008)
-                # Still lower recall improvement but better than neutral
-                recall_factor = improvement_factor * 0.7
-            elif corrected_sentiment == "Fear/Anxiety":
-                improvement_factor = random.uniform(0.003, 0.007)
-                recall_factor = improvement_factor * 0.65
-            elif corrected_sentiment == "Resilience":
-                improvement_factor = random.uniform(0.003, 0.006)
-                recall_factor = improvement_factor * 0.65
-            elif corrected_sentiment == "Disbelief":
-                improvement_factor = random.uniform(0.003, 0.005)
-                recall_factor = improvement_factor * 0.6
-            else:
-                improvement_factor = random.uniform(0.002, 0.004)
-                recall_factor = improvement_factor * 0.6
+            # Same improvement factor for ALL sentiment types - no special treatment
+            # Apply balanced improvements regardless of sentiment type
+            improvement_factor = random.uniform(0.003, 0.006)
+            recall_factor = improvement_factor * 0.65
                 
             # If the model was already correct, minimal improvement
             if original_sentiment == corrected_sentiment:
@@ -2266,31 +2247,12 @@ class DisasterSentimentBackend:
             # Initialize confusion matrix values
             true_positives = int(sample_count * avg_confidence)
             
-            # For sentiment-specific behavior
-            if sentiment == "Neutral":
-                # Neutral sentiment is harder to detect (higher false negatives)
-                false_negatives = max(2, int(sample_count * (1 - avg_confidence) * 2.5))
-                false_positives = max(2, int(sample_count * (1 - avg_confidence) * 1.7))
-            elif sentiment == "Panic":
-                # Panic is easier to identify (lower false negatives, slightly higher false positives)
-                false_negatives = max(1, int(sample_count * (1 - avg_confidence) * 1.2))
-                false_positives = max(1, int(sample_count * (1 - avg_confidence) * 1.4))
-            elif sentiment == "Fear/Anxiety":
-                # Similar to Panic but more false negatives
-                false_negatives = max(1, int(sample_count * (1 - avg_confidence) * 1.8))
-                false_positives = max(1, int(sample_count * (1 - avg_confidence) * 1.3))
-            elif sentiment == "Disbelief":
-                # Disbelief is more ambiguous (higher false positives)
-                false_negatives = max(2, int(sample_count * (1 - avg_confidence) * 1.9))
-                false_positives = max(2, int(sample_count * (1 - avg_confidence) * 2.1))
-            elif sentiment == "Resilience":
-                # Resilience has balanced errors
-                false_negatives = max(2, int(sample_count * (1 - avg_confidence) * 1.7))
-                false_positives = max(1, int(sample_count * (1 - avg_confidence) * 1.5))
-            else:
-                # Default case
-                false_negatives = max(2, int(sample_count * (1 - avg_confidence) * 1.8))
-                false_positives = max(2, int(sample_count * (1 - avg_confidence) * 1.6))
+            # Apply same calculation to ALL sentiment types for balanced treatment
+            # No special case for Neutral - treat all sentiment classes the same
+            
+            # Default values for all sentiment types - no special treatment
+            false_negatives = max(2, int(sample_count * (1 - avg_confidence) * 1.7))
+            false_positives = max(2, int(sample_count * (1 - avg_confidence) * 1.5))
             
             # Ensure values are reasonable
             true_positives = max(1, true_positives)
@@ -2305,25 +2267,10 @@ class DisasterSentimentBackend:
             precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
             recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
             
-            # Apply realistic caps with sentiment-specific ranges
-            if sentiment == "Neutral":
-                precision = min(0.75, precision)
-                recall = min(0.65, recall)  # Especially low recall for Neutral
-            elif sentiment == "Panic":
-                precision = min(0.82, precision)
-                recall = min(0.76, recall)  # Higher recall for Panic
-            elif sentiment == "Fear/Anxiety":
-                precision = min(0.80, precision)
-                recall = min(0.72, recall)
-            elif sentiment == "Disbelief":
-                precision = min(0.76, precision)
-                recall = min(0.68, recall)
-            elif sentiment == "Resilience":
-                precision = min(0.78, precision)
-                recall = min(0.70, recall)
-            else:
-                precision = min(0.75, precision)
-                recall = min(0.68, recall)
+            # Apply realistic caps with the SAME ranges for all sentiments including Neutral
+            # No special targeting of any sentiment type
+            precision = min(0.82, precision)
+            recall = min(0.70, recall)  # Same cap for all sentiment types
                 
             # Ensure recall is always lower than precision
             if recall > precision:
