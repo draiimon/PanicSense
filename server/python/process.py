@@ -1477,8 +1477,8 @@ class DisasterSentimentBackend:
                                 "sentiment": csv_sentiment,
                                 "confidence": csv_confidence,
                                 "explanation": "Sentiment provided in CSV",
-                                "disasterType": csv_disaster if csv_disaster else self.extract_disaster_type(text),
-                                "location": csv_location if csv_location else self.extract_location(text),
+                                "disasterType": self.extract_disaster_type(text) or csv_disaster,
+                                "location": self.extract_location(text) or csv_location,
                                 "language": csv_language if csv_language else "English",
                                 "text": text  # Add text for confidence adjustment in metrics calculation
                             }
@@ -1541,12 +1541,13 @@ class DisasterSentimentBackend:
                             "explanation":
                             analysis_result.get("explanation", ""),
                             "disasterType":
-                            csv_disaster
-                            if csv_disaster else analysis_result.get(
-                                "disasterType", "Not Specified"),
+            self.extract_disaster_type(text) or
+            csv_disaster or
+            analysis_result.get("disasterType", "Not Specified"),
                             "location":
-                            csv_location if csv_location else
-                            analysis_result.get("location")
+            self.extract_location(text) or
+            csv_location or
+            analysis_result.get("location")
                         })
 
                         # Add a substantial delay for sequential processing
@@ -1754,12 +1755,13 @@ class DisasterSentimentBackend:
                             "explanation":
                             analysis_result.get("explanation", ""),
                             "disasterType":
-                            csv_disaster
-                            if csv_disaster else analysis_result.get(
-                                "disasterType", "Not Specified"),
+            self.extract_disaster_type(text) or
+            csv_disaster or
+            analysis_result.get("disasterType", "Not Specified"),
                             "location":
-                            csv_location if csv_location else
-                            analysis_result.get("location")
+            self.extract_location(text) or
+            csv_location or
+            analysis_result.get("location")
                         })
 
                         time.sleep(1.0)  # Wait 1 second between retries
