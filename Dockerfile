@@ -15,12 +15,12 @@ RUN npm ci --omit=dev
 # Copy Python requirements
 COPY server/python/requirements.txt ./server/python/
 
-# Install Python packages
-RUN python3 -m pip install --upgrade pip
-RUN pip3 install -r server/python/requirements.txt
+# Install Python packages (with --break-system-packages flag to fix pip error)
+RUN python3 -m pip install --upgrade pip --break-system-packages
+RUN pip3 install -r server/python/requirements.txt --break-system-packages
 
-# Download NLTK data
-RUN python3 -c "import nltk; nltk.download('punkt', download_dir='/usr/local/share/nltk_data')"
+# Download NLTK data (also with break-system-packages)
+RUN pip3 install nltk --break-system-packages && python3 -c "import nltk; nltk.download('punkt', download_dir='/usr/local/share/nltk_data')"
 
 # Copy source code
 COPY . .
