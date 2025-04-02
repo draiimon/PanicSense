@@ -1552,9 +1552,8 @@ class DisasterSentimentBackend:
                                     }
                         # Note: we removed the 'else' block here because it was duplicate code
 
-                        # Store the processed result - ALWAYS use the analyze_sentiment result
-                        # NOT the csv_sentiment to ensure consistency with real-time analysis
-                        processed_results.append({
+                        # Create the result object for this record
+                        result_object = {
                             "text": text,
                             "timestamp": timestamp,
                             "source": source,
@@ -1565,7 +1564,21 @@ class DisasterSentimentBackend:
                             "explanation": analysis_result.get("explanation", ""),
                             "disasterType": analysis_result.get("disasterType", "Not Specified"),
                             "location": analysis_result.get("location", "Unknown")
-                        })
+                        }
+                        
+                        # PRINT INDIVIDUAL RESULT TO CONSOLE IMMEDIATELY when it's finished
+                        # Force 3 decimal places in the JSON output by format string
+                        # Get the confidence value and ensure it has exactly 3 decimal places
+                        if "confidence" in result_object:
+                            # Format to exactly 3 decimal places for display
+                            confidence_str = "{:.3f}".format(result_object["confidence"])
+                            result_object["confidence"] = float(confidence_str)
+                        
+                        # Now print the modified object with the formatted confidence value
+                        print(json.dumps({"results": [result_object]}))
+                        
+                        # Also store in the processed_results for the final complete response
+                        processed_results.append(result_object)
 
                         # Add a substantial delay for sequential processing
                         # Each record needs time to be displayed on the frontend
@@ -1757,8 +1770,8 @@ class DisasterSentimentBackend:
                                         "text": text  # Include text for confidence adjustment
                                     }
 
-                        # Use exact same format as the main processing code above
-                        processed_results.append({
+                        # Create the result object for this record (same format as main processing)
+                        retry_result_object = {
                             "text": text,
                             "timestamp": timestamp,
                             "source": source,
@@ -1769,7 +1782,20 @@ class DisasterSentimentBackend:
                             "explanation": analysis_result.get("explanation", ""),
                             "disasterType": analysis_result.get("disasterType", "Not Specified"),
                             "location": analysis_result.get("location", "Unknown")
-                        })
+                        }
+                        
+                        # PRINT INDIVIDUAL RESULT TO CONSOLE IMMEDIATELY for retry record
+                        # Force 3 decimal places in the retry JSON output too
+                        if "confidence" in retry_result_object:
+                            # Format to exactly 3 decimal places for display
+                            confidence_str = "{:.3f}".format(retry_result_object["confidence"])
+                            retry_result_object["confidence"] = float(confidence_str)
+                            
+                        # Now print the modified object with the formatted confidence value
+                        print(json.dumps({"results": [retry_result_object]}))
+                        
+                        # Also store in the processed_results for the final complete response
+                        processed_results.append(retry_result_object)
 
                         time.sleep(1.0)  # Wait 1 second between retries
 
