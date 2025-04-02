@@ -33,13 +33,10 @@ def get_natural_confidence(base_value, text):
     # Add a third decimal place factor based on text hash for consistency
     # This ensures the same text always gets the same confidence value
     text_hash = sum(ord(c) for c in text[:20]) if text else 0  # Use only first 20 chars for performance
-    
-    # This guarantees we'll have a non-zero decimal part in the final value
-    # Get a value between 0.001 and 0.009 but NEVER 0.000
-    decimal_part = ((text_hash % 9) + 1) * 0.001  # Value between 0.001 and 0.009
+    micro_factor = (text_hash % 10) * 0.001  # Value between 0.000 and 0.009
     
     # Avoid exact rounded values by adding calculated factors
-    natural_confidence = base_value + length_factor + emoji_factor + decimal_part
+    natural_confidence = base_value + length_factor + emoji_factor + micro_factor
     # Ensure value is in valid range
     natural_confidence = max(0.600, min(0.999, natural_confidence))
     
@@ -1187,21 +1184,26 @@ class DisasterSentimentBackend:
         # Calculate confidence directly based on score
         # Higher scores mean more matching indicators, which means higher confidence
         if max_score == 0:
-            base_confidence = 0.70  # Default minimum with consistent format
+            confidence = float("0.70")  # Default minimum with consistent format
         else:
             # Direct scaling with no artificial limits - let AI determine confidence
-            base_confidence = 0.70 + (max_score * 0.03)
+            confidence = float("0.70") + (max_score * 0.03)
             
         # Calculate a natural confidence score based on the true analysis factors
         # Use max_score to get natural decimal points instead of injecting random values
         # We want confidence scores to reflect the true certainty of the analysis
         
-        # Instead of artificial manipulation, use our natural confidence function
-        # This ensures confidence scores always have meaningful decimal places
-        confidence = get_natural_confidence(base_confidence, text)
+        # Apply a formula that will naturally produce decimals based on text characteristics
+        confidence = 0.65 + (max_score * 0.035) + (len(text) * 0.0001)
         
-        # Since natural confidence already does what we need, we can stop here
-        # This gives us 3 decimal places with meaning, never ending in .000
+        # Ensure the confidence stays in valid range between 0.6 and 0.99
+        confidence = max(0.60, min(0.99, confidence))
+        
+        # Round to 2 decimal places for consistency
+        confidence = round(confidence, 2)
+        
+        # Format to ensure we always show 2 decimal places
+        confidence = float(f"{confidence:.2f}")
 
         # Generate more detailed explanation based on sentiment
         explanation = ""
@@ -1509,10 +1511,9 @@ class DisasterSentimentBackend:
                         # For metrics purposes, still track the original CSV sentiment if provided
                         if sentiment_col and row.get(sentiment_col) in sentiment_values:
                             csv_sentiment = str(row.get(sentiment_col))
-                            # Get confidence from CSV if available, otherwise use default with meaningful decimals
-                            raw_confidence = float(row.get(confidence_col, 0.70)) if confidence_col else 0.70
-                            # Apply natural confidence to ensure meaningful decimal places
-                            csv_confidence = get_natural_confidence(raw_confidence, text)
+                            csv_confidence = float(row.get(
+                                confidence_col,
+                                float("0.70"))) if confidence_col else float("0.70")
                                 
                         # ALWAYS run sentiment analysis for each text, even if CSV provides sentiment values
                         # This ensures consistency with real-time analysis

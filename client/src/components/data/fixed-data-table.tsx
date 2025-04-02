@@ -268,7 +268,6 @@ export function DataTable({
                                     </div>
                                     <div className="mt-2 text-sm font-semibold text-slate-700 flex justify-between">
                                       <span>{(item.confidence * 100).toFixed(1)}%</span>
-                                      <span className="opacity-30 text-[9px] absolute -top-1 ml-1">({item.confidence})</span>
                                       <span className="text-xs text-slate-500">
                                         {item.confidence >= 0.9 ? 'Very High' : 
                                          item.confidence >= 0.7 ? 'High' : 

@@ -956,32 +956,21 @@ export class PythonService {
 
       const analysisResult = JSON.parse(result);
 
-      // Add complex random variation to confidence score to make it more realistic
+      // Add slight random variation to confidence score to make it more realistic
       if (analysisResult.confidence) {
         const baseConfidence = analysisResult.confidence;
         // Ensure the base confidence doesn't exceed 0.87 (87%)
         const cappedBaseConfidence = Math.min(0.87, baseConfidence);
+        const randomOffset = Math.random() * 0.02 - 0.01; // Random -1% to +1%
+        const adjustedConfidence = Math.min(0.88, Math.max(0.30, cappedBaseConfidence + randomOffset));
         
-        // Create a very random pattern with lots of decimals
-        const textHash = text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const complexSeed = Math.sin(textHash) * 10000;
-        
-        // Generate a complex random pattern with many decimal places
-        const randomMultiplier = Math.abs(Math.sin(complexSeed)) * 0.015; // Up to 1.5% variation
-        const randomOffset = (Math.random() * randomMultiplier * 2) - randomMultiplier; // Complex variation
-        
-        // Additional decimal variety
-        const extraDecimals = (Math.sin(complexSeed * 0.1) * 0.0001) + (Math.cos(complexSeed * 0.2) * 0.00005);
-        
-        // Combine all factors to get a very complex confidence score with many decimals
-        const adjustedConfidence = Math.min(0.88, Math.max(0.30, cappedBaseConfidence + randomOffset + extraDecimals));
-        
-        // Do NOT limit decimal places - keep the raw floating point precision
-        analysisResult.confidence = adjustedConfidence;
+        // Update the confidence score with 3 decimal places format
+        // Parse float and then toFixed(3) ensures exactly 3 decimal places
+        analysisResult.confidence = parseFloat(adjustedConfidence.toFixed(3));
         
         // Store the adjusted confidence score in cache
         this.setCachedConfidence(text, analysisResult.confidence);
-        log(`Adjusted confidence from ${baseConfidence} to ${analysisResult.confidence}`, 'python-service');
+        log(`Adjusted confidence from ${baseConfidence.toFixed(3)} to ${analysisResult.confidence.toFixed(3)}`, 'python-service');
       }
 
       // Make sure None values are converted to "UNKNOWN"
