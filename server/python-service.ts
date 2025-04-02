@@ -36,64 +36,16 @@ export class PythonService {
   private scriptPath: string;
   private confidenceCache: Map<string, number>;  // Cache for confidence scores
   private similarityCache: Map<string, boolean>; // Cache for text similarity checks
-  private memoryCache: Map<string, any>;         // General purpose cache
-  private processingQueue: Array<{id: string, promise: Promise<any>}> = [];
-  private maxConcurrentProcesses: number = 3;
-  private activeSessions: number = 0;
 
   constructor() {
-    // Determine optimal Python binary based on environment
-    this.pythonBinary = process.env.PYTHON_BINARY || 'python3';
-    
-    // Use RAM-based tmpfs when available (Linux) for faster processing
-    const isRamdiskAvailable = process.platform === 'linux' && fs.existsSync('/dev/shm');
-    this.tempDir = isRamdiskAvailable 
-      ? path.join('/dev/shm', 'disaster-sentiment') 
-      : path.join(os.tmpdir(), 'disaster-sentiment');
-    
+    this.pythonBinary = 'python3';
+    this.tempDir = path.join(os.tmpdir(), 'disaster-sentiment');
     this.scriptPath = path.join(process.cwd(), 'server', 'python', 'process.py');
-    
-    // Initialize caching systems
-    this.confidenceCache = new Map();  // Cache for confidence scores
-    this.similarityCache = new Map();  // Cache for text similarity checks
-    this.memoryCache = new Map();      // General purpose memory cache
-    
-    console.log(`Python service using temp directory: ${this.tempDir}`);
-    console.log(`Python binary path: ${this.pythonBinary}`);
-    
+    this.confidenceCache = new Map();  // Initialize confidence cache
+    this.similarityCache = new Map();  // Initialize similarity cache
+
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
-    }
-    
-    // Optimize for available system resources
-    const cpuCount = os.cpus().length;
-    this.maxConcurrentProcesses = Math.max(2, Math.min(cpuCount - 1, 4));
-    console.log(`Python service optimized for ${this.maxConcurrentProcesses} concurrent processes`);
-    
-    // Setup periodic cache cleanup to prevent memory leaks
-    setInterval(() => this.cleanupCache(), 15 * 60 * 1000); // Run every 15 minutes
-  }
-  
-  private cleanupCache(): void {
-    // Keep cache size reasonable by removing oldest entries
-    const MAX_CACHE_SIZE = 500;
-    
-    if (this.confidenceCache.size > MAX_CACHE_SIZE) {
-      const keysToDelete = Array.from(this.confidenceCache.keys()).slice(0, 100);
-      keysToDelete.forEach(key => this.confidenceCache.delete(key));
-      console.log(`Cleaned up ${keysToDelete.length} entries from confidence cache`);
-    }
-    
-    if (this.similarityCache.size > MAX_CACHE_SIZE) {
-      const keysToDelete = Array.from(this.similarityCache.keys()).slice(0, 100);
-      keysToDelete.forEach(key => this.similarityCache.delete(key));
-      console.log(`Cleaned up ${keysToDelete.length} entries from similarity cache`);
-    }
-    
-    if (this.memoryCache.size > MAX_CACHE_SIZE) {
-      const keysToDelete = Array.from(this.memoryCache.keys()).slice(0, 100);
-      keysToDelete.forEach(key => this.memoryCache.delete(key));
-      console.log(`Cleaned up ${keysToDelete.length} entries from memory cache`);
     }
   }
   

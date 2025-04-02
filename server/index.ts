@@ -3,45 +3,13 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { checkPortPeriodically, checkPort } from "./debug-port";
-import compression from 'compression';
-import cors from 'cors';
-import { 
-  isProduction, 
-  isRender, 
-  isReplit, 
-  platform, 
-  initPlatformAdapter 
-} from './utils/platform-adapter';
-
-// Initialize platform adapter for consistent behavior across environments
-initPlatformAdapter();
-
-console.log(`Running in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
-console.log(`Platform: ${platform}`);
 
 const app = express();
-
-// Performance optimizations
-app.use(compression()); // Compress all responses
-app.use(cors()); // Enable CORS for API requests
 app.use(express.json({ limit: '50mb' })); // Increased limit for better performance
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Security headers
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  next();
-});
-
 // Enhanced logging middleware with better performance metrics
 app.use((req, res, next) => {
-  // Skip logging for static assets to reduce noise
-  if (req.path.startsWith('/assets/') || req.path.endsWith('.ico')) {
-    return next();
-  }
-  
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -103,15 +71,14 @@ app.use((req, res, next) => {
       console.log("Vite middleware setup complete");
     }
 
-    // Get port from environment or use default
-    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
+    // Using just port 5000 as the main port
+    const port = 5000;
     console.log(`Attempting to listen on port ${port}...`);
     
     server.listen(port, "0.0.0.0", () => {
       console.log(`========================================`);
-      log(`🚀 Server running on port ${port} on ${platform} platform`);
+      log(`🚀 Server running on port ${port}`);
       console.log(`Server listening at: http://0.0.0.0:${port}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`Server ready at: ${new Date().toISOString()}`);
       console.log(`========================================`);
     });
