@@ -9,5 +9,19 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const isProduction = process.env.NODE_ENV === 'production';
+const sslConfig = isProduction ? { ssl: { rejectUnauthorized: false } } : {};
+
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  ...sslConfig
+});
+
 export const db = drizzle(pool, { schema });
+
+// Log connection success/failure for debugging
+pool.on('error', (err) => {
+  console.error('Unexpected database error:', err);
+});
+
+console.log(`Database connection initialized with${isProduction ? '' : 'out'} SSL`);

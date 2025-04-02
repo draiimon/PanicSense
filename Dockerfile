@@ -61,8 +61,8 @@ EXPOSE 5000
 ENV NODE_ENV=production \
     PORT=5000
 
-# Create a startup script that runs migrations before starting the app
-RUN echo '#!/bin/bash\nnode /app/migrations/run-migrations.js\nnode /app/dist/index.js' > /app/start.sh && \
+# Create a startup script that runs migrations before starting the app and ensures proper order
+RUN echo '#!/bin/bash\n\necho "Starting database migrations..."\nnode /app/migrations/run-migrations.js\n\necho "Waiting 5 seconds to ensure all DB operations complete..."\nsleep 5\n\necho "Starting main application..."\nnode /app/dist/index.js' > /app/start.sh && \
     chmod +x /app/start.sh
 
 # Start the application with migration script

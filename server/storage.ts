@@ -135,16 +135,52 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSentimentPost(post: InsertSentimentPost): Promise<SentimentPost> {
-    const [result] = await db.insert(sentimentPosts)
-      .values(post)
-      .returning();
-    return result;
+    try {
+      // Try with the full schema first
+      const [result] = await db.insert(sentimentPosts)
+        .values(post)
+        .returning();
+      return result;
+    } catch (error: any) {
+      // If there's a column error, retry with a more minimal set of fields
+      if (error.message && error.message.includes('ai_trust_message')) {
+        console.warn('Backward compatibility mode: Creating sentiment post without ai_trust_message');
+        // Create a filtered copy without the potentially missing columns
+        const { aiTrustMessage, ...filteredPost } = post;
+        const [result] = await db.insert(sentimentPosts)
+          .values(filteredPost)
+          .returning();
+        return result;
+      } else {
+        // For other errors, just rethrow
+        throw error;
+      }
+    }
   }
 
   async createManySentimentPosts(posts: InsertSentimentPost[]): Promise<SentimentPost[]> {
-    return db.insert(sentimentPosts)
-      .values(posts)
-      .returning();
+    try {
+      // Try with the full schema first
+      return await db.insert(sentimentPosts)
+        .values(posts)
+        .returning();
+    } catch (error: any) {
+      // If there's a column error, retry with a more minimal set of fields
+      if (error.message && error.message.includes('ai_trust_message')) {
+        console.warn('Backward compatibility mode: Creating multiple sentiment posts without ai_trust_message');
+        // Create filtered copies without the potentially missing columns
+        const filteredPosts = posts.map(post => {
+          const { aiTrustMessage, ...filteredPost } = post;
+          return filteredPost;
+        });
+        
+        return db.insert(sentimentPosts)
+          .values(filteredPosts)
+          .returning();
+      }
+      // For other errors, just rethrow
+      throw error;
+    }
   }
 
   async deleteSentimentPost(id: number): Promise<void> {
@@ -246,10 +282,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async submitSentimentFeedback(feedback: InsertSentimentFeedback): Promise<SentimentFeedback> {
-    const [result] = await db.insert(sentimentFeedback)
-      .values(feedback)
-      .returning();
-    return result;
+    try {
+      // Try with the full schema first
+      const [result] = await db.insert(sentimentFeedback)
+        .values(feedback)
+        .returning();
+      return result;
+    } catch (error: any) {
+      // If there's a column error, retry with a more minimal set of fields
+      if (error.message && (
+        error.message.includes('ai_trust_message') || 
+        error.message.includes('possible_trolling') || 
+        error.message.includes('training_error')
+      )) {
+        console.warn('Backward compatibility mode: Creating sentiment feedback without extended columns');
+        // Create a filtered copy without the potentially missing columns
+        const { aiTrustMessage, possibleTrolling, ...filteredFeedback } = feedback as any;
+        const [result] = await db.insert(sentimentFeedback)
+          .values(filteredFeedback)
+          .returning();
+        return result;
+      }
+      // For other errors, just rethrow
+      throw error;
+    }
   }
 
   async markFeedbackAsTrained(id: number): Promise<void> {
