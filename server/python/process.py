@@ -963,10 +963,39 @@ class DisasterSentimentBackend:
         # Score each sentiment
         scores = {sentiment: 0 for sentiment in self.sentiment_labels}
 
-        # First apply emoji-based sentiment scores
+        # First analyze emojis in context with the message
         for emoji, data in emoji_sentiment_map.items():
             if emoji in text:
-                scores[data["sentiment"]] += data["score"]
+                # Apply more context-aware emoji scoring
+                
+                # Sad emojis in disaster context are usually Fear/Anxiety
+                if emoji in ['😔', '😢', '😥']:
+                    if any(word in text_lower for word in ['flood', 'typhoon', 'earthquake', 'disaster', 'baha', 'lindol']):
+                        scores["Fear/Anxiety"] += data["score"]
+                    # Sad emojis with hope words are Resilience
+                    elif any(word in text_lower for word in ['hope', 'brave', 'matatag', 'tulong', 'help']):
+                        scores["Resilience"] += 1
+                    else:
+                        scores[data["sentiment"]] += data["score"]
+                        
+                # Laughing emojis with disaster words but no emergency terms are usually Disbelief
+                elif emoji in ['😂', '🤣']:
+                    if any(word in text_lower for word in ['flood', 'typhoon', 'earthquake', 'disaster', 'baha', 'lindol']):
+                        if not any(word in text.upper() for word in ['EMERGENCY', 'TULONG', 'HELP', '911']):
+                            scores["Disbelief"] += data["score"]
+                    else:
+                        scores[data["sentiment"]] += data["score"]
+                        
+                # Prayer/heart emojis in disaster context boost Resilience
+                elif emoji in ['🙏', '💪', '❤️']:
+                    if any(word in text_lower for word in ['pray', 'hope', 'help', 'malalagpasan', 'tulong']):
+                        scores["Resilience"] += data["score"] + 1  # Extra boost for positive intent
+                    else:
+                        scores[data["sentiment"]] += data["score"]
+                        
+                # Default scoring for other emoji types
+                else:
+                    scores[data["sentiment"]] += data["score"]
                 
         # Then apply keyword-based sentiment scores
         for sentiment, keywords in sentiment_keywords.items():
@@ -1096,11 +1125,11 @@ class DisasterSentimentBackend:
         # Determine the sentiment with the highest score
         max_score = max(scores.values())
         if max_score == 0:
-            # If no clear sentiment detected, return Neutral
+            # If no clear sentiment detected, return Neutral (like news reporting)
             return {
                 "sentiment": "Neutral",
-                "confidence": 0.83,
-                "explanation": "No clear sentiment indicators found in text"
+                "confidence": 0.85,
+                "explanation": "The message appears to be neutral reporting or sharing information, similar to news reporting without emotional indicators."
             }
 
         # Get all sentiments with the maximum score (in case of ties)
@@ -1158,9 +1187,9 @@ class DisasterSentimentBackend:
                 explanation = "The text demonstrates community support, offers of help, or positive action toward recovery."
         else:  # Neutral
             if sad_emoji_present:
-                explanation = "The text contains emotional indicators of sadness, but the overall message is informational or descriptive."
+                explanation = "The text contains emotional indicators of sadness, but the overall message is mainly news-like reporting or sharing factual information."
             else:
-                explanation = "The text appears informational or descriptive without strong emotional indicators."
+                explanation = "The text appears to be neutral reporting or sharing factual information, similar to news reporting without emotional indicators."
             
         return {
             "sentiment": sentiment,
