@@ -1128,7 +1128,7 @@ class DisasterSentimentBackend:
             # If no clear sentiment detected, return Neutral (like news reporting)
             return {
                 "sentiment": "Neutral",
-                "confidence": 0.85,
+                "confidence": float("0.85"),  # Using float with string ensures 2 decimal places
                 "explanation": "The message appears to be neutral reporting or sharing information, similar to news reporting without emotional indicators."
             }
 
@@ -1152,10 +1152,10 @@ class DisasterSentimentBackend:
         # Calculate confidence directly based on score
         # Higher scores mean more matching indicators, which means higher confidence
         if max_score == 0:
-            confidence = 0.70  # Default minimum
+            confidence = float("0.70")  # Default minimum with consistent format
         else:
             # Direct scaling with no artificial limits - let AI determine confidence
-            confidence = 0.70 + (max_score * 0.03)
+            confidence = float("0.70") + (max_score * 0.03)
             
         # Always format as floating point with consistent 2 decimal places
         # First round to 2 decimal places
@@ -1460,7 +1460,7 @@ class DisasterSentimentBackend:
                             csv_sentiment = str(row.get(sentiment_col))
                             csv_confidence = float(row.get(
                                 confidence_col,
-                                0.7)) if confidence_col else 0.7
+                                float("0.70"))) if confidence_col else float("0.70")
 
                             # Skip API analysis if sentiment is already provided
                             # Ensure confidence is properly formatted as a float
@@ -1470,6 +1470,8 @@ class DisasterSentimentBackend:
                             # Keep the actual confidence values from the CSV data
                             # Just ensure it's a float and round to 2 decimal places for consistency
                             csv_confidence = round(float(csv_confidence), 2)
+                            # Then format to ensure we always show 2 decimal places (even for whole numbers like 0.80 vs 0.8)
+                            csv_confidence = float(f"{csv_confidence:.2f}")
                             
                             analysis_result = {
                                 "sentiment": csv_sentiment,
@@ -1512,7 +1514,7 @@ class DisasterSentimentBackend:
                                         # Fallback to rule-based with consistent confidence format
                                         analysis_result = {
                                             "sentiment": "Neutral",
-                                            "confidence": 0.75,  # Establish minimum reasonable confidence
+                                            "confidence": float("0.75"),  # Ensure consistent 2 decimal place format
                                             "explanation": "Fallback after API failures",
                                             "disasterType": self.extract_disaster_type(text),
                                             "location": self.extract_location(text),
@@ -1535,7 +1537,7 @@ class DisasterSentimentBackend:
                             csv_sentiment if csv_sentiment else
                             analysis_result.get("sentiment", "Neutral"),
                             "confidence":
-                            analysis_result.get("confidence", 0.7),
+                            analysis_result.get("confidence", float("0.70")),
                             "explanation":
                             analysis_result.get("explanation", ""),
                             "disasterType":
@@ -1727,7 +1729,7 @@ class DisasterSentimentBackend:
                                     # Fallback to rule-based with consistent confidence format
                                     analysis_result = {
                                         "sentiment": "Neutral",
-                                        "confidence": 0.75,  # Establish minimum reasonable confidence
+                                        "confidence": float("0.75"),  # Ensure consistent 2 decimal place format
                                         "explanation": "Failed after maximum retries",
                                         "disasterType": self.extract_disaster_type(text),
                                         "location": self.extract_location(text),
@@ -1748,7 +1750,7 @@ class DisasterSentimentBackend:
                             "sentiment":
                             analysis_result.get("sentiment", "Neutral"),
                             "confidence":
-                            analysis_result.get("confidence", 0.7),
+                            analysis_result.get("confidence", float("0.70")),
                             "explanation":
                             analysis_result.get("explanation", ""),
                             "disasterType":
