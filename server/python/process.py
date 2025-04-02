@@ -573,8 +573,6 @@ class DisasterSentimentBackend:
             lang_code = detect(text)
             if lang_code in ['tl', 'fil']:
                 language = "Filipino"
-            elif lang_code == 'ja':
-                language = "Japanese"
             else:
                 language = "English"
         except:
