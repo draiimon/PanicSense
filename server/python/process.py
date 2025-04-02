@@ -123,7 +123,25 @@ class DisasterSentimentBackend:
                     "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",
                     "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",
                     "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",     
-                    "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"
+                    "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",
+                    # Newly added API keys
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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",
+                    "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"
                 ]
                 # We'll only use one key for validation to avoid rate limiting
                 logging.info(f"Using {len(api_key_list)} hardcoded API keys")
