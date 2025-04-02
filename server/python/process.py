@@ -891,7 +891,31 @@ class DisasterSentimentBackend:
         """Fallback rule-based sentiment analysis"""
         text_lower = text.lower()
         
-        # Check specifically for laughing emoji + TULONG pattern first
+        # First, analyze emojis in the text for better contextual understanding
+        emoji_sentiment_map = {
+            # Laughing/humor emojis (usually indicate disbelief in disaster context)
+            '😂': {"sentiment": "Disbelief", "score": 2},
+            '🤣': {"sentiment": "Disbelief", "score": 2},
+            '😆': {"sentiment": "Disbelief", "score": 1},
+            '😅': {"sentiment": "Disbelief", "score": 1},
+            
+            # Sad/concerned emojis (usually indicate Fear/Anxiety or Resilience)
+            '😔': {"sentiment": "Fear/Anxiety", "score": 1},
+            '😢': {"sentiment": "Fear/Anxiety", "score": 1},
+            '😥': {"sentiment": "Fear/Anxiety", "score": 1},
+            '😰': {"sentiment": "Fear/Anxiety", "score": 2},
+            '😨': {"sentiment": "Fear/Anxiety", "score": 2},
+            '😱': {"sentiment": "Panic", "score": 2},
+            
+            # Positive/hopeful emojis (usually indicate Resilience)
+            '🙏': {"sentiment": "Resilience", "score": 2},
+            '💪': {"sentiment": "Resilience", "score": 2},
+            '❤️': {"sentiment": "Resilience", "score": 1},
+            '🤲': {"sentiment": "Resilience", "score": 1},
+            '✊': {"sentiment": "Resilience", "score": 1}
+        }
+        
+        # Special case: Check specifically for laughing emoji + TULONG pattern first
         # This is a common Filipino pattern expressing disbelief or humor
         if ('😂' in text or '🤣' in text) and ('TULONG' in text.upper() or 'SAKLOLO' in text.upper() or 'HELP' in text.upper()):
             return {
@@ -930,15 +954,21 @@ class DisasterSentimentBackend:
             "Resilience": [
                 "stay strong", "we will overcome", "resilient", "rebuild",
                 "recover", "hope", "lets help", "let's help", "let us help", "help them",
-                "malalampasan", "tatayo ulit", "magbabalik",
+                "malalampasan", "tatayo ulit", "magbabalik", "brave", "be brave",
                 "pag-asa", "malalagpasan", "tulungan natin", "tumulong",
-                "we can help", "we will help", "tutulong tayo"
+                "we can help", "we will help", "tutulong tayo", "matatag"
             ]
         }
 
         # Score each sentiment
         scores = {sentiment: 0 for sentiment in self.sentiment_labels}
 
+        # First apply emoji-based sentiment scores
+        for emoji, data in emoji_sentiment_map.items():
+            if emoji in text:
+                scores[data["sentiment"]] += data["score"]
+                
+        # Then apply keyword-based sentiment scores
         for sentiment, keywords in sentiment_keywords.items():
             for keyword in keywords:
                 if keyword in text_lower:
@@ -1103,10 +1133,18 @@ class DisasterSentimentBackend:
 
         # Generate more detailed explanation based on sentiment
         explanation = ""
+        
+        # Check for emoji presence to enhance explanation
+        sad_emoji_present = any(emoji in text for emoji in ['😔', '😢', '😥'])
+        hopeful_emoji_present = any(emoji in text for emoji in ['🙏', '💪', '❤️', '🤲', '✊'])
+        
         if sentiment == "Panic":
             explanation = "The text shows signs of urgent distress or calls for immediate help, indicating panic."
         elif sentiment == "Fear/Anxiety":
-            explanation = "The message expresses worry, concern or apprehension about the situation."
+            if sad_emoji_present:
+                explanation = "The message expresses sadness and concern about the situation, indicated by both the text and emotional emoji."
+            else:
+                explanation = "The message expresses worry, concern or apprehension about the situation."
         elif sentiment == "Disbelief":
             # Check for mockery patterns
             if laughter_count >= 2:
@@ -1114,9 +1152,15 @@ class DisasterSentimentBackend:
             else:
                 explanation = "The content shows shock, surprise or inability to comprehend the situation."
         elif sentiment == "Resilience":
-            explanation = "The text demonstrates community support, offers of help, or positive action toward recovery."
+            if hopeful_emoji_present:
+                explanation = "The text demonstrates community support, combined with emotional indicators of strength and solidarity."
+            else:
+                explanation = "The text demonstrates community support, offers of help, or positive action toward recovery."
         else:  # Neutral
-            explanation = "The text appears informational or descriptive without strong emotional indicators."
+            if sad_emoji_present:
+                explanation = "The text contains emotional indicators of sadness, but the overall message is informational or descriptive."
+            else:
+                explanation = "The text appears informational or descriptive without strong emotional indicators."
             
         return {
             "sentiment": sentiment,
