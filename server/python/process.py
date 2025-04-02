@@ -21,6 +21,28 @@ class DecimalEncoder(json.JSONEncoder):
                     o[key] = float("{:.3f}".format(value))
         return super().encode(o)
 
+# Define get_natural_confidence at the global scope so it's available everywhere
+def get_natural_confidence(base_value, text):
+    """Calculate non-random but natural confidence based on text properties"""
+    text_length = len(text)
+    # Add more precise factors that influence confidence
+    length_factor = min(0.03, text_length * 0.0001)  # Longer text can have unique markers
+    has_emoji = bool(sum(1 for c in text if ord(c) > 0x1F000))
+    emoji_factor = 0.01 if has_emoji else 0
+    
+    # Add a third decimal place factor based on text hash for consistency
+    # This ensures the same text always gets the same confidence value
+    text_hash = sum(ord(c) for c in text[:20]) if text else 0  # Use only first 20 chars for performance
+    micro_factor = (text_hash % 10) * 0.001  # Value between 0.000 and 0.009
+    
+    # Avoid exact rounded values by adding calculated factors
+    natural_confidence = base_value + length_factor + emoji_factor + micro_factor
+    # Ensure value is in valid range
+    natural_confidence = max(0.600, min(0.999, natural_confidence))
+    
+    # Format with 3 decimal places (CRITICAL FIX)
+    return round(natural_confidence, 3)
+
 try:
     import pandas as pd
     import numpy as np
@@ -1380,27 +1402,7 @@ class DisasterSentimentBackend:
                     f"Starting batch {batch_start // BATCH_SIZE + 1} - processing records {batch_start + 1} to {batch_start + len(batch_indices)}",
                     total_records)
 
-                # Confidence value adjustment function that avoids using round values
-                def get_natural_confidence(base_value, text):
-                    # Calculate non-random but natural confidence based on text properties
-                    text_length = len(text)
-                    # Add more precise factors that influence confidence
-                    length_factor = min(0.03, text_length * 0.0001)  # Longer text can have unique markers
-                    has_emoji = bool(sum(1 for c in text if ord(c) > 0x1F000))
-                    emoji_factor = 0.01 if has_emoji else 0
-                    
-                    # Add a third decimal place factor based on text hash for consistency
-                    # This ensures the same text always gets the same confidence value
-                    text_hash = sum(ord(c) for c in text[:20]) if text else 0  # Use only first 20 chars for performance
-                    micro_factor = (text_hash % 10) * 0.001  # Value between 0.000 and 0.009
-                    
-                    # Avoid exact rounded values by adding calculated factors
-                    natural_confidence = base_value + length_factor + emoji_factor + micro_factor
-                    # Ensure value is in valid range
-                    natural_confidence = max(0.600, min(0.999, natural_confidence))
-                    
-                    # Format with 3 decimal places (CRITICAL FIX)
-                    return round(natural_confidence, 3)
+                # Use the global get_natural_confidence function (moved to global scope)
                 
                 # Process each item in this batch sequentially
                 for idx, i in enumerate(batch_indices):
@@ -1846,6 +1848,7 @@ class DisasterSentimentBackend:
                     text = result.get("text", "")
                     # Get a natural confidence value with 3 decimal places
                     current_confidence = result["confidence"]
+                    # Using the global get_natural_confidence function
                     result["confidence"] = get_natural_confidence(current_confidence, text)
                     
                     # Extra check to ensure it's really 3 decimal places

@@ -712,9 +712,25 @@ export class PythonService {
             return;
           }
           try {
-            JSON.parse(output.trim());
-            resolve(output.trim());
+            // Remove any duplicate JSON results that might be causing parsing issues
+            // Sometimes the Python script outputs individual record updates + final result
+            const cleanedOutput = output.trim();
+            
+            // Try to always extract the last valid JSON object which should be the complete result
+            const lastJsonStart = cleanedOutput.lastIndexOf('{"results":');
+            
+            if (lastJsonStart >= 0) {
+              const finalOutput = cleanedOutput.substring(lastJsonStart);
+              // Verify it's valid JSON before resolving
+              JSON.parse(finalOutput); 
+              resolve(finalOutput);
+            } else {
+              JSON.parse(cleanedOutput); // Try with the original output
+              resolve(cleanedOutput);
+            }
           } catch (e) {
+            console.error('JSON parsing error:', e);
+            console.error('Raw output causing JSON error:', output);
             reject(new Error('Invalid JSON output from Python script'));
           }
         });
