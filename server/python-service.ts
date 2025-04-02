@@ -740,10 +740,19 @@ export class PythonService {
         });
       });
 
+      // Parse JSON result and ensure all confidence values have 3 decimal places
       const data = JSON.parse(result) as ProcessCSVResult;
       if (!data.results || !Array.isArray(data.results)) {
         throw new Error('Invalid data format returned from Python script');
       }
+      
+      // Process each result to ensure exactly 3 decimal places for confidence values
+      data.results.forEach(result => {
+        if (typeof result.confidence === 'number') {
+          // Format with exactly 3 decimal places
+          result.confidence = parseFloat(result.confidence.toFixed(3));
+        }
+      });
 
       // Update the usage tracker with the number of rows processed
       usageTracker.incrementRowCount(data.results.length);
@@ -881,10 +890,10 @@ export class PythonService {
           const randomOffset = Math.random() * 0.02 - 0.01; // Random -1% to +1%
           const adjustedConfidence = Math.min(0.88, Math.max(0.30, cappedBaseConfidence + randomOffset));
           
-          // Return the saved training example results with improved explanation and randomized confidence
+          // Return the saved training example results with improved explanation and 3-decimal confidence
           return {
             sentiment: trainingExample.sentiment,
-            confidence: adjustedConfidence,
+            confidence: parseFloat(adjustedConfidence.toFixed(3)), // Ensure 3 decimal places
             explanation: explanation,
             language: trainingExample.language,
             disasterType: this.extractDisasterTypeFromText(text) || "UNKNOWN",
@@ -955,12 +964,13 @@ export class PythonService {
         const randomOffset = Math.random() * 0.02 - 0.01; // Random -1% to +1%
         const adjustedConfidence = Math.min(0.88, Math.max(0.30, cappedBaseConfidence + randomOffset));
         
-        // Update the confidence score
-        analysisResult.confidence = adjustedConfidence;
+        // Update the confidence score with 3 decimal places format
+        // Parse float and then toFixed(3) ensures exactly 3 decimal places
+        analysisResult.confidence = parseFloat(adjustedConfidence.toFixed(3));
         
         // Store the adjusted confidence score in cache
-        this.setCachedConfidence(text, adjustedConfidence);
-        log(`Adjusted confidence from ${baseConfidence.toFixed(3)} to ${adjustedConfidence.toFixed(3)}`, 'python-service');
+        this.setCachedConfidence(text, analysisResult.confidence);
+        log(`Adjusted confidence from ${baseConfidence.toFixed(3)} to ${analysisResult.confidence.toFixed(3)}`, 'python-service');
       }
 
       // Make sure None values are converted to "UNKNOWN"
