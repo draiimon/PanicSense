@@ -19,7 +19,7 @@ This guide will help you set up and run PanicSense on your local machine, whethe
 2. **Build and run using Docker**
    ```bash
    # Build the Docker image
-   docker build -t panicsense:latest -f Dockerfile.new .
+   docker build -t panicsense:latest -f Dockerfile.working .
 
    # Run the container
    docker run -p 5000:5000 --env-file .env panicsense:latest
