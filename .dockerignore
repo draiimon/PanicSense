@@ -1,10 +1,10 @@
 node_modules
 npm-debug.log
-Dockerfile
-.dockerignore
-.git
-.github
-.gitignore
-.env
 dist
-README.md
+.git
+.vscode
+.github
+.DS_Store
+*.env
+*.env.*
+!.env.example
