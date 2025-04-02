@@ -52,37 +52,45 @@ The Disaster Sentiment Analysis Platform is an AI-powered tool designed to provi
 
 ### Local Development Setup
 
+For detailed step-by-step instructions, see [LOCAL_SETUP.md](LOCAL_SETUP.md)
+
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/disaster-sentiment-analysis.git
-   cd disaster-sentiment-analysis
+   git clone https://github.com/draiimon/PanicSense.git
+   cd PanicSense
    ```
 
-2. **Install Node.js dependencies**
+2. **Option 1: Using pnpm (without Docker)**
    ```bash
-   npm install
-   ```
+   # Install Node.js dependencies
+   pnpm install
 
-3. **Install Python dependencies**
-   ```bash
-   pip install pandas numpy langdetect scikit-learn
-   ```
+   # Create and activate Python virtual environment
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-4. **Set up PostgreSQL database**
-   - Create a PostgreSQL database
-   - Set the `DATABASE_URL` environment variable to your database connection string
+   # Install Python dependencies
+   pip install -r server/python/requirements.txt
 
-5. **Run database migrations**
-   ```bash
+   # Set up PostgreSQL database
+   # Create a PostgreSQL database and update DATABASE_URL in .env
+
+   # Run database migrations
    npm run db:push
-   ```
 
-6. **Start the development server**
-   ```bash
+   # Start the development server
    npm run dev
    ```
 
-### Docker Setup (Local Development)
+3. **Option 2: Using Docker (Recommended)**
+   ```bash
+   # Build and run with Docker
+   docker-compose up --build
+   ```
+
+   This will start the Node.js server, Python service, and PostgreSQL database in separate containers.
+
+### Environment Setup
 
 1. **Create a .env file**
    Copy the example environment file:
@@ -136,7 +144,7 @@ The Disaster Sentiment Analysis Platform is an AI-powered tool designed to provi
 3. **Deploy with Render Blueprint**
    - In the Render dashboard, click "New" and select "Blueprint"
    - Select the repository containing this project
-   - Render will automatically detect the `render.yaml` file and set up the services
+   - Render will automatically detect the `render.yaml` file which uses `Dockerfile.new` for deployment
 
 4. **Environment Variables**
    - The database connection string will be automatically configured

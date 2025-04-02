@@ -2,7 +2,7 @@ services:
   - type: web
     name: disaster-monitoring-app
     env: docker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./Dockerfile.new
     dockerCommand: node dist/index.js
     healthCheckPath: /
     numInstances: 1

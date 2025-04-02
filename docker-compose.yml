@@ -4,7 +4,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.new
     container_name: disaster-monitoring-app
     ports:
       - "5000:5000"
@@ -20,6 +20,8 @@ services:
       - GROQ_API_KEY_2=${GROQ_API_KEY_2}
       - GROQ_API_KEY_3=${GROQ_API_KEY_3}
       - GROQ_API_KEY_4=${GROQ_API_KEY_4}
+    volumes:
+      - nltk_data:/usr/local/share/nltk_data
     restart: unless-stopped
 
   postgres:
@@ -37,3 +39,4 @@ services:
 
 volumes:
   postgres-data:
+  nltk_data:
