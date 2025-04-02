@@ -1,43 +1,45 @@
-# Base image with Python 3.11 and Node.js pre-installed
-FROM nikolaik/python-nodejs:python3.11-nodejs20-slim
+# Start with the official Python image that has Python.h included
+FROM python:3.11-slim-bullseye
 
 WORKDIR /app
 
-# Install system dependencies
+# Install Node.js using the official script
 RUN apt-get update && apt-get install -y \
     build-essential \
-    libopenblas-dev \
-    python3-dev \
-    python3-pip \
-    python3-setuptools \
-    python3-wheel \
+    curl \
+    git \
     gcc \
     g++ \
-    git \
+    make \
+    python3-dev \
+    libopenblas-dev \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pnpm globally
-RUN npm install -g pnpm@10.7.1
+# Verify versions
+RUN node --version && python --version
 
-# Copy package.json and install Node.js dependencies
+# Install pnpm
+RUN npm install -g pnpm@latest
+
+# Copy only package.json first for better caching
 COPY package.json ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
-# Copy Python requirements
-COPY server/python/requirements.txt ./server/python/
-
-# Install Python dependencies strategically to avoid compilation issues
-RUN pip install --upgrade pip && \
-    pip install wheel setuptools && \
-    # Install numpy first (needed for scikit-learn)
+# Install prebuilt Python packages first to avoid compilation issues
+RUN pip install --upgrade pip setuptools wheel && \
     pip install numpy==1.26.4 && \
-    # Install PyTorch with CPU only to reduce image size
     pip install torch==2.2.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu && \
-    # Install scikit-learn separately with a version known to work
-    pip install scikit-learn==1.3.2 && \
-    # Install remaining packages
-    pip install -r server/python/requirements.txt
+    # Use a prebuilt wheel for scikit-learn
+    pip install --only-binary=scikit-learn scikit-learn==1.3.2
+
+# Copy Python requirements file
+COPY server/python/requirements.txt server/python/requirements-lock.txt ./server/python/
+
+# Install remaining Python dependencies with locked versions to prevent incompatibilities
+RUN pip install -r server/python/requirements-lock.txt
 
 # Download NLTK data
 RUN python -c "import nltk; nltk.download('punkt')"
@@ -49,10 +51,10 @@ COPY . .
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN NODE_ENV=production pnpm run build
 
-# Expose the port the app runs on
+# Expose port
 EXPOSE 5000
 
-# Set environment variables for production
+# Set production environment
 ENV NODE_ENV=production \
     PORT=5000
 
