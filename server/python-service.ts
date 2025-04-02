@@ -860,8 +860,10 @@ export class PythonService {
           
           // Add a slight random variation to the confidence to make it more realistic
           const baseConfidence = trainingExample.confidence;
-          const randomOffset = Math.random() * 0.04 - 0.02; // Random -2% to +2%
-          const adjustedConfidence = Math.min(0.99, Math.max(0.30, baseConfidence + randomOffset));
+          // Ensure the base confidence doesn't exceed 0.87 (87%)
+          const cappedBaseConfidence = Math.min(0.87, baseConfidence);
+          const randomOffset = Math.random() * 0.02 - 0.01; // Random -1% to +1%
+          const adjustedConfidence = Math.min(0.88, Math.max(0.30, cappedBaseConfidence + randomOffset));
           
           // Return the saved training example results with improved explanation and randomized confidence
           return {
@@ -932,8 +934,10 @@ export class PythonService {
       // Add slight random variation to confidence score to make it more realistic
       if (analysisResult.confidence) {
         const baseConfidence = analysisResult.confidence;
-        const randomOffset = Math.random() * 0.04 - 0.02; // Random -2% to +2%
-        const adjustedConfidence = Math.min(0.99, Math.max(0.30, baseConfidence + randomOffset));
+        // Ensure the base confidence doesn't exceed 0.87 (87%)
+        const cappedBaseConfidence = Math.min(0.87, baseConfidence);
+        const randomOffset = Math.random() * 0.02 - 0.01; // Random -1% to +1%
+        const adjustedConfidence = Math.min(0.88, Math.max(0.30, cappedBaseConfidence + randomOffset));
         
         // Update the confidence score
         analysisResult.confidence = adjustedConfidence;
