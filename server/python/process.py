@@ -688,8 +688,8 @@ class DisasterSentimentBackend:
                 fallback_result["confidence"] = float(fallback_result["confidence"])
             
             # Keep the actual confidence value from the analysis - don't artificially change it
-            # Just round to 2 decimal places for display consistency 
-            fallback_result["confidence"] = round(fallback_result["confidence"], 2)
+            # Use 3 decimal places for better accuracy and consistency with real-time analysis
+            fallback_result["confidence"] = round(fallback_result["confidence"], 3)
             
             return fallback_result
 
@@ -914,8 +914,8 @@ class DisasterSentimentBackend:
             fallback_result["confidence"] = float(fallback_result["confidence"])
             
         # Keep the actual confidence value from the analysis - don't artificially change it
-        # Just round to 2 decimal places for display consistency 
-        fallback_result["confidence"] = round(fallback_result["confidence"], 2)
+        # Use 3 decimal places for better accuracy and consistency with real-time analysis
+        fallback_result["confidence"] = round(fallback_result["confidence"], 3)
 
         return fallback_result
 
@@ -1199,11 +1199,11 @@ class DisasterSentimentBackend:
         # Ensure the confidence stays in valid range between 0.6 and 0.99
         confidence = max(0.60, min(0.99, confidence))
         
-        # Round to 2 decimal places for consistency
-        confidence = round(confidence, 2)
+        # Round to 3 decimal places for better accuracy and consistency
+        confidence = round(confidence, 3)
         
-        # Format to ensure we always show 2 decimal places
-        confidence = float(f"{confidence:.2f}")
+        # Format to ensure we always show 3 decimal places
+        confidence = float(f"{confidence:.3f}")
 
         # Generate more detailed explanation based on sentiment
         explanation = ""
@@ -2364,7 +2364,7 @@ class DisasterSentimentBackend:
                 
                 # Use the AI's actual confidence score - don't artificially change it
                 # Only round to 2 decimal places for display consistency
-                result["confidence"] = round(result["confidence"], 2)
+                result["confidence"] = round(result["confidence"], 3)
 
         # Calculate confusion matrix statistics per sentiment class
         # This will be a simulated confusion matrix based on confidence scores
@@ -2499,7 +2499,7 @@ class DisasterSentimentBackend:
                 "f1Score": round(f1_score, 2),
                 "count": sample_count,
                 "support": sample_count,
-                "confidence": round(confidence_value, 2),
+                "confidence": round(confidence_value, 3),
                 "confusion_matrix": {
                     "true_positives": true_positives,
                     "false_positives": false_positives,
