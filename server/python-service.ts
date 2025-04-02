@@ -38,7 +38,9 @@ export class PythonService {
   private similarityCache: Map<string, boolean>; // Cache for text similarity checks
 
   constructor() {
-    this.pythonBinary = 'python3';
+    // Check if we're running in Docker environment (where we use venv)
+    const isDocker = process.env.NODE_ENV === 'production';
+    this.pythonBinary = isDocker ? '/opt/venv/bin/python3' : 'python3';
     this.tempDir = path.join(os.tmpdir(), 'disaster-sentiment');
     this.scriptPath = path.join(process.cwd(), 'server', 'python', 'process.py');
     this.confidenceCache = new Map();  // Initialize confidence cache
