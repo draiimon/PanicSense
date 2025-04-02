@@ -3,16 +3,21 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { checkPortPeriodically, checkPort } from "./debug-port";
-import compression from 'compression'; // Will add this package next
+import compression from 'compression';
 import cors from 'cors';
+import { 
+  isProduction, 
+  isRender, 
+  isReplit, 
+  platform, 
+  initPlatformAdapter 
+} from './utils/platform-adapter';
 
-// Detect environment for optimized settings
-const isProduction = process.env.NODE_ENV === 'production';
-const isRender = Boolean(process.env.RENDER);
-const isReplit = Boolean(process.env.REPL_ID);
+// Initialize platform adapter for consistent behavior across environments
+initPlatformAdapter();
 
 console.log(`Running in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
-console.log(`Platform: ${isRender ? 'Render' : isReplit ? 'Replit' : 'Local'}`);
+console.log(`Platform: ${platform}`);
 
 const app = express();
 
@@ -98,14 +103,15 @@ app.use((req, res, next) => {
       console.log("Vite middleware setup complete");
     }
 
-    // Using just port 5000 as the main port
-    const port = 5000;
+    // Get port from environment or use default
+    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
     console.log(`Attempting to listen on port ${port}...`);
     
     server.listen(port, "0.0.0.0", () => {
       console.log(`========================================`);
-      log(`🚀 Server running on port ${port}`);
+      log(`🚀 Server running on port ${port} on ${platform} platform`);
       console.log(`Server listening at: http://0.0.0.0:${port}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`Server ready at: ${new Date().toISOString()}`);
       console.log(`========================================`);
     });

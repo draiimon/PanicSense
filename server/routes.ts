@@ -99,6 +99,28 @@ function broadcastUpdate(data: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint for monitoring and deployment verification
+  app.get('/api/health', (req: Request, res: Response) => {
+    // Check basic system health
+    const memoryUsage = process.memoryUsage();
+    const uptime = process.uptime();
+    const isProduction = process.env.NODE_ENV === 'production';
+    const platform = process.env.RENDER ? 'Render' : process.env.REPL_ID ? 'Replit' : 'Local';
+    
+    // Return health status and platform info
+    res.json({
+      status: 'healthy',
+      time: new Date().toISOString(),
+      env: process.env.NODE_ENV || 'development',
+      platform,
+      uptime: `${Math.floor(uptime / 60)} minutes, ${Math.floor(uptime % 60)} seconds`,
+      memory: {
+        rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
+        heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
+        heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`
+      }
+    });
+  });
   // Serve static files from attached_assets
   app.use('/assets', express.static(path.join(process.cwd(), 'attached_assets')));
 

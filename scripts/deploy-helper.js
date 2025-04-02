@@ -7,143 +7,210 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execSync } = require('child_process');
+const { Pool } = require('pg');
 
-// Detect platform
-const isRender = Boolean(process.env.RENDER);
 const isReplit = Boolean(process.env.REPL_ID);
+const isRender = Boolean(process.env.RENDER);
 const platform = isRender ? 'Render' : isReplit ? 'Replit' : 'Local';
 
-console.log(`Preparing deployment for ${platform} environment...`);
+console.log(`Running deployment helper on ${platform} platform`);
 
-// Validate database connection
-function validateDatabase() {
+// Validate database connection and schema
+async function validateDatabase() {
   if (!process.env.DATABASE_URL) {
-    console.error('ERROR: DATABASE_URL environment variable is not set.');
-    console.error('Please set it in your environment or .env file.');
+    console.error('❌ DATABASE_URL environment variable is missing');
     process.exit(1);
   }
-  
-  console.log('✓ Database URL is configured.');
-}
 
-// Check for required Python packages
-function validatePythonSetup() {
+  console.log('Checking database connection...');
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: isRender ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 10000,
+  });
+
   try {
-    const requiredPackages = ['nltk', 'scikit-learn', 'numpy', 'pandas', 'langdetect'];
+    // Check connection
+    const client = await pool.connect();
+    console.log('✅ Database connection successful');
     
-    for (const pkg of requiredPackages) {
+    // Check tables
+    const tables = await client.query(`
+      SELECT tablename FROM pg_catalog.pg_tables 
+      WHERE schemaname='public'
+    `);
+    
+    console.log(`Found ${tables.rows.length} tables in database`);
+    
+    // Check required tables
+    const requiredTables = [
+      'users', 'sessions', 'sentiment_posts', 
+      'disaster_events', 'analyzed_files'
+    ];
+    
+    const missingTables = requiredTables.filter(
+      table => !tables.rows.some(row => row.tablename === table)
+    );
+    
+    if (missingTables.length > 0) {
+      console.log(`⚠️ Missing tables: ${missingTables.join(', ')}`);
+      
+      // Create missing tables using migration script
+      console.log('Attempting to create missing tables...');
       try {
-        execSync(`python3 -c "import ${pkg}"`, { stdio: 'ignore' });
-        console.log(`✓ Python package ${pkg} is installed.`);
-      } catch (e) {
-        console.warn(`⚠ Python package ${pkg} is not installed. Installing...`);
-        execSync(`pip install ${pkg}`, { stdio: 'inherit' });
+        execSync('npm run db:push');
+        console.log('✅ Database schema updated successfully');
+      } catch (error) {
+        console.error('❌ Failed to create missing tables:', error.message);
       }
+    } else {
+      console.log('✅ All required tables exist');
     }
-  } catch (e) {
-    console.warn('⚠ Could not verify Python packages. Make sure Python 3.x is installed with required packages.');
+    
+    client.release();
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
+    console.log('Will continue deployment, but database issues must be resolved');
+  } finally {
+    await pool.end();
   }
 }
 
-// Ensure build directory exists
+// Validate Python setup
+function validatePythonSetup() {
+  console.log('Checking Python setup...');
+  try {
+    const pythonBinary = process.env.PYTHON_BINARY || 'python3';
+    const pythonVersion = execSync(`${pythonBinary} --version`).toString().trim();
+    console.log(`✅ Python detected: ${pythonVersion}`);
+    
+    // Check if required Python packages are installed
+    const requiredPackages = [
+      'langdetect', 'nltk', 'numpy', 'pandas', 
+      'scikit-learn', 'torch'
+    ];
+    
+    // Check each package with pip list
+    const pipList = execSync(`${pythonBinary} -m pip list`).toString();
+    const missingPackages = requiredPackages.filter(
+      pkg => !pipList.includes(pkg)
+    );
+    
+    if (missingPackages.length > 0) {
+      console.log(`⚠️ Missing Python packages: ${missingPackages.join(', ')}`);
+      // Attempt to install missing packages
+      console.log('Installing missing Python packages...');
+      execSync(`${pythonBinary} -m pip install ${missingPackages.join(' ')}`);
+      console.log('✅ Python packages installed successfully');
+    } else {
+      console.log('✅ All required Python packages are installed');
+    }
+  } catch (error) {
+    console.error('⚠️ Python validation issue:', error.message);
+    console.log('Will continue deployment, but Python issues should be addressed');
+  }
+}
+
+// Prepare build directory
 function prepareBuildDirectory() {
-  const distDir = path.join(__dirname, '..', 'dist');
-  const publicDir = path.join(distDir, 'public');
+  console.log('Preparing build directory...');
+  const buildDir = path.join(process.cwd(), 'dist');
   
-  if (!fs.existsSync(distDir)) {
-    fs.mkdirSync(distDir, { recursive: true });
-    console.log('✓ Created dist directory.');
+  // Create build dir if it doesn't exist
+  if (!fs.existsSync(buildDir)) {
+    fs.mkdirSync(buildDir, { recursive: true });
   }
   
-  if (!fs.existsSync(publicDir)) {
-    fs.mkdirSync(publicDir, { recursive: true });
-    console.log('✓ Created public directory.');
+  // Ensure assets are copied to the build directory
+  const assetsSrc = path.join(process.cwd(), 'attached_assets');
+  const assetsDest = path.join(buildDir, 'assets');
+  
+  if (fs.existsSync(assetsSrc) && !fs.existsSync(assetsDest)) {
+    fs.mkdirSync(assetsDest, { recursive: true });
+    
+    try {
+      const files = fs.readdirSync(assetsSrc);
+      for (const file of files) {
+        const sourcePath = path.join(assetsSrc, file);
+        const targetPath = path.join(assetsDest, file);
+        fs.copyFileSync(sourcePath, targetPath);
+      }
+      console.log(`✅ Copied ${files.length} assets to build directory`);
+    } catch (error) {
+      console.error('⚠️ Asset copying issue:', error.message);
+    }
   }
+  
+  console.log('✅ Build directory prepared');
 }
 
-// Ensure temp directories exist
+// Prepare temp directories
 function prepareTempDirectories() {
-  const tempDir = path.join(require('os').tmpdir(), 'disaster-sentiment');
+  console.log('Preparing temporary directories...');
+  
+  // Create temp directory for uploads
+  const tempDir = path.join(
+    isRender || isReplit ? '/tmp' : os.tmpdir(), 
+    'disaster-sentiment'
+  );
   
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
-    console.log('✓ Created temp directory for file processing.');
+    console.log(`✅ Created temp directory: ${tempDir}`);
   }
   
-  // For Linux systems, also create a RAM-based tmpfs directory for faster processing
-  if (process.platform === 'linux') {
-    try {
-      if (fs.existsSync('/dev/shm')) {
-        const ramTempDir = path.join('/dev/shm', 'disaster-sentiment');
-        if (!fs.existsSync(ramTempDir)) {
-          fs.mkdirSync(ramTempDir, { recursive: true });
-          console.log('✓ Created RAM-based temp directory for faster processing.');
-        }
-      }
-    } catch (e) {
-      console.warn('⚠ Could not create RAM-based temp directory.');
-    }
-  }
+  console.log('✅ Temporary directories prepared');
 }
 
-// Render-specific preparations
+// Render-specific setup
 function prepareForRender() {
-  if (!isRender) return;
+  console.log('Preparing for Render deployment...');
   
-  console.log('Performing Render-specific setup...');
-  
-  // Ensure NODE_ENV is set to production
+  // Set production environment
   process.env.NODE_ENV = 'production';
   
-  // Convert port to number if present
-  if (process.env.PORT) {
-    process.env.PORT = parseInt(process.env.PORT, 10).toString();
+  // Ensure PORT is set correctly
+  if (!process.env.PORT) {
+    process.env.PORT = '5000';
   }
+  
+  console.log('✅ Render preparation complete');
 }
 
-// Replit-specific preparations
+// Replit-specific setup
 function prepareForReplit() {
-  if (!isReplit) return;
+  console.log('Preparing for Replit deployment...');
   
-  console.log('Performing Replit-specific setup...');
+  // Set production environment for deployment
+  process.env.NODE_ENV = 'production';
   
-  // Create symbolic link for assets if needed
-  const assetsSourceDir = path.join(__dirname, '..', 'attached_assets');
-  const assetsTargetDir = path.join(__dirname, '..', 'assets');
-  
-  if (fs.existsSync(assetsSourceDir) && !fs.existsSync(assetsTargetDir)) {
-    try {
-      fs.symlinkSync(assetsSourceDir, assetsTargetDir, 'dir');
-      console.log('✓ Created symbolic link for assets directory.');
-    } catch (e) {
-      console.warn('⚠ Could not create symbolic link for assets. Using copy instead.');
-      // If symlink fails, try copy
-      if (!fs.existsSync(assetsTargetDir)) {
-        fs.mkdirSync(assetsTargetDir, { recursive: true });
-      }
-      
-      const files = fs.readdirSync(assetsSourceDir);
-      for (const file of files) {
-        const sourcePath = path.join(assetsSourceDir, file);
-        const targetPath = path.join(assetsTargetDir, file);
-        fs.copyFileSync(sourcePath, targetPath);
-      }
-      console.log('✓ Copied assets to target directory.');
-    }
-  }
+  console.log('✅ Replit preparation complete');
 }
 
-// Run all checks
-function runDeploymentChecks() {
-  validateDatabase();
+async function runDeploymentChecks() {
+  console.log('=== Deployment Helper Starting ===');
+  
+  // Run platform-specific setup
+  if (isRender) {
+    prepareForRender();
+  } else if (isReplit) {
+    prepareForReplit();
+  }
+  
+  // Run common validations
+  await validateDatabase();
   validatePythonSetup();
   prepareBuildDirectory();
   prepareTempDirectories();
-  prepareForRender();
-  prepareForReplit();
   
-  console.log('✓ Deployment preparation completed successfully!');
+  console.log('=== Deployment Preparation Complete ===');
+  console.log('You can now deploy the application to the target platform');
 }
 
-runDeploymentChecks();
+// Run the deployment helper
+runDeploymentChecks().catch(error => {
+  console.error('Deployment helper failed:', error);
+  process.exit(1);
+});

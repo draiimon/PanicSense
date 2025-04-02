@@ -10,203 +10,410 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-console.log('🔍 Starting performance analysis...');
-console.log('====================================');
+const isReplit = Boolean(process.env.REPL_ID);
+const isRender = Boolean(process.env.RENDER);
+const platform = isRender ? 'Render' : isReplit ? 'Replit' : 'Local';
 
-// System information
-console.log('📊 SYSTEM INFORMATION:');
-console.log(`OS: ${os.platform()} ${os.release()}`);
-console.log(`CPU: ${os.cpus().length} cores`);
-console.log(`Memory: ${Math.round(os.totalmem() / (1024 * 1024 * 1024))} GB total, ${Math.round(os.freemem() / (1024 * 1024 * 1024))} GB free`);
-console.log(`Load Average: ${os.loadavg().join(', ')}`);
-console.log('------------------------------------');
+console.log(`Running performance analysis on ${platform} platform`);
 
-// Database performance check
+// Check database performance
 function checkDatabasePerformance() {
-  console.log('📊 DATABASE PERFORMANCE:');
+  console.log('\n=== DATABASE PERFORMANCE ANALYSIS ===');
   
   if (!process.env.DATABASE_URL) {
-    console.log('⚠️ DATABASE_URL not set, skipping database checks');
-    return;
+    console.log('❌ DATABASE_URL not found, skipping database analysis');
+    return {
+      status: 'error',
+      recommendations: [
+        'Set DATABASE_URL environment variable'
+      ]
+    };
   }
   
   try {
-    // Simplified check without actually connecting to the database
-    const isProduction = process.env.NODE_ENV === 'production';
-    const sslEnabled = isProduction ? 'Enabled' : 'Disabled';
-    
-    console.log(`Connection SSL: ${sslEnabled}`);
-    console.log(`Connection Pooling: Enabled (max: 20 connections)`);
-    console.log('✅ Database configuration optimized for performance');
+    // Check connection pool settings
+    const dbModule = path.join(process.cwd(), 'server', 'db.ts');
+    if (fs.existsSync(dbModule)) {
+      const dbContent = fs.readFileSync(dbModule, 'utf8');
+      
+      // Check for pool configuration
+      const hasPoolConfig = dbContent.includes('new Pool({');
+      const hasMaxConnections = dbContent.includes('max:');
+      const hasIdleTimeout = dbContent.includes('idleTimeoutMillis:');
+      const hasConnectionTimeout = dbContent.includes('connectionTimeoutMillis:');
+      
+      console.log('Database Connection Pool Settings:');
+      console.log(`- Custom pool configuration: ${hasPoolConfig ? '✅' : '❌'}`);
+      console.log(`- Max connections limit: ${hasMaxConnections ? '✅' : '❌'}`);
+      console.log(`- Idle timeout: ${hasIdleTimeout ? '✅' : '❌'}`);
+      console.log(`- Connection timeout: ${hasConnectionTimeout ? '✅' : '❌'}`);
+      
+      const recommendations = [];
+      if (!hasPoolConfig) {
+        recommendations.push('Implement custom pool configuration for better performance');
+      }
+      if (!hasMaxConnections) {
+        recommendations.push('Set max connections based on available system resources');
+      }
+      if (!hasIdleTimeout) {
+        recommendations.push('Set idleTimeoutMillis to release unused connections');
+      }
+      if (!hasConnectionTimeout) {
+        recommendations.push('Set connectionTimeoutMillis to avoid hanging connections');
+      }
+      
+      return {
+        status: recommendations.length > 0 ? 'warning' : 'good',
+        recommendations
+      };
+    } else {
+      console.log('❌ Database module not found');
+      return {
+        status: 'error',
+        recommendations: [
+          'Create a proper database module with optimized connection pool'
+        ]
+      };
+    }
   } catch (error) {
-    console.error('❌ Error checking database performance:', error.message);
+    console.error('Error analyzing database performance:', error.message);
+    return {
+      status: 'error',
+      recommendations: [
+        'Fix database configuration errors',
+        'Ensure database module is properly implemented'
+      ]
+    };
   }
-  
-  console.log('------------------------------------');
 }
 
-// File system and cache check
+// Check file system performance
 function checkFileSystem() {
-  console.log('📊 FILE SYSTEM PERFORMANCE:');
-  
-  const tempDir = path.join(os.tmpdir(), 'disaster-sentiment');
-  let tempDirSize = 0;
-  
-  if (fs.existsSync(tempDir)) {
-    try {
-      const files = fs.readdirSync(tempDir);
-      console.log(`Temp directory contains ${files.length} files`);
-      
-      files.forEach(file => {
-        const filePath = path.join(tempDir, file);
-        try {
-          const stats = fs.statSync(filePath);
-          tempDirSize += stats.size;
-        } catch (e) {
-          // Ignore file stats errors
-        }
-      });
-      
-      // Check if temp directory is getting too large
-      const sizeInMB = (tempDirSize / (1024 * 1024)).toFixed(2);
-      console.log(`Temp directory size: ${sizeInMB} MB`);
-      
-      if (tempDirSize > 100 * 1024 * 1024) { // 100 MB
-        console.log('⚠️ Temp directory is getting large. Consider running cache cleanup.');
-      } else {
-        console.log('✅ Temp directory size is within optimal range');
-      }
-    } catch (e) {
-      console.warn(`Could not analyze temp directory: ${e.message}`);
-    }
-  } else {
-    console.log('⚠️ Temp directory does not exist');
-  }
-  
-  // Check for RAM disk availability
-  if (process.platform === 'linux' && fs.existsSync('/dev/shm')) {
-    console.log('✅ RAM disk is available for high-performance temporary storage');
-    
-    // Check RAM disk usage
-    try {
-      const ramdiskStats = execSync('df -h /dev/shm').toString();
-      console.log('RAM disk usage:');
-      console.log(ramdiskStats.split('\n').slice(0, 2).join('\n'));
-    } catch (e) {
-      console.warn('Could not check RAM disk usage');
-    }
-  } else {
-    console.log('ℹ️ RAM disk is not available on this system');
-  }
-  
-  console.log('------------------------------------');
-}
-
-// Node.js optimization checks
-function checkNodeOptimizations() {
-  console.log('📊 NODE.JS OPTIMIZATIONS:');
-  
-  // Memory optimizations
-  console.log('Memory limits:');
-  try {
-    const nodeOptions = process.env.NODE_OPTIONS || '';
-    if (nodeOptions.includes('--max-old-space-size')) {
-      console.log('✅ Node.js memory limit is explicitly configured');
-    } else {
-      console.log('ℹ️ Node.js using default memory limits');
-      console.log('   Consider setting NODE_OPTIONS="--max-old-space-size=4096" for large datasets');
-    }
-  } catch (e) {
-    console.warn('Could not check Node.js options');
-  }
-  
-  // Check for compression middleware
-  console.log('Compression middleware: Enabled');
-  console.log('CORS middleware: Enabled');
-  
-  console.log('------------------------------------');
-}
-
-// Python service optimization checks
-function checkPythonOptimizations() {
-  console.log('📊 PYTHON SERVICE OPTIMIZATIONS:');
+  console.log('\n=== FILE SYSTEM ANALYSIS ===');
   
   try {
-    // Check Python version
-    const pythonVersion = execSync('python3 --version').toString().trim();
-    console.log(`Python version: ${pythonVersion}`);
+    console.log('File System Information:');
+    console.log(`- Platform: ${os.platform()}`);
+    console.log(`- Architecture: ${os.arch()}`);
+    console.log(`- Total Memory: ${Math.round(os.totalmem() / (1024 * 1024))} MB`);
+    console.log(`- Free Memory: ${Math.round(os.freemem() / (1024 * 1024))} MB`);
     
-    // Check for required packages
-    const requiredPackages = ['nltk', 'numpy', 'pandas', 'scikit-learn', 'langdetect'];
-    let missingPackages = [];
+    // Check temp directory setup
+    const tempDir = process.env.TEMP_DIR || 
+                   (isRender || isReplit ? '/tmp/disaster-sentiment' : 
+                   path.join(os.tmpdir(), 'disaster-sentiment'));
     
-    for (const pkg of requiredPackages) {
+    const tempDirExists = fs.existsSync(tempDir);
+    console.log(`- Temp directory (${tempDir}): ${tempDirExists ? '✅' : '❌'}`);
+    
+    // Check assets directory
+    const assetsDir = path.join(process.cwd(), 'assets');
+    const attachedAssetsDir = path.join(process.cwd(), 'attached_assets');
+    
+    const assetsDirExists = fs.existsSync(assetsDir);
+    const attachedAssetsDirExists = fs.existsSync(attachedAssetsDir);
+    
+    console.log(`- Assets directory: ${assetsDirExists ? '✅' : '❌'}`);
+    console.log(`- Attached assets directory: ${attachedAssetsDirExists ? '✅' : '❌'}`);
+    
+    // Determine if symbolic link is used
+    let assetsIsSymlink = false;
+    if (assetsDirExists) {
       try {
-        execSync(`python3 -c "import ${pkg}"`, { stdio: 'ignore' });
+        const stats = fs.lstatSync(assetsDir);
+        assetsIsSymlink = stats.isSymbolicLink();
+        console.log(`- Assets is symbolic link: ${assetsIsSymlink ? '✅' : '❌'}`);
       } catch (e) {
-        missingPackages.push(pkg);
+        console.log('- Could not determine if assets is a symbolic link');
       }
     }
     
-    if (missingPackages.length === 0) {
-      console.log('✅ All required Python packages are installed');
+    const recommendations = [];
+    if (!tempDirExists) {
+      recommendations.push('Create temp directory for file uploads and processing');
+    }
+    
+    if (!assetsDirExists && attachedAssetsDirExists) {
+      recommendations.push('Create assets directory as symbolic link to attached_assets for better performance');
+    }
+    
+    if (assetsDirExists && !assetsIsSymlink && attachedAssetsDirExists) {
+      recommendations.push('Convert assets directory to symbolic link to attached_assets to save disk space');
+    }
+    
+    return {
+      status: recommendations.length > 0 ? 'warning' : 'good',
+      recommendations
+    };
+  } catch (error) {
+    console.error('Error analyzing file system:', error.message);
+    return {
+      status: 'error',
+      recommendations: [
+        'Fix file system configuration'
+      ]
+    };
+  }
+}
+
+// Check Node.js optimizations
+function checkNodeOptimizations() {
+  console.log('\n=== NODE.JS OPTIMIZATIONS ===');
+  
+  try {
+    console.log('Node.js Environment:');
+    console.log(`- Node Version: ${process.version}`);
+    console.log(`- NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+    
+    // Check compression middleware
+    const serverFile = path.join(process.cwd(), 'server', 'index.ts');
+    let hasCompression = false;
+    let hasCors = false;
+    let hasErrorHandling = false;
+    
+    if (fs.existsSync(serverFile)) {
+      const serverContent = fs.readFileSync(serverFile, 'utf8');
+      hasCompression = serverContent.includes('compression');
+      hasCors = serverContent.includes('cors');
+      hasErrorHandling = serverContent.includes('app.use((err');
+      
+      console.log(`- Compression middleware: ${hasCompression ? '✅' : '❌'}`);
+      console.log(`- CORS middleware: ${hasCors ? '✅' : '❌'}`);
+      console.log(`- Error handling middleware: ${hasErrorHandling ? '✅' : '❌'}`);
     } else {
-      console.log(`⚠️ Missing Python packages: ${missingPackages.join(', ')}`);
-      console.log('   Run the following command to install them:');
-      console.log(`   pip install ${missingPackages.join(' ')}`);
+      console.log('❌ Server index file not found');
     }
     
-    // Check if process is using virtualenv or system Python
-    try {
-      const pythonPath = execSync('which python3').toString().trim();
-      if (pythonPath.includes('virtualenv') || pythonPath.includes('venv')) {
-        console.log('✅ Using Python virtual environment');
-      } else {
-        console.log('ℹ️ Using system Python');
-      }
-    } catch (e) {
-      console.warn('Could not determine Python path');
+    // Check for platform adapter
+    const platformAdapterFile = path.join(process.cwd(), 'server', 'utils', 'platform-adapter.ts');
+    const hasPlatformAdapter = fs.existsSync(platformAdapterFile);
+    console.log(`- Platform adapter: ${hasPlatformAdapter ? '✅' : '❌'}`);
+    
+    // Check package.json for optimization scripts
+    const packageJsonPath = path.join(process.cwd(), 'package.json');
+    let hasOptimizationScripts = false;
+    
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      const scripts = packageJson.scripts || {};
+      
+      hasOptimizationScripts = 
+        Object.keys(scripts).some(key => 
+          key.includes('build') || 
+          key.includes('optimize') ||
+          key.includes('db:push'));
+      
+      console.log(`- Build/optimization scripts: ${hasOptimizationScripts ? '✅' : '❌'}`);
     }
-  } catch (e) {
-    console.warn('⚠️ Could not check Python optimizations:', e.message);
+    
+    const recommendations = [];
+    if (!hasCompression) {
+      recommendations.push('Add compression middleware for faster response times');
+    }
+    if (!hasCors) {
+      recommendations.push('Add CORS middleware for API access');
+    }
+    if (!hasErrorHandling) {
+      recommendations.push('Implement proper error handling middleware');
+    }
+    if (!hasPlatformAdapter) {
+      recommendations.push('Implement platform adapter for consistent behavior across environments');
+    }
+    if (!hasOptimizationScripts) {
+      recommendations.push('Add build and optimization scripts to package.json');
+    }
+    
+    return {
+      status: recommendations.length > 0 ? 'warning' : 'good',
+      recommendations
+    };
+  } catch (error) {
+    console.error('Error analyzing Node.js optimizations:', error.message);
+    return {
+      status: 'error',
+      recommendations: [
+        'Fix Node.js configuration issues'
+      ]
+    };
   }
-  
-  console.log('------------------------------------');
 }
 
-// Application-specific checks
+// Check Python optimizations
+function checkPythonOptimizations() {
+  console.log('\n=== PYTHON OPTIMIZATIONS ===');
+  
+  try {
+    // Check if Python is available
+    let pythonVersion = 'not detected';
+    try {
+      pythonVersion = execSync('python3 --version 2>/dev/null || python --version 2>/dev/null').toString().trim();
+    } catch (e) {
+      console.log('❌ Python not installed or not found in PATH');
+    }
+    
+    console.log(`- Python version: ${pythonVersion}`);
+    
+    // Check Python service implementation
+    const pythonServiceFile = path.join(process.cwd(), 'server', 'python-service.ts');
+    let hasPythonService = false;
+    let hasCaching = false;
+    let hasQueue = false;
+    
+    if (fs.existsSync(pythonServiceFile)) {
+      const pythonServiceContent = fs.readFileSync(pythonServiceFile, 'utf8');
+      hasPythonService = true;
+      hasCaching = pythonServiceContent.includes('cache') || 
+                   pythonServiceContent.includes('Cache');
+      hasQueue = pythonServiceContent.includes('queue') || 
+                 pythonServiceContent.includes('Queue');
+      
+      console.log(`- Python service: ✅`);
+      console.log(`- Result caching: ${hasCaching ? '✅' : '❌'}`);
+      console.log(`- Processing queue: ${hasQueue ? '✅' : '❌'}`);
+    } else {
+      console.log('❌ Python service not found');
+    }
+    
+    const recommendations = [];
+    if (!hasPythonService) {
+      recommendations.push('Implement Python service for AI processing');
+    }
+    if (!hasCaching) {
+      recommendations.push('Add caching to Python service for better performance');
+    }
+    if (!hasQueue) {
+      recommendations.push('Implement processing queue in Python service to prevent overload');
+    }
+    
+    return {
+      status: recommendations.length > 0 ? 'warning' : 'good',
+      recommendations
+    };
+  } catch (error) {
+    console.error('Error analyzing Python optimizations:', error.message);
+    return {
+      status: 'error',
+      recommendations: [
+        'Fix Python configuration issues'
+      ]
+    };
+  }
+}
+
+// Check application-specific optimizations
 function checkApplicationOptimizations() {
-  console.log('📊 APPLICATION OPTIMIZATIONS:');
+  console.log('\n=== APPLICATION OPTIMIZATIONS ===');
   
-  // Check for .env file
-  if (fs.existsSync(path.join(__dirname, '..', '.env'))) {
-    console.log('✅ .env configuration file exists');
-  } else {
-    console.log('⚠️ No .env file found. Create one for local development.');
+  try {
+    // Check for WebSocket implementation
+    const routesFile = path.join(process.cwd(), 'server', 'routes.ts');
+    let hasWebSockets = false;
+    let hasProgressTracking = false;
+    let hasUploadHandling = false;
+    
+    if (fs.existsSync(routesFile)) {
+      const routesContent = fs.readFileSync(routesFile, 'utf8');
+      hasWebSockets = routesContent.includes('WebSocket');
+      hasProgressTracking = routesContent.includes('progress') || 
+                            routesContent.includes('Progress');
+      hasUploadHandling = routesContent.includes('upload') || 
+                          routesContent.includes('Upload') ||
+                          routesContent.includes('multer');
+      
+      console.log(`- WebSocket implementation: ${hasWebSockets ? '✅' : '❌'}`);
+      console.log(`- Progress tracking: ${hasProgressTracking ? '✅' : '❌'}`);
+      console.log(`- File upload handling: ${hasUploadHandling ? '✅' : '❌'}`);
+    } else {
+      console.log('❌ Routes file not found');
+    }
+    
+    // Check clear-cache script
+    const clearCacheScript = path.join(process.cwd(), 'scripts', 'clear-cache.js');
+    const hasClearCacheScript = fs.existsSync(clearCacheScript);
+    console.log(`- Cache cleaning script: ${hasClearCacheScript ? '✅' : '❌'}`);
+    
+    // Check health check endpoint
+    let hasHealthCheck = false;
+    if (fs.existsSync(routesFile)) {
+      const routesContent = fs.readFileSync(routesFile, 'utf8');
+      hasHealthCheck = routesContent.includes('/api/health');
+      console.log(`- Health check endpoint: ${hasHealthCheck ? '✅' : '❌'}`);
+    }
+    
+    const recommendations = [];
+    if (!hasWebSockets) {
+      recommendations.push('Implement WebSockets for real-time updates');
+    }
+    if (!hasProgressTracking) {
+      recommendations.push('Add progress tracking for long-running operations');
+    }
+    if (!hasUploadHandling) {
+      recommendations.push('Implement proper file upload handling with progress reporting');
+    }
+    if (!hasClearCacheScript) {
+      recommendations.push('Create cache cleaning script for maintenance');
+    }
+    if (!hasHealthCheck) {
+      recommendations.push('Add health check endpoint for monitoring');
+    }
+    
+    return {
+      status: recommendations.length > 0 ? 'warning' : 'good',
+      recommendations
+    };
+  } catch (error) {
+    console.error('Error analyzing application optimizations:', error.message);
+    return {
+      status: 'error',
+      recommendations: [
+        'Fix application configuration issues'
+      ]
+    };
   }
-  
-  // Check for production mode
-  const isProduction = process.env.NODE_ENV === 'production';
-  console.log(`Environment: ${isProduction ? 'Production' : 'Development'}`);
-  
-  if (!isProduction) {
-    console.log('   For production, set NODE_ENV=production');
-  }
-  
-  console.log('------------------------------------');
 }
 
-// Run all checks
+// Run performance analysis
 function runPerformanceAnalysis() {
-  checkDatabasePerformance();
-  checkFileSystem();
-  checkNodeOptimizations();
-  checkPythonOptimizations();
-  checkApplicationOptimizations();
+  console.log('=== PERFORMANCE ANALYSIS STARTING ===');
+  console.log(`Date: ${new Date().toISOString()}`);
+  console.log(`Platform: ${platform}`);
+  console.log(`Node Version: ${process.version}`);
+  console.log(`Architecture: ${os.arch()}`);
+  console.log('-----------------------------------');
   
-  console.log('====================================');
-  console.log('🎉 Performance analysis completed!');
-  console.log('Run "node scripts/clear-cache.js" to clean up temporary files if needed.');
+  const dbPerformance = checkDatabasePerformance();
+  const fileSystemPerformance = checkFileSystem();
+  const nodeOptimizations = checkNodeOptimizations();
+  const pythonOptimizations = checkPythonOptimizations();
+  const appOptimizations = checkApplicationOptimizations();
+  
+  console.log('\n=== PERFORMANCE ANALYSIS SUMMARY ===');
+  console.log(`Database Performance: ${dbPerformance.status}`);
+  console.log(`File System Optimization: ${fileSystemPerformance.status}`);
+  console.log(`Node.js Optimizations: ${nodeOptimizations.status}`);
+  console.log(`Python Optimizations: ${pythonOptimizations.status}`);
+  console.log(`Application Optimizations: ${appOptimizations.status}`);
+  
+  console.log('\n=== RECOMMENDATIONS ===');
+  
+  let allRecommendations = [
+    ...dbPerformance.recommendations,
+    ...fileSystemPerformance.recommendations,
+    ...nodeOptimizations.recommendations,
+    ...pythonOptimizations.recommendations,
+    ...appOptimizations.recommendations
+  ];
+  
+  if (allRecommendations.length === 0) {
+    console.log('✅ No performance issues detected. Application is well optimized!');
+  } else {
+    allRecommendations.forEach((rec, index) => {
+      console.log(`${index + 1}. ${rec}`);
+    });
+  }
+  
+  console.log('\n=== PERFORMANCE ANALYSIS COMPLETE ===');
 }
 
+// Run the analysis
 runPerformanceAnalysis();
