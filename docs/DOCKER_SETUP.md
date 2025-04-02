@@ -13,7 +13,7 @@ This guide provides instructions for running PanicSense using Docker for both lo
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/markcastillo/PanicSense.git
+git clone https://github.com/draiimon/PanicSense.git
 cd PanicSense
 ```
 

@@ -92,7 +92,7 @@ For comprehensive step-by-step instructions, refer to [docs/LOCAL_SETUP.md](docs
 #### Option 1: One-Command Docker Setup (Recommended)
 ```bash
 # Clone repository and start application
-git clone https://github.com/markcastillo/PanicSense.git
+git clone https://github.com/draiimon/PanicSense.git
 cd PanicSense
 docker-compose up --build
 ```
@@ -106,7 +106,7 @@ This single command will:
 #### Option 2: Advanced Development Setup
 ```bash
 # Clone the repository
-git clone https://github.com/markcastillo/PanicSense.git
+git clone https://github.com/draiimon/PanicSense.git
 cd PanicSense
 
 # Use Node.js version manager (if needed)
@@ -154,9 +154,9 @@ For local development, simply copy `.env.example` to `.env` and add your Groq AP
 
 <div align="center">
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/markcastillo/PanicSense)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/draiimon/PanicSense)
 &nbsp;&nbsp;&nbsp;
-[![Run on Replit](https://replit.com/badge/github/markcastillo/PanicSense)](https://replit.com/github/markcastillo/PanicSense)
+[![Run on Replit](https://replit.com/badge/github/draiimon/PanicSense)](https://replit.com/github/draiimon/PanicSense)
 
 </div>
 
@@ -398,9 +398,9 @@ PanicSense/
 
 For support requests, feature suggestions, or partnership inquiries:
 
-- 📧 Email: mark.castillo@example.com
-- 🌐 Website: https://panicsense.ph
-- 📞 Phone: +63 (2) 8XXX-XXXX
+- 📧 Email: andreicastillofficial@gmail.com
+- 🌐 Website: https://www.panicsenseph.ct.ws
+- 📞 Phone: 09531829483
 
 ## License & Copyright
 
