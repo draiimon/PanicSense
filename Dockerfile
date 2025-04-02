@@ -6,14 +6,11 @@ WORKDIR /app
 # Install Python and required system packages for canvas and other dependencies
 RUN apk add --no-cache python3 py3-pip make g++ pkgconfig pixman-dev cairo-dev pango-dev jpeg-dev giflib-dev
 
-# Install pnpm
-RUN npm install -g pnpm
-
 # Copy package files first (better layer caching)
 COPY package*.json ./
 
-# Install dependencies with pnpm
-RUN pnpm install --prod --frozen-lockfile
+# Install dependencies with npm (modified to fix canvas build issues)
+RUN npm ci --omit=dev
 
 # Copy Python requirements
 COPY server/python/requirements.txt ./server/python/
@@ -29,7 +26,7 @@ RUN python3 -c "import nltk; nltk.download('punkt', download_dir='/usr/local/sha
 COPY . .
 
 # Build the application
-RUN NODE_ENV=production pnpm run build
+RUN NODE_ENV=production npm run build
 
 # Use a smaller production image
 FROM node:20-alpine
