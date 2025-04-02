@@ -1158,7 +1158,10 @@ class DisasterSentimentBackend:
             confidence = 0.70 + (max_score * 0.03)
             
         # Always format as floating point with consistent 2 decimal places
+        # First round to 2 decimal places
         confidence = round(confidence, 2)
+        # Then format to ensure we always show 2 decimal places (even for whole numbers like 0.80 vs 0.8)
+        confidence = float(f"{confidence:.2f}")
 
         # Generate more detailed explanation based on sentiment
         explanation = ""
