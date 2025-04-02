@@ -11,23 +11,29 @@ const { migrate } = require('drizzle-orm/node-postgres/migrator');
 async function runMigrations() {
   console.log('Starting database migrations...');
   
-  // Connect to database using DATABASE_URL with SSL settings for production
+  // Connect to database using DATABASE_URL with SSL settings for Neon Database and production
   const isProduction = process.env.NODE_ENV === 'production';
-  const sslConfig = isProduction ? { ssl: { rejectUnauthorized: false } } : false;
+  const isNeonDb = process.env.DATABASE_URL?.includes('neon.tech');
+  
+  // Always use SSL for Neon Database regardless of environment
+  const sslConfig = isNeonDb || isProduction 
+    ? { ssl: { rejectUnauthorized: false } } 
+    : false;
   
   console.log(`Database migration running in ${isProduction ? 'production' : 'development'} mode`);
-  console.log(`Using SSL configuration: ${isProduction ? 'enabled' : 'disabled'}`);
+  console.log(`Detected ${isNeonDb ? 'Neon' : 'Standard'} PostgreSQL database`);
+  console.log(`Using SSL configuration: ${isNeonDb || isProduction ? 'enabled' : 'disabled'}`);
   
-  // Create a connection pool with a timeout
+  // Create a connection pool with settings optimized for Neon or standard PostgreSQL
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: sslConfig,
-    // Longer connection timeout for migrations
-    connectionTimeoutMillis: 10000,
+    // Longer connection timeout for migrations (especially for Neon serverless)
+    connectionTimeoutMillis: isNeonDb ? 30000 : 10000,
     // Increase idle timeout to prevent disconnect during migration
-    idleTimeoutMillis: 30000,
-    // Single connection is enough for migrations
-    max: 1
+    idleTimeoutMillis: isNeonDb ? 60000 : 30000,
+    // Single connection is enough for migrations, but create small pool for Neon
+    max: isNeonDb ? 3 : 1
   });
 
   const db = drizzle(pool);

@@ -134,19 +134,19 @@ pnpm dev
 
 ### Environment Configuration
 
-PanicSense uses environment variables for configuration. The most important ones are:
+PanicSense uses a shared Neon PostgreSQL database for all environments (local, Replit, and Render). This ensures consistent data across development and production.
 
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `GROQ_API_KEY_1` | Primary Groq API key for sentiment analysis | ✅ Yes |
 | `GROQ_API_KEY_2...N` | Additional Groq API keys for load balancing | ❌ No |
 | `VALIDATION_API_KEY` | Special key for sentiment validation | ✅ Yes |
-| `DATABASE_URL` | PostgreSQL connection string | ✅ Yes |
+| `DATABASE_URL` | Neon PostgreSQL connection (preconfigured) | ✅ Already set |
 | `NODE_ENV` | Environment mode (`development`/`production`) | ❌ No |
 | `PORT` | Server port (default: 5000) | ❌ No |
 | `LOG_LEVEL` | Logging verbosity | ❌ No |
 
-For local development, copy `.env.example` to `.env` and add your API keys.
+For local development, simply copy `.env.example` to `.env` and add your Groq API keys. The database connection is already configured for the shared Neon database.
 
 ### Deployment Options
 
@@ -170,8 +170,9 @@ For local development, copy `.env.example` to `.env` and add your API keys.
    - Connect your GitHub account and select the repository
 
 3. **Configure Environment**
-   - Add required API keys in the Environment section
-   - The database will be automatically provisioned
+   - Add only your Groq API keys in the Environment section
+   - The database connection is already configured to use our shared Neon database
+   - No additional database setup is required
 
 4. **Deploy & Access**
    - Render will build and deploy automatically
