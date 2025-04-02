@@ -11,35 +11,15 @@ import random
 import concurrent.futures
 from datetime import datetime
 
-# Check and import required packages with helpful error messages
-required_packages = {
-    'pandas': 'pd',
-    'numpy': 'np',
-    'langdetect': 'detect',
-    'nltk': None,
-    'sklearn': None
-}
-
-missing_packages = []
-
-# Try to import each package and track missing ones
-for package, alias in required_packages.items():
-    try:
-        if alias:
-            exec(f"import {package} as {alias}")
-        else:
-            exec(f"import {package}")
-    except ImportError:
-        missing_packages.append(package)
-
-# If any packages are missing, provide a helpful error message
-if missing_packages:
-    print(f"Error: Required packages not found: {', '.join(missing_packages)}")
-    print(f"Install them using: pip install {' '.join(missing_packages)}")
+try:
+    import pandas as pd
+    import numpy as np
+    from langdetect import detect
+except ImportError:
+    print(
+        "Error: Required packages not found. Install them using pip install pandas numpy langdetect"
+    )
     sys.exit(1)
-
-# Import specific functions after we've confirmed packages exist
-from langdetect import detect
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
