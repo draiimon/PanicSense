@@ -8,15 +8,19 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
+    python3-venv \
+    python3-full \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy package files and install dependencies
 COPY package*.json ./
 RUN npm ci
 
-# Copy Python requirements and install
+# Set up Python virtual environment and install requirements
 COPY server/python/requirements.txt ./
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip3 install --upgrade pip && pip3 install --no-cache-dir -r requirements.txt
 
 # Copy all application files
 COPY . .
