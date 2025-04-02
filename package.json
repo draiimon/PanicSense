@@ -48,6 +48,7 @@
     "@types/leaflet": "^1.9.16",
     "@types/multer": "^1.4.12",
     "@types/pg": "^8.11.11",
+    "@types/pg-pool": "^2.0.6",
     "bcryptjs": "^3.0.2",
     "canvas": "^3.1.0",
     "chart.js": "^4.4.8",
@@ -75,6 +76,7 @@
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "pg": "^8.14.1",
+    "pg-pool": "^3.8.0",
     "postgres": "^3.4.5",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
@@ -108,13 +110,13 @@
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
-    "drizzle-kit": "^0.30.4",
+    "drizzle-kit": "^0.30.6",
     "esbuild": "^0.25.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
     "tsx": "^4.19.3",
     "typescript": "^5.6.3",
-    "vite": "^5.4.14"
+    "vite": "^6.2.4"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
