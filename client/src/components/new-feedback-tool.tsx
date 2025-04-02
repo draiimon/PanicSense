@@ -43,6 +43,9 @@ interface NewFeedbackToolProps {
   originalLocation?: string;
   originalDisasterType?: string;
   onFeedbackSubmitted?: () => void;
+  buttonIcon?: React.ReactNode;
+  buttonLabel?: string;
+  buttonClassName?: string;
 }
 
 // These are the preset options
@@ -63,7 +66,10 @@ export function NewFeedbackTool({
   originalSentiment,
   originalLocation = "Unknown",
   originalDisasterType = "Unknown",
-  onFeedbackSubmitted
+  onFeedbackSubmitted,
+  buttonIcon,
+  buttonLabel = "Provide Feedback",
+  buttonClassName
 }: NewFeedbackToolProps) {
   // Main states
   const [isOpen, setIsOpen] = useState(false);
@@ -156,11 +162,14 @@ export function NewFeedbackTool({
       console.log("Feedback response:", response);
       
       // Extract the message from the response
-      const validationMessage = 
+      let validationMessage = 
         response.status === "error" ? response.message : 
         response.message ? response.message :
         response.aiTrustMessage ? response.aiTrustMessage :
         "Feedback received. Thank you for helping improve our analysis.";
+      
+      // Remove any AI terms
+      validationMessage = validationMessage.replace(/AI|artificial intelligence/gi, "model").replace(/quiz/gi, "validation");
       
       // Set the validation result to show in the result dialog
       setValidationResult(validationMessage || null);
@@ -246,11 +255,11 @@ export function NewFeedbackTool({
           <Button
             variant="outline" 
             size="sm"
-            className="text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full shadow-sm border border-slate-200"
+            className={buttonClassName || "text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full shadow-sm border border-slate-200"}
             onClick={() => setIsOpen(true)}
           >
-            <ThumbsDown className="h-4 w-4 mr-1.5" />
-            <span className="text-xs font-medium">Provide Feedback</span>
+            {buttonIcon || <ThumbsDown className="h-4 w-4 mr-1.5" />}
+            {buttonLabel && <span className="text-xs font-medium">{buttonLabel}</span>}
           </Button>
         </DialogTrigger>
         

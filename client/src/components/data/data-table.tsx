@@ -31,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getSentimentBadgeClasses } from "@/lib/colors";
 import { SentimentPost, deleteSentimentPost } from "@/lib/api";
 import { format } from "date-fns";
-import { Trash2, Search, Filter, Maximize2, Calendar, ExternalLink, Languages, MessageSquare, Loader2, BrainCircuit, Shield } from 'lucide-react';
+import { Trash2, Search, Filter, Maximize2, Calendar, ExternalLink, Languages, MessageSquare, Loader2, BrainCircuit, Shield, Edit } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -394,7 +394,7 @@ export function DataTable({
                                   </div>
                                 )}
                                 
-                                {/* AI Explanation Section - NEW */}
+                                {/* Explanation Section - NEW */}
                                 {item.explanation && (
                                   <div className="col-span-1 sm:col-span-2 space-y-1 mt-2">
                                     <div className="flex items-center text-xs font-medium text-blue-600 uppercase tracking-wider">
@@ -407,15 +407,15 @@ export function DataTable({
                                   </div>
                                 )}
                                 
-                                {/* AI Trust Message / Validation Message - NEW */}
+                                {/* Trust Message / Validation Message - NEW */}
                                 {item.aiTrustMessage && (
                                   <div className="col-span-1 sm:col-span-2 space-y-1 mt-2">
                                     <div className="flex items-center text-xs font-medium text-amber-600 uppercase tracking-wider">
                                       <Shield className="h-3.5 w-3.5 mr-1.5 text-amber-500" />
-                                      Validation Message
+                                      Model Validation
                                     </div>
                                     <div className="text-sm text-amber-800 bg-amber-50/70 border border-amber-200/70 rounded-md p-3">
-                                      {item.aiTrustMessage}
+                                      {item.aiTrustMessage.replace(/AI|artificial intelligence/gi, "model").replace(/quiz/gi, "validation")}
                                     </div>
                                   </div>
                                 )}
@@ -497,41 +497,56 @@ export function DataTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <CustomAlertDialogTrigger
-                        className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:shadow-sm transition-all duration-200 rounded-full flex items-center justify-center cursor-pointer"
-                        onClick={() => setPostToDelete(item.id)}
-                        dialog={
-                          <AlertDialogContent className="bg-white border-slate-200 rounded-xl shadow-xl">
-                            <AlertDialogHeader>
-                              <AlertDialogTitle className="text-xl">Delete this post?</AlertDialogTitle>
-                              <AlertDialogDescription className="text-slate-600">
-                                This will permanently delete the sentiment analysis result from the database.
-                                This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel className="rounded-full hover:bg-slate-100">
-                                Cancel
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeletePost(item.id)}
-                                className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-md"
-                              >
-                                {isDeleting && postToDelete === item.id ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Deleting...
-                                  </>
-                                ) : (
-                                  "Delete"
-                                )}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        }
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </CustomAlertDialogTrigger>
+                      <div className="flex items-center space-x-1">
+                        {/* Quick Edit Button */}
+                        <NewFeedbackTool
+                          originalText={item.text}
+                          originalSentiment={item.sentiment}
+                          originalLocation={item.location || "Unknown"}
+                          originalDisasterType={item.disasterType || "Unknown"}
+                          onFeedbackSubmitted={() => {}}
+                          buttonIcon={<Edit className="h-4 w-4" />}
+                          buttonLabel="Edit"
+                          buttonClassName="h-8 w-8 text-slate-400 hover:text-blue-500 hover:bg-blue-50 hover:shadow-sm transition-all duration-200 rounded-full flex items-center justify-center cursor-pointer"
+                        />
+                        
+                        {/* Delete Button */}
+                        <CustomAlertDialogTrigger
+                          className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:shadow-sm transition-all duration-200 rounded-full flex items-center justify-center cursor-pointer"
+                          onClick={() => setPostToDelete(item.id)}
+                          dialog={
+                            <AlertDialogContent className="bg-white border-slate-200 rounded-xl shadow-xl">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="text-xl">Delete this post?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-slate-600">
+                                  This will permanently delete the sentiment analysis result from the database.
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-full hover:bg-slate-100">
+                                  Cancel
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeletePost(item.id)}
+                                  className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-md"
+                                >
+                                  {isDeleting && postToDelete === item.id ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    "Delete"
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </CustomAlertDialogTrigger>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
