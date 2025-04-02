@@ -1,0 +1,50 @@
+# Render Blueprint definition for PanicSense
+# This file configures the deployment on Render.com
+
+services:
+  # Web service configuration for the main application
+  - type: web
+    name: panicsense
+    env: docker
+    plan: starter # Select appropriate plan (starter, standard, etc.)
+    region: singapore # Choose the region closest to your target users
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    numInstances: 1
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      # Database configuration (using the shared Neon PostgreSQL database)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: neon-database-connection
+          property: connectionString
+      # Groq API keys
+      - key: VALIDATION_API_KEY
+        sync: false # Set this manually in the Render dashboard
+      - key: GROQ_API_KEY_1
+        sync: false # Set this manually in the Render dashboard
+      - key: GROQ_API_KEY_2
+        sync: false # Set this manually in the Render dashboard
+      - key: GROQ_API_KEY_3
+        sync: false # Set this manually in the Render dashboard
+      - key: GROQ_API_KEY_4
+        sync: false # Set this manually in the Render dashboard
+    autoDeploy: true
+    disk:
+      name: uploads
+      mountPath: /app/uploads
+      sizeGB: 1
+
+# The shared Neon PostgreSQL database is referenced here
+databases:
+  - name: neon-database-connection
+    databaseName: neondb
+    user: neondb_owner
+    plan: free # Choose appropriate plan
+    region: singapore
+    postgresMajorVersion: 15
