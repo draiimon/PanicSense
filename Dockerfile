@@ -1,71 +1,74 @@
-FROM node:20-alpine AS build
+# PanicSense Optimized Dockerfile for Render Deployment
 
-# Set working directory
-WORKDIR /app
+# Build Stage
+FROM node:20-slim AS builder
 
-# Install pnpm
-RUN npm install -g pnpm
+WORKDIR /build
 
-# Install Python and required system packages for canvas and other dependencies
-RUN apk add --no-cache python3 py3-pip make g++ pkgconfig pixman-dev cairo-dev pango-dev jpeg-dev giflib-dev
+# Install required system packages for build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy package files first (better layer caching)
-COPY package.json ./
+# Create Python virtual environment
+RUN python3 -m venv /build/venv
+ENV PATH="/build/venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
 
-# Install dependencies with pnpm (modified to fix canvas build issues)
-RUN pnpm install --prod
-
-# Set up Python virtual environment
-RUN python3 -m venv /app/venv
-ENV PATH="/app/venv/bin:$PATH"
-
-# Copy Python requirements
+# Copy and install Python requirements (with minimal dependencies)
 COPY server/python/requirements.txt ./server/python/
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r server/python/requirements.txt
 
-# Install Python packages in the virtual environment
-RUN pip install --upgrade pip && \
-    pip install -r server/python/requirements.txt
+# Download only required NLTK data
+RUN pip install --no-cache-dir nltk && \
+    python3 -c "import nltk; nltk.download('punkt', download_dir='/build/nltk_data')"
 
-# Download NLTK data
-RUN pip install nltk && \
-    python -c "import nltk; nltk.download('punkt', download_dir='/app/nltk_data')"
+# Copy package files and install Node.js dependencies
+COPY package*.json ./
+RUN npm ci
 
-# Copy source code
+# Copy source files
 COPY . .
 
 # Build the application
-RUN NODE_ENV=production pnpm run build
+RUN NODE_ENV=production NODE_OPTIONS=--max-old-space-size=1536 npm run build
 
-# Use a smaller production image
-FROM node:20-alpine
+# Runtime Stage - Use a smaller image
+FROM node:20-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install only runtime dependencies (not dev dependencies)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Python and runtime dependencies for canvas
-RUN apk add --no-cache python3 pixman cairo pango jpeg giflib
+# Copy built application and dependencies
+COPY --from=builder /build/dist ./dist
+COPY --from=builder /build/node_modules ./node_modules
+COPY --from=builder /build/server/python ./server/python
+COPY --from=builder /build/venv /app/venv
+COPY --from=builder /build/nltk_data /usr/share/nltk_data
+COPY quick-fix.sh /app/quick-fix.sh
 
-# Copy built app and dependencies from build stage
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/server/python ./server/python
-COPY --from=build /app/venv /app/venv
-COPY --from=build /app/nltk_data /usr/local/share/nltk_data
+# Set proper permissions for scripts
+RUN chmod +x /app/quick-fix.sh
 
-# Set environment for Python virtual environment
+# Configure environment variables
 ENV PATH="/app/venv/bin:$PATH"
 ENV PYTHONPATH=/app/venv/lib/python3.*/site-packages
-ENV NLTK_DATA=/usr/local/share/nltk_data
+ENV NLTK_DATA=/usr/share/nltk_data
+ENV NODE_ENV=production
+ENV PORT=5000
+ENV NODE_OPTIONS=--max-old-space-size=1536
 
-# Expose the port the app runs on (this handles both HTTP and WebSocket)
+# Expose the application port
 EXPOSE 5000
-
-# Define environment variables
-ENV NODE_ENV production
-ENV PORT 5000
 
 # Run the application
 CMD ["node", "dist/index.js"]
