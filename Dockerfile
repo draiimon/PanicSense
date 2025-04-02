@@ -12,8 +12,9 @@ RUN apk add --no-cache python3 py3-pip make g++ pkgconfig pixman-dev cairo-dev p
 # Copy package files first (better layer caching)
 COPY package.json ./
 
-# Install dependencies with pnpm (modified to fix canvas build issues)
-RUN pnpm install --prod
+# Install dependencies with pnpm (with manual approval for build scripts)
+RUN pnpm install --prod || pnpm install --prod --no-optional
+RUN pnpm install -D esbuild
 
 # Set up Python virtual environment
 RUN python3 -m venv /app/venv
@@ -24,16 +25,17 @@ COPY server/python/requirements.txt ./server/python/
 
 # Install Python packages in the virtual environment
 RUN pip install --upgrade pip && \
+    pip install setuptools wheel && \
     pip install -r server/python/requirements.txt
 
 # Download NLTK data
-RUN pip install nltk && \
-    python -c "import nltk; nltk.download('punkt', download_dir='/app/nltk_data')"
+RUN python -c "import nltk; nltk.download('punkt', download_dir='/app/nltk_data')"
 
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application with NODE_OPTIONS to avoid memory issues
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN NODE_ENV=production pnpm run build
 
 # Use a smaller production image
@@ -46,7 +48,7 @@ WORKDIR /app
 RUN npm install -g pnpm
 
 # Install Python and runtime dependencies for canvas
-RUN apk add --no-cache python3 pixman cairo pango jpeg giflib
+RUN apk add --no-cache python3 python3-dev pixman cairo pango jpeg giflib
 
 # Copy built app and dependencies from build stage
 COPY --from=build /app/dist ./dist
