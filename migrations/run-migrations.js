@@ -91,7 +91,20 @@ async function runMigrations() {
     }
     
     // Step 1: Run SQL migration script with error handling per statement
-    const sqlPath = path.join(__dirname, 'add_missing_columns.sql');
+    // First try complete schema for new deployments
+    const completeSchemaPath = path.join(__dirname, 'complete_schema.sql');
+    // Fallback to add_missing_columns if complete_schema doesn't exist (backwards compatibility)
+    const fallbackPath = path.join(__dirname, 'add_missing_columns.sql');
+    
+    let sqlPath;
+    if (fs.existsSync(completeSchemaPath)) {
+      console.log('Using complete schema migration script...');
+      sqlPath = completeSchemaPath;
+    } else {
+      console.log('Complete schema not found, using fallback migration script...');
+      sqlPath = fallbackPath;
+    }
+    
     const sql = fs.readFileSync(sqlPath, 'utf8');
     const statements = sql.split(';').filter(stmt => stmt.trim().length > 0);
     
