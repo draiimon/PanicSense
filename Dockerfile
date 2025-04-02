@@ -24,9 +24,11 @@ RUN node --version && python --version
 # Install pnpm
 RUN npm install -g pnpm@latest
 
-# Copy only package.json first for better caching
-COPY package.json ./
+# Copy package.json and package-lock.json for better caching
+COPY package.json package-lock.json ./
+# Force install nanoid to fix missing dependency issue
 RUN pnpm install
+RUN npm install nanoid
 
 # Install prebuilt Python packages first to avoid compilation issues
 RUN pip install --upgrade pip setuptools wheel && \
