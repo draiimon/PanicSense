@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useDisasterContext } from "@/context/disaster-context";
 import { CustomDialogTrigger, CustomAlertDialogTrigger } from "@/components/custom";
+import { NewFeedbackTool } from "@/components/new-feedback-tool";
 
 interface DataTableProps {
   data: SentimentPost[];
@@ -66,11 +67,53 @@ export function DataTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSentiment, setSelectedSentiment] = useState<string>("All");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [localData, setLocalData] = useState<SentimentPost[]>([]);
   
   // Performance optimization - memoize expensive operations
   const isSmallScreen = useState(window.innerWidth < 768)[0];
   const [postToDelete, setPostToDelete] = useState<number | null>(null);
   const rowsPerPage = 10;
+  
+  // Initialize local data from props
+  useEffect(() => {
+    setLocalData(data);
+  }, [data]);
+  
+  // Listen for real-time data updates
+  useEffect(() => {
+    // Event listener for when feedback is submitted
+    const handleDataChanged = (event: CustomEvent) => {
+      const { text, newSentiment, newLocation, newDisasterType } = event.detail;
+      
+      // Update the local data immediately without waiting for API refresh
+      setLocalData(prevData => {
+        return prevData.map(item => {
+          if (item.text === text) {
+            return {
+              ...item,
+              sentiment: newSentiment || item.sentiment,
+              location: newLocation || item.location,
+              disasterType: newDisasterType || item.disasterType,
+              // Add a visual indication that this was just updated
+              _justUpdated: true
+            };
+          }
+          return item;
+        });
+      });
+      
+      // After a brief delay, refresh data from server to ensure consistency
+      setTimeout(() => refreshData(), 500);
+    };
+    
+    // Add event listener
+    window.addEventListener('sentiment-data-changed', handleDataChanged as EventListener);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('sentiment-data-changed', handleDataChanged as EventListener);
+    };
+  }, [refreshData]);
 
   // Handle delete post
   const handleDeletePost = async (id: number) => {
@@ -96,7 +139,7 @@ export function DataTable({
   };
 
   // Filter data based on search term and sentiment filter
-  const filteredData = data.filter(item => {
+  const filteredData = localData.filter(item => {
     const matchesSearch = 
       item.text.toLowerCase().includes(searchTerm.toLowerCase()) || 
       item.source?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -238,6 +281,15 @@ export function DataTable({
                                 View the complete message content and details below.
                               </DialogDescription>
                             </DialogHeader>
+                            <div className="absolute top-3 right-14">
+                              <NewFeedbackTool
+                                originalText={item.text}
+                                originalSentiment={item.sentiment}
+                                originalLocation={item.location || undefined}
+                                originalDisasterType={item.disasterType || undefined}
+                                onFeedbackSubmitted={() => refreshData()}
+                              />
+                            </div>
                             
                             <div className="mt-4 space-y-6">
                               <div className="p-4 rounded-lg bg-white border border-slate-200">
