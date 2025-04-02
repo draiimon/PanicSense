@@ -66,42 +66,11 @@ export function DataTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSentiment, setSelectedSentiment] = useState<string>("All");
   const [isDeleting, setIsDeleting] = useState(false);
-  const [localData, setLocalData] = useState<SentimentPost[]>([]);
   
   // Performance optimization - memoize expensive operations
   const isSmallScreen = useState(window.innerWidth < 768)[0];
   const [postToDelete, setPostToDelete] = useState<number | null>(null);
   const rowsPerPage = 10;
-  
-  // Initialize local data from props
-  useEffect(() => {
-    setLocalData(data);
-  }, [data]);
-  
-  // Listen for real-time updates via the custom event
-  useEffect(() => {
-    const handleSentimentChange = (event: CustomEvent) => {
-      console.log("Sentiment change event received:", event);
-      
-      if (event.detail && event.detail.id) {
-        // Update the local data without needing a full refresh
-        setLocalData(prevData => 
-          prevData.map(post => 
-            post.id === event.detail.id 
-              ? { ...post, ...event.detail.updates, updatedAt: new Date().toISOString() } 
-              : post
-          )
-        );
-      }
-    };
-    
-    // TypeScript needs us to cast the event type
-    window.addEventListener('sentiment-change', handleSentimentChange as EventListener);
-    
-    return () => {
-      window.removeEventListener('sentiment-change', handleSentimentChange as EventListener);
-    };
-  }, []);
 
   // Handle delete post
   const handleDeletePost = async (id: number) => {
@@ -127,7 +96,7 @@ export function DataTable({
   };
 
   // Filter data based on search term and sentiment filter
-  const filteredData = localData.filter(item => {
+  const filteredData = data.filter(item => {
     const matchesSearch = 
       item.text.toLowerCase().includes(searchTerm.toLowerCase()) || 
       item.source?.toLowerCase().includes(searchTerm.toLowerCase()) ||
