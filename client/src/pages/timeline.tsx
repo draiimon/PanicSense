@@ -73,7 +73,7 @@ export default function Timeline() {
         // Skip future dates
         if (isAfter(itemDate, currentDate)) return;
         
-        const displayDate = format(itemDate, "MMM dd, yyyy");
+        const displayDate = format(itemDate, "MM-dd-yyyy");
         uniqueDates.set(displayDate, itemDate);
       } catch (err) {
         // Skip items with invalid date formats
@@ -106,7 +106,7 @@ export default function Timeline() {
         // Skip posts with invalid timestamps or sentiment
         if (!post || !post.timestamp || typeof post.timestamp !== 'string') return;
         
-        const postDate = format(parseISO(post.timestamp), "MMM dd, yyyy");
+        const postDate = format(parseISO(post.timestamp), "MM-dd-yyyy");
         
         // Check if we have this date initialized in our counts and post has valid sentiment
         if (sentimentCounts[postDate] && post.sentiment) {

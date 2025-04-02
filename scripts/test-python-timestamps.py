@@ -5,7 +5,8 @@ import sys
 
 def test_iso8601_parsing():
     """Test parsing various ISO 8601 formatted timestamps"""
-    print("Testing ISO 8601 timestamp parsing in Python\n")
+    print("===== PYTHON ISO 8601 TIMESTAMP COMPATIBILITY TEST =====")
+    print("Testing conversion of ISO 8601 timestamps to MM-dd-yyyy format\n")
     
     # Test cases
     timestamps = [
@@ -20,16 +21,13 @@ def test_iso8601_parsing():
         # Method 1: Replace Z with +00:00 (works in Python 3.7+)
         try:
             date1 = datetime.fromisoformat(ts.replace('Z', '+00:00'))
-            print(f"  ✅ Method 1 (replace Z): {date1}")
+            formatted = date1.strftime("%m-%d-%Y")
+            print(f"  ✅ Parsed as: {date1}")
+            print(f"  ✅ Formatted: {formatted}")
         except Exception as e:
-            print(f"  ❌ Method 1 failed: {e}")
-        
-        # Method 2: Direct parsing (may require Python 3.11+)
-        try:
-            date2 = datetime.fromisoformat(ts)
-            print(f"  ✅ Method 2 (direct): {date2}")
-        except Exception as e:
-            print(f"  ❌ Method 2 failed: {e}")
+            print(f"  ❌ Error: {e}")
+            
+        print("")  # Add a blank line between test cases
             
         # Method 3: Fall back to strptime
         try:

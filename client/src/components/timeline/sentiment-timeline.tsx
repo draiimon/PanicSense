@@ -80,14 +80,14 @@ export function SentimentTimeline({
         const currentDate = new Date();
         return { 
           original: currentDate.toISOString(), 
-          formatted: format(currentDate, 'MMM dd, yyyy'), 
+          formatted: format(currentDate, 'MM-dd-yyyy'), 
           date: currentDate, 
           year: getYear(currentDate) 
         };
       }
       
       const date = parseISO(dateStr);
-      const formattedDate = format(date, 'MMM dd, yyyy');
+      const formattedDate = format(date, 'MM-dd-yyyy');
       return { original: dateStr, formatted: formattedDate, date, year: getYear(date) };
     });
 

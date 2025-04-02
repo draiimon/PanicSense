@@ -148,7 +148,7 @@ export function KeyEvents({
                           {event.name}
                         </h3>
                         <time className="text-xs font-medium text-slate-500 whitespace-nowrap">
-                          {format(parseISO(event.timestamp), 'MMM d, yyyy')}
+                          {format(parseISO(event.timestamp), 'MM-dd-yyyy')}
                         </time>
                       </div>
                       

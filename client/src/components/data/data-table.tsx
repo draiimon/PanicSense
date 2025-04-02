@@ -251,7 +251,7 @@ export function DataTable({
                                     Timestamp
                                   </div>
                                   <div className="text-sm font-medium text-slate-700">
-                                    {format(new Date(item.timestamp), "PPP p")}
+                                    {format(new Date(item.timestamp), "MM-dd-yyyy")}
                                   </div>
                                 </div>
                               
@@ -388,7 +388,7 @@ export function DataTable({
                     </TableCell>
                     <TableCell className="text-sm text-slate-600 whitespace-nowrap">
                       <div className="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs sm:text-sm whitespace-nowrap">
-                        {format(new Date(item.timestamp), "yyyy-MM-dd HH:mm")}
+                        {format(new Date(item.timestamp), "MM-dd-yyyy")}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-slate-600">

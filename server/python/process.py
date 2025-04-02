@@ -1304,10 +1304,23 @@ class DisasterSentimentBackend:
                             continue
 
                         # Get timestamp, with fallback to current time
-                        timestamp = str(
-                            row.get(timestamp_col,
-                                    datetime.now().isoformat())
-                        ) if timestamp_col else datetime.now().isoformat()
+                        raw_timestamp = row.get(timestamp_col, datetime.now().isoformat()) if timestamp_col else datetime.now().isoformat()
+                        
+                        # Parse the timestamp to convert it to month-day-year format
+                        try:
+                            # Handle ISO format with Z (UTC) suffix
+                            if isinstance(raw_timestamp, str) and 'Z' in raw_timestamp:
+                                dt = datetime.fromisoformat(raw_timestamp.replace('Z', '+00:00'))
+                            elif isinstance(raw_timestamp, str):
+                                dt = datetime.fromisoformat(raw_timestamp)
+                            else:
+                                dt = raw_timestamp
+                                
+                            # Format as month-day-year
+                            timestamp = dt.strftime("%m-%d-%Y")
+                        except Exception:
+                            # If parsing fails, keep the original timestamp
+                            timestamp = str(raw_timestamp)
 
                         # Get source with fallback logic
                         source = str(row.get(
@@ -1537,10 +1550,24 @@ class DisasterSentimentBackend:
                         if not text.strip():
                             continue
 
-                        timestamp = str(
-                            row.get(timestamp_col,
-                                    datetime.now().isoformat())
-                        ) if timestamp_col else datetime.now().isoformat()
+                        # Get timestamp, with fallback to current time
+                        raw_timestamp = row.get(timestamp_col, datetime.now().isoformat()) if timestamp_col else datetime.now().isoformat()
+                        
+                        # Parse the timestamp to convert it to month-day-year format
+                        try:
+                            # Handle ISO format with Z (UTC) suffix
+                            if isinstance(raw_timestamp, str) and 'Z' in raw_timestamp:
+                                dt = datetime.fromisoformat(raw_timestamp.replace('Z', '+00:00'))
+                            elif isinstance(raw_timestamp, str):
+                                dt = datetime.fromisoformat(raw_timestamp)
+                            else:
+                                dt = raw_timestamp
+                                
+                            # Format as month-day-year
+                            timestamp = dt.strftime("%m-%d-%Y")
+                        except Exception:
+                            # If parsing fails, keep the original timestamp
+                            timestamp = str(raw_timestamp)
 
                         # Get source with same logic as before
                         source = str(row.get(
