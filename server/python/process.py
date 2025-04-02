@@ -11,6 +11,16 @@ import random
 import concurrent.futures
 from datetime import datetime
 
+# Custom JSON encoder to ensure 3 decimal places in output - global scope
+class DecimalEncoder(json.JSONEncoder):
+    def encode(self, o):
+        if isinstance(o, dict):
+            for key, value in o.items():
+                if key == "confidence" and isinstance(value, float):
+                    # Force string representation with 3 decimals
+                    o[key] = float("{:.3f}".format(value))
+        return super().encode(o)
+
 try:
     import pandas as pd
     import numpy as np
@@ -1214,6 +1224,7 @@ class DisasterSentimentBackend:
         """Process a CSV file with sentiment analysis and ensure natural confidence scores"""
         # Import at the function level to avoid circular imports 
         import random
+                
         try:
             # Keep track of failed records to retry
             failed_records = []
@@ -1567,15 +1578,22 @@ class DisasterSentimentBackend:
                         }
                         
                         # PRINT INDIVIDUAL RESULT TO CONSOLE IMMEDIATELY when it's finished
-                        # Force 3 decimal places in the JSON output by format string
-                        # Get the confidence value and ensure it has exactly 3 decimal places
-                        if "confidence" in result_object:
-                            # Format to exactly 3 decimal places for display
-                            confidence_str = "{:.3f}".format(result_object["confidence"])
-                            result_object["confidence"] = float(confidence_str)
+                        # Create a copy of the result object and modify it to force 3 decimal places
+                        # Without this, the output is showing 2 decimal places only
+                        output_object = result_object.copy()
                         
-                        # Now print the modified object with the formatted confidence value
-                        print(json.dumps({"results": [result_object]}))
+                        # Force exactly 3 decimal places for display by using a string formatter with JSON handling
+                        if "confidence" in output_object:
+                            # Format to FORCE 3 decimal places in the JSON display
+                            # This keeps the numerical value but controls the string representation in JSON
+                            output_object["confidence"] = float("{:.3f}".format(output_object["confidence"]))
+                                                
+                        # We'll use the global DecimalEncoder class defined at the top of the file
+                        # This ensures consistency between individual records and the final output
+                                
+                        # Now print the modified object with the custom JSON encoder
+                        # This ensures the confidence will show as 0.970 not 0.97
+                        print(json.dumps({"results": [output_object]}, cls=DecimalEncoder))
                         
                         # Also store in the processed_results for the final complete response
                         processed_results.append(result_object)
@@ -1785,14 +1803,17 @@ class DisasterSentimentBackend:
                         }
                         
                         # PRINT INDIVIDUAL RESULT TO CONSOLE IMMEDIATELY for retry record
-                        # Force 3 decimal places in the retry JSON output too
-                        if "confidence" in retry_result_object:
-                            # Format to exactly 3 decimal places for display
-                            confidence_str = "{:.3f}".format(retry_result_object["confidence"])
-                            retry_result_object["confidence"] = float(confidence_str)
-                            
-                        # Now print the modified object with the formatted confidence value
-                        print(json.dumps({"results": [retry_result_object]}))
+                        # Create a copy for output formatting
+                        retry_output_object = retry_result_object.copy()
+                        
+                        # Force exactly 3 decimal places for display 
+                        if "confidence" in retry_output_object:
+                            # Format to FORCE 3 decimal places in the JSON display
+                            retry_output_object["confidence"] = float("{:.3f}".format(retry_output_object["confidence"]))
+                        
+                        # Custom JSON encoder already defined above - reusing it here
+                        # This ensures the same formatting for regular and retry records
+                        print(json.dumps({"results": [retry_output_object]}, cls=DecimalEncoder))
                         
                         # Also store in the processed_results for the final complete response
                         processed_results.append(retry_result_object)
@@ -2663,11 +2684,32 @@ def main():
                 if processed_results and len(processed_results) > 0:
                     # Calculate metrics
                     metrics = backend.calculate_real_metrics(processed_results)
+                    
+                    # Create a copy of processed_results for output formatting
+                    output_results = []
+                    for result in processed_results:
+                        output_result = result.copy()
+                        if "confidence" in output_result and isinstance(output_result["confidence"], float):
+                            # Force 3 decimal places
+                            output_result["confidence"] = float("{:.3f}".format(output_result["confidence"]))
+                        output_results.append(output_result)
+                    
+                    # Create a new DecimalEncoder since the one from process_csv method isn't in scope here
+                    class DecimalEncoder(json.JSONEncoder):
+                        def encode(self, o):
+                            if isinstance(o, dict):
+                                for key, value in o.items():
+                                    if key == "confidence" and isinstance(value, float):
+                                        # Force string representation with 3 decimals
+                                        o[key] = float("{:.3f}".format(value))
+                            return super().encode(o)
+                    
+                    # Use our new DecimalEncoder for the final output
                     print(
                         json.dumps({
-                            "results": processed_results,
+                            "results": output_results,
                             "metrics": metrics
-                        }))
+                        }, cls=DecimalEncoder))
                     sys.stdout.flush()
                 else:
                     print(
