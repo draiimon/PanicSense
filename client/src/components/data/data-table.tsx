@@ -436,7 +436,7 @@ export function DataTable({
                         ></div>
                       </div>
                       <div className="mt-1 text-xs font-medium text-slate-600">
-                        {(item.confidence * 100).toFixed(3)}%
+                        {(item.confidence * 100).toFixed(1).replace('.', ',')}%
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">

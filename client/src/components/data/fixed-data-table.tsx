@@ -267,7 +267,7 @@ export function DataTable({
                                       ></div>
                                     </div>
                                     <div className="mt-2 text-sm font-semibold text-slate-700 flex justify-between">
-                                      <span>{(item.confidence * 100).toFixed(1)}%</span>
+                                      <span>{(item.confidence * 100).toFixed(1).replace('.', ',')}%</span>
                                       <span className="text-xs text-slate-500">
                                         {item.confidence >= 0.9 ? 'Very High' : 
                                          item.confidence >= 0.7 ? 'High' : 
@@ -388,7 +388,7 @@ export function DataTable({
                         ></div>
                       </div>
                       <div className="mt-1 text-xs font-medium text-slate-600">
-                        {(item.confidence * 100).toFixed(1)}%
+                        {(item.confidence * 100).toFixed(1).replace('.', ',')}%
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">
