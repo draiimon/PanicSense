@@ -603,7 +603,7 @@ export function RealtimeMonitor() {
                 const text = analyzedTexts
                   .map(
                     (item) =>
-                      `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(1).replace(/\.0$/, '.1')}%) - Language: ${item.language === "tl" ? "Filipino" : "English"}`,
+                      `"${item.text}" - ${item.sentiment} (${(item.confidence * 100).toFixed(1)}%) - Language: ${item.language === "tl" ? "Filipino" : "English"}`,
                   )
                   .join("\n");
                 navigator.clipboard.writeText(text);
