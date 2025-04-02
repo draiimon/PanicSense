@@ -82,17 +82,74 @@ The Disaster Sentiment Analysis Platform is an AI-powered tool designed to provi
    npm run dev
    ```
 
-### Docker Setup
+### Docker Setup (Local Development)
 
-1. **Build and run with Docker Compose**
+1. **Create a .env file**
+   Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Make sure the DATABASE_URL in your .env file is set to:
+   ```
+   DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
+   ```
+   
+   Add your Groq API keys to the .env file:
+   ```
+   # For validation (used for sentiment feedback)
+   VALIDATION_API_KEY=your_groq_api_key_here
+   
+   # For regular API calls with rotation
+   GROQ_API_KEY_1=your_first_groq_api_key
+   GROQ_API_KEY_2=your_second_groq_api_key
+   GROQ_API_KEY_3=your_third_groq_api_key
+   GROQ_API_KEY_4=your_fourth_groq_api_key
+   ```
+   
+   You can add as many GROQ_API_KEY_N environment variables as needed. The system will automatically detect and use all available keys for rotation to prevent rate limiting.
+
+2. **Build and run with Docker Compose**
    ```bash
    docker-compose up --build
    ```
 
    This will start the Node.js server, Python service, and PostgreSQL database in separate containers.
 
-2. **Access the application**
+3. **Run database migrations (first time only)**
+   ```bash
+   # In a new terminal window
+   docker exec disaster-monitoring-app npm run db:push
+   ```
+
+4. **Access the application**
    Open your browser and navigate to `http://localhost:5000`
+
+### Deployment to Render
+
+1. **Fork/Push this repository to your own GitHub account**
+
+2. **Sign up for Render**
+   - Create an account at [render.com](https://render.com)
+   - Connect your GitHub account
+
+3. **Deploy with Render Blueprint**
+   - In the Render dashboard, click "New" and select "Blueprint"
+   - Select the repository containing this project
+   - Render will automatically detect the `render.yaml` file and set up the services
+
+4. **Environment Variables**
+   - The database connection string will be automatically configured
+   - **Important**: You must add your Groq API keys in the Render dashboard:
+     - Go to your web service in the Render dashboard
+     - Click on "Environment" tab
+     - Add the following environment variables:
+       - `VALIDATION_API_KEY` - Single API key used for sentiment validation
+       - `GROQ_API_KEY_1`, `GROQ_API_KEY_2`, etc. - Multiple API keys for rotation
+   - Using multiple API keys helps prevent rate limiting when processing large volumes of data
+
+5. **Access Your Deployed Application**
+   - Once deployment is complete, Render will provide a URL to access your application
 
 ## Usage Guide
 
@@ -121,21 +178,31 @@ The Disaster Sentiment Analysis Platform is an AI-powered tool designed to provi
 ```
 disaster-sentiment-analysis/
 ├── client/                  # Frontend React application
-│   ├── src/
-│   │   ├── components/      # UI components
-│   │   ├── context/         # Context providers
-│   │   ├── hooks/           # Custom React hooks
-│   │   ├── lib/             # Utility functions
-│   │   └── pages/           # Page components
+│   ├── public/              # Static assets
+│   └── src/
+│       ├── components/      # UI components
+│       ├── context/         # Context providers
+│       ├── hooks/           # Custom React hooks
+│       ├── lib/             # Utility functions
+│       └── pages/           # Page components
 ├── server/                  # Backend Express server
 │   ├── python/              # Python NLP processing scripts
+│   │   ├── process.py       # Python processing script
+│   │   └── requirements.txt # Python dependencies
 │   ├── routes.ts            # API routes
 │   ├── storage.ts           # Database interactions
+│   ├── python-service.ts    # Python service integration
+│   ├── db.ts                # Database connection
 │   └── utils/               # Utility functions
 ├── shared/                  # Shared code between frontend and backend
 │   └── schema.ts            # Database schema and types
+├── migrations/              # Database migrations
+├── .dockerignore            # Files to exclude from Docker image
+├── .env                     # Environment variables (gitignored)
+├── .env.example             # Example environment variables
 ├── Dockerfile               # Docker configuration
 ├── docker-compose.yml       # Docker Compose configuration
+├── render.yaml              # Render deployment configuration
 └── README.md                # Project documentation
 ```
 

@@ -85,13 +85,24 @@ class DisasterSentimentBackend:
 
         # Default keys if none provided - IMPORTANT: Limit validation to ONE key
         if not self.api_keys:
-            # Full set of keys for regular analysis
-            self.api_keys = [
-                "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",
-                "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"
-            ]
+            # Load API keys from attached file instead of hardcoding
+            api_key_list = []
+            # Get keys from environment variables first
+            for i in range(1, 30):  # Try up to 30 keys
+                env_key = os.getenv(f"GROQ_API_KEY_{i}")
+                if env_key:
+                    api_key_list.append(env_key)
             
-            # Only one key for validation
+            # If no environment keys, use the keys provided by the user
+            if not api_key_list:
+                api_key_list = [
+                    "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",
+                ]
+                # We'll only use one key for validation to avoid rate limiting
+            
+            self.api_keys = api_key_list
+            
+            # Only use one key for validation - this is critical to avoid rate limiting
             if not self.groq_api_keys:
                 self.groq_api_keys = [self.api_keys[0]]
         
@@ -579,13 +590,13 @@ class DisasterSentimentBackend:
         return result
 
     def get_api_sentiment_analysis(self, text, language):
-        """Get sentiment analysis from API using a single key with proper rotation"""
+        """Get sentiment analysis from API using proper key rotation across all available keys"""
         import requests
         import time
 
         # Try each API key in sequence until one works
         # We'll use a simple rotation pattern that doesn't create racing requests
-        num_keys = len(self.groq_api_keys)
+        num_keys = len(self.api_keys)  # Use the full api_keys list, not just validation keys
         if num_keys == 0:
             logging.error("No API keys available, using rule-based fallback")
             return self._rule_based_sentiment_analysis(text, language)
@@ -598,11 +609,16 @@ class DisasterSentimentBackend:
         # Try up to 3 different keys before giving up
         for attempt in range(min(3, num_keys)):
             key_index = (self.current_key_index + attempt) % num_keys
+            
+            # Log which key we're using (without showing the full key)
+            current_key = self.api_keys[key_index]
+            masked_key = current_key[:10] + "***" if len(current_key) > 10 else "***"
+            logging.info(f"Using API key {key_index+1}/{num_keys} ({masked_key}) for sentiment analysis")
 
             try:
                 url = self.api_url
                 headers = {
-                    "Authorization": f"Bearer {self.groq_api_keys[key_index]}",
+                    "Authorization": f"Bearer {self.api_keys[key_index]}",  # Use api_keys not groq_api_keys
                     "Content-Type": "application/json"
                 }
 
@@ -1865,7 +1881,13 @@ class DisasterSentimentBackend:
         # Use ONLY ONE API key for validation to prevent rate limiting
         # This strictly follows the requirement of using just one API key
         validation_api_key = self.groq_api_keys[0] if len(self.groq_api_keys) > 0 else None
-        logging.info(f"Using 1 key(s) for validation - ENABLED LESS STRICT VALIDATION")
+        
+        # Safe logging to avoid None subscripting error
+        if validation_api_key:
+            masked_key = validation_api_key[:10] + "***" if len(validation_api_key) > 10 else "***"
+            logging.info(f"Using 1 key for validation: {masked_key} - ENABLED LESS STRICT VALIDATION")
+        else:
+            logging.warning("No validation key available")
         
         if validation_api_key:
             # Manual API call with a single key instead of using analyze_sentiment
