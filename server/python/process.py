@@ -46,7 +46,7 @@ class DisasterSentimentBackend:
 
     def __init__(self):
         self.sentiment_labels = [
-            'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'
+            'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral', 'Distress'
         ]
         
         # For API calls in regular analysis
