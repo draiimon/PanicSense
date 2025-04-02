@@ -31,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getSentimentBadgeClasses } from "@/lib/colors";
 import { SentimentPost, deleteSentimentPost } from "@/lib/api";
 import { format } from "date-fns";
-import { Trash2, Search, Filter, Maximize2, Calendar, ExternalLink, Languages, MessageSquare, Loader2, BrainCircuit, Shield, Edit } from 'lucide-react';
+import { Trash2, Search, Filter, Maximize2, Calendar, ExternalLink, Languages, MessageSquare, Loader2, BrainCircuit, Shield } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -46,7 +46,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useDisasterContext } from "@/context/disaster-context";
 import { CustomDialogTrigger, CustomAlertDialogTrigger } from "@/components/custom";
-import { NewFeedbackTool } from "@/components/new-feedback-tool";
 
 interface DataTableProps {
   data: SentimentPost[];
@@ -67,53 +66,11 @@ export function DataTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSentiment, setSelectedSentiment] = useState<string>("All");
   const [isDeleting, setIsDeleting] = useState(false);
-  const [localData, setLocalData] = useState<SentimentPost[]>([]);
   
   // Performance optimization - memoize expensive operations
   const isSmallScreen = useState(window.innerWidth < 768)[0];
   const [postToDelete, setPostToDelete] = useState<number | null>(null);
   const rowsPerPage = 10;
-  
-  // Initialize local data from props
-  useEffect(() => {
-    setLocalData(data);
-  }, [data]);
-  
-  // Listen for real-time data updates
-  useEffect(() => {
-    // Event listener for when feedback is submitted
-    const handleDataChanged = (event: CustomEvent) => {
-      const { text, newSentiment, newLocation, newDisasterType } = event.detail;
-      
-      // Update the local data immediately without waiting for API refresh
-      setLocalData(prevData => {
-        return prevData.map(item => {
-          if (item.text === text) {
-            return {
-              ...item,
-              sentiment: newSentiment || item.sentiment,
-              location: newLocation || item.location,
-              disasterType: newDisasterType || item.disasterType,
-              // Add a visual indication that this was just updated
-              _justUpdated: true
-            };
-          }
-          return item;
-        });
-      });
-      
-      // After a brief delay, refresh data from server to ensure consistency
-      setTimeout(() => refreshData(), 500);
-    };
-    
-    // Add event listener
-    window.addEventListener('sentiment-data-changed', handleDataChanged as EventListener);
-    
-    // Clean up
-    return () => {
-      window.removeEventListener('sentiment-data-changed', handleDataChanged as EventListener);
-    };
-  }, [refreshData]);
 
   // Handle delete post
   const handleDeletePost = async (id: number) => {
@@ -139,7 +96,7 @@ export function DataTable({
   };
 
   // Filter data based on search term and sentiment filter
-  const filteredData = localData.filter(item => {
+  const filteredData = data.filter(item => {
     const matchesSearch = 
       item.text.toLowerCase().includes(searchTerm.toLowerCase()) || 
       item.source?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -281,15 +238,6 @@ export function DataTable({
                                 View the complete message content and details below.
                               </DialogDescription>
                             </DialogHeader>
-                            <div className="absolute top-3 right-14">
-                              <NewFeedbackTool
-                                originalText={item.text}
-                                originalSentiment={item.sentiment}
-                                originalLocation={item.location || undefined}
-                                originalDisasterType={item.disasterType || undefined}
-                                onFeedbackSubmitted={() => refreshData()}
-                              />
-                            </div>
                             
                             <div className="mt-4 space-y-6">
                               <div className="p-4 rounded-lg bg-white border border-slate-200">
@@ -394,12 +342,12 @@ export function DataTable({
                                   </div>
                                 )}
                                 
-                                {/* Explanation Section - NEW */}
+                                {/* AI Explanation Section - NEW */}
                                 {item.explanation && (
                                   <div className="col-span-1 sm:col-span-2 space-y-1 mt-2">
                                     <div className="flex items-center text-xs font-medium text-blue-600 uppercase tracking-wider">
                                       <BrainCircuit className="h-3.5 w-3.5 mr-1.5 text-blue-500" />
-                                      Sentiment Analysis
+                                      AI Sentiment Analysis
                                     </div>
                                     <div className="text-sm text-slate-700 bg-blue-50/70 border border-blue-200/70 rounded-md p-3">
                                       {item.explanation}
@@ -407,15 +355,15 @@ export function DataTable({
                                   </div>
                                 )}
                                 
-                                {/* Trust Message / Validation Message - NEW */}
+                                {/* AI Trust Message / Validation Message - NEW */}
                                 {item.aiTrustMessage && (
                                   <div className="col-span-1 sm:col-span-2 space-y-1 mt-2">
                                     <div className="flex items-center text-xs font-medium text-amber-600 uppercase tracking-wider">
                                       <Shield className="h-3.5 w-3.5 mr-1.5 text-amber-500" />
-                                      Model Validation
+                                      Validation Message
                                     </div>
                                     <div className="text-sm text-amber-800 bg-amber-50/70 border border-amber-200/70 rounded-md p-3">
-                                      {item.aiTrustMessage.replace(/AI|artificial intelligence/gi, "model").replace(/quiz/gi, "validation")}
+                                      {item.aiTrustMessage}
                                     </div>
                                   </div>
                                 )}
@@ -488,7 +436,7 @@ export function DataTable({
                         ></div>
                       </div>
                       <div className="mt-1 text-xs font-medium text-slate-600">
-                        {(item.confidence * 100).toFixed(2)}%
+                        {(item.confidence * 100).toFixed(1)}%
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">
@@ -497,56 +445,41 @@ export function DataTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-1">
-                        {/* Quick Edit Button */}
-                        <NewFeedbackTool
-                          originalText={item.text}
-                          originalSentiment={item.sentiment}
-                          originalLocation={item.location || "Unknown"}
-                          originalDisasterType={item.disasterType || "Unknown"}
-                          onFeedbackSubmitted={() => refreshData()}
-                          buttonIcon={<Edit className="h-4 w-4" />}
-                          buttonLabel=""
-                          buttonClassName="h-8 w-8 text-slate-400 hover:text-blue-500 hover:bg-blue-50 hover:shadow-sm transition-all duration-200 rounded-full flex items-center justify-center cursor-pointer"
-                        />
-                        
-                        {/* Delete Button */}
-                        <CustomAlertDialogTrigger
-                          className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:shadow-sm transition-all duration-200 rounded-full flex items-center justify-center cursor-pointer"
-                          onClick={() => setPostToDelete(item.id)}
-                          dialog={
-                            <AlertDialogContent className="bg-white border-slate-200 rounded-xl shadow-xl">
-                              <AlertDialogHeader>
-                                <AlertDialogTitle className="text-xl">Delete this post?</AlertDialogTitle>
-                                <AlertDialogDescription className="text-slate-600">
-                                  This will permanently delete the sentiment analysis result from the database.
-                                  This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="rounded-full hover:bg-slate-100">
-                                  Cancel
-                                </AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeletePost(item.id)}
-                                  className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-md"
-                                >
-                                  {isDeleting && postToDelete === item.id ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      Deleting...
-                                    </>
-                                  ) : (
-                                    "Delete"
-                                  )}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </CustomAlertDialogTrigger>
-                      </div>
+                      <CustomAlertDialogTrigger
+                        className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:shadow-sm transition-all duration-200 rounded-full flex items-center justify-center cursor-pointer"
+                        onClick={() => setPostToDelete(item.id)}
+                        dialog={
+                          <AlertDialogContent className="bg-white border-slate-200 rounded-xl shadow-xl">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="text-xl">Delete this post?</AlertDialogTitle>
+                              <AlertDialogDescription className="text-slate-600">
+                                This will permanently delete the sentiment analysis result from the database.
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="rounded-full hover:bg-slate-100">
+                                Cancel
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeletePost(item.id)}
+                                className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-md"
+                              >
+                                {isDeleting && postToDelete === item.id ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Deleting...
+                                  </>
+                                ) : (
+                                  "Delete"
+                                )}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </CustomAlertDialogTrigger>
                     </TableCell>
                   </TableRow>
                 ))

@@ -49,12 +49,6 @@ class DisasterSentimentBackend:
             'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'
         ]
         
-        # Emergency keywords that should always trigger high priority disaster detection
-        self.emergency_keywords = [
-            "may sunog", "tulong", "saklolo", "emergency", "help", "fire",
-            "evacuate", "evacuating", "evacuated", "trapped", "stranded", "danger"
-        ]
-        
         # For API calls in regular analysis
         self.api_keys = []
         # For validation use only (1 key maximum)
@@ -826,22 +820,11 @@ class DisasterSentimentBackend:
             }
 
         # Keywords associated with each sentiment
-        # Check emergency phrases that require escalation to Panic sentiment 
-        for keyword in self.emergency_keywords:
-            if keyword in text_lower:
-                # Check for specific scenarios that should always be panic
-                if ("sunog" in text_lower or "fire" in text_lower) and not ("haha" in text_lower or "hehe" in text_lower or "😂" in text_lower):
-                    return {
-                        "sentiment": "Panic",
-                        "confidence": 0.95,
-                        "explanation": "The message contains emergency words about fire incident, indicating urgent distress or call for immediate help. This requires high-priority attention."
-                    }
-        
         sentiment_keywords = {
             "Panic": [
                 "emergency", "trapped", "dying", "death", "urgent",
                 "critical", "saklolo", "naiipit", "mamamatay",
-                "agad", "kritikal", "emerhensya", "help!!!", "sunog", "tulong"
+                "agad", "kritikal", "emerhensya"
             ],
             "Fear/Anxiety": [
                 "scared", "afraid", "worried", "fear", "terrified", "anxious",

@@ -136,29 +136,13 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         else if (data.type === 'post-updated') {
           console.log('WebSocket post update received:', data);
           
-          // Dispatch a custom event for sentiment changes that the UI can listen for
-          const updateEvent = new CustomEvent('sentiment-change', { 
-            detail: data.data 
-          });
-          window.dispatchEvent(updateEvent);
-          console.log('Sentiment change event dispatched:', updateEvent);
-          
           // Force an immediate refresh to update the UI with the new sentiment
           refreshData();
           
-          // Display a toast notification about the post update with more specific information
-          let description = 'Post has been updated successfully.';
-          if (data.data?.updates?.sentiment) {
-            description = `Sentiment changed to ${data.data.updates.sentiment}`;
-          } else if (data.data?.updates?.location) {
-            description = `Location updated to ${data.data.updates.location}`;
-          } else if (data.data?.updates?.disasterType) {
-            description = `Disaster type updated to ${data.data.updates.disasterType}`;
-          }
-          
+          // Display a toast notification about the post update
           toast({
             title: 'Post Updated',
-            description,
+            description: `Sentiment has been updated successfully.`,
             variant: 'default',
           });
         }

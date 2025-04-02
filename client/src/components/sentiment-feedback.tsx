@@ -300,8 +300,6 @@ export function SentimentFeedback({
     }
     
     // Check if sentiment change is valid (only if correctedSentiment is provided)
-    /* 
-    // Quiz-type validation commented out as requested
     if (correctedSentiment) {
       const validationResult = validateSentimentChange();
       if (!validationResult.valid && validationResult.message) {
@@ -312,7 +310,6 @@ export function SentimentFeedback({
         return;
       }
     }
-    */
 
     if (includeLocation && !correctedLocation) {
       toast({
