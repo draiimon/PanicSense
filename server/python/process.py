@@ -695,8 +695,8 @@ class DisasterSentimentBackend:
                     Pumili ng ISANG kategorya lamang at magbigay ng kumpiyansa sa score (0.0-1.0) at maikling paliwanag.
                     
                     NAPAKAHALAGANG PANUNTUNAN: Linawin ang 'Neutral' bilang kategorya:
-                    - Ang mga SIMPLENG PAHAYAG NG KATOTOHANAN ay dapat PALAGING 'Neutral'
-                    - Mga halimbawa: "may sunog", "may baha", "may lindol", "nangyari ang lindol", "maraming nasugatan" 
+                    - Ang mga SIMPLENG PAHAYAG na walang emosyon ay dapat PALAGING 'Neutral'
+                    - Mga halimbawa: "may sunog", "may baha", "may lindol", "nangyari ang lindol", "maraming nasugatan"
                     - Walang emosyon, impormasyon lang -- HINDI PANIC, HINDI FEAR/ANXIETY
                     
                     Halimbawa ng tamang pag-analyze:
@@ -743,16 +743,16 @@ class DisasterSentimentBackend:
                     Choose ONLY ONE category and provide a confidence score (0.0-1.0) and brief explanation.
                     
                     CRITICAL UNDERSTANDING OF 'NEUTRAL':
-                    - SIMPLE FACTUAL STATEMENTS are ALWAYS 'Neutral'
+                    - SIMPLE STATEMENTS WITHOUT EMOTION are ALWAYS 'Neutral'
                     - Examples: "there is a fire", "there is a flood", "may sunog", "earthquake happened", "many were injured"
                     - Just information, no emotion -- NOT PANIC, NOT FEAR/ANXIETY
                     
                     Examples of correct analysis:
-                    - "there is a fire" = NEUTRAL (simple statement of fact)
+                    - "there is a fire" = NEUTRAL (simple statement without emotion)
                     - "FIRE! HELP US!" = PANIC (clearly showing distress/asking for help)
                     - "there is a flood in Manila" = NEUTRAL (just information)
                     - "the earthquake is scary" = FEAR/ANXIETY (shows emotional response of fear)
-                    - "many were injured in the earthquake" = NEUTRAL (factual report, no emotion)
+                    - "many were injured in the earthquake" = NEUTRAL (simple report without emotion)
                     
                     ANALYZE THE ENTIRE CONTEXT AND MEANING of messages. Keywords, capitalization, or punctuation alone SHOULD NOT determine sentiment.
                     
@@ -948,7 +948,7 @@ class DisasterSentimentBackend:
                 return {
                     "sentiment": "Neutral",
                     "confidence": 0.90,
-                    "explanation": "Simple factual statement without emotional indicators - EXACTLY analyzing what's in the text."
+                    "explanation": "Simple statement without emotional indicators - analyzing exactly what's in the text."
                 }
         
         # Check specifically for laughing emoji + TULONG pattern first
