@@ -685,7 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get active upload session
+  // Get active upload session with stale check
   app.get('/api/active-upload-session', async (req: Request, res: Response) => {
     try {
       // Query all sessions from the database
@@ -696,6 +696,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (sessions.length > 0) {
         const activeSession = sessions[0];
+        
+        // Check if the session might be stale (created more than 30 minutes ago)
+        const createdAt = activeSession.createdAt;
+        const currentTime = new Date();
+        const thirtyMinutesAgo = new Date(currentTime.getTime() - 30 * 60 * 1000);
+        
+        // If the session is too old, mark it as stale
+        if (createdAt && createdAt < thirtyMinutesAgo) {
+          console.log(`Found stale upload session ${activeSession.sessionId}, marking as completed`);
+          
+          // Update to completed status
+          await db.update(uploadSessions)
+            .set({ 
+              status: 'completed',
+              updatedAt: new Date()
+            })
+            .where(eq(uploadSessions.sessionId, activeSession.sessionId));
+          
+          // Return no active session
+          return res.json({ sessionId: null, staleSessionCleared: true });
+        }
+        
+        // Check if Python process is actually running
+        const isProcessRunning = pythonService.isProcessRunning(activeSession.sessionId);
+        
+        if (!isProcessRunning) {
+          console.log(`No active Python process for session ${activeSession.sessionId}, marking as completed`);
+          
+          // Update to completed status
+          await db.update(uploadSessions)
+            .set({ 
+              status: 'completed',
+              updatedAt: new Date()
+            })
+            .where(eq(uploadSessions.sessionId, activeSession.sessionId));
+          
+          // Return no active session
+          return res.json({ sessionId: null, staleSessionCleared: true });
+        }
+        
+        // Valid active session
         return res.json({ 
           sessionId: activeSession.sessionId,
           status: activeSession.status,
@@ -711,6 +752,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error retrieving active upload session:', error);
       res.status(500).json({ 
         error: 'Failed to retrieve active upload session',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Reset all upload sessions (emergency endpoint)
+  app.post('/api/reset-upload-sessions', async (req: Request, res: Response) => {
+    try {
+      // Update all active sessions to completed
+      await db.update(uploadSessions)
+        .set({ 
+          status: 'completed',
+          updatedAt: new Date()
+        })
+        .where(eq(uploadSessions.status, 'active'));
+      
+      // Cancel all running processes
+      pythonService.cancelAllProcesses();
+      
+      // Clear the upload progress map
+      uploadProgressMap.clear();
+      
+      return res.json({ 
+        success: true, 
+        message: 'All upload sessions have been reset'
+      });
+    } catch (error) {
+      console.error('Error resetting upload sessions:', error);
+      res.status(500).json({ 
+        error: 'Failed to reset upload sessions',
         details: error instanceof Error ? error.message : String(error)
       });
     }

@@ -87,6 +87,36 @@ export class PythonService {
     }
   }
   
+  // Check if a process is running for a given session ID
+  public isProcessRunning(sessionId: string): boolean {
+    return this.activeProcesses.has(sessionId);
+  }
+  
+  // Cancel all running processes
+  public cancelAllProcesses(): void {
+    log(`Canceling all active processes (${this.activeProcesses.size} processes)`, 'python-service');
+    
+    // Use Array.from to convert Map entries to array to avoid iterator compatibility issues
+    Array.from(this.activeProcesses.entries()).forEach(([sessionId, processData]) => {
+      try {
+        // Kill the process
+        processData.process.kill();
+        
+        // Clean up temp file
+        if (processData.tempFilePath && fs.existsSync(processData.tempFilePath)) {
+          fs.unlinkSync(processData.tempFilePath);
+        }
+        
+        log(`Canceled process for session ID: ${sessionId}`, 'python-service');
+      } catch (error) {
+        log(`Error canceling process for ${sessionId}: ${error instanceof Error ? error.message : String(error)}`, 'python-service');
+      }
+    });
+    
+    // Clear the map
+    this.activeProcesses.clear();
+  }
+  
   // Utility method to extract disaster type from text
   private extractDisasterTypeFromText(text: string): string | null {
     const textLower = text.toLowerCase();
@@ -683,7 +713,12 @@ export class PythonService {
       ]);
       
       // Store the process in our active processes map so we can cancel it if needed
-      this.activeProcesses.set(uploadSessionId, { process: pythonProcess, tempFilePath });
+      this.activeProcesses.set(uploadSessionId, { 
+        process: pythonProcess, 
+        tempFilePath 
+      });
+      
+      log(`Added process to active processes map with session ID: ${uploadSessionId}`, 'python-service');
 
       const result = await new Promise<string>((resolve, reject) => {
         let output = '';
@@ -960,6 +995,15 @@ export class PythonService {
         this.scriptPath,
         '--text', text
       ]);
+      
+      // Use a unique ID for this analysis process
+      const analysisSessionId = nanoid();
+      
+      // Store in active processes (for status monitoring only)
+      this.activeProcesses.set(analysisSessionId, { 
+        process: pythonProcess, 
+        tempFilePath: '' // No temp file for text analysis
+      });
 
       const result = await new Promise<string>((resolve, reject) => {
         let output = '';
@@ -992,6 +1036,9 @@ export class PythonService {
         });
 
         pythonProcess.on('close', (code) => {
+          // Clean up from active processes
+          this.activeProcesses.delete(analysisSessionId);
+          
           if (code !== 0) {
             reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
             return;
@@ -1034,6 +1081,12 @@ export class PythonService {
       return analysisResult;
     } catch (error) {
       log(`Sentiment analysis failed: ${error}`, 'python-service');
+      
+      // Clean up any processes that might still be running (defensive)
+      if (analysisSessionId) {
+        this.activeProcesses.delete(analysisSessionId);
+      }
+      
       throw new Error(`Failed to analyze sentiment: ${error}`);
     }
   }
