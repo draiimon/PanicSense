@@ -101,21 +101,26 @@ export function UploadProgressModal() {
   const isProcessing = (stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record')) && !isBatchPause;
   const isPaused = isBatchPause;
   
-  // Simplify the stage display text
-  const displayStage = isPaused 
-    ? "Paused between batches"
-    : isProcessing 
-      ? "Processing records"
-      : isLoading 
-        ? "Loading file"
-        : stage;
-  
   // Better completion detection with multiple triggers
   const isComplete = (
     stage.toLowerCase().includes('complete') || 
     stage.toLowerCase().includes('analysis complete') ||
     (processed >= total && total > 0)
   );
+  
+  // Hide countdown timer and simplify the stage text
+  let displayStage = "";
+  if (isPaused) {
+    displayStage = "Paused";
+  } else if (isProcessing) {
+    displayStage = "Processing Records";
+  } else if (isLoading) {
+    displayStage = "Loading File";
+  } else if (isComplete) {
+    displayStage = "Complete";
+  } else {
+    displayStage = "Processing";
+  }
   
   // Improved error detection
   const hasError = stage.toLowerCase().includes('error');
