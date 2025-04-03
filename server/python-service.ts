@@ -1083,9 +1083,7 @@ export class PythonService {
       log(`Sentiment analysis failed: ${error}`, 'python-service');
       
       // Clean up any processes that might still be running (defensive)
-      if (analysisSessionId) {
-        this.activeProcesses.delete(analysisSessionId);
-      }
+      // Nothing to clean up for individual sentiment analysis, as we're not using session IDs for it
       
       throw new Error(`Failed to analyze sentiment: ${error}`);
     }

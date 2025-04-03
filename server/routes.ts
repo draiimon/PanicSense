@@ -891,12 +891,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Prevent progress from going backward
+        // Prevent progress from going backward, but never exceed the total
         if (extractedProcessed < highestProcessedValue) {
           console.log(`Progress went backward (${extractedProcessed} < ${highestProcessedValue}), maintaining highest value`);
           extractedProcessed = highestProcessedValue;
         } else if (extractedProcessed > highestProcessedValue) {
           highestProcessedValue = extractedProcessed;
+        }
+        
+        // Make sure processed never exceeds total
+        if (extractedTotal > 0 && extractedProcessed > extractedTotal) {
+          console.log(`Progress exceeds total (${extractedProcessed} > ${extractedTotal}), capping at total`);
+          extractedProcessed = extractedTotal;
+          highestProcessedValue = extractedTotal; // Reset highest value too
         }
 
         // Create progress update for broadcasting

@@ -99,13 +99,21 @@ export function UploadProgressModal() {
   // Use the higher value between current processed and highest recorded
   const processed = Math.max(rawProcessed, highestProcessed);
 
-  // Calculate completion percentage
-  const percentComplete = Math.min(Math.round((processed / total) * 100), 100);
+  // Calculate completion percentage - ensure we don't exceed 100% or show NaN
+  let percentComplete = 0;
+  if (total > 0) {
+    // First, cap processed at total if it somehow exceeds it
+    const cappedProcessed = Math.min(processed, total);
+    percentComplete = Math.min(Math.round((cappedProcessed / total) * 100), 100);
+  }
 
   // Stage indication
   const isLoading = stage.toLowerCase().includes('loading');
   const isProcessing = stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record');
-  const isCooldown = stage.toLowerCase().includes('cooldown') || stage.toLowerCase().includes('pausing') || stage.toLowerCase().includes('pause between batches');
+  const isCooldown = stage.toLowerCase().includes('cooldown') || 
+                     stage.toLowerCase().includes('pausing') || 
+                     stage.toLowerCase().includes('pause between batches') ||
+                     stage.toLowerCase().includes('seconds remaining');
   const hasError = stage.toLowerCase().includes('error');
   const isComplete = stage.toLowerCase().includes('analysis complete');
   

@@ -87,8 +87,8 @@ const DisasterContext = createContext<DisasterContextType | undefined>(undefined
 
 const initialProgress: UploadProgress = {
   processed: 0,
-  total: 0,
-  stage: '',
+  total: 100,  // Default to 100 to avoid showing 0/0 initially
+  stage: 'Preparing upload...',
   batchNumber: 0,
   totalBatches: 0,
   batchProgress: 0,
