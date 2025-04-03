@@ -46,6 +46,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-venv \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy built application and dependencies
@@ -54,6 +55,7 @@ COPY --from=builder /build/node_modules ./node_modules
 COPY --from=builder /build/server/python ./server/python
 COPY --from=builder /build/venv /app/venv
 COPY --from=builder /build/nltk_data /usr/share/nltk_data
+COPY --from=builder /build/migrations ./migrations
 COPY quick-fix.sh /app/quick-fix.sh
 
 # Set proper permissions for scripts
