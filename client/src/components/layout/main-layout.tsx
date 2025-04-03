@@ -97,13 +97,12 @@ export function MainLayout({ children }: MainLayoutProps) {
     if (isCapableDevice) {
       return (
         <motion.div
-          className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-xl shadow-lg"
+          className="absolute inset-0 bg-gradient-to-br from-blue-600/30 via-indigo-600/30 to-purple-600/30 rounded-xl shadow-lg"
           animate={{
-            scale: [1, 1.1, 1],
-            rotate: [0, 5, -5, 0],
+            scale: [1, 1.02, 1],
           }}
           transition={{
-            duration: 2,
+            duration: 0.5,
             repeat: Infinity,
             repeatType: "reverse",
           }}
@@ -111,7 +110,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       );
     } else {
       return (
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-xl shadow-lg simple-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/30 via-indigo-600/30 to-purple-600/30 rounded-xl shadow-lg simple-pulse" />
       );
     }
   };
@@ -318,10 +317,10 @@ export function MainLayout({ children }: MainLayoutProps) {
             <Menu className="h-4 w-4" />
           </Button>
 
-          <div className="relative w-10 h-10 sm:w-12 sm:h-12">
+          <div className="relative w-11 h-11 sm:w-14 sm:h-14">
             {renderLogo()}
             <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-              <img src={logo} alt="PanicSense PH Logo" className="w-6 h-6 sm:w-7 sm:h-7 drop-shadow" />
+              <img src={logo} alt="PanicSense PH Logo" className="w-7 h-7 sm:w-9 sm:h-9 drop-shadow" />
             </div>
           </div>
           <div>{renderTitle()}</div>
@@ -407,7 +406,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs sm:text-sm text-slate-600">
             <div className="flex items-center gap-1 sm:gap-2">
-              <img src={logo} alt="PanicSense PH Logo" className="h-4 w-4 sm:h-5 sm:w-5" />
+              <img src={logo} alt="PanicSense PH Logo" className="h-5 w-5 sm:h-6 sm:w-6" />
               <span>PanicSense PH © 2025</span>
             </div>
             <div className="mt-1 sm:mt-0">
@@ -450,13 +449,13 @@ export function MainLayout({ children }: MainLayoutProps) {
 
         /* Simple CSS pulse animation for logo on low-end devices */
         .simple-pulse {
-          animation: simplePulse 2s ease-in-out infinite;
+          animation: simplePulse 0.7s ease-in-out infinite;
         }
 
         @keyframes simplePulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-          100% { transform: scale(1); }
+          0% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.02); opacity: 1; }
+          100% { transform: scale(1); opacity: 0.8; }
         }
 
         /* CSS-based sidebar slide-in for low-end devices */

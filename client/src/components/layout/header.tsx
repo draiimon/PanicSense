@@ -15,7 +15,7 @@ import {
   Bell,
   User,
 } from "lucide-react";
-import logo from "@assets/favicon.svg"; // Import the PanicSense logo
+import logo from "/favicon.png"; // Import the PanicSense logo
 
 export function Header() {
   const [location] = useLocation();
@@ -79,21 +79,21 @@ export function Header() {
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           {/* Logo and Title */}
           <div className="flex items-center space-x-4">
-            <div className="relative w-10 h-10">
+            <div className="relative w-12 h-12">
               <motion.div
-                className="absolute inset-0 rounded-xl overflow-hidden"
+                className="absolute inset-0 rounded-xl overflow-hidden bg-gradient-to-br from-blue-600/30 via-indigo-600/30 to-purple-600/30"
                 animate={{
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 5, -5, 0],
+                  scale: [1, 1.02, 1],
                 }}
                 transition={{
-                  duration: 2,
+                  duration: 0.5,
                   repeat: Infinity,
                   repeatType: "reverse",
                 }}
-              >
-                <img src={logo} alt="PanicSense PH Logo" className="w-full h-full object-cover" />
-              </motion.div>
+              />
+              <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                <img src={logo} alt="PanicSense PH Logo" className="w-8 h-8 object-cover drop-shadow" />
+              </div>
             </div>
             <div>
               <motion.h1 
