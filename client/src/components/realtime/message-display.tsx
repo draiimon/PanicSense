@@ -28,21 +28,23 @@ export function MessageDisplay({
   location,
   corrected = false
 }: MessageDisplayProps) {
-  // Helper function for sentiment badge styles
+  // Helper function for sentiment badge styles with case normalization
   const getSentimentBadgeClasses = (sentiment: string) => {
-    switch (sentiment) {
-      case 'Panic':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'Fear/Anxiety':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'Disbelief':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'Resilience':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'Neutral':
-        return 'bg-slate-100 text-slate-800 border-slate-200';
-      default:
-        return 'bg-slate-100 text-slate-800 border-slate-200';
+    // Normalize sentiment to handle case inconsistency
+    const normalizedSentiment = sentiment.toLowerCase();
+    
+    if (normalizedSentiment.includes('panic')) {
+      return 'bg-red-100 text-red-800 border-red-200';
+    } else if (normalizedSentiment.includes('fear') || normalizedSentiment.includes('anxiety')) {
+      return 'bg-orange-100 text-orange-800 border-orange-200';
+    } else if (normalizedSentiment.includes('disbelief')) {
+      return 'bg-purple-100 text-purple-800 border-purple-200';
+    } else if (normalizedSentiment.includes('resilience')) {
+      return 'bg-green-100 text-green-800 border-green-200';
+    } else if (normalizedSentiment.includes('neutral')) {
+      return 'bg-slate-100 text-slate-800 border-slate-200';
+    } else {
+      return 'bg-slate-100 text-slate-800 border-slate-200';
     }
   };
 
@@ -81,12 +83,17 @@ export function MessageDisplay({
           <span>{formatTime(timestamp)}</span>
         </div>
 
-        {disasterType && disasterType !== "Not Specified" && disasterType !== "UNKNOWN" && (
+        {disasterType && 
+          !disasterType.toLowerCase().includes("not specified") && 
+          !disasterType.toUpperCase().includes("UNKNOWN") && (
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-              {disasterType}
+              {/* Normalize display of disaster types */}
+              {disasterType.toUpperCase() === 'UNKNOWN' ? 'Unknown' : 
+               disasterType.toUpperCase() === 'NOT SPECIFIED' ? 'Not Specified' : 
+               disasterType}
             </Badge>
-            {location && location !== "UNKNOWN" && (
+            {location && !location.toUpperCase().includes("UNKNOWN") && (
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                 {location}
               </Badge>

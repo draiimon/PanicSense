@@ -336,7 +336,10 @@ export function DataTable({
                                     </div>
                                     <div className="text-sm font-medium">
                                       <div className={`inline-flex items-center px-2 py-1 rounded-full text-sm ${getDisasterTypeStyles(item.disasterType)}`}>
-                                        {item.disasterType}
+                                        {/* Normalize display of UNKNOWN/Unknown */}
+                                        {item.disasterType.toUpperCase() === 'UNKNOWN' ? 'Unknown' : 
+                                         item.disasterType.toUpperCase() === 'NOT SPECIFIED' ? 'Not Specified' : 
+                                         item.disasterType}
                                       </div>
                                     </div>
                                   </div>
@@ -414,7 +417,10 @@ export function DataTable({
                     <TableCell className="text-sm text-slate-600">
                       {item.disasterType ? (
                         <div className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded shadow-sm text-xs ${getDisasterTypeStyles(item.disasterType)} truncate max-w-full`}>
-                          {item.disasterType}
+                          {/* Normalize display of UNKNOWN/Unknown */}
+                          {item.disasterType.toUpperCase() === 'UNKNOWN' ? 'Unknown' : 
+                           item.disasterType.toUpperCase() === 'NOT SPECIFIED' ? 'Not Specified' : 
+                           item.disasterType}
                         </div>
                       ) : (
                         <span className="text-slate-400 text-xs sm:text-sm">Not Specified</span>
@@ -554,13 +560,21 @@ export function DataTable({
 }
 
 const getSentimentVariant = (sentiment: string) => {
-  switch (sentiment) {
-    case 'Panic': return 'panic';
-    case 'Fear/Anxiety': return 'fear';
-    case 'Disbelief': return 'disbelief';
-    case 'Resilience': return 'resilience';
-    case 'Neutral': 
-    default: return 'neutral';
+  // Normalize sentiment to handle case inconsistency
+  const normalizedSentiment = sentiment.toLowerCase();
+  
+  if (normalizedSentiment.includes('panic')) {
+    return 'panic';
+  } else if (normalizedSentiment.includes('fear') || normalizedSentiment.includes('anxiety')) {
+    return 'fear';
+  } else if (normalizedSentiment.includes('disbelief')) {
+    return 'disbelief';
+  } else if (normalizedSentiment.includes('resilience')) {
+    return 'resilience';
+  } else if (normalizedSentiment.includes('neutral')) {
+    return 'neutral';
+  } else {
+    return 'neutral'; // Default case
   }
 };
 
@@ -577,8 +591,16 @@ const getConfidenceColor = (confidence: number) => {
 };
 
 const getDisasterTypeStyles = (disasterType: string) => {
+  // Normalize and check for UNKNOWN values
+  const normalizedType = disasterType.toLowerCase();
+  
+  // Handle UNKNOWN case consistently
+  if (normalizedType === 'unknown' || normalizedType === 'unspecified' || normalizedType === 'not specified') {
+    return 'bg-gradient-to-r from-slate-500 to-slate-600 text-white border border-slate-700/20';
+  }
+  
   // Using the same colors as in the geographic indicators
-  switch (disasterType.toLowerCase()) {
+  switch (normalizedType) {
     case 'fire':
     case 'sunog':
       return 'bg-gradient-to-r from-red-600 to-orange-500 text-white border border-red-700/20';
