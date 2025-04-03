@@ -3,6 +3,8 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { checkPortPeriodically, checkPort } from "./debug-port";
+// Import emergency database fix
+const { applyEmergencyFixes } = require('./emergency-db-fix');
 
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Increased limit for better performance
@@ -40,6 +42,21 @@ app.use((req, res, next) => {
     console.log("========================================");
     console.log("Starting server initialization at: " + new Date().toISOString());
     console.log("========================================");
+    
+    // Apply emergency database fixes before anything else
+    if (process.env.NODE_ENV === "production") {
+      console.log("Running in production mode, applying emergency database fixes...");
+      try {
+        const fixesSuccessful = await applyEmergencyFixes();
+        if (fixesSuccessful) {
+          console.log("✅ Database fixes applied successfully!");
+        } else {
+          console.error("⚠️ Database fixes failed. App may not function correctly.");
+        }
+      } catch (error) {
+        console.error("Fatal error in database fix script:", error);
+      }
+    }
     
     const server = await registerRoutes(app);
     console.log("Routes registered successfully");
