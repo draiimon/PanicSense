@@ -1,21 +1,11 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Activity, 
-  BarChart3, 
   CheckCircle, 
   Clock, 
   Database, 
   FileText, 
   Loader2, 
-  XCircle,
-  AlertCircle,
-  Zap,
-  Timer,
-  Cpu,
-  Server,
-  MemoryStick,
-  BarChart,
-  BatteryCharging
+  XCircle
 } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
@@ -24,60 +14,13 @@ import { Button } from "@/components/ui/button";
 import { cancelUpload } from "@/lib/api";
 // removed import to fix errors
 
-// Mini sparkline chart implementation for real-time performance visualization
-const Sparkline = ({ data, height = 20, width = 50, color = '#4f46e5' }: {
-  data: number[];
-  height?: number;
-  width?: number;
-  color?: string;
-}) => {
-  if (!data || data.length === 0) return null;
-  
-  const normalizedData = [...data];
-  const max = Math.max(...normalizedData, 1);
-  const points = normalizedData.map((val, i) => 
-    `${(i / (normalizedData.length - 1)) * width},${height - (val / max) * height}`
-  ).join(' ');
-  
-  return (
-    <svg height={height} width={width} className="ml-1">
-      <polyline
-        points={points}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-      />
-    </svg>
-  );
-};
-
-// Helper to format processing speed in a human-readable format
-const formatSpeed = (recordsPerSecond: number): string => {
-  if (recordsPerSecond >= 1000) {
-    return `${(recordsPerSecond / 1000).toFixed(1)}k records/s`;
-  }
-  return `${Math.round(recordsPerSecond)} records/s`;
-};
-
-// Helper to format time remaining
-const formatTimeRemaining = (seconds: number): string => {
-  if (seconds < 60) {
-    return `${Math.ceil(seconds)} seconds`;
-  }
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.ceil(seconds % 60);
-  return `${minutes}m ${remainingSeconds}s`;
-};
+// Simple helper functions for upload progress
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
   const [highestProcessed, setHighestProcessed] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [speedHistory, setSpeedHistory] = useState<number[]>([]);
-  const [cpuUsage, setCpuUsage] = useState<number[]>([]);
-  const [memoryUsage, setMemoryUsage] = useState<number>(0);
-  const [showAdvancedStats, setShowAdvancedStats] = useState(false);
   
   // Fixed approach for animation with proper conditions
   const breathingOffset = { scale: 1 };
