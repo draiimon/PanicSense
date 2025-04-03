@@ -281,14 +281,7 @@ export function UploadProgressModal() {
               {!isProcessing && <ChevronRight className="h-4 w-4 ml-auto" />}
             </div>
 
-            {/* Status Message - Only show if not preparing message */}
-            {!stage.toLowerCase().includes('preparing to process') && (
-              <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
-                <div className="text-sm font-mono text-slate-300 whitespace-pre-wrap break-words">
-                  {stage}
-                </div>
-              </div>
-            )}
+            {/* Status Message - Removed as requested */}
           </div>
 
           {/* Enhanced Progress Bar */}

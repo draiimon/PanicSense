@@ -154,14 +154,25 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                   refreshData();
                 }
                 
-                // Close the upload modal after a delay - shorter delay for better responsiveness
-                setTimeout(() => {
+                // If there's an error or the upload was cancelled, close the modal immediately
+                if (progress.stage.toLowerCase().includes('error') || 
+                    progress.stage.toLowerCase().includes('cancelled')) {
+                  // Close immediately for errors and cancellations
                   setIsUploading(false);
-                  // Clear the upload progress from localStorage to prevent potential stale state
+                  // Clear the upload progress from localStorage
                   localStorage.removeItem('isUploading');
                   localStorage.removeItem('uploadProgress');
                   localStorage.removeItem('uploadSessionId');
-                }, 1500);
+                } else {
+                  // For successful completion, close after a short delay
+                  setTimeout(() => {
+                    setIsUploading(false);
+                    // Clear the upload progress from localStorage
+                    localStorage.removeItem('isUploading');
+                    localStorage.removeItem('uploadProgress');
+                    localStorage.removeItem('uploadSessionId');
+                  }, 1000);
+                }
               }
             } catch (error) {
               console.error('Error parsing progress data:', error);
@@ -215,14 +226,25 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                         refreshData();
                       }
                       
-                      // Close the upload modal after a delay - shorter delay for better responsiveness
-                      setTimeout(() => {
+                      // If there's an error or the upload was cancelled, close the modal immediately
+                      if (progress.stage.toLowerCase().includes('error') || 
+                          progress.stage.toLowerCase().includes('cancelled')) {
+                        // Close immediately for errors and cancellations
                         setIsUploading(false);
-                        // Clear the upload progress from localStorage to prevent potential stale state
+                        // Clear the upload progress from localStorage
                         localStorage.removeItem('isUploading');
                         localStorage.removeItem('uploadProgress');
                         localStorage.removeItem('uploadSessionId');
-                      }, 1500);
+                      } else {
+                        // For successful completion, close after a short delay
+                        setTimeout(() => {
+                          setIsUploading(false);
+                          // Clear the upload progress from localStorage
+                          localStorage.removeItem('isUploading');
+                          localStorage.removeItem('uploadProgress');
+                          localStorage.removeItem('uploadSessionId');
+                        }, 1000);
+                      }
                     }
                   } catch (error) {
                     console.error('Error parsing progress data:', error);
