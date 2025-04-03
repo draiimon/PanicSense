@@ -126,6 +126,20 @@ export async function applyEmergencyFixes() {
     `);
     console.log('✅ sentiment_feedback table check completed');
     
+    // upload_sessions table for tracking file uploads
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS upload_sessions (
+        id SERIAL PRIMARY KEY,
+        session_id TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL DEFAULT 'active',
+        file_id INTEGER REFERENCES analyzed_files(id),
+        progress JSONB,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        user_id INTEGER REFERENCES users(id)
+      );
+    `);
+    console.log('✅ upload_sessions table check completed');
     
     // Verify fixes
     const colCheck = await pool.query(`
@@ -144,16 +158,28 @@ export async function applyEmergencyFixes() {
       ) AS table_exists;
     `);
     
+    const uploadSessionsCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT 1 
+        FROM information_schema.tables 
+        WHERE table_name = 'upload_sessions'
+      ) AS table_exists;
+    `);
+    
     const columnExists = colCheck.rows[0].column_exists;
     const tableExists = tableCheck.rows[0].table_exists;
+    const uploadSessionsExists = uploadSessionsCheck.rows[0].table_exists;
     
-    console.log(`Database verification: ai_trust_message column exists = ${columnExists}, training_examples table exists = ${tableExists}`);
+    console.log(`Database verification: ai_trust_message column exists = ${columnExists}, training_examples table exists = ${tableExists}, upload_sessions table exists = ${uploadSessionsExists}`);
     
-    if (columnExists && tableExists) {
+    if (columnExists && tableExists && uploadSessionsExists) {
       console.log('✅ DATABASE SUCCESSFULLY FIXED AT STARTUP!');
       return true;
     } else {
       console.error('⚠️ DATABASE FIXES FAILED. THIS IS A CRITICAL ERROR.');
+      if (!columnExists) console.error('Missing ai_trust_message column');
+      if (!tableExists) console.error('Missing training_examples table');
+      if (!uploadSessionsExists) console.error('Missing upload_sessions table');
       return false;
     }
   } catch (err) {
