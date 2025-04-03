@@ -101,6 +101,15 @@ export function UploadProgressModal() {
   const isProcessing = (stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record')) && !isBatchPause;
   const isPaused = isBatchPause;
   
+  // Simplify the stage display text
+  const displayStage = isPaused 
+    ? "Paused between batches"
+    : isProcessing 
+      ? "Processing records"
+      : isLoading 
+        ? "Loading file"
+        : stage;
+  
   // Better completion detection with multiple triggers
   const isComplete = (
     stage.toLowerCase().includes('complete') || 
@@ -134,7 +143,7 @@ export function UploadProgressModal() {
           backdropFilter: "blur(8px)",
           border: "1px solid rgba(255, 255, 255, 0.2)",
         }}
-        className="relative rounded-xl overflow-hidden w-full max-w-sm mx-4"
+        className="relative rounded-xl overflow-hidden w-full max-w-sm mx-4 min-h-[30rem] flex flex-col"
       >
         {/* Gradient Header */}
         <div className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 p-4 text-white">
@@ -142,29 +151,24 @@ export function UploadProgressModal() {
             {isComplete ? 'Analysis Complete!' : hasError ? 'Upload Error' : `Processing Records`}
           </h3>
           
-          {/* Counter with larger size */}
+          {/* Static Counter with fixed size */}
           <div className="flex items-center justify-center my-3">
-            <motion.div 
-              key={processed}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ 
-                opacity: 1, 
-                scale: isProcessing ? breathingOffset.scale : 1,
-                transition: { duration: 0.5 }
-              }}
-              className="flex flex-col items-center"
-            >
-              <div className="flex items-center">
-                <span className="text-5xl font-bold text-white">{processed}</span>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center h-20">
+                <div className="w-20 text-center">
+                  <span className="text-5xl font-bold text-white">{processed}</span>
+                </div>
                 <span className="text-3xl mx-2 text-white/70">/</span>
-                <span className="text-4xl font-bold text-white/90">{total}</span>
+                <div className="w-20 text-center">
+                  <span className="text-4xl font-bold text-white/90">{total}</span>
+                </div>
               </div>
               <span className="text-sm text-white/80 mt-1">Records Processed</span>
-            </motion.div>
+            </div>
           </div>
         </div>
         
-        <div className="p-5">
+        <div className="p-5 flex-1 min-h-0">
           {/* Enhanced Progress Bar */}
           <div className="mb-4">
             <div className="flex justify-between text-sm font-medium mb-1">
@@ -258,7 +262,9 @@ export function UploadProgressModal() {
                   ? "Processing Complete" 
                   : isProcessing 
                     ? `Processing Records` 
-                    : "Waiting to Process"}
+                    : isPaused
+                      ? "Paused" 
+                      : "Waiting to Process"}
               </span>
               {isProcessing && !isComplete && <Loader2 className="h-4 w-4 ml-auto animate-spin text-blue-500" />}
               {isComplete && <CheckCircle className="h-4 w-4 ml-auto text-green-500" />}
