@@ -7,7 +7,7 @@ import { log } from './vite';
 import { usageTracker } from './utils/usage-tracker';
 import { storage } from './storage';
 
-// Global array to store console logs from Python service
+// Global array to store logs from Python service
 export const pythonConsoleMessages: {message: string, timestamp: Date}[] = [];
 
 interface ProcessCSVResult {
@@ -195,8 +195,7 @@ export class PythonService {
       
       if (text1HasJoke !== text2HasJoke) {
         // One has joke indicators and the other doesn't - likely different meanings
-        console.log(`Joke indicators mismatch: "${text1.substring(0, 20)}..." vs "${text2.substring(0, 20)}..."`, 
-                    `(has joke: ${text1HasJoke} vs ${text2HasJoke})`);
+        log(`Joke indicators mismatch: "${text1.substring(0, 20)}..." vs "${text2.substring(0, 20)}..." (has joke: ${text1HasJoke} vs ${text2HasJoke})`, 'python-service');
         this.similarityCache.set(cacheKey, false);
         return {
           areSimilar: false,
@@ -211,7 +210,7 @@ export class PythonService {
           text2.trim().toLowerCase().includes(text1.trim().toLowerCase())) {
         // Double check if both have joke words or neither have joke words
         if (text1HasJoke === text2HasJoke) {
-          console.log(`Text containment with matching joke context: "${text1.substring(0, 20)}..." vs "${text2.substring(0, 20)}..."`);
+          log(`Text containment with matching joke context: "${text1.substring(0, 20)}..." vs "${text2.substring(0, 20)}..."`, 'python-service');
           this.similarityCache.set(cacheKey, true);
           return {
             areSimilar: true,
@@ -263,7 +262,7 @@ export class PythonService {
           const nonJokeTextSentiment = text1HasJoke ? correctedSentiment : originalSentiment;
           
           if (jokeTextSentiment === 'Disbelief' && nonJokeTextSentiment !== 'Disbelief') {
-            console.log('Sentiment verification passed: Joke text has Disbelief sentiment, non-joke has different sentiment');
+            log('Sentiment verification passed: Joke text has Disbelief sentiment, non-joke has different sentiment', 'python-service');
             this.similarityCache.set(cacheKey, false);
             return {
               areSimilar: false,
@@ -302,14 +301,13 @@ export class PythonService {
         // CRITICAL: Different handling for texts with strong vs basic panic indicators
         // If one text has strong panic indicators and the other doesn't, they are DEFINITELY different
         if (text1HasStrongPanic !== text2HasStrongPanic) {
-          console.log(`Strong panic indicators mismatch: "${text1.substring(0, 20)}..." vs "${text2.substring(0, 20)}..."`, 
-                    `(has strong panic: ${text1HasStrongPanic} vs ${text2HasStrongPanic})`);
+          log(`Strong panic indicators mismatch: "${text1.substring(0, 20)}..." vs "${text2.substring(0, 20)}..." (has strong panic: ${text1HasStrongPanic} vs ${text2HasStrongPanic})`, 'python-service');
           
           // Text with strong panic should be Panic sentiment
           if (text1HasStrongPanic) {
             // If one text has strong panic indicators and is NOT set as Panic sentiment, texts are different
             if (originalSentiment !== 'Panic') {
-              console.log('CRITICAL: Text has strong panic indicators but sentiment is not Panic');
+              log('CRITICAL: Text has strong panic indicators but sentiment is not Panic', 'python-service');
               this.similarityCache.set(cacheKey, false);
               return {
                 areSimilar: false,
@@ -318,7 +316,7 @@ export class PythonService {
               };
             }
           } else if (text2HasStrongPanic && correctedSentiment !== 'Panic') {
-            console.log('CRITICAL: Second text has strong panic indicators but sentiment is not Panic');
+            log('CRITICAL: Second text has strong panic indicators but sentiment is not Panic', 'python-service');
             this.similarityCache.set(cacheKey, false);
             return {
               areSimilar: false,
@@ -340,7 +338,7 @@ export class PythonService {
         if ((text1.toLowerCase().includes('tulungan') && text1.toLowerCase().includes('takot')) !==
             (text2.toLowerCase().includes('tulungan') && text2.toLowerCase().includes('takot'))) {
           
-          console.log('Mixed emotion context mismatch: One text has both help request and fear, other does not');
+          log('Mixed emotion context mismatch: One text has both help request and fear, other does not', 'python-service');
           this.similarityCache.set(cacheKey, false);
           return {
             areSimilar: false,
@@ -352,7 +350,7 @@ export class PythonService {
         // 4. NEW CHECK - Look for "KAME" or "KAMI" which indicates personal involvement in panic
         if (text1.toLowerCase().includes('kame') || text1.toLowerCase().includes('kami')) {
           if (!(text2.toLowerCase().includes('kame') || text2.toLowerCase().includes('kami'))) {
-            console.log('Personal involvement mismatch: One text has personal involvement (kami/kame), other does not');
+            log('Personal involvement mismatch: One text has personal involvement (kami/kame), other does not', 'python-service');
             this.similarityCache.set(cacheKey, false);
             return {
               areSimilar: false,
@@ -528,7 +526,7 @@ export class PythonService {
                   result.message = "Thank you for your feedback. We've received your sentiment classification and will use it to improve our system. We appreciate your participation in helping make our AI better.";
                   
                   // Also log this issue as a warning
-                  console.warn(`Content filter activated: Replaced inappropriate AI message with clean version`);
+                  log(`Content filter activated: Replaced inappropriate AI message with clean version`, 'python-service');
                 }
               }
               
