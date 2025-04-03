@@ -5,6 +5,16 @@ import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cancelUpload } from "@/lib/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Animated number component for smooth transitions
 const AnimatedNumber = ({ value }: { value: number }) => (
@@ -40,6 +50,7 @@ export function UploadProgressModal() {
   const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
   const [highestProcessed, setHighestProcessed] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   // Effect to track the highest processed value
   useEffect(() => {
@@ -55,10 +66,16 @@ export function UploadProgressModal() {
     }
   }, [isUploading]);
 
+  // Open cancel confirmation dialog
+  const openCancelDialog = () => {
+    setShowCancelDialog(true);
+  };
+  
   // Handle cancel button click
   const handleCancel = async () => {
     if (isCancelling) return;
     
+    setShowCancelDialog(false);
     setIsCancelling(true);
     try {
       const result = await cancelUpload();
@@ -95,8 +112,14 @@ export function UploadProgressModal() {
     timeRemaining = 0,
     batchProgress = 0
   } = uploadProgress;
+  
+  // Only reset to 0 when we actually have a new upload, not during processing
+  const processedForDisplay = stage.toLowerCase().includes('upload cancelled') || stage.toLowerCase().includes('error')
+    ? rawProcessed 
+    : (rawProcessed > 0 ? rawProcessed : highestProcessed);
 
   // Use the higher value between current processed and highest recorded
+  // This ensures we never show "0/100" even during stage transitions
   const processed = Math.max(rawProcessed, highestProcessed);
 
   // Calculate completion percentage - ensure we don't exceed 100% or show NaN
@@ -345,7 +368,7 @@ export function UploadProgressModal() {
                 variant="destructive"
                 size="sm"
                 className="gap-1 bg-red-900/80 hover:bg-red-800 text-white"
-                onClick={handleCancel}
+                onClick={openCancelDialog}
                 disabled={isCancelling || isComplete}
               >
                 {isCancelling ? (
@@ -360,6 +383,29 @@ export function UploadProgressModal() {
                   </>
                 )}
               </Button>
+              
+              {/* Cancel Confirmation Dialog */}
+              <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+                <AlertDialogContent className="bg-slate-900 border border-slate-700">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-red-400">Cancel Upload?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-slate-300">
+                      Are you sure you want to cancel this upload? This action cannot be undone and the progress so far will be lost.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700">
+                      No, Continue Processing
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      className="bg-red-900 hover:bg-red-800 text-white border-none" 
+                      onClick={handleCancel}
+                    >
+                      Yes, Cancel Upload
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
 
