@@ -22,24 +22,24 @@ const AnimatedNumber = ({ value }: { value: number }) => (
     key={value}
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -10 }}
-    transition={{ duration: 0.3, ease: "easeOut" }}
-    className="tabular-nums"
+    transition={{ duration: 0.3 }}
   >
     {value.toLocaleString()}
   </motion.span>
 );
 
-// Format time remaining
+// Helper to format time remaining in a human-readable format
 const formatTimeRemaining = (seconds: number): string => {
-  if (!seconds || seconds <= 0) return '';
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  return `${Math.round(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+  if (seconds < 60) {
+    return `${Math.ceil(seconds)} seconds`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.ceil(seconds % 60);
+  return `${minutes}m ${remainingSeconds}s`;
 };
 
-// Format speed
+// Helper to format processing speed in a human-readable format
 const formatSpeed = (recordsPerSecond: number): string => {
-  if (!recordsPerSecond || recordsPerSecond <= 0) return '';
   if (recordsPerSecond >= 1000) {
     return `${(recordsPerSecond / 1000).toFixed(1)}k records/s`;
   }
@@ -83,20 +83,16 @@ export function UploadProgressModal() {
       
       if (result.success) {
         // We'll let the server-side events close the modal
-        // The progress will be updated to show "Upload cancelled by user"
       } else {
-        // If the server couldn't cancel (maybe already finished), close the modal
-        setIsUploading(false);
+        setIsCancelling(false);
       }
     } catch (error) {
       console.error('Error cancelling upload:', error);
-      // Still close the modal to let the user try again
-      setIsUploading(false);
-    } finally {
       setIsCancelling(false);
     }
   };
 
+  // Don't render the modal if not uploading
   if (!isUploading) return null;
 
   const { 
@@ -113,14 +109,21 @@ export function UploadProgressModal() {
     batchProgress = 0
   } = uploadProgress;
   
-  // Only reset to 0 when we actually have a new upload, not during processing
-  const processedForDisplay = stage.toLowerCase().includes('upload cancelled') || stage.toLowerCase().includes('error')
-    ? rawProcessed 
-    : (rawProcessed > 0 ? rawProcessed : highestProcessed);
-
-  // Use the higher value between current processed and highest recorded
-  // This ensures we never show "0/100" even during stage transitions
-  const processed = Math.max(rawProcessed, highestProcessed);
+  // Special handling for the first record - we'll show 1 as soon as processing starts
+  // This ensures we don't show 0/50 when starting a fresh upload
+  const isStartingNewUpload = 
+    rawProcessed === 0 && 
+    (stage.toLowerCase().includes('starting batch') || 
+     stage.toLowerCase().includes('processing record') ||
+     stage.toLowerCase().includes('preparing'));
+    
+  // For display, we want to show 1 instead of 0 when just starting
+  const displayStartValue = isStartingNewUpload ? 1 : rawProcessed;
+  
+  // Only use highest recorded value for transitions, not for actual counts
+  const processed = stage.toLowerCase().includes('upload cancelled') || stage.toLowerCase().includes('error')
+    ? rawProcessed
+    : Math.max(displayStartValue, highestProcessed);
 
   // Calculate completion percentage - ensure we don't exceed 100% or show NaN
   let percentComplete = 0;
@@ -367,7 +370,7 @@ export function UploadProgressModal() {
               <Button
                 variant="destructive"
                 size="sm"
-                className="gap-1 bg-red-900/80 hover:bg-red-800 text-white"
+                className="gap-1 bg-red-900/80 hover:bg-red-800 text-white relative z-[10000]"
                 onClick={openCancelDialog}
                 disabled={isCancelling || isComplete}
               >
@@ -383,30 +386,36 @@ export function UploadProgressModal() {
                   </>
                 )}
               </Button>
-              
-              {/* Cancel Confirmation Dialog */}
-              <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-                <AlertDialogContent className="bg-slate-900 border border-slate-700">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-red-400">Cancel Upload?</AlertDialogTitle>
-                    <AlertDialogDescription className="text-slate-300">
-                      Are you sure you want to cancel this upload? This action cannot be undone and the progress so far will be lost.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700">
-                      No, Continue Processing
-                    </AlertDialogCancel>
-                    <AlertDialogAction 
-                      className="bg-red-900 hover:bg-red-800 text-white border-none" 
-                      onClick={handleCancel}
-                    >
-                      Yes, Cancel Upload
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
             </div>
+          )}
+
+          {/* Cancel Confirmation Dialog */}
+          {showCancelDialog && createPortal(
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]" onClick={() => setShowCancelDialog(false)}>
+              <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl max-w-md mx-4" onClick={e => e.stopPropagation()}>
+                <h3 className="text-xl font-bold text-red-400 mb-2">Cancel Upload?</h3>
+                <p className="text-slate-300 mb-4">
+                  Are you sure you want to cancel this upload? This action cannot be undone and the progress so far will be lost.
+                </p>
+                <div className="flex justify-end gap-3">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowCancelDialog(false)}
+                    className="bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700"
+                  >
+                    No, Continue Processing
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    onClick={handleCancel}
+                    className="bg-red-900 hover:bg-red-800 text-white border-none"
+                  >
+                    Yes, Cancel Upload
+                  </Button>
+                </div>
+              </div>
+            </div>,
+            document.body
           )}
 
           {/* Enhanced animations */}

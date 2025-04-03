@@ -1066,6 +1066,9 @@ class DisasterSentimentBackend:
         
         # Check if the text is a simple factual statement
         if any(statement in text_lower for statement in simple_statements):
+            # Calculate maximum score across all sentiment categories
+            max_score = max(scores.values()) if scores else 0
+            
             # Only override if there are no strong emotional indicators
             if max_score <= 1:
                 scores["Neutral"] = 3  # Force to Neutral with higher score if no strong emotions
@@ -1151,7 +1154,8 @@ class DisasterSentimentBackend:
                     scores["Resilience"] += 1
 
         # Determine the sentiment with the highest score
-        max_score = max(scores.values())
+        # Add safety check to ensure scores is not empty
+        max_score = max(scores.values()) if scores else 0
         if max_score == 0:
             # If no clear sentiment detected, return Neutral
             return {
@@ -1197,20 +1201,26 @@ class DisasterSentimentBackend:
 
         # Generate more detailed explanation based on sentiment
         explanation = ""
-        if sentiment == "Panic":
+        # Safely get sentiment value
+        sentiment_value = sentiment if 'sentiment' in locals() else "Neutral"
+        
+        if sentiment_value == "Panic":
             explanation = "The text shows signs of urgent distress or calls for immediate help, indicating panic."
-        elif sentiment == "Fear/Anxiety":
+        elif sentiment_value == "Fear/Anxiety":
             explanation = "The message expresses worry, concern or apprehension about the situation."
-        elif sentiment == "Disbelief":
+        elif sentiment_value == "Disbelief":
             # Check for mockery patterns
             if laughter_count >= 2:
                 explanation = "The content contains laughter patterns and mockery, indicating disbelief or skepticism about the reported situation."
             else:
                 explanation = "The content shows shock, surprise or inability to comprehend the situation."
-        elif sentiment == "Resilience":
+        elif sentiment_value == "Resilience":
             explanation = "The text demonstrates community support, offers of help, or positive action toward recovery."
         else:  # Neutral
             explanation = "The text appears informational or descriptive without strong emotional indicators."
+            
+        # Ensure sentiment is defined in case it wasn't set earlier
+        sentiment = sentiment_value
             
         return {
             "sentiment": sentiment,
