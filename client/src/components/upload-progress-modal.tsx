@@ -191,32 +191,7 @@ export function UploadProgressModal() {
             </div>
           </div>
           
-          {/* Simple Processing Stats - show only relevant info */}
-          {!hasError && !isComplete && (
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              {/* Records Progress */}
-              <div className="bg-white/90 rounded-lg p-3 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-2 text-blue-600 mb-1">
-                  <Database className="h-4 w-4" />
-                  <span className="text-xs font-medium">Records Processed</span>
-                </div>
-                <div className="text-sm font-bold text-gray-700">
-                  {processed} of {total} ({percentComplete}%)
-                </div>
-              </div>
-              
-              {/* Records Remaining */}
-              <div className="bg-white/90 rounded-lg p-3 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-2 text-purple-600 mb-1">
-                  <Activity className="h-4 w-4" />
-                  <span className="text-xs font-medium">Records Remaining</span>
-                </div>
-                <div className="text-sm font-bold text-gray-700">
-                  {Math.max(0, total - processed)}
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Processing Steps - Simplified, no more redundant displayed stats */}
           
           {/* Processing Steps */}
           <div className="space-y-2 mb-4">
