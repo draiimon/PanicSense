@@ -1,11 +1,9 @@
-# PanicSense Optimized Dockerfile for Render Deployment
-
-# Build Stage
-FROM node:20-slim AS builder
+## Stage 1: Build stage with full dependencies
+FROM node:20-slim as builder
 
 WORKDIR /build
 
-# Install required system packages for build
+# Install system dependencies first (Python and build tools)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
@@ -15,62 +13,60 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create Python virtual environment
 RUN python3 -m venv /build/venv
-ENV PATH="/build/venv/bin:$PATH"
-ENV PYTHONUNBUFFERED=1
 
-# Copy and install Python requirements (with minimal dependencies)
+# Copy Python requirements and install them
 COPY server/python/requirements.txt ./server/python/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r server/python/requirements.txt
 
-# Download only required NLTK data
+# Install NLTK data
 RUN pip install --no-cache-dir nltk && \
     python3 -c "import nltk; nltk.download('punkt', download_dir='/build/nltk_data')"
 
-# Copy package files and install Node.js dependencies
+# Copy package files first (for better caching)
 COPY package*.json ./
 RUN npm ci
 
-# Copy source files
+# Copy application code
 COPY . .
 
-# Build the application
+# Build the application (both client and server)
 RUN NODE_ENV=production NODE_OPTIONS=--max-old-space-size=1536 npm run build
 
-# Runtime Stage - Use a smaller image
+## Stage 2: Production stage (smaller image)
 FROM node:20-slim
 
 WORKDIR /app
 
-# Install only runtime dependencies (not dev dependencies)
+# Install only the runtime dependencies needed
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-venv \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy built application and dependencies
+# Copy built artifacts from build stage
 COPY --from=builder /build/dist ./dist
 COPY --from=builder /build/node_modules ./node_modules
 COPY --from=builder /build/server/python ./server/python
 COPY --from=builder /build/venv /app/venv
 COPY --from=builder /build/nltk_data /usr/share/nltk_data
 COPY --from=builder /build/migrations ./migrations
-COPY quick-fix.sh /app/quick-fix.sh
+COPY --from=builder /build/server/db-simple-fix.js ./server/db-simple-fix.js
+COPY --from=builder /build/server/emergency-db-fix.js ./server/emergency-db-fix.js
 
-# Set proper permissions for scripts
+# Copy database fix scripts
+COPY quick-fix.sh /app/quick-fix.sh
 RUN chmod +x /app/quick-fix.sh
 
-# Configure environment variables
-ENV PATH="/app/venv/bin:$PATH"
-ENV PYTHONPATH=/app/venv/lib/python3.*/site-packages
-ENV NLTK_DATA=/usr/share/nltk_data
+# Set environment variables
 ENV NODE_ENV=production
-ENV PORT=5000
-ENV NODE_OPTIONS=--max-old-space-size=1536
+ENV PATH="/app/venv/bin:$PATH"
+ENV NLTK_DATA="/usr/share/nltk_data"
+ENV PYTHONPATH="/app/server/python"
 
-# Expose the application port
+# Expose ports
 EXPOSE 5000
 
-# Run the application
-CMD ["node", "dist/index.js"]
+# Apply database fixes and start the application
+CMD ["/bin/bash", "-c", "/app/quick-fix.sh && node dist/index.js"]

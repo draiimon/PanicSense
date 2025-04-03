@@ -3,8 +3,10 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { checkPortPeriodically, checkPort } from "./debug-port";
-// Import emergency database fix
+// Import emergency database fixes - both old and new strategy
 import { applyEmergencyFixes } from "./emergency-db-fix";
+// Import the simple fix (now ESM compatible)
+import { simpleDbFix } from "./db-simple-fix";
 
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Increased limit for better performance
@@ -47,14 +49,32 @@ app.use((req, res, next) => {
     if (process.env.NODE_ENV === "production") {
       console.log("Running in production mode, applying emergency database fixes...");
       try {
-        const fixesSuccessful = await applyEmergencyFixes();
-        if (fixesSuccessful) {
-          console.log("✅ Database fixes applied successfully!");
+        // First, try the simple fix (more reliable, simpler code)
+        console.log("Trying simple database fix first...");
+        const simpleFixSuccessful = await simpleDbFix();
+        
+        if (simpleFixSuccessful) {
+          console.log("✅ Simple database fix successful!");
         } else {
-          console.error("⚠️ Database fixes failed. App may not function correctly.");
+          // If simple fix fails, try the more complex one
+          console.log("Simple fix failed, trying complex emergency fix...");
+          const fixesSuccessful = await applyEmergencyFixes();
+          if (fixesSuccessful) {
+            console.log("✅ Complex database fixes applied successfully!");
+          } else {
+            console.error("⚠️ All database fixes failed. App may not function correctly.");
+          }
         }
       } catch (error) {
         console.error("Fatal error in database fix script:", error);
+      }
+    } else {
+      // In development, also apply the simple fix (helps with local testing)
+      try {
+        console.log("Running simple database fix in development...");
+        await simpleDbFix();
+      } catch (error) {
+        console.error("Development database fix failed:", error);
       }
     }
     
