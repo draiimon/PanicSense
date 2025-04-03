@@ -13,7 +13,7 @@ import {
   LogOut,
   Globe,
 } from "lucide-react";
-import logo from "/favicon.svg"; // Import the PanicSense logo
+import logo from "/images/favicon.svg"; // Import the PanicSense logo
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
