@@ -64,6 +64,18 @@ export async function simpleDbFix() {
       ai_trust_message TEXT,
       possible_trolling BOOLEAN DEFAULT false
     );
+    
+    -- upload_sessions table for tracking file uploads
+    CREATE TABLE IF NOT EXISTS upload_sessions (
+      id SERIAL PRIMARY KEY,
+      session_id TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL DEFAULT 'active',
+      file_id INTEGER REFERENCES analyzed_files(id) ON DELETE SET NULL,
+      progress JSON,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW(),
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+    );
     `);
     
     // Verify
@@ -71,7 +83,8 @@ export async function simpleDbFix() {
       SELECT 
         EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'sentiment_posts' AND column_name = 'ai_trust_message') as col_exists,
         EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'training_examples') as table_exists,
-        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'sentiment_feedback') as feedback_exists
+        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'sentiment_feedback') as feedback_exists,
+        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'upload_sessions') as upload_sessions_exists
     `);
     
     console.log('✅ SIMPLE FIX COMPLETE! Verification:', result.rows[0]);

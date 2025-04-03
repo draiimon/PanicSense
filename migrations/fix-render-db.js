@@ -68,6 +68,26 @@ export async function fixRenderDatabase() {
       console.error('Error creating training_examples table:', err.message);
     }
     
+    // Fix 3: Create upload_sessions table if it doesn't exist
+    try {
+      console.log('Attempting to create upload_sessions table...');
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS upload_sessions (
+            id SERIAL PRIMARY KEY,
+            session_id TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL DEFAULT 'active',
+            file_id INTEGER REFERENCES analyzed_files(id),
+            progress JSON,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW(),
+            user_id INTEGER REFERENCES users(id)
+        );
+      `);
+      console.log('upload_sessions table fix completed');
+    } catch (err) {
+      console.error('Error creating upload_sessions table:', err.message);
+    }
+    
     // Verify fixes
     try {
       const colCheck = await pool.query(`
@@ -78,7 +98,7 @@ export async function fixRenderDatabase() {
         ) AS column_exists;
       `);
       
-      const tableCheck = await pool.query(`
+      const trainingExamplesCheck = await pool.query(`
         SELECT EXISTS (
           SELECT 1 
           FROM information_schema.tables 
@@ -86,11 +106,22 @@ export async function fixRenderDatabase() {
         ) AS table_exists;
       `);
       
+      const uploadSessionsCheck = await pool.query(`
+        SELECT EXISTS (
+          SELECT 1 
+          FROM information_schema.tables 
+          WHERE table_name = 'upload_sessions'
+        ) AS sessions_table_exists;
+      `);
+      
       console.log('Verification results:');
       console.log(`- ai_trust_message column exists: ${colCheck.rows[0].column_exists}`);
-      console.log(`- training_examples table exists: ${tableCheck.rows[0].table_exists}`);
+      console.log(`- training_examples table exists: ${trainingExamplesCheck.rows[0].table_exists}`);
+      console.log(`- upload_sessions table exists: ${uploadSessionsCheck.rows[0].sessions_table_exists}`);
       
-      if (colCheck.rows[0].column_exists && tableCheck.rows[0].table_exists) {
+      if (colCheck.rows[0].column_exists && 
+          trainingExamplesCheck.rows[0].table_exists && 
+          uploadSessionsCheck.rows[0].sessions_table_exists) {
         console.log('✅ DATABASE FIXES SUCCESSFULLY APPLIED');
       } else {
         console.log('⚠️ SOME DATABASE FIXES FAILED');
