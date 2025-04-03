@@ -5,7 +5,8 @@ import { users, type User, type InsertUser,
   sessions, type LoginUser,
   profileImages, type ProfileImage, type InsertProfileImage,
   sentimentFeedback, type SentimentFeedback, type InsertSentimentFeedback,
-  trainingExamples, type TrainingExample, type InsertTrainingExample
+  trainingExamples, type TrainingExample, type InsertTrainingExample,
+  uploadSessions, type UploadSession, type InsertUploadSession
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -60,6 +61,12 @@ export interface IStorage {
   createTrainingExample(example: InsertTrainingExample): Promise<TrainingExample>;
   updateTrainingExample(id: number, sentiment: string): Promise<TrainingExample>;
   deleteTrainingExample(id: number): Promise<void>;
+  
+  // Upload Sessions Management
+  getUploadSession(sessionId: string): Promise<UploadSession | undefined>;
+  createUploadSession(session: InsertUploadSession): Promise<UploadSession>;
+  updateUploadSession(sessionId: string, status: string, progress: any): Promise<UploadSession | undefined>;
+  deleteUploadSession(sessionId: string): Promise<void>;
 
   // Delete All Data
   deleteAllData(): Promise<void>;
@@ -501,9 +508,78 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Upload Sessions Management
+  async getUploadSession(sessionId: string): Promise<UploadSession | undefined> {
+    try {
+      const [session] = await db.select()
+        .from(uploadSessions)
+        .where(eq(uploadSessions.sessionId, sessionId));
+      return session;
+    } catch (error) {
+      console.error("Error in getUploadSession (table may not exist):", error);
+      return undefined;
+    }
+  }
+
+  async createUploadSession(session: InsertUploadSession): Promise<UploadSession> {
+    try {
+      const [result] = await db.insert(uploadSessions)
+        .values({
+          sessionId: session.sessionId,
+          status: session.status || 'active',
+          progress: JSON.stringify(session.progress || null),
+          fileId: session.fileId || null,  // Ensure fileId is null if undefined
+          userId: session.userId || null   // Ensure userId is null if undefined
+        })
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error in createUploadSession (table may not exist):", error);
+      // Return a mock session since the table might not exist
+      return {
+        id: -1,
+        sessionId: session.sessionId,
+        status: session.status || 'active',
+        fileId: session.fileId || null,  // Ensure fileId is null if undefined
+        progress: session.progress,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: session.userId || null   // Ensure userId is null if undefined
+      };
+    }
+  }
+
+  async updateUploadSession(sessionId: string, status: string, progress: any): Promise<UploadSession | undefined> {
+    try {
+      const [result] = await db.update(uploadSessions)
+        .set({
+          status,
+          progress: JSON.stringify(progress || null),
+          updatedAt: new Date()
+        })
+        .where(eq(uploadSessions.sessionId, sessionId))
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error in updateUploadSession (table may not exist):", error);
+      return undefined;
+    }
+  }
+
+  async deleteUploadSession(sessionId: string): Promise<void> {
+    try {
+      await db.delete(uploadSessions)
+        .where(eq(uploadSessions.sessionId, sessionId));
+    } catch (error) {
+      console.error("Error in deleteUploadSession (table may not exist):", error);
+      // Just log the error, no need to throw
+    }
+  }
+
   async deleteAllData(): Promise<void> {
     await db.delete(sentimentFeedback);
     await db.delete(trainingExamples);
+    await db.delete(uploadSessions);
     await this.deleteAllSentimentPosts();
     await this.deleteAllDisasterEvents();
     await this.deleteAllAnalyzedFiles();

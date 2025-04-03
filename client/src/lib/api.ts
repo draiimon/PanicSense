@@ -116,6 +116,9 @@ export async function cancelUpload(): Promise<{ success: boolean; message: strin
       // Reset the current session ID
       currentUploadSessionId = null;
       
+      // Clear localStorage
+      localStorage.removeItem('uploadSessionId');
+      
       return result;
     } catch (error) {
       console.error('Error cancelling upload:', error);
@@ -129,9 +132,46 @@ export async function cancelUpload(): Promise<{ success: boolean; message: strin
   return { success: false, message: 'No active upload to cancel' };
 }
 
-// Return the current upload session ID
+// Return the current upload session ID with database support
 export function getCurrentUploadSessionId(): string | null {
-  return currentUploadSessionId;
+  // First check the memory variable
+  if (currentUploadSessionId) {
+    return currentUploadSessionId;
+  }
+  
+  // If not in memory, check localStorage (legacy support)
+  const storedSessionId = localStorage.getItem('uploadSessionId');
+  if (storedSessionId) {
+    // Restore the session ID to memory
+    currentUploadSessionId = storedSessionId;
+    return storedSessionId;
+  }
+  
+  return null;
+}
+
+// Check if there are any active upload sessions in the database
+export async function checkForActiveSessions(): Promise<string | null> {
+  try {
+    // Fetch active session from database
+    const response = await apiRequest('GET', '/api/active-upload-session');
+    if (response.ok) {
+      const data = await response.json();
+      if (data.sessionId) {
+        // Set the current session ID
+        currentUploadSessionId = data.sessionId;
+        // Update localStorage for compatibility
+        localStorage.setItem('uploadSessionId', data.sessionId);
+        
+        console.log(`Restored active upload session ${data.sessionId} from database`);
+        return data.sessionId;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error checking for active sessions:', error);
+    return null;
+  }
 }
 
 // File Upload with enhanced progress tracking and cancellation
@@ -170,11 +210,27 @@ export async function uploadCSV(
   const sessionId = crypto.randomUUID();
   currentUploadSessionId = sessionId;
   
-  // Store the session ID in localStorage for persistence across page refreshes
+  // Store the session ID in both localStorage (legacy) and database
   localStorage.setItem('uploadSessionId', sessionId);
+  
+  // If onProgress callback is provided, check for any active upload sessions 
+  // that might have been interrupted
+  if (onProgress) {
+    try {
+      // Attempt to restore any active session from previous runs
+      const activeSessionId = await checkForActiveSessions();
+      if (activeSessionId) {
+        console.log(`Detected active upload session: ${activeSessionId}. Using existing session.`);
+        // If there's an active session in the database, use that instead
+        currentUploadSessionId = activeSessionId;
+      }
+    } catch (error) {
+      console.error('Error checking for active sessions:', error);
+    }
+  }
 
-  // Set up event source for progress updates
-  const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
+  // Set up event source for progress updates using the potentially updated sessionId
+  const eventSource = new EventSource(`/api/upload-progress/${currentUploadSessionId}`);
   currentEventSource = eventSource;
 
   eventSource.onmessage = (event) => {
@@ -195,7 +251,7 @@ export async function uploadCSV(
     const response = await fetch('/api/upload-csv', {
       method: 'POST',
       headers: {
-        'X-Session-ID': sessionId
+        'X-Session-ID': currentUploadSessionId  // Use the potentially updated sessionId
       },
       body: formData,
       credentials: 'include',
@@ -208,8 +264,8 @@ export async function uploadCSV(
     }
 
     return response.json();
-  } catch (error) {
-    if (error.name === 'AbortError') {
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
       throw new Error('Upload was cancelled');
     }
     throw error;
@@ -217,6 +273,8 @@ export async function uploadCSV(
     eventSource.close();
     currentEventSource = null;
     currentUploadSessionId = null;
+    // Clear the session ID from localStorage
+    localStorage.removeItem('uploadSessionId');
   }
 }
 

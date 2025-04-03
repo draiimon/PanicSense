@@ -101,6 +101,18 @@ export const trainingExamples = pgTable("training_examples", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Upload sessions for persistence across page refreshes
+export const uploadSessions = pgTable("upload_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().unique(),
+  status: text("status").notNull().default('active'), // active, complete, canceled, error
+  fileId: integer("file_id").references(() => analyzedFiles.id),
+  progress: json("progress"), // Store upload progress data
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  userId: integer("user_id").references(() => users.id),
+});
+
 export const insertSentimentFeedbackSchema = createInsertSchema(sentimentFeedback).pick({
   originalPostId: true,
   originalText: true,
@@ -119,6 +131,14 @@ export const insertTrainingExampleSchema = createInsertSchema(trainingExamples).
   sentiment: true,
   language: true,
   confidence: true
+});
+
+export const insertUploadSessionSchema = createInsertSchema(uploadSessions).pick({
+  sessionId: true,
+  status: true,
+  fileId: true,
+  progress: true,
+  userId: true
 });
 
 // Schema Validation
@@ -189,3 +209,6 @@ export type SentimentFeedback = typeof sentimentFeedback.$inferSelect;
 
 export type InsertTrainingExample = z.infer<typeof insertTrainingExampleSchema>;
 export type TrainingExample = typeof trainingExamples.$inferSelect;
+
+export type InsertUploadSession = z.infer<typeof insertUploadSessionSchema>;
+export type UploadSession = typeof uploadSessions.$inferSelect;

@@ -3,12 +3,12 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import { db } from "./db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import path from "path";
 import multer from "multer";
 import fs from "fs";
 import { pythonService, pythonConsoleMessages } from "./python-service";
-import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts, type SentimentPost } from "@shared/schema";
+import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts, uploadSessions, type SentimentPost } from "@shared/schema";
 import { usageTracker } from "./utils/usage-tracker";
 import { EventEmitter } from 'events';
 
@@ -152,8 +152,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Add the SSE endpoint inside registerRoutes
-  app.get('/api/upload-progress/:sessionId', (req: Request, res: Response) => {
+  // Add the SSE endpoint inside registerRoutes with database persistence
+  app.get('/api/upload-progress/:sessionId', async (req: Request, res: Response) => {
     const sessionId = req.params.sessionId;
 
     res.writeHead(200, {
@@ -162,23 +162,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       'Connection': 'keep-alive'
     });
 
-    // Send initial progress data
-    res.write(`data: ${JSON.stringify({
-      processed: 0,
-      total: 100,
-      stage: "Initializing...",
-      batchProgress: 0,
-      currentSpeed: 0,
-      timeRemaining: 0,
-      processingStats: {
-        successCount: 0,
-        errorCount: 0,
-        lastBatchDuration: 0,
-        averageSpeed: 0
+    // Check if there's a stored session in the database
+    let storedSession;
+    try {
+      storedSession = await storage.getUploadSession(sessionId);
+      
+      // If session is in the database but not in memory, restore it to memory
+      if (storedSession && !uploadProgressMap.has(sessionId) && 
+          storedSession.status === 'active' && storedSession.progress) {
+        // Convert from JSON if needed
+        const progressData = typeof storedSession.progress === 'string' 
+          ? JSON.parse(storedSession.progress) 
+          : storedSession.progress;
+          
+        // Add timestamp for speed calculations
+        progressData.timestamp = progressData.timestamp || Date.now();
+        
+        uploadProgressMap.set(sessionId, progressData);
+        console.log(`Restored upload session ${sessionId} from database`);
       }
-    })}\n\n`);
+    } catch (error) {
+      console.error('Error getting upload session from database:', error);
+    }
 
-    const sendProgress = () => {
+    // Send initial progress data (or stored progress if available)
+    const initialProgress = (storedSession && storedSession.progress) 
+      ? (typeof storedSession.progress === 'string' 
+         ? JSON.parse(storedSession.progress) 
+         : storedSession.progress)
+      : {
+          processed: 0,
+          total: 100,
+          stage: "Initializing...",
+          batchProgress: 0,
+          currentSpeed: 0,
+          timeRemaining: 0,
+          processingStats: {
+            successCount: 0,
+            errorCount: 0,
+            lastBatchDuration: 0,
+            averageSpeed: 0
+          }
+        };
+        
+    res.write(`data: ${JSON.stringify(initialProgress)}\n\n`);
+
+    const sendProgress = async () => {
       const progress = uploadProgressMap.get(sessionId);
       if (progress) {
         // Calculate real-time metrics
@@ -206,13 +235,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: progress.error
         };
 
+        // Try to update the database record
+        try {
+          let status = 'active';
+          if (progress.error) {
+            status = 'error';
+          } else if (progress.stage === 'Completed') {
+            status = 'complete';
+          } else if (progress.stage === 'Upload cancelled by user') {
+            status = 'canceled';
+          }
+          
+          // Check if the session exists in the database
+          const existingSession = await storage.getUploadSession(sessionId);
+          
+          if (existingSession) {
+            // Update existing session
+            await storage.updateUploadSession(sessionId, status, enhancedProgress);
+          } else {
+            // Create new session
+            await storage.createUploadSession({
+              sessionId,
+              status,
+              progress: enhancedProgress,
+              fileId: null,
+              userId: null
+            });
+          }
+        } catch (error) {
+          console.error('Error updating upload progress in database:', error);
+        }
+
         // Send to browser
         res.write(`data: ${JSON.stringify(enhancedProgress)}\n\n`);
       }
     };
 
     // Send progress immediately and then set interval
-    sendProgress();
+    await sendProgress();
     const progressInterval = setInterval(sendProgress, 100);
 
     req.on('close', () => {
@@ -246,6 +306,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sessionId,
             progress
           });
+          
+          // Update the database record
+          try {
+            // Check if the session exists in the database
+            const existingSession = await storage.getUploadSession(sessionId);
+            
+            if (existingSession) {
+              // Update existing session to canceled status
+              await storage.updateUploadSession(sessionId, 'canceled', progress);
+            }
+          } catch (error) {
+            console.error('Error updating upload session in database:', error);
+          }
         }
         
         res.json({ success: true, message: 'Upload cancelled successfully' });
@@ -607,6 +680,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error updating file metrics:", error);
       res.status(500).json({ 
         error: "Failed to update file metrics",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Get active upload session
+  app.get('/api/active-upload-session', async (req: Request, res: Response) => {
+    try {
+      // Query all sessions from the database
+      const sessions = await db.select().from(uploadSessions)
+        .where(eq(uploadSessions.status, 'active'))
+        .orderBy(desc(uploadSessions.id))
+        .limit(1);
+      
+      if (sessions.length > 0) {
+        const activeSession = sessions[0];
+        return res.json({ 
+          sessionId: activeSession.sessionId,
+          status: activeSession.status,
+          progress: typeof activeSession.progress === 'string' 
+            ? JSON.parse(activeSession.progress) 
+            : activeSession.progress
+        });
+      }
+      
+      // No active session found
+      return res.json({ sessionId: null });
+    } catch (error) {
+      console.error('Error retrieving active upload session:', error);
+      res.status(500).json({ 
+        error: 'Failed to retrieve active upload session',
         details: error instanceof Error ? error.message : String(error)
       });
     }
