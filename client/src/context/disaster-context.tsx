@@ -154,10 +154,14 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                   refreshData();
                 }
                 
-                // Close the upload modal after a delay
+                // Close the upload modal after a delay - shorter delay for better responsiveness
                 setTimeout(() => {
                   setIsUploading(false);
-                }, 2000);
+                  // Clear the upload progress from localStorage to prevent potential stale state
+                  localStorage.removeItem('isUploading');
+                  localStorage.removeItem('uploadProgress');
+                  localStorage.removeItem('uploadSessionId');
+                }, 1500);
               }
             } catch (error) {
               console.error('Error parsing progress data:', error);
@@ -211,10 +215,14 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                         refreshData();
                       }
                       
-                      // Close the upload modal after a delay
+                      // Close the upload modal after a delay - shorter delay for better responsiveness
                       setTimeout(() => {
                         setIsUploading(false);
-                      }, 2000);
+                        // Clear the upload progress from localStorage to prevent potential stale state
+                        localStorage.removeItem('isUploading');
+                        localStorage.removeItem('uploadProgress');
+                        localStorage.removeItem('uploadSessionId');
+                      }, 1500);
                     }
                   } catch (error) {
                     console.error('Error parsing progress data:', error);

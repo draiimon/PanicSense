@@ -953,7 +953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       uploadProgressMap.set(sessionId, {
         processed: 0,
         total: totalRecords,
-        stage: `Preparing to process ${totalRecords} records in batches of 30...`,
+        stage: `Starting analysis...`,
         timestamp: Date.now(),
         batchNumber: 0,
         totalBatches: Math.ceil(totalRecords / 30), 
@@ -1032,6 +1032,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Final progress update
       if (sessionId && updateProgress) {
         updateProgress(totalRecords, 'Analysis complete', totalRecords);
+        
+        // Update session status to completed
+        try {
+          await storage.updateUploadSession(sessionId, 'completed', uploadProgressMap.get(sessionId));
+        } catch (err) {
+          console.error('Error updating session status:', err);
+        }
       }
 
       // After successful processing, broadcast the new data
