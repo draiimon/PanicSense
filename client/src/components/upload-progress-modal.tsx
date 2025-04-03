@@ -40,10 +40,14 @@ export function UploadProgressModal() {
     }
   }, [uploadProgress.processed, highestProcessed]);
 
-  // Reset highest processed value when modal is closed
+  // Reset highest processed value when modal is closed plus smoother transitions
   useEffect(() => {
     if (!isUploading) {
-      setHighestProcessed(0);
+      // Add a small delay to prevent any jump/flash effect during state transitions 
+      const timer = setTimeout(() => {
+        setHighestProcessed(0);
+      }, 300);
+      return () => clearTimeout(timer);
     }
   }, [isUploading]);
   
@@ -95,12 +99,20 @@ export function UploadProgressModal() {
     ? Math.min(100, Math.round((processed / total) * 100)) 
     : 0;
 
-  // Simplified stage indication
+  // More sophisticated stage indication with better handling
   const isBatchPause = stage.toLowerCase().includes('pause between batches');
   const isLoading = stage.toLowerCase().includes('loading') || stage.toLowerCase().includes('preparing');
   const isProcessing = (stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record')) && !isBatchPause;
   const isPaused = isBatchPause;
-  const isComplete = stage.toLowerCase().includes('complete');
+  
+  // Better completion detection with multiple triggers
+  const isComplete = (
+    stage.toLowerCase().includes('complete') || 
+    stage.toLowerCase().includes('analysis complete') ||
+    (processed >= total && total > 0)
+  );
+  
+  // Improved error detection
   const hasError = stage.toLowerCase().includes('error');
 
   return createPortal(
@@ -191,7 +203,73 @@ export function UploadProgressModal() {
             </div>
           </div>
           
-          {/* Processing Steps - Simplified, no more redundant displayed stats */}
+          {/* Enhanced Real-time Processing Stats with improved UI */}
+          {!hasError && !isComplete && (
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              {/* Processing Speed with pulse animation */}
+              <div className="bg-white/80 rounded-lg p-3 shadow-sm border border-blue-100 hover:shadow-md transition-all">
+                <div className="flex items-center gap-2 text-blue-600 mb-1">
+                  <Activity className="h-4 w-4" />
+                  <span className="text-xs font-medium">Processing Speed</span>
+                </div>
+                <div className="text-sm font-bold text-gray-700">
+                  {processingStats.averageSpeed > 0 ? 
+                    `${formatSpeed(processingStats.averageSpeed)}` : 
+                    <span className="text-gray-500 italic text-xs">Calculating...</span>
+                  }
+                  {processingStats.averageSpeed > 0 && (
+                    <span className="ml-1 inline-flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {/* Est. Time Left with dynamic color */}
+              <div className="bg-white/80 rounded-lg p-3 shadow-sm border border-purple-100 hover:shadow-md transition-all">
+                <div className="flex items-center gap-2 text-purple-600 mb-1">
+                  <Clock className="h-4 w-4" />
+                  <span className="text-xs font-medium">Est. Time Left</span>
+                </div>
+                <div className="text-sm font-bold text-gray-700">
+                  {timeRemaining > 0 ? 
+                    `${Math.ceil(timeRemaining)}s` : 
+                    isPaused ? 
+                      <span className="text-amber-500">Paused</span> : 
+                      <span className="text-gray-500 italic text-xs">Calculating...</span>
+                  }
+                </div>
+              </div>
+
+              {/* Success Rate */}
+              <div className={`bg-white/80 rounded-lg p-3 shadow-sm border ${
+                processingStats.successCount > 0 ? 'border-green-100' : 'border-gray-100'
+              } hover:shadow-md transition-all`}>
+                <div className="flex items-center gap-2 text-green-600 mb-1">
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="text-xs font-medium">Success Rate</span>
+                </div>
+                <div className="text-sm font-bold text-gray-700">
+                  {processed > 0 ? `${Math.round((processingStats.successCount / processed) * 100)}%` : '0%'}
+                </div>
+              </div>
+              
+              {/* Records Remaining with dynamic display */}
+              <div className="bg-white/80 rounded-lg p-3 shadow-sm border border-blue-100 hover:shadow-md transition-all">
+                <div className="flex items-center gap-2 text-blue-600 mb-1">
+                  <Database className="h-4 w-4" />
+                  <span className="text-xs font-medium">Records Remaining</span>
+                </div>
+                <div className="text-sm font-bold text-gray-700">
+                  {Math.max(0, total - processed)}
+                  <span className={`text-xs ml-1 ${isPaused ? 'text-amber-500' : 'text-green-500'}`}>
+                    {isPaused ? '(paused)' : '(processing)'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Processing Steps */}
           <div className="space-y-2 mb-4">
