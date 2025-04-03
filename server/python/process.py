@@ -694,6 +694,14 @@ class DisasterSentimentBackend:
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', o 'Neutral'.
                     Pumili ng ISANG kategorya lamang at magbigay ng kumpiyansa sa score (0.0-1.0) at maikling paliwanag.
                     
+                    NAPAKAHALAGANG RULE: Ang mga SIMPLENG PAHAYAG TULAD NG "may sunog", "may baha", "may lindol" AY DAPAT NA LAGING NEUTRAL! 
+                    Hindi dapat ipagpalagay na nangangamba o nagpapanic ang nagsasalita kung simpleng pahayag lang ito.
+                    
+                    Halimbawa:
+                    - "may sunog" = NEUTRAL (simpleng statement of fact)
+                    - "MAY SUNOG! TULONG!" = PANIC (malinaw na nagpapanic/humihingi ng tulong)
+                    - "may baha sa Maynila" = NEUTRAL (simpleng impormasyon lang)
+                    
                     SURIIN ANG BUONG KONTEKSTO AT KAHULUGAN ng mga mensahe. Hindi dapat ang mga keywords, capitalization, o bantas lamang ang magtatakda ng sentimento.
                     
                     MAHALAGANG PAGKAKAIBA NG KONTEKSTO:
@@ -728,6 +736,14 @@ class DisasterSentimentBackend:
                     Your task is to DEEPLY ANALYZE THE FULL CONTEXT of each message and categorize it into one of: 
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', or 'Neutral'.
                     Choose ONLY ONE category and provide a confidence score (0.0-1.0) and brief explanation.
+                    
+                    CRITICAL RULE: SIMPLE FACTUAL STATEMENTS like "there is a fire", "there is a flood", "may sunog" MUST ALWAYS BE CLASSIFIED AS NEUTRAL!
+                    Do not assume fear, panic or anxiety when someone is merely stating a fact.
+                    
+                    Examples:
+                    - "there is a fire" = NEUTRAL (simple statement of fact)
+                    - "FIRE! HELP US!" = PANIC (clearly showing distress/asking for help)
+                    - "there is a flood in Manila" = NEUTRAL (just information)
                     
                     ANALYZE THE ENTIRE CONTEXT AND MEANING of messages. Keywords, capitalization, or punctuation alone SHOULD NOT determine sentiment.
                     
@@ -1022,9 +1038,20 @@ class DisasterSentimentBackend:
         # Pag simpleng sinasabi lang na "may sunog" o "fire" ito ay statement of fact lang - hindi panic o emotion
         # Example: "May sunog" = NEUTRAL, "MAY SUNOG! TAKBO!" = PANIC
         
-        # Special handling for "may sunog" which should ALWAYS be Neutral unless clear panic indicators
-        if "may sunog" in text_lower and max_score <= 1:
-            scores["Neutral"] = 2  # Force to Neutral if there are no other strong indicators
+        # Special handling for simple factual statements that should ALWAYS be Neutral
+        simple_statements = ["may sunog", "may baha", "may lindol", "there is a fire", "there is a flood", "there is an earthquake"]
+        
+        # Check if the text is a simple factual statement
+        if any(statement in text_lower for statement in simple_statements):
+            # Only override if there are no strong emotional indicators
+            if max_score <= 1:
+                scores["Neutral"] = 3  # Force to Neutral with higher score if no strong emotions
+                
+                # Reset other scores to ensure Neutral wins
+                scores["Panic"] = 0
+                scores["Fear/Anxiety"] = 0
+                scores["Disbelief"] = 0
+                scores["Resilience"] = 0
         
         # Parse full context of panic phrases  
         for phrase in panic_phrases:
