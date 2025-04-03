@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  BrainCircuit,
   BarChart2,
   Clock,
   Layers,
@@ -14,6 +13,7 @@ import {
   LogOut,
   Globe,
 } from "lucide-react";
+import logo from "/favicon.svg"; // Import the PanicSense logo
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -321,7 +321,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           <div className="relative w-10 h-10 sm:w-12 sm:h-12">
             {renderLogo()}
             <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-              <BrainCircuit className="w-6 h-6 sm:w-7 sm:h-7 text-white drop-shadow" />
+              <img src={logo} alt="PanicSense PH Logo" className="w-6 h-6 sm:w-7 sm:h-7 drop-shadow" />
             </div>
           </div>
           <div>{renderTitle()}</div>
@@ -407,7 +407,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs sm:text-sm text-slate-600">
             <div className="flex items-center gap-1 sm:gap-2">
-              <BrainCircuit className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+              <img src={logo} alt="PanicSense PH Logo" className="h-4 w-4 sm:h-5 sm:w-5" />
               <span>PanicSense PH © 2025</span>
             </div>
             <div className="mt-1 sm:mt-0">

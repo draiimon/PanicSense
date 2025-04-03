@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { motion } from "framer-motion";
 import {
-  BrainCircuit,
   BarChart2,
   Clock,
   Layers,
@@ -16,6 +15,7 @@ import {
   Bell,
   User,
 } from "lucide-react";
+import logo from "@assets/favicon.svg"; // Import the PanicSense logo
 
 export function Header() {
   const [location] = useLocation();
@@ -81,7 +81,7 @@ export function Header() {
           <div className="flex items-center space-x-4">
             <div className="relative w-10 h-10">
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl"
+                className="absolute inset-0 rounded-xl overflow-hidden"
                 animate={{
                   scale: [1, 1.1, 1],
                   rotate: [0, 5, -5, 0],
@@ -91,8 +91,9 @@ export function Header() {
                   repeat: Infinity,
                   repeatType: "reverse",
                 }}
-              />
-              <BrainCircuit className="absolute inset-0 w-full h-full text-white p-2" />
+              >
+                <img src={logo} alt="PanicSense PH Logo" className="w-full h-full object-cover" />
+              </motion.div>
             </div>
             <div>
               <motion.h1 
