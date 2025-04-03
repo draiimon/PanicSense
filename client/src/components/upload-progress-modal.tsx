@@ -108,39 +108,33 @@ export function UploadProgressModal() {
     (processed >= total && total > 0)
   );
   
-  // Hide countdown timer and simplify the stage text
-  let displayStage = "";
-  if (isPaused) {
-    displayStage = "Paused";
-  } else if (isProcessing) {
-    displayStage = "Processing Records";
-  } else if (isLoading) {
-    displayStage = "Loading File";
-  } else if (isComplete) {
-    displayStage = "Complete";
-  } else {
-    displayStage = "Processing";
-  }
-  
   // Improved error detection
   const hasError = stage.toLowerCase().includes('error');
 
   return createPortal(
-    <div className="fixed inset-0 flex items-center justify-center z-[9999]">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 flex items-center justify-center z-[9999]"
+    >
       {/* Gradient backdrop */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 via-indigo-400/20 to-purple-500/30 backdrop-blur-md"></div>
 
       {/* Content */}
-      <div
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.2 }}
         style={{
           background: "rgba(255, 255, 255, 0.85)",
           boxShadow: "0 8px 32px rgba(31, 38, 135, 0.15)",
           backdropFilter: "blur(8px)",
           border: "1px solid rgba(255, 255, 255, 0.2)",
-          width: "400px",
-          height: "550px",
         }}
-        className="relative rounded-xl overflow-hidden flex flex-col"
+        className="relative rounded-xl overflow-hidden w-full max-w-sm mx-4"
       >
         {/* Gradient Header */}
         <div className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 p-4 text-white">
@@ -148,24 +142,29 @@ export function UploadProgressModal() {
             {isComplete ? 'Analysis Complete!' : hasError ? 'Upload Error' : `Processing Records`}
           </h3>
           
-          {/* Static Counter with fixed size */}
+          {/* Counter with larger size */}
           <div className="flex items-center justify-center my-3">
-            <div className="flex flex-col items-center">
-              <div className="flex items-center h-20">
-                <div className="w-20 text-center">
-                  <span className="text-5xl font-bold text-white">{processed}</span>
-                </div>
+            <motion.div 
+              key={processed}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ 
+                opacity: 1, 
+                scale: isProcessing ? breathingOffset.scale : 1,
+                transition: { duration: 0.5 }
+              }}
+              className="flex flex-col items-center"
+            >
+              <div className="flex items-center">
+                <span className="text-5xl font-bold text-white">{processed}</span>
                 <span className="text-3xl mx-2 text-white/70">/</span>
-                <div className="w-20 text-center">
-                  <span className="text-4xl font-bold text-white/90">{total}</span>
-                </div>
+                <span className="text-4xl font-bold text-white/90">{total}</span>
               </div>
               <span className="text-sm text-white/80 mt-1">Records Processed</span>
-            </div>
+            </motion.div>
           </div>
         </div>
         
-        <div className="p-5 flex-1 min-h-0">
+        <div className="p-5">
           {/* Enhanced Progress Bar */}
           <div className="mb-4">
             <div className="flex justify-between text-sm font-medium mb-1">
@@ -259,9 +258,7 @@ export function UploadProgressModal() {
                   ? "Processing Complete" 
                   : isProcessing 
                     ? `Processing Records` 
-                    : isPaused
-                      ? "Paused" 
-                      : "Waiting to Process"}
+                    : "Waiting to Process"}
               </span>
               {isProcessing && !isComplete && <Loader2 className="h-4 w-4 ml-auto animate-spin text-blue-500" />}
               {isComplete && <CheckCircle className="h-4 w-4 ml-auto text-green-500" />}
