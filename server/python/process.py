@@ -1359,37 +1359,39 @@ class DisasterSentimentBackend:
             # Report column identification progress
             report_progress(5, "Identified data columns", total_records)
 
-            # Process data in batches of 20
+            # Process data in batches
             processed_count = 0
 
             # Get all indices that we'll process
             indices_to_process = df.head(sample_size).index.tolist()
 
-            # Process data in batches of 20
+            # Process data in batches of 30
             for batch_start in range(0, len(indices_to_process), BATCH_SIZE):
-                # Get indices for this batch (up to 20 items)
+                # Get indices for this batch (up to 30 items)
                 batch_indices = indices_to_process[batch_start:batch_start +
                                                    BATCH_SIZE]
+
+                batch_num = batch_start // BATCH_SIZE + 1
+                total_batches = (len(indices_to_process) + BATCH_SIZE - 1) // BATCH_SIZE
 
                 logging.info(
                     f"Starting batch processing - items {batch_start + 1} to {batch_start + len(batch_indices)}"
                 )
                 report_progress(
-                    5 + int((batch_start / sample_size) * 90),
-                    f"Starting batch {batch_start // BATCH_SIZE + 1} - processing records {batch_start + 1} to {batch_start + len(batch_indices)}",
+                    processed_count,
+                    f"Starting batch {batch_num} of {total_batches} - processing records {batch_start + 1} to {batch_start + len(batch_indices)}",
                     total_records)
 
                 # Process each item in this batch sequentially
                 for idx, i in enumerate(batch_indices):
                     try:
-                        # Calculate percentage progress (0-100)
-                        progress_pct = 5 + int(
-                            ((batch_start + idx) / sample_size) * 90)
+                        # Update processed_count - important for progress tracking!
                         record_num = batch_start + idx + 1
+                        processed_count = record_num
 
-                        # Report progress for each record
+                        # Report progress for each record with accurate processed count
                         report_progress(
-                            progress_pct,
+                            processed_count,
                             f"Processing record {record_num}/{total_records}",
                             total_records)
 
@@ -1562,10 +1564,10 @@ class DisasterSentimentBackend:
                         # Each record needs time to be displayed on the frontend
                         time.sleep(3)  # 3-second delay between records
 
-                        # Report completed
-                        processed_count += 1
+                        # Report completed using the actual processed_count 
+                        # Instead of using progress_pct for first parameter, use the actual processed count
                         report_progress(
-                            progress_pct,
+                            processed_count,
                             f"Completed record {record_num}/{total_records}",
                             total_records)
 
@@ -1602,11 +1604,9 @@ class DisasterSentimentBackend:
                             actual_remaining = max(
                                 0, BATCH_COOLDOWN - int(elapsed))
 
-                            # Update progress with cooldown information
+                            # Update progress with cooldown information - use processed_count for first parameter
                             report_progress(
-                                5 + int((
-                                    (batch_start + BATCH_SIZE) / sample_size) *
-                                        90),
+                                processed_count,
                                 f"60-second pause between batches: {actual_remaining} seconds remaining. Completed batch {batch_number} of {len(indices_to_process) // BATCH_SIZE + 1}.",
                                 total_records)
 
@@ -1615,9 +1615,7 @@ class DisasterSentimentBackend:
                                 time.sleep(1)  # Update countdown every second
 
                         report_progress(
-                            5 + int(
-                                ((batch_start + BATCH_SIZE) / sample_size) *
-                                90),
+                            processed_count,
                             f"60-second pause complete. Starting next batch of 30 records.",
                             total_records)
 
@@ -1627,8 +1625,9 @@ class DisasterSentimentBackend:
                     f"Retrying {len(failed_records)} failed records...")
                 for idx, (i, row) in enumerate(failed_records):
                     try:
+                        # During retry, use the same processed_count so the progress doesn't go backward
                         report_progress(
-                            95 + int((idx / len(failed_records)) * 5),
+                            processed_count,
                             f"Retrying failed record {idx + 1}/{len(failed_records)}",
                             total_records)
 
