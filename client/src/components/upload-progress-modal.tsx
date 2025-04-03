@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   CheckCircle, 
   Clock, 
@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cancelUpload } from "@/lib/api";
 // removed import to fix errors
@@ -24,10 +24,6 @@ export function UploadProgressModal() {
   
   // Fixed approach for animation with proper conditions
   const breathingOffset = { scale: 1 };
-  
-  // Reference for tracking performance metrics
-  const lastProcessedRef = useRef(0);
-  const lastTimestampRef = useRef(Date.now());
 
   // Effect to track the highest processed value
   useEffect(() => {
