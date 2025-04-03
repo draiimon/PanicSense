@@ -668,14 +668,18 @@ export class PythonService {
           
           if (onProgress && dataStr.includes('PROGRESS:')) {
             try {
-              const progressData = JSON.parse(dataStr.split('PROGRESS:')[1]);
-              const rawMessage = data.toString().trim();
-              log(`Progress update: ${JSON.stringify(progressData)}`, 'python-service');
-              onProgress(
-                progressData.processed,
-                rawMessage, // Send the raw message instead of just the stage
-                progressData.total
-              );
+              // Extract the progress message between PROGRESS: and ::END_PROGRESS
+              const progressMatch = dataStr.match(/PROGRESS:(.*?)::END_PROGRESS/);
+              if (progressMatch && progressMatch[1]) {
+                const progressData = JSON.parse(progressMatch[1]);
+                const rawMessage = progressData.stage || data.toString().trim();
+                log(`Progress update: ${JSON.stringify(progressData)}`, 'python-service');
+                onProgress(
+                  progressData.processed,
+                  rawMessage, // Use the stage property as the message
+                  progressData.total
+                );
+              }
             } catch (e) {
               log(`Progress parsing error: ${e}`, 'python-service');
             }
@@ -695,12 +699,32 @@ export class PythonService {
           });
           
           // Also treat error messages as progress updates to show in the UI
-          if (onProgress && errorMsg.includes('Completed record')) {
-            const matches = errorMsg.match(/Completed record (\d+)\/(\d+)/);
-            if (matches) {
-              const processed = parseInt(matches[1]);
-              const total = parseInt(matches[2]);
-              onProgress(processed, errorMsg.trim(), total);
+          if (onProgress && errorMsg.includes('PROGRESS:')) {
+            try {
+              // Extract the progress message between PROGRESS: and ::END_PROGRESS
+              const progressMatch = errorMsg.match(/PROGRESS:(.*?)::END_PROGRESS/);
+              if (progressMatch && progressMatch[1]) {
+                const progressData = JSON.parse(progressMatch[1]);
+                const rawMessage = progressData.stage || errorMsg.trim();
+                log(`Progress update from stderr: ${JSON.stringify(progressData)}`, 'python-service');
+                onProgress(
+                  progressData.processed,
+                  rawMessage,
+                  progressData.total
+                );
+              }
+            } catch (e) {
+              log(`Progress parsing error from stderr: ${e}`, 'python-service');
+              
+              // Fallback: Handle legacy "Completed record" format for backward compatibility
+              if (errorMsg.includes('Completed record')) {
+                const matches = errorMsg.match(/Completed record (\d+)\/(\d+)/);
+                if (matches) {
+                  const processed = parseInt(matches[1]);
+                  const total = parseInt(matches[2]);
+                  onProgress(processed, errorMsg.trim(), total);
+                }
+              }
             }
           }
           

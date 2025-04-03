@@ -38,7 +38,8 @@ def report_progress(processed: int, stage: str, total: int = None):
         progress_data["total"] = total
 
     progress_info = json.dumps(progress_data)
-    print(f"PROGRESS:{progress_info}", file=sys.stderr)
+    # Add a unique marker at the end to ensure each progress message is on a separate line
+    print(f"PROGRESS:{progress_info}::END_PROGRESS", file=sys.stderr)
     sys.stderr.flush()  # Ensure output is immediately visible
 
 

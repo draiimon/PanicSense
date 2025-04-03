@@ -613,27 +613,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check if the stage message contains a JSON progress report
         if (stage.includes("PROGRESS:")) {
           try {
-            // Extract the JSON portion from the PROGRESS: message
-            const jsonStartIndex = stage.indexOf("PROGRESS:");
-            const jsonString = stage.substring(jsonStartIndex + 9).trim();
-            const progressJson = JSON.parse(jsonString);
+            // Extract the progress message between PROGRESS: and ::END_PROGRESS
+            const progressMatch = stage.match(/PROGRESS:(.*?)::END_PROGRESS/);
+            if (progressMatch && progressMatch[1]) {
+              const progressJson = JSON.parse(progressMatch[1]);
 
-            // Update with more accurate values from the progress message
-            if (progressJson.processed !== undefined) {
-              extractedProcessed = progressJson.processed;
-            }
-            if (progressJson.total !== undefined) {
-              extractedTotal = progressJson.total;
-            }
-            if (progressJson.stage) {
-              extractedStage = progressJson.stage;
-            }
+              // Update with more accurate values from the progress message
+              if (progressJson.processed !== undefined) {
+                extractedProcessed = progressJson.processed;
+              }
+              if (progressJson.total !== undefined) {
+                extractedTotal = progressJson.total;
+              }
+              if (progressJson.stage) {
+                extractedStage = progressJson.stage;
+              }
 
-            console.log('Extracted progress from message:', { 
-              extractedProcessed, 
-              extractedStage, 
-              extractedTotal 
-            });
+              console.log('Extracted progress from message with marker:', { 
+                extractedProcessed, 
+                extractedStage, 
+                extractedTotal 
+              });
+            } else {
+              // Legacy fallback for old PROGRESS: format without ::END_PROGRESS marker
+              const jsonStartIndex = stage.indexOf("PROGRESS:");
+              const jsonString = stage.substring(jsonStartIndex + 9).trim();
+              const progressJson = JSON.parse(jsonString);
+
+              // Update with more accurate values from the progress message
+              if (progressJson.processed !== undefined) {
+                extractedProcessed = progressJson.processed;
+              }
+              if (progressJson.total !== undefined) {
+                extractedTotal = progressJson.total;
+              }
+              if (progressJson.stage) {
+                extractedStage = progressJson.stage;
+              }
+
+              console.log('Extracted progress from legacy message:', { 
+                extractedProcessed, 
+                extractedStage, 
+                extractedTotal 
+              });
+            }
           } catch (err) {
             console.error('Failed to parse PROGRESS message:', err);
           }
