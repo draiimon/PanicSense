@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, FileText, Database, ChevronRight, Activity, Clock, AlertTriangle } from "lucide-react";
+import { Loader2, FileText, Database, ChevronRight, Activity, Clock, AlertTriangle, XCircle } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { cancelUpload } from "@/lib/api";
 
 // Animated number component for smooth transitions
 const AnimatedNumber = ({ value }: { value: number }) => (
@@ -35,8 +37,9 @@ const formatSpeed = (recordsPerSecond: number): string => {
 };
 
 export function UploadProgressModal() {
-  const { isUploading, uploadProgress } = useDisasterContext();
+  const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
   const [highestProcessed, setHighestProcessed] = useState(0);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Effect to track the highest processed value
   useEffect(() => {
@@ -51,6 +54,31 @@ export function UploadProgressModal() {
       setHighestProcessed(0);
     }
   }, [isUploading]);
+
+  // Handle cancel button click
+  const handleCancel = async () => {
+    if (isCancelling) return;
+    
+    setIsCancelling(true);
+    try {
+      const result = await cancelUpload();
+      console.log('Cancel upload result:', result);
+      
+      if (result.success) {
+        // We'll let the server-side events close the modal
+        // The progress will be updated to show "Upload cancelled by user"
+      } else {
+        // If the server couldn't cancel (maybe already finished), close the modal
+        setIsUploading(false);
+      }
+    } catch (error) {
+      console.error('Error cancelling upload:', error);
+      // Still close the modal to let the user try again
+      setIsUploading(false);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   if (!isUploading) return null;
 
@@ -301,6 +329,31 @@ export function UploadProgressModal() {
               />
             </div>
           </div>
+          
+          {/* Cancel Button - only show when processing and not during cooldown or when complete */}
+          {!isComplete && !isCooldown && (
+            <div className="mt-6 text-center">
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-1 bg-red-900/80 hover:bg-red-800 text-white"
+                onClick={handleCancel}
+                disabled={isCancelling || isComplete}
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Cancelling...</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4" />
+                    <span>Cancel Upload</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
 
           {/* Enhanced animations */}
           <style>

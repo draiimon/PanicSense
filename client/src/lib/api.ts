@@ -89,6 +89,52 @@ export async function getAnalyzedFile(id: number): Promise<AnalyzedFile> {
 }
 
 // File Upload with enhanced progress tracking
+let currentUploadController: AbortController | null = null;
+let currentEventSource: EventSource | null = null;
+let currentUploadSessionId: string | null = null;
+
+// Cancel the current upload
+export async function cancelUpload(): Promise<{ success: boolean; message: string }> {
+  if (currentUploadSessionId) {
+    try {
+      // Close the event source
+      if (currentEventSource) {
+        currentEventSource.close();
+        currentEventSource = null;
+      }
+      
+      // Abort the fetch request
+      if (currentUploadController) {
+        currentUploadController.abort();
+        currentUploadController = null;
+      }
+      
+      // Call the server to cancel processing
+      const response = await apiRequest('POST', `/api/cancel-upload/${currentUploadSessionId}`);
+      const result = await response.json();
+      
+      // Reset the current session ID
+      currentUploadSessionId = null;
+      
+      return result;
+    } catch (error) {
+      console.error('Error cancelling upload:', error);
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Failed to cancel upload' 
+      };
+    }
+  }
+  
+  return { success: false, message: 'No active upload to cancel' };
+}
+
+// Return the current upload session ID
+export function getCurrentUploadSessionId(): string | null {
+  return currentUploadSessionId;
+}
+
+// File Upload with enhanced progress tracking and cancellation
 export async function uploadCSV(
   file: File,
   onProgress?: (progress: UploadProgress) => void
@@ -102,14 +148,31 @@ export async function uploadCSV(
     f1Score: number;
   } | null;
 }> {
+  // Clean up any existing uploads first
+  if (currentEventSource) {
+    currentEventSource.close();
+    currentEventSource = null;
+  }
+  
+  if (currentUploadController) {
+    currentUploadController.abort();
+    currentUploadController = null;
+  }
+  
+  // Create a new abort controller
+  currentUploadController = new AbortController();
+  const { signal } = currentUploadController;
+  
   const formData = new FormData();
   formData.append('file', file);
 
   // Generate a unique session ID
   const sessionId = crypto.randomUUID();
+  currentUploadSessionId = sessionId;
 
   // Set up event source for progress updates
   const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
+  currentEventSource = eventSource;
 
   eventSource.onmessage = (event) => {
     try {
@@ -133,6 +196,7 @@ export async function uploadCSV(
       },
       body: formData,
       credentials: 'include',
+      signal, // Add abort signal
     });
 
     if (!response.ok) {
@@ -141,8 +205,15 @@ export async function uploadCSV(
     }
 
     return response.json();
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Upload was cancelled');
+    }
+    throw error;
   } finally {
     eventSource.close();
+    currentEventSource = null;
+    currentUploadSessionId = null;
   }
 }
 

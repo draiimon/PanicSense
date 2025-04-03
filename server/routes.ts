@@ -220,6 +220,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       uploadProgressMap.delete(sessionId);
     });
   });
+  
+  // Cancel Upload endpoint
+  app.post('/api/cancel-upload/:sessionId', async (req: Request, res: Response) => {
+    try {
+      const sessionId = req.params.sessionId;
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: 'Session ID is required' });
+      }
+      
+      // Cancel the processing in the Python service
+      const success = await pythonService.cancelProcessing(sessionId);
+      
+      if (success) {
+        // Update progress to show cancellation
+        if (uploadProgressMap.has(sessionId)) {
+          const progress = uploadProgressMap.get(sessionId)!;
+          progress.stage = 'Upload cancelled by user';
+          uploadProgressMap.set(sessionId, progress);
+          
+          // Broadcast the cancellation status
+          broadcastUpdate({
+            type: 'progress',
+            sessionId,
+            progress
+          });
+        }
+        
+        res.json({ success: true, message: 'Upload cancelled successfully' });
+      } else {
+        res.status(404).json({ success: false, message: 'No active upload found for this session ID' });
+      }
+    } catch (error) {
+      console.error('Error cancelling upload:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to cancel upload',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   // Authentication Routes
   app.post('/api/auth/signup', async (req: Request, res: Response) => {
@@ -756,7 +797,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { data, storedFilename, recordCount } = await pythonService.processCSV(
         fileBuffer,
         originalFilename,
-        updateProgress
+        updateProgress,
+        sessionId
       );
 
       // Filter out non-disaster content using the same strict validation as real-time analysis

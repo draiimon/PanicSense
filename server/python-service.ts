@@ -36,6 +36,7 @@ export class PythonService {
   private scriptPath: string;
   private confidenceCache: Map<string, number>;  // Cache for confidence scores
   private similarityCache: Map<string, boolean>; // Cache for text similarity checks
+  private activeProcesses: Map<string, { process: any, tempFilePath: string }>;  // Track active Python processes
 
   constructor() {
     // Use the virtual environment python in production, otherwise use system python
@@ -47,12 +48,43 @@ export class PythonService {
     this.scriptPath = path.join(process.cwd(), 'server', 'python', 'process.py');
     this.confidenceCache = new Map();  // Initialize confidence cache
     this.similarityCache = new Map();  // Initialize similarity cache
+    this.activeProcesses = new Map();  // Initialize active processes map
 
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
     }
     
     log(`Using Python binary: ${this.pythonBinary}`, 'python-service');
+  }
+  
+  // Cancel a running process by session ID
+  public async cancelProcessing(sessionId: string): Promise<boolean> {
+    const activeProcess = this.activeProcesses.get(sessionId);
+    
+    if (!activeProcess) {
+      log(`No active process found for session ID: ${sessionId}`, 'python-service');
+      return false;
+    }
+    
+    try {
+      // Kill the Python process
+      activeProcess.process.kill();
+      
+      // Clean up temp file
+      if (activeProcess.tempFilePath && fs.existsSync(activeProcess.tempFilePath)) {
+        fs.unlinkSync(activeProcess.tempFilePath);
+        log(`Removed temp file: ${activeProcess.tempFilePath}`, 'python-service');
+      }
+      
+      // Remove from active processes
+      this.activeProcesses.delete(sessionId);
+      
+      log(`Successfully canceled process for session ID: ${sessionId}`, 'python-service');
+      return true;
+    } catch (error) {
+      log(`Error canceling process: ${error instanceof Error ? error.message : String(error)}`, 'python-service');
+      return false;
+    }
   }
   
   // Utility method to extract disaster type from text
@@ -596,7 +628,8 @@ export class PythonService {
   public async processCSV(
     fileBuffer: Buffer, 
     originalFilename: string,
-    onProgress?: (processed: number, stage: string, total?: number) => void
+    onProgress?: (processed: number, stage: string, total?: number) => void,
+    sessionId?: string
   ): Promise<{
     data: ProcessCSVResult,
     storedFilename: string,
@@ -605,6 +638,8 @@ export class PythonService {
     const uniqueId = nanoid();
     const storedFilename = `${uniqueId}-${originalFilename}`;
     const tempFilePath = path.join(this.tempDir, storedFilename);
+    // Use the provided sessionId or generate a new one
+    const uploadSessionId = sessionId || nanoid();
 
     try {
       const content = fileBuffer.toString('utf-8');
@@ -646,6 +681,9 @@ export class PythonService {
         this.scriptPath,
         '--file', tempFilePath
       ]);
+      
+      // Store the process in our active processes map so we can cancel it if needed
+      this.activeProcesses.set(uploadSessionId, { process: pythonProcess, tempFilePath });
 
       const result = await new Promise<string>((resolve, reject) => {
         let output = '';
@@ -735,6 +773,9 @@ export class PythonService {
         
 
         pythonProcess.on('close', (code) => {
+          // Clean up the process from our active processes map
+          this.activeProcesses.delete(uploadSessionId);
+          
           if (code !== 0) {
             reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
             return;
@@ -770,6 +811,9 @@ export class PythonService {
       };
 
     } catch (error) {
+      // Clean up the process from our active processes map
+      this.activeProcesses.delete(uploadSessionId);
+      
       if (fs.existsSync(tempFilePath)) {
         fs.unlinkSync(tempFilePath);
       }
