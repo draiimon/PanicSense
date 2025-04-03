@@ -30,15 +30,8 @@ export function UploadProgressModal() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
-  // Create a breathing animation effect
-  const [breathe, setBreathe] = useState(false);
-  
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBreathe(prev => !prev);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  // Fixed approach for animation with proper conditions
+  const breathingOffset = { scale: 1 };
 
   // Effect to track the highest processed value
   useEffect(() => {
@@ -103,8 +96,10 @@ export function UploadProgressModal() {
     : 0;
 
   // Simplified stage indication
+  const isBatchPause = stage.toLowerCase().includes('pause between batches');
   const isLoading = stage.toLowerCase().includes('loading') || stage.toLowerCase().includes('preparing');
-  const isProcessing = stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record');
+  const isProcessing = (stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record')) && !isBatchPause;
+  const isPaused = isBatchPause;
   const isComplete = stage.toLowerCase().includes('complete');
   const hasError = stage.toLowerCase().includes('error');
 
@@ -146,7 +141,7 @@ export function UploadProgressModal() {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ 
                 opacity: 1, 
-                scale: breathe && isProcessing ? 1.05 : 1,
+                scale: isProcessing ? breathingOffset.scale : 1,
                 transition: { duration: 0.5 }
               }}
               className="flex flex-col items-center"
@@ -196,47 +191,25 @@ export function UploadProgressModal() {
             </div>
           </div>
           
-          {/* Processing Statistics - only show when processing */}
+          {/* Simple Processing Stats - show only relevant info */}
           {!hasError && !isComplete && (
             <div className="grid grid-cols-2 gap-3 mb-4">
-              {/* Speed Stat */}
-              <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+              {/* Records Progress */}
+              <div className="bg-white/90 rounded-lg p-3 shadow-sm border border-gray-100">
                 <div className="flex items-center gap-2 text-blue-600 mb-1">
-                  <Activity className="h-4 w-4" />
-                  <span className="text-xs font-medium">Processing Speed</span>
+                  <Database className="h-4 w-4" />
+                  <span className="text-xs font-medium">Records Processed</span>
                 </div>
                 <div className="text-sm font-bold text-gray-700">
-                  {formatSpeed(Math.max(currentSpeed || 0, processingStats?.averageSpeed || 0))}
-                </div>
-              </div>
-              
-              {/* Time Remaining */}
-              <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-2 text-indigo-600 mb-1">
-                  <Clock className="h-4 w-4" />
-                  <span className="text-xs font-medium">Est. Time Left</span>
-                </div>
-                <div className="text-sm font-bold text-gray-700">
-                  {timeRemaining > 0 ? formatTimeRemaining(timeRemaining) : "Calculating..."}
-                </div>
-              </div>
-              
-              {/* Processing Stats */}
-              <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-2 text-purple-600 mb-1">
-                  <BarChart3 className="h-4 w-4" />
-                  <span className="text-xs font-medium">Success Rate</span>
-                </div>
-                <div className="text-sm font-bold text-gray-700">
-                  {processed > 0 ? `${Math.round((processingStats.successCount / processed) * 100)}%` : "N/A"}
+                  {processed} of {total} ({percentComplete}%)
                 </div>
               </div>
               
               {/* Records Remaining */}
-              <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-2 text-blue-600 mb-1">
-                  <Database className="h-4 w-4" />
-                  <span className="text-xs font-medium">Records Left</span>
+              <div className="bg-white/90 rounded-lg p-3 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-2 text-purple-600 mb-1">
+                  <Activity className="h-4 w-4" />
+                  <span className="text-xs font-medium">Records Remaining</span>
                 </div>
                 <div className="text-sm font-bold text-gray-700">
                   {Math.max(0, total - processed)}
