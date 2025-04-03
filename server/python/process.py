@@ -694,13 +694,17 @@ class DisasterSentimentBackend:
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', o 'Neutral'.
                     Pumili ng ISANG kategorya lamang at magbigay ng kumpiyansa sa score (0.0-1.0) at maikling paliwanag.
                     
-                    NAPAKAHALAGANG RULE: Ang mga SIMPLENG PAHAYAG TULAD NG "may sunog", "may baha", "may lindol" AY DAPAT NA LAGING NEUTRAL! 
-                    Hindi dapat ipagpalagay na nangangamba o nagpapanic ang nagsasalita kung simpleng pahayag lang ito.
+                    NAPAKAHALAGANG PANUNTUNAN: Linawin ang 'Neutral' bilang kategorya:
+                    - Ang mga SIMPLENG PAHAYAG NG KATOTOHANAN ay dapat PALAGING 'Neutral'
+                    - Mga halimbawa: "may sunog", "may baha", "may lindol", "nangyari ang lindol", "maraming nasugatan" 
+                    - Walang emosyon, impormasyon lang -- HINDI PANIC, HINDI FEAR/ANXIETY
                     
-                    Halimbawa:
+                    Halimbawa ng tamang pag-analyze:
                     - "may sunog" = NEUTRAL (simpleng statement of fact)
                     - "MAY SUNOG! TULONG!" = PANIC (malinaw na nagpapanic/humihingi ng tulong)
                     - "may baha sa Maynila" = NEUTRAL (simpleng impormasyon lang)
+                    - "nakakatakot ang lindol" = FEAR/ANXIETY (may emosyon ng takot)
+                    - "maraming nasugatan sa lindol" = NEUTRAL (simpleng ulat, walang emosyon)
                     
                     SURIIN ANG BUONG KONTEKSTO AT KAHULUGAN ng mga mensahe. Hindi dapat ang mga keywords, capitalization, o bantas lamang ang magtatakda ng sentimento.
                     
@@ -716,8 +720,9 @@ class DisasterSentimentBackend:
                     
                     PAGTUUNAN ANG MGA INDICATOR NA ITO NG KONTEKSTO:
                     - Sino ang nagsasalita: biktima, nakakakita, tumutulong
-                    - Tono: pakiusap para sa tulong vs. pag-aalok ng tulong
+                    - Tono: pakiusap para sa tulong vs. pag-aalok ng tulong vs. pagbibigay ng impormasyon
                     - Perspektibo: personal na panganib vs. nakakakita ng panganib vs. pagbangon
+                    - KAKULANGAN ng emosyonal na indicators = NEUTRAL
                     - Ipinahahiwatig na aksyon: kailangan ng saklolo vs. nagbibigay ng saklolo
                     
                     Suriin din kung anong uri ng sakuna ang nabanggit STRICTLY sa listahang ito at may malaking letra sa unang titik:
@@ -737,13 +742,17 @@ class DisasterSentimentBackend:
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', or 'Neutral'.
                     Choose ONLY ONE category and provide a confidence score (0.0-1.0) and brief explanation.
                     
-                    CRITICAL RULE: SIMPLE FACTUAL STATEMENTS like "there is a fire", "there is a flood", "may sunog" MUST ALWAYS BE CLASSIFIED AS NEUTRAL!
-                    Do not assume fear, panic or anxiety when someone is merely stating a fact.
+                    CRITICAL UNDERSTANDING OF 'NEUTRAL':
+                    - SIMPLE FACTUAL STATEMENTS are ALWAYS 'Neutral'
+                    - Examples: "there is a fire", "there is a flood", "may sunog", "earthquake happened", "many were injured"
+                    - Just information, no emotion -- NOT PANIC, NOT FEAR/ANXIETY
                     
-                    Examples:
+                    Examples of correct analysis:
                     - "there is a fire" = NEUTRAL (simple statement of fact)
                     - "FIRE! HELP US!" = PANIC (clearly showing distress/asking for help)
                     - "there is a flood in Manila" = NEUTRAL (just information)
+                    - "the earthquake is scary" = FEAR/ANXIETY (shows emotional response of fear)
+                    - "many were injured in the earthquake" = NEUTRAL (factual report, no emotion)
                     
                     ANALYZE THE ENTIRE CONTEXT AND MEANING of messages. Keywords, capitalization, or punctuation alone SHOULD NOT determine sentiment.
                     
@@ -846,15 +855,7 @@ class DisasterSentimentBackend:
                                 raise ValueError(
                                     "No valid JSON found in response")
 
-                    # CRITICAL OVERRIDE: Check if this is a simple statement that should be NEUTRAL
-                    simple_statements = ["may sunog", "may baha", "may lindol", "there is a fire", "there is a flood", "there is an earthquake"]
-                    text_lower = text.lower()
-                    
-                    # Force sentiment to Neutral for these simple statements regardless of API response
-                    if any(statement in text_lower for statement in simple_statements) and len(text.split()) <= 5:
-                        result["sentiment"] = "Neutral"
-                        result["confidence"] = 0.95
-                        result["explanation"] = "Simple factual statement without emotional indicators."
+                    # Remove forced overrides and let AI decide more naturally
                     
                     # Add required fields if missing
                     if "sentiment" not in result:
@@ -898,15 +899,9 @@ class DisasterSentimentBackend:
             "All Labeling attempts failed, using rule-based fallback")
         fallback_result = self._rule_based_sentiment_analysis(text, language)
 
-        # EXTRA STRICT CHECK for simple statements that should always be Neutral
-        simple_statements = ["may sunog", "may baha", "may lindol", "there is a fire", "there is a flood", "there is an earthquake"]
+        # Let the AI handle this now with the improved system prompt
+        # Only use fallback for extreme edge cases
         text_lower = text.lower()
-        
-        # Force sentiment to Neutral for simple statements regardless of other analysis
-        if any(statement in text_lower for statement in simple_statements) and len(text.split()) <= 5:
-            fallback_result["sentiment"] = "Neutral"
-            fallback_result["confidence"] = 0.95
-            fallback_result["explanation"] = "Simple factual statement without emotional indicators."
         
         # Add extracted metadata
         fallback_result["disasterType"] = self.extract_disaster_type(text)
