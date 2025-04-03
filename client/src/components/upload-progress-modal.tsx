@@ -258,64 +258,7 @@ export function UploadProgressModal() {
           
           {/* Enhanced Real-time Processing Stats with improved UI */}
           {!hasError && !isComplete && (
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              {/* Processing Speed with pulse animation */}
-              <div className="bg-white/80 rounded-lg p-3 shadow-sm border border-blue-100 hover:shadow-md transition-all">
-                <div className="flex items-center gap-2 text-blue-600 mb-1">
-                  <Activity className="h-4 w-4" />
-                  <span className="text-xs font-medium">Processing Speed</span>
-                </div>
-                <div className="text-sm font-bold text-gray-700">
-                  {isProcessing && (
-                    <>
-                      {processingStats.averageSpeed > 0 ? 
-                        `${formatSpeed(processingStats.averageSpeed || 1.5)}` : 
-                        `${formatSpeed(1.5)}`
-                      }
-                      <span className="ml-1 inline-flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                      </span>
-                    </>
-                  )}
-                  {!isProcessing && (
-                    <span className="text-gray-500 italic text-xs">Calculating...</span>
-                  )}
-                </div>
-              </div>
-              
-              {/* Est. Time Left with dynamic color */}
-              <div className="bg-white/80 rounded-lg p-3 shadow-sm border border-purple-100 hover:shadow-md transition-all">
-                <div className="flex items-center gap-2 text-purple-600 mb-1">
-                  <Clock className="h-4 w-4" />
-                  <span className="text-xs font-medium">Est. Time Left</span>
-                </div>
-                <div className="text-sm font-bold text-gray-700">
-                  {isProcessing && !isPaused ? (
-                    <>
-                      {Math.ceil(total - processed) * 0.9}s
-                    </>
-                  ) : isPaused ? (
-                    <span className="text-amber-500">Paused</span>
-                  ) : (
-                    <span className="text-gray-500 italic text-xs">Calculating...</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Success Rate */}
-              <div className={`bg-white/80 rounded-lg p-3 shadow-sm border ${
-                processingStats.successCount > 0 ? 'border-green-100' : 'border-gray-100'
-              } hover:shadow-md transition-all`}>
-                <div className="flex items-center gap-2 text-green-600 mb-1">
-                  <CheckCircle className="h-4 w-4" />
-                  <span className="text-xs font-medium">Success Rate</span>
-                </div>
-                <div className="text-sm font-bold text-gray-700">
-                  {processed > 0 ? `${Math.round((processingStats.successCount / processed) * 100)}%` : '0%'}
-                </div>
-              </div>
-              
+            <div className="grid grid-cols-1 gap-3 mb-4">               
               {/* Records Remaining with dynamic display */}
               <div className="bg-white/80 rounded-lg p-3 shadow-sm border border-blue-100 hover:shadow-md transition-all">
                 <div className="flex items-center gap-2 text-blue-600 mb-1">
