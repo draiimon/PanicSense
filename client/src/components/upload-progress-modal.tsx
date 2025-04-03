@@ -126,29 +126,21 @@ export function UploadProgressModal() {
   const hasError = stage.toLowerCase().includes('error');
 
   return createPortal(
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="fixed inset-0 flex items-center justify-center z-[9999]"
-    >
+    <div className="fixed inset-0 flex items-center justify-center z-[9999]">
       {/* Gradient backdrop */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 via-indigo-400/20 to-purple-500/30 backdrop-blur-md"></div>
 
       {/* Content */}
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        transition={{ duration: 0.2 }}
+      <div
         style={{
           background: "rgba(255, 255, 255, 0.85)",
           boxShadow: "0 8px 32px rgba(31, 38, 135, 0.15)",
           backdropFilter: "blur(8px)",
           border: "1px solid rgba(255, 255, 255, 0.2)",
+          width: "400px",
+          height: "550px",
         }}
-        className="relative rounded-xl overflow-hidden w-full max-w-sm mx-4 min-h-[30rem] flex flex-col"
+        className="relative rounded-xl overflow-hidden flex flex-col"
       >
         {/* Gradient Header */}
         <div className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 p-4 text-white">
