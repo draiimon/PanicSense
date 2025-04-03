@@ -891,6 +891,35 @@ class DisasterSentimentBackend:
         """Fallback rule-based sentiment analysis"""
         text_lower = text.lower()
         
+        # VERY IMPORTANT: The algorithm follows EXACTLY what's in the text 
+        # If the input is a short statement like "may sunog", "may baha", etc.
+        # and doesn't explicitly indicate panic, fear, etc., then it MUST be NEUTRAL
+        
+        # Simple statements count check
+        word_count = len(text_lower.split())
+        
+        # Check if this is a simple statement (3 words or less) with no strong emotional indicators
+        if word_count <= 3:
+            # Quick check for short factual statements
+            contains_emotion = False
+            emotion_words = [
+                "saklolo", "help", "tulong", "tulungan", "takot", "scared", "afraid", 
+                "panic", "nanginginig", "nakakatakot", "😱", "😨", "namatay", 
+                "patay", "iyak", "cry", "!!!"]
+            
+            for emotion in emotion_words:
+                if emotion in text_lower:
+                    contains_emotion = True
+                    break
+            
+            # If it's a short statement without emotional words, it's NEUTRAL by default
+            if not contains_emotion:
+                return {
+                    "sentiment": "Neutral",
+                    "confidence": 0.90,
+                    "explanation": "Simple factual statement without emotional indicators - EXACTLY analyzing what's in the text."
+                }
+        
         # Check specifically for laughing emoji + TULONG pattern first
         # This is a common Filipino pattern expressing disbelief or humor
         if ('😂' in text or '🤣' in text) and ('TULONG' in text.upper() or 'SAKLOLO' in text.upper() or 'HELP' in text.upper()):
@@ -988,6 +1017,14 @@ class DisasterSentimentBackend:
         if "tulong" in text_lower and not any(phrase in text_lower for phrase in resilience_phrases):
             # If "tulong" appears alone without resilience context, it's likely a call for help
             scores["Panic"] += 2
+            
+        # IMPORTANTE: Ang mga salitang "may sunog", "may baha", "fire", etc. ay dapat NEUTRAL kung hindi malinaw na nagpapakita ng panic
+        # Pag simpleng sinasabi lang na "may sunog" o "fire" ito ay statement of fact lang - hindi panic o emotion
+        # Example: "May sunog" = NEUTRAL, "MAY SUNOG! TAKBO!" = PANIC
+        
+        # Special handling for "may sunog" which should ALWAYS be Neutral unless clear panic indicators
+        if "may sunog" in text_lower and max_score <= 1:
+            scores["Neutral"] = 2  # Force to Neutral if there are no other strong indicators
         
         # Parse full context of panic phrases  
         for phrase in panic_phrases:
@@ -1081,13 +1118,20 @@ class DisasterSentimentBackend:
         if len(top_sentiments) == 1:
             sentiment = top_sentiments[0]
         else:
-            # In case of a tie, prioritize in this order: Panic > Fear > Disbelief > Resilience > Neutral
-            priority_order = [
-                "Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"
-            ]
-            for sentiment in priority_order:
-                if sentiment in top_sentiments:
-                    break
+            # In case of a tie, prefer Neutral for simple statements
+            if "Neutral" in top_sentiments and len(text_lower.split()) < 7:
+                sentiment = "Neutral"
+            else:
+                # In case of a tie, use a more balanced priority order
+                # IMPORTANT CHANGE: Prefer Neutral first for factual statements
+                priority_order = [
+                    "Neutral", "Panic", "Fear/Anxiety", "Disbelief", "Resilience" 
+                ]
+                
+                for s in priority_order:
+                    if s in top_sentiments:
+                        sentiment = s
+                        break
 
         # Calculate confidence based on the score and text length
         # Calculate confidence directly based on score
