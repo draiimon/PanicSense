@@ -169,6 +169,9 @@ export async function uploadCSV(
   // Generate a unique session ID
   const sessionId = crypto.randomUUID();
   currentUploadSessionId = sessionId;
+  
+  // Store the session ID in localStorage for persistence across page refreshes
+  localStorage.setItem('uploadSessionId', sessionId);
 
   // Set up event source for progress updates
   const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
