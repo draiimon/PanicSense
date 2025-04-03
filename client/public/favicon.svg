@@ -1,10 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <circle cx="50" cy="50" r="50" fill="#4F46E5"/>
-  <g fill="#ffffff">
-    <path d="M40,30 C40,30 30,35 30,50 C30,65 40,70 40,70 L45,65 C45,65 38,60 38,50 C38,40 45,35 45,35 L40,30 Z"/>
-    <path d="M60,30 C60,30 70,35 70,50 C70,65 60,70 60,70 L55,65 C55,65 62,60 62,50 C62,40 55,35 55,35 L60,30 Z"/>
-    <path d="M50,25 C45,25 40,27 40,35 L45,35 C45,31 47.5,30 50,30 C52.5,30 55,31 55,35 L60,35 C60,27 55,25 50,25 Z"/>
-    <path d="M40,40 L60,40 L60,60 L50,70 L40,60 Z"/>
-  </g>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <image href="/favicon.png" width="512" height="512"/>
 </svg>
