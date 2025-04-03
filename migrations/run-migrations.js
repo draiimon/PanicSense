@@ -1,6 +1,7 @@
 // Direct database migration using JavaScript and Drizzle ORM
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
+import pkg from 'pg';
+const { Pool } = pkg;
 import { sql } from 'drizzle-orm';
 import dotenv from 'dotenv';
 

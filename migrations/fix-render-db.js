@@ -1,8 +1,8 @@
 // Direct database fix for Render deployment - bypasses Drizzle
 // This script directly manipulates the database schema using SQL
 
-import pg from 'pg';
-const { Pool } = pg;
+import pkg from 'pg';
+const { Pool } = pkg;
 import dotenv from 'dotenv';
 dotenv.config();
 

@@ -1,8 +1,9 @@
 // EMERGENCY DATABASE FIX FOR RENDER DEPLOYMENT
 // This script runs at application startup
 
-import pg from 'pg';
-const { Pool } = pg;
+// Import pg package directly without dynamic imports
+import pkg from 'pg';
+const { Pool } = pkg;
 
 export async function applyEmergencyFixes() {
   console.log('🚨 EMERGENCY DATABASE FIX - RUNNING AT STARTUP 🚨');
