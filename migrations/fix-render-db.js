@@ -1,10 +1,12 @@
 // Direct database fix for Render deployment - bypasses Drizzle
 // This script directly manipulates the database schema using SQL
 
-const { Pool } = require('pg');
-require('dotenv').config();
+import pg from 'pg';
+const { Pool } = pg;
+import dotenv from 'dotenv';
+dotenv.config();
 
-async function fixRenderDatabase() {
+export async function fixRenderDatabase() {
   console.log('=== EMERGENCY DATABASE FIX SCRIPT ===');
   
   // Create a pool directly with the DATABASE_URL

@@ -4,7 +4,7 @@
 
 echo "Starting PanicSense deployment quick fix script..."
 echo "===========================================" 
-echo "RENDER EMERGENCY DATABASE FIX v2.0"
+echo "RENDER EMERGENCY DATABASE FIX v3.0"
 echo "===========================================" 
 
 # Ensure dependencies are installed (for non-Docker environments)
@@ -17,13 +17,19 @@ fi
 if [ -n "$DATABASE_URL" ]; then
   echo "Database URL found, running emergency migrations..."
 
-  # Run the emergency fix script first - this is our primary fix approach
-  echo "⚠️ RUNNING EMERGENCY DATABASE FIX SCRIPT..."
-  node migrations/fix-render-db.js
-
-  # Run each approach with more detailed error handling
+  # APPROACH 1: Apply the complete schema directly
+  echo "Running complete schema SQL file..."
+  if psql -v ON_ERROR_STOP=0 "$DATABASE_URL" -f migrations/complete_schema.sql; then
+    echo "✅ Complete schema applied successfully"
+  else
+    echo "⚠️ Complete schema application completed with warnings (trying other approaches...)"
+  fi
   
-  # 1. Apply direct SQL fixes for missing columns
+  # APPROACH 2: Run the emergency fix script
+  echo "⚠️ RUNNING EMERGENCY DATABASE FIX SCRIPT..."
+  node --experimental-modules migrations/fix-render-db.js
+  
+  # APPROACH 3: Apply direct SQL fixes for missing columns
   echo "Running direct SQL migration for missing columns..."
   if psql -v ON_ERROR_STOP=0 "$DATABASE_URL" -f migrations/add_missing_columns.sql; then
     echo "✅ SQL migration completed successfully"
@@ -31,7 +37,7 @@ if [ -n "$DATABASE_URL" ]; then
     echo "⚠️ SQL migration completed with warnings (this is usually OK)"
   fi
   
-  # 2. Directly apply critical changes via raw SQL (guaranteed to work)
+  # APPROACH 4: Apply critical changes directly (last resort, guaranteed to work)
   echo "Directly applying critical schema changes..."
   psql "$DATABASE_URL" <<EOF
     -- Add ai_trust_message to sentiment_posts if it doesn't exist
@@ -63,7 +69,7 @@ if [ -n "$DATABASE_URL" ]; then
     );
 EOF
   
-  # 3. Run JavaScript-based migrations
+  # APPROACH 5: Run JavaScript-based migrations
   echo "Running JavaScript-based migrations..."
   if node --experimental-modules migrations/run-migrations.js; then
     echo "✅ JavaScript migrations completed successfully"
@@ -71,7 +77,7 @@ EOF
     echo "⚠️ JavaScript migrations completed with warnings (this is usually OK)"
   fi
   
-  # 4. Run database migrations using Drizzle ORM
+  # APPROACH 6: Run database migrations using Drizzle ORM
   echo "Running npm run db:push to apply schema changes..."
   if npm run db:push; then
     echo "✅ Drizzle migrations completed successfully"

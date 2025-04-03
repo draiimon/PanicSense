@@ -4,7 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { checkPortPeriodically, checkPort } from "./debug-port";
 // Import emergency database fix
-const { applyEmergencyFixes } = require('./emergency-db-fix');
+import { applyEmergencyFixes } from "./emergency-db-fix";
 
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Increased limit for better performance

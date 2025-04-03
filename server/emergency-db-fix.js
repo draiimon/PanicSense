@@ -1,9 +1,10 @@
 // EMERGENCY DATABASE FIX FOR RENDER DEPLOYMENT
 // This script runs at application startup
 
-const { Pool } = require('pg');
+import pg from 'pg';
+const { Pool } = pg;
 
-async function applyEmergencyFixes() {
+export async function applyEmergencyFixes() {
   console.log('🚨 EMERGENCY DATABASE FIX - RUNNING AT STARTUP 🚨');
   
   let pool;
@@ -19,7 +20,27 @@ async function applyEmergencyFixes() {
     
     console.log('Connected to database, applying emergency fixes...');
     
-    // Fix 1: Add ai_trust_message column to sentiment_posts
+    // First check if sentiment_posts table exists, and create it if not
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sentiment_posts (
+        id SERIAL PRIMARY KEY,
+        text TEXT NOT NULL,
+        timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+        source TEXT,
+        language TEXT,
+        sentiment TEXT NOT NULL,
+        confidence REAL NOT NULL,
+        location TEXT,
+        disaster_type TEXT,
+        file_id INTEGER,
+        explanation TEXT,
+        processed_by INTEGER,
+        ai_trust_message TEXT
+      );
+    `);
+    console.log('✅ sentiment_posts table check completed');
+    
+    // Fix 1: Add ai_trust_message column to sentiment_posts if it doesn't exist
     await pool.query(`
       DO $$
       BEGIN
@@ -53,6 +74,57 @@ async function applyEmergencyFixes() {
       );
     `);
     console.log('✅ training_examples table fix applied');
+    
+    // Create other tables if they don't exist
+    
+    // disaster_events table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS disaster_events (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+        location TEXT,
+        type TEXT NOT NULL,
+        sentiment_impact TEXT,
+        created_by INTEGER
+      );
+    `);
+    console.log('✅ disaster_events table check completed');
+    
+    // analyzed_files table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS analyzed_files (
+        id SERIAL PRIMARY KEY,
+        original_name TEXT NOT NULL,
+        stored_name TEXT NOT NULL,
+        timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+        record_count INTEGER NOT NULL,
+        evaluation_metrics JSONB,
+        uploaded_by INTEGER
+      );
+    `);
+    console.log('✅ analyzed_files table check completed');
+    
+    // sentiment_feedback table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sentiment_feedback (
+        id SERIAL PRIMARY KEY,
+        original_post_id INTEGER,
+        original_text TEXT NOT NULL,
+        original_sentiment TEXT NOT NULL,
+        corrected_sentiment TEXT DEFAULT '',
+        corrected_location TEXT,
+        corrected_disaster_type TEXT,
+        trained_on BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW(),
+        user_id INTEGER,
+        ai_trust_message TEXT,
+        possible_trolling BOOLEAN DEFAULT false
+      );
+    `);
+    console.log('✅ sentiment_feedback table check completed');
+    
     
     // Verify fixes
     const colCheck = await pool.query(`
@@ -92,5 +164,3 @@ async function applyEmergencyFixes() {
     }
   }
 }
-
-module.exports = { applyEmergencyFixes };
