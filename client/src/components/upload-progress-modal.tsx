@@ -291,12 +291,15 @@ export function UploadProgressModal() {
                   <span className="text-xs font-medium">Est. Time Left</span>
                 </div>
                 <div className="text-sm font-bold text-gray-700">
-                  {timeRemaining > 0 ? 
-                    `${Math.ceil(timeRemaining)}s` : 
-                    isPaused ? 
-                      <span className="text-amber-500">Paused</span> : 
-                      <span className="text-gray-500 italic text-xs">Calculating...</span>
-                  }
+                  {isProcessing && !isPaused ? (
+                    <>
+                      {Math.ceil(total - processed) * 0.9}s
+                    </>
+                  ) : isPaused ? (
+                    <span className="text-amber-500">Paused</span>
+                  ) : (
+                    <span className="text-gray-500 italic text-xs">Calculating...</span>
+                  )}
                 </div>
               </div>
 

@@ -175,13 +175,13 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                 }
               }
             } catch (error) {
-              console.error('Error parsing progress data:', error);
+              // Error silently handled - removed console.error
             }
           };
           
           // Handle connection closing
           eventSource.onerror = () => {
-            console.error('EventSource connection error');
+            // Connection error silently handled - removed console.error
             eventSource.close();
             setIsUploading(false);
           };
@@ -261,13 +261,13 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                 setIsUploading(false);
               }
             } catch (error) {
-              console.error('Error parsing stored upload progress:', error);
+              // Error silently handled - removed console.error
               setIsUploading(false);
             }
           }
         }
       } catch (error) {
-        console.error('Error checking for active uploads:', error);
+        // Error silently handled - removed console.error
         setIsUploading(false);
       }
     };
@@ -347,16 +347,16 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (error) {
-        console.error('Error processing WebSocket message:', error);
+        // Error silently handled - removed console.error
       }
     };
 
     socket.onopen = () => {
-      console.log('WebSocket connected');
+      // WebSocket connection established - removed console.log
     };
 
     socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      // WebSocket error silently handled - removed console.error
     };
 
     return () => {
