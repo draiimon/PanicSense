@@ -99,6 +99,15 @@ function broadcastUpdate(data: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add health check endpoint for Render
+  app.get('/api/health', (req: Request, res: Response) => {
+    res.status(200).json({ 
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
+
   // Serve static files from attached_assets
   app.use('/assets', express.static(path.join(process.cwd(), 'attached_assets')));
 

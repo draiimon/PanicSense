@@ -108,8 +108,8 @@ app.use((req, res, next) => {
       console.log("Vite middleware setup complete");
     }
 
-    // Using just port 5000 as the main port
-    const port = 5000;
+    // Use PORT environment variable with fallback to 5000 for local development
+    const port = parseInt(process.env.PORT || "5000", 10);
     console.log(`Attempting to listen on port ${port}...`);
     
     server.listen(port, "0.0.0.0", () => {

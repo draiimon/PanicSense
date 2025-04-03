@@ -38,7 +38,11 @@ export class PythonService {
   private similarityCache: Map<string, boolean>; // Cache for text similarity checks
 
   constructor() {
-    this.pythonBinary = 'python3';
+    // Use the virtual environment python in production, otherwise use system python
+    this.pythonBinary = process.env.NODE_ENV === 'production' 
+      ? '/app/venv/bin/python3'
+      : 'python3';
+    
     this.tempDir = path.join(os.tmpdir(), 'disaster-sentiment');
     this.scriptPath = path.join(process.cwd(), 'server', 'python', 'process.py');
     this.confidenceCache = new Map();  // Initialize confidence cache
@@ -47,6 +51,8 @@ export class PythonService {
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
     }
+    
+    log(`Using Python binary: ${this.pythonBinary}`, 'python-service');
   }
   
   // Utility method to extract disaster type from text
