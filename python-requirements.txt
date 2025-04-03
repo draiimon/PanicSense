@@ -1,0 +1,10 @@
+langdetect>=1.0.9
+nltk>=3.9.1
+numpy>=2.2.4
+pandas>=2.2.3
+python-dotenv>=1.1.0
+pytz>=2025.2
+requests>=2.32.3
+scikit-learn>=1.6.1
+torch>=2.6.0 -f https://download.pytorch.org/whl/cpu/torch_stable.html
+tqdm>=4.67.1
