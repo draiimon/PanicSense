@@ -8,7 +8,8 @@ import {
   SentimentPost,
   DisasterEvent,
   AnalyzedFile,
-  getCurrentUploadSessionId
+  getCurrentUploadSessionId,
+  checkForActiveSessions
 } from "@/lib/api";
 
 // Define ProcessingStats interface
@@ -125,63 +126,123 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
 
   // Restore upload state on app load
   useEffect(() => {
-    // Check if there was an active upload
-    const wasUploading = localStorage.getItem('isUploading') === 'true';
-    
-    if (wasUploading) {
-      // Get stored progress
-      const storedProgress = localStorage.getItem('uploadProgress');
-      
-      if (storedProgress) {
-        try {
-          const parsedProgress = JSON.parse(storedProgress);
-          setUploadProgress(parsedProgress);
+    const checkAndReconnectToActiveUploads = async () => {
+      try {
+        // First check database for active uploads
+        const activeSessionId = await checkForActiveSessions();
+        
+        if (activeSessionId) {
+          console.log('Active upload session found in database:', activeSessionId);
           setIsUploading(true);
           
-          // Check if there's an active session ID from the API
-          const sessionId = getCurrentUploadSessionId();
-          if (sessionId) {
-            console.log('Reconnecting to upload session:', sessionId);
-            
-            // Set up EventSource for progress updates
-            const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
-            
-            eventSource.onmessage = (event) => {
-              try {
-                const progress = JSON.parse(event.data);
-                setUploadProgress(progress);
+          // Set up EventSource for progress updates
+          const eventSource = new EventSource(`/api/upload-progress/${activeSessionId}`);
+          
+          eventSource.onmessage = (event) => {
+            try {
+              const progress = JSON.parse(event.data);
+              setUploadProgress(progress);
+              
+              // If the upload is complete or has an error, close the connection
+              if (progress.stage.toLowerCase().includes('complete') || 
+                  progress.stage.toLowerCase().includes('error') ||
+                  progress.stage.toLowerCase().includes('cancelled')) {
+                eventSource.close();
                 
-                // If the upload is complete or has an error, close the connection
-                if (progress.stage.toLowerCase().includes('complete') || 
-                    progress.stage.toLowerCase().includes('error') ||
-                    progress.stage.toLowerCase().includes('cancelled')) {
-                  eventSource.close();
-                  
-                  // If it completed successfully, refresh data to show new records
-                  if (progress.stage.toLowerCase().includes('complete')) {
-                    refreshData();
-                  }
+                // If it completed successfully, refresh data to show new records
+                if (progress.stage.toLowerCase().includes('complete')) {
+                  refreshData();
                 }
-              } catch (error) {
-                console.error('Error parsing progress data:', error);
+                
+                // Close the upload modal after a delay
+                setTimeout(() => {
+                  setIsUploading(false);
+                }, 2000);
               }
-            };
-            
-            // Handle connection closing
-            eventSource.onerror = () => {
-              eventSource.close();
-              setIsUploading(false);
-            };
-          } else {
-            // No active session found, reset the upload state
+            } catch (error) {
+              console.error('Error parsing progress data:', error);
+            }
+          };
+          
+          // Handle connection closing
+          eventSource.onerror = () => {
+            console.error('EventSource connection error');
+            eventSource.close();
             setIsUploading(false);
-          }
-        } catch (error) {
-          console.error('Error parsing stored upload progress:', error);
-          setIsUploading(false);
+          };
+          
+          return;
         }
+        
+        // Fall back to localStorage check if no active uploads in database
+        const wasUploading = localStorage.getItem('isUploading') === 'true';
+        
+        if (wasUploading) {
+          // Get stored progress
+          const storedProgress = localStorage.getItem('uploadProgress');
+          
+          if (storedProgress) {
+            try {
+              const parsedProgress = JSON.parse(storedProgress);
+              setUploadProgress(parsedProgress);
+              setIsUploading(true);
+              
+              // Check if there's an active session ID from localStorage
+              const sessionId = getCurrentUploadSessionId();
+              if (sessionId) {
+                console.log('Reconnecting to upload session from localStorage:', sessionId);
+                
+                // Set up EventSource for progress updates
+                const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
+                
+                eventSource.onmessage = (event) => {
+                  try {
+                    const progress = JSON.parse(event.data);
+                    setUploadProgress(progress);
+                    
+                    // If the upload is complete or has an error, close the connection
+                    if (progress.stage.toLowerCase().includes('complete') || 
+                        progress.stage.toLowerCase().includes('error') ||
+                        progress.stage.toLowerCase().includes('cancelled')) {
+                      eventSource.close();
+                      
+                      // If it completed successfully, refresh data to show new records
+                      if (progress.stage.toLowerCase().includes('complete')) {
+                        refreshData();
+                      }
+                      
+                      // Close the upload modal after a delay
+                      setTimeout(() => {
+                        setIsUploading(false);
+                      }, 2000);
+                    }
+                  } catch (error) {
+                    console.error('Error parsing progress data:', error);
+                  }
+                };
+                
+                // Handle connection closing
+                eventSource.onerror = () => {
+                  eventSource.close();
+                  setIsUploading(false);
+                };
+              } else {
+                // No active session found, reset the upload state
+                setIsUploading(false);
+              }
+            } catch (error) {
+              console.error('Error parsing stored upload progress:', error);
+              setIsUploading(false);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking for active uploads:', error);
+        setIsUploading(false);
       }
-    }
+    };
+    
+    checkAndReconnectToActiveUploads();
   }, []);
 
   // WebSocket setup
