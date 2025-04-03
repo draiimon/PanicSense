@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Purple background shape -->
+  <path d="M75 10 C90 15, 95 30, 95 50 C95 70, 90 85, 75 90 L25 90 C10 85, 5 70, 5 50 C5 30, 10 15, 25 10 Z" fill="#6352cd"/>
+  
+  <!-- Inner purple shade -->
+  <path d="M70 20 C82 25, 85 35, 85 50 C85 65, 82 75, 70 80 L30 80 C18 75, 15 65, 15 50 C15 35, 18 25, 30 20 Z" fill="#7e67e5"/>
+  
+  <!-- Location pin outline -->
+  <circle cx="55" cy="45" r="20" fill="#ffeb3b"/>
+  
+  <!-- Location pin gradient -->
+  <defs>
+    <linearGradient id="pinGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffe000" />
+      <stop offset="50%" stop-color="#ff9900" />
+      <stop offset="100%" stop-color="#ff4400" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Location pin inner circle and pointer -->
+  <circle cx="55" cy="45" r="12" fill="#5c4cad"/>
+  <circle cx="55" cy="45" r="8" fill="#6352cd"/>
+  <path d="M55 45 L65 35 Q70 50, 55 65 Q40 50, 45 35 Z" fill="url(#pinGradient)"/>
+</svg>
