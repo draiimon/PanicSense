@@ -62,36 +62,45 @@ export const chartColors = [
 
 export function getSentimentColor(sentiment: string | null): string {
   if (!sentiment) return '#6b7280'; // Default gray for null
-
-  switch (sentiment) {
-    case 'Panic':
-      return '#ef4444';
-    case 'Fear/Anxiety':
-      return '#f97316';
-    case 'Disbelief':
-      return '#8b5cf6';
-    case 'Resilience':
-      return '#10b981';
-    case 'Neutral':
-    default:
-      return '#6b7280';
+  
+  // Normalize the sentiment string to handle case differences
+  const normalizedSentiment = sentiment.toLowerCase();
+  
+  if (normalizedSentiment.includes('panic')) {
+    return '#ef4444';
+  } else if (normalizedSentiment.includes('fear') || normalizedSentiment.includes('anxiety')) {
+    return '#f97316';
+  } else if (normalizedSentiment.includes('disbelief')) {
+    return '#8b5cf6';
+  } else if (normalizedSentiment.includes('resilience')) {
+    return '#10b981';
+  } else if (normalizedSentiment.includes('neutral')) {
+    return '#6b7280';
+  } else {
+    // Default case
+    return '#6b7280';
   }
 }
 
 export function getSentimentBadgeClasses(sentiment: string | null): string {
   if (!sentiment) return 'bg-slate-100 text-slate-600'; // Default for null
-  switch (sentiment) {
-    case 'Panic':
-      return 'bg-red-100 text-red-600';
-    case 'Fear/Anxiety':
-      return 'bg-orange-100 text-orange-600';
-    case 'Disbelief':
-      return 'bg-purple-100 text-purple-600';
-    case 'Resilience':
-      return 'bg-green-100 text-green-600';
-    case 'Neutral':
-    default:
-      return 'bg-slate-100 text-slate-600';
+  
+  // Normalize the sentiment string to handle case differences
+  const normalizedSentiment = sentiment.toLowerCase();
+  
+  if (normalizedSentiment.includes('panic')) {
+    return 'bg-red-100 text-red-600';
+  } else if (normalizedSentiment.includes('fear') || normalizedSentiment.includes('anxiety')) {
+    return 'bg-orange-100 text-orange-600';
+  } else if (normalizedSentiment.includes('disbelief')) {
+    return 'bg-purple-100 text-purple-600';
+  } else if (normalizedSentiment.includes('resilience')) {
+    return 'bg-green-100 text-green-600';
+  } else if (normalizedSentiment.includes('neutral')) {
+    return 'bg-slate-100 text-slate-600';
+  } else {
+    // Default case
+    return 'bg-slate-100 text-slate-600';
   }
 }
 
