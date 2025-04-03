@@ -750,6 +750,9 @@ export class PythonService {
   }
 
   public async analyzeSentiment(text: string): Promise<{
+    // IMPORTANT: This function must return consistent results with the Python analyze_sentiment() function
+    // Both CSV uploads (through processCSV) and realtime text analysis (through analyzeSentiment)
+    // must use the same algorithm and classification logic for consistent results
     sentiment: string;
     confidence: number;
     explanation: string;

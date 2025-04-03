@@ -557,7 +557,14 @@ class DisasterSentimentBackend:
         return "Unknown Social Media"
 
     def analyze_sentiment(self, text):
-        """Analyze sentiment in text"""
+        """Analyze sentiment in text
+        
+        This is the primary sentiment analysis function used by both:
+        1. Single text analysis through '/api/analyze-text' endpoint
+        2. CSV bulk upload through 'process_csv' function
+        
+        All sentiment analysis MUST go through this function to ensure consistency.
+        """
         if not text or len(text.strip()) == 0:
             return {
                 "sentiment": "Neutral",
@@ -1211,7 +1218,11 @@ class DisasterSentimentBackend:
         }
 
     def process_csv(self, file_path):
-        """Process a CSV file with sentiment analysis"""
+        """Process a CSV file with sentiment analysis
+        
+        CRITICAL: Uses the same analyze_sentiment() function as realtime analysis
+        to ensure consistent algorithm and classification between realtime and CSV uploads
+        """
         try:
             # Keep track of failed records to retry
             failed_records = []
@@ -1518,6 +1529,8 @@ class DisasterSentimentBackend:
                                         }
 
                         # Store the processed result
+                        # CRITICAL: Make sure we use the exact same processing as single text analysis
+                        # to ensure consistent algorithm and classification between realtime and CSV 
                         processed_results.append({
                             "text":
                             text,
