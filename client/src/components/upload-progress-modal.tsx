@@ -224,50 +224,7 @@ export function UploadProgressModal() {
           </div>
 
           {/* Cooldown Timer Display */}
-          {isCooldown && cooldownTimeRemaining !== null && (
-            <div className="mb-4 bg-gradient-to-br from-amber-800/30 to-amber-700/30 backdrop-blur-sm rounded-xl border border-amber-600/30 overflow-hidden shadow-lg">
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 rounded-full bg-amber-500/20">
-                      <Clock className="h-5 w-5 text-amber-400 animate-pulse" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-amber-300">60-Second Cooldown Period</h4>
-                      <p className="text-xs text-amber-300/70">Processing will resume automatically</p>
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold font-mono text-amber-300 tabular-nums">
-                    <motion.div
-                      key={cooldownTimeRemaining}
-                      initial={{ scale: 1.2, opacity: 0.7 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {cooldownTimeRemaining}s
-                    </motion.div>
-                  </div>
-                </div>
-                
-                {/* Countdown progress bar */}
-                <div className="h-3 bg-slate-800/50 rounded-full overflow-hidden">
-                  <motion.div 
-                    className="h-full bg-gradient-to-r from-amber-400 to-amber-500"
-                    initial={{ width: '100%' }}
-                    animate={{ 
-                      width: '0%',
-                      transition: { duration: cooldownTimeRemaining, ease: 'linear' }
-                    }}
-                  />
-                </div>
-                
-                <div className="mt-3 text-xs text-amber-300/70 italic text-center">
-                  Required 60-second pause between batches<br />
-                  <span className="font-semibold">Processing in batches of 30 records</span>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Cooldown indicator removed as requested */}
 
           {/* Enhanced Stats Grid */}
           {!hasError && !isCooldown && (
