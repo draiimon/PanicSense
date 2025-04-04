@@ -146,6 +146,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
   // State initialization with potentially localStorage data
   // This gives us immediate UI while we wait for the database check
   const [selectedDisasterType, setSelectedDisasterType] = useState<string>("All");
+  // SUPER STRONG DEFAULT - localStorage DICTATES VISIBILITY 
+  // This makes it much harder for the database to hide the modal on server restart
+  // User must explicitly click cancel button to hide modal
   const [isUploading, setIsUploading] = useState<boolean>(initialUploadState);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>(initialProgressState);
 
@@ -235,9 +238,41 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
           }
         } else {
           // DATABASE SAYS NO ACTIVE UPLOADS - BOSS SAYS NO
+          // BUT WE NEED TO BE CAREFUL ABOUT SERVER RESTARTS!
           console.log('DATABASE BOSS SAYS: No active uploads exist');
           
           if (isUploading) {
+            // CHECK FOR SERVER RESTART CONDITION
+            // If the localStorage has very recent data, it could be due to server restart
+            // In that case, KEEP the upload modal showing despite what database says
+            const progressData = localStorage.getItem('uploadProgress');
+            if (progressData) {
+              try {
+                const parsedProgress = JSON.parse(progressData);
+                const twoMinutesAgo = Date.now() - (2 * 60 * 1000); // SUPER GENEROUS time window
+                
+                // If localStorage has very recent data (last 2 minutes), server might have restarted
+                if (parsedProgress.savedAt && parsedProgress.savedAt > twoMinutesAgo) {
+                  console.log('⚠️ IMPORTANT: Recent localStorage activity detected!');
+                  console.log('💪 Ignoring database "no sessions" - possible SERVER RESTART detected');
+                  console.log('💪 Keeping upload modal visible to prevent data loss');
+                  
+                  // CRITICAL: Don't clear localStorage or hide modal on possible server restart
+                  // This is our SUPER PROTECTION against server restarts losing UI state
+                  
+                  // Set flag in localStorage to indicate server restart protection is active
+                  localStorage.setItem('serverRestartProtection', 'true');
+                  localStorage.setItem('serverRestartTimestamp', Date.now().toString());
+                  
+                  return; // Exit early WITHOUT clearing anything
+                }
+              } catch (e) {
+                // Parse error, proceed with normal cleanup
+                console.error('Parse error in server restart check', e);
+              }
+            }
+            
+            // Normal case - follow database boss and clean up
             console.log('Clearing all upload state because database says so');
             
             // Clear localStorage completely - follow the boss
@@ -246,6 +281,8 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
             localStorage.removeItem('uploadSessionId');
             localStorage.removeItem('lastProgressTimestamp');
             localStorage.removeItem('lastUIUpdateTimestamp');
+            localStorage.removeItem('serverRestartProtection');
+            localStorage.removeItem('serverRestartTimestamp');
             
             // Update UI state to match database (the boss)
             setIsUploading(false);

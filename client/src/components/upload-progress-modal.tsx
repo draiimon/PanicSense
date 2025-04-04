@@ -22,8 +22,13 @@ export function UploadProgressModal() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
+  // Check for server restart protection flag
+  const serverRestartProtection = localStorage.getItem('serverRestartProtection') === 'true';
+  const serverRestartTime = localStorage.getItem('serverRestartTimestamp');
+  
   // Regular check with database boss - if boss says no active sessions but we're showing
   // a modal, boss is right and we should close the modal
+  // BUT THIS HAS A SPECIAL EXCEPTION FOR SERVER RESTARTS
   useEffect(() => {
     if (!isUploading) return; // No need to check if we're not showing a modal
     
@@ -387,7 +392,9 @@ export function UploadProgressModal() {
                       ? 'bg-green-100 text-green-600' 
                       : 'bg-blue-100 text-blue-600'
                 }`}>
-                  {hasError ? (
+                  {serverRestartProtection ? (
+                    <Server className="h-5 w-5 text-blue-500" />
+                  ) : hasError ? (
                     <AlertCircle className="h-5 w-5" />
                   ) : isComplete ? (
                     <CheckCircle className="h-5 w-5" />
@@ -396,13 +403,20 @@ export function UploadProgressModal() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Current Status</h4>
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {serverRestartProtection ? 'Server Restart Mode' : 'Current Status'}
+                  </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">
-                    {stage}
+                    {serverRestartProtection ? 'Waiting for server to resume...' : stage}
                   </p>
-                  {isPaused && (
+                  {isPaused && !serverRestartProtection && (
                     <p className="text-xs text-amber-600 mt-1 font-medium">
                       System is paused between batches to prevent overloading
+                    </p>
+                  )}
+                  {serverRestartProtection && (
+                    <p className="text-xs text-blue-600 mt-1 font-medium">
+                      Your upload was preserved during a server interruption
                     </p>
                   )}
                 </div>
