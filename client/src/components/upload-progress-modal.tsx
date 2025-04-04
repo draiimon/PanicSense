@@ -122,7 +122,8 @@ export function UploadProgressModal() {
           boxShadow: "0 8px 32px rgba(31, 38, 135, 0.15)",
           backdropFilter: "blur(8px)",
           border: "1px solid rgba(255, 255, 255, 0.2)",
-          minHeight: "480px", // Fixed height to prevent shrinking
+          height: "520px", // Fixed exact height instead of min-height
+          width: "380px", // Fixed exact width too
         }}
         className="relative rounded-xl overflow-hidden w-full max-w-sm mx-4"
       >

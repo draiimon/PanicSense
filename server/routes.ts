@@ -1097,17 +1097,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Initialize enhanced progress tracking
       uploadProgressMap.set(sessionId, {
-        processed: 0,
+        processed: 1,  // Start with 1 to avoid showing zero initially
         total: totalRecords,
         stage: `Starting analysis...`,
         timestamp: Date.now(),
-        batchNumber: 0,
+        batchNumber: 1, // Start with batch 1 instead of 0
         totalBatches: Math.ceil(totalRecords / 30), 
         batchProgress: 0,
         currentSpeed: 0,
         timeRemaining: 0,
         processingStats: {
-          successCount: 0,
+          successCount: 1, // Start with 1 to match processed count
           errorCount: 0,
           lastBatchDuration: 0,
           averageSpeed: 0
