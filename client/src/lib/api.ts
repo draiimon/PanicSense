@@ -1,4 +1,5 @@
 import { apiRequest } from './queryClient';
+import { broadcastService } from './broadcast-service';
 
 export interface SentimentPost {
   id: number;
@@ -52,6 +53,8 @@ export interface UploadProgress {
   batchProgress?: number;
   currentSpeed?: number;  // Records per second
   timeRemaining?: number; // Seconds
+  timestamp?: number;     // Unix timestamp for message ordering
+  savedAt?: number;       // When the progress was saved to localStorage
   processingStats?: {
     successCount: number;
     errorCount: number;
@@ -347,10 +350,29 @@ export async function uploadCSV(
     try {
       const progress = JSON.parse(event.data) as UploadProgress;
       console.log('Progress event received:', progress);
-
+      
+      // Add timestamp if not present to ensure proper ordering
+      const progressWithTimestamp = {
+        ...progress,
+        timestamp: progress.timestamp || Date.now()
+      };
+      
+      // Broadcast progress to all tabs (for cross-tab sync)
+      broadcastService.broadcastUploadProgress(progressWithTimestamp);
+      
+      // Set localStorage "isUploading" flag to true when we get progress
+      // This tells other tabs that an upload is in progress
+      localStorage.setItem('isUploading', 'true');
+      
+      // Store the progress in localStorage for resilience
+      localStorage.setItem('uploadProgress', JSON.stringify({
+        ...progressWithTimestamp,
+        savedAt: Date.now()
+      }));
+      
       if (onProgress) {
-        console.log('Progress being sent to UI:', progress);
-        onProgress(progress);
+        console.log('Progress being sent to UI:', progressWithTimestamp);
+        onProgress(progressWithTimestamp);
       }
     } catch (error) {
       console.error('Error parsing progress data:', error);

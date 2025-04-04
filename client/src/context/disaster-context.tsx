@@ -2,6 +2,7 @@ import React, { createContext, ReactNode, useContext, useState, useEffect, useRe
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { broadcastService, UploadStateMessage, UploadCommandMessage } from '@/lib/broadcast-service';
 import { 
   getSentimentPosts, 
   getDisasterEvents, 
@@ -22,26 +23,8 @@ declare global {
   }
 }
 
-// Type definitions
-interface ProcessingStats {
-  successCount: number;
-  errorCount: number;
-  averageSpeed: number;
-}
-
-interface UploadProgress {
-  processed: number;
-  total: number;
-  stage: string;
-  timestamp?: number;  // Add timestamp to ensure proper ordering of updates
-  batchNumber?: number;
-  totalBatches?: number;
-  batchProgress?: number;
-  currentSpeed?: number;
-  timeRemaining?: number;
-  processingStats?: ProcessingStats;
-  error?: string;
-}
+// Type definitions - using import from API to ensure type consistency
+import { UploadProgress } from "@/lib/api";
 
 interface DisasterContextType {
   // Data
@@ -99,14 +82,20 @@ const DisasterContext = createContext<DisasterContextType | undefined>(undefined
 // Initial states
 const initialProgress: UploadProgress = {
   processed: 0,
-  total: 0,
+  total: 100, // Default value for progress bar
   stage: "Initializing...",
   timestamp: 0,
   batchNumber: 0,
   totalBatches: 0,
   batchProgress: 0,
   currentSpeed: 0,
-  timeRemaining: 0
+  timeRemaining: 0,
+  processingStats: {
+    successCount: 0,
+    errorCount: 0,
+    lastBatchDuration: 0,
+    averageSpeed: 0
+  }
 };
 
 export function DisasterContextProvider({ children }: { children: ReactNode }): JSX.Element {
@@ -214,7 +203,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
             
             // If we're already showing the upload modal, keep it visible
             // If not, check if localStorage wants to show it
-            if (!isUploading && (storedIsUploading === 'true' || !!storedSessionId)) {
+            if (!isUploading && (storedIsUploading || !!storedSessionId)) {
               setIsUploading(true);
               console.log('🔄 Local storage wants modal visible, following local storage command');
             }
@@ -287,7 +276,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
             
             // CRITICAL: On server restart, ALWAYS trust localStorage for visibility
             // If localStorage thinks we're uploading, keep showing modal no matter what
-            if (storedIsUploading === 'true' || !!storedSessionId) {
+            if (storedIsUploading || !!storedSessionId) {
               setIsUploading(true);
               console.log('🛡️ Keeping upload modal visible despite server restart');
               
@@ -354,7 +343,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
           console.error('Error checking with database:', error);
           
           // On database error, FULLY trust localStorage for maximum stability
-          if (storedIsUploading === 'true' || !!storedSessionId) {
+          if (storedIsUploading || !!storedSessionId) {
             console.log('🐛 Database error! Trusting localStorage completely');
             setIsUploading(true);
             
@@ -480,6 +469,78 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
       }
     };
   }, [refetchSentimentPosts, refetchDisasterEvents, refetchAnalyzedFiles]);
+  
+  // Listen for broadcast events for cross-tab synchronization
+  useEffect(() => {
+    // Register listeners for broadcast events
+    const handleUploadState = (state: UploadStateMessage) => {
+      console.log('Received broadcast upload state:', state);
+      
+      // If we receive an upload state from another tab/window
+      if (state.isUploading !== isUploading) {
+        // Update our state to match
+        setIsUploading(state.isUploading);
+        
+        // Also ensure localStorage matches
+        if (state.isUploading) {
+          localStorage.setItem('isUploading', 'true');
+          if (state.sessionId) {
+            localStorage.setItem('uploadSessionId', state.sessionId);
+          }
+        } else {
+          // Clean up localStorage
+          localStorage.removeItem('isUploading');
+          localStorage.removeItem('uploadSessionId');
+        }
+      }
+    };
+    
+    const handleUploadProgress = (progress: UploadProgress) => {
+      console.log('Received broadcast upload progress:', progress);
+      
+      // Always save to localStorage for resilience
+      localStorage.setItem('uploadProgress', JSON.stringify({
+        ...progress,
+        savedAt: Date.now()
+      }));
+      
+      // Only update UI if we're showing the upload modal
+      if (isUploading) {
+        // Only update if the progress is newer than what we have
+        const currentTimestamp = uploadProgress.timestamp || 0;
+        const newTimestamp = progress.timestamp || 0;
+        
+        if (newTimestamp >= currentTimestamp) {
+          setUploadProgress(progress);
+        }
+      }
+    };
+    
+    const handleUploadCommand = (command: UploadCommandMessage) => {
+      console.log('Received broadcast upload command:', command);
+      
+      if (command.command === 'cancel' || command.command === 'forceClose') {
+        // Cancel the upload and close the modal
+        setIsUploading(false);
+        
+        // Clean up localStorage
+        localStorage.removeItem('isUploading');
+        localStorage.removeItem('uploadProgress');
+        localStorage.removeItem('uploadSessionId');
+        localStorage.removeItem('lastProgressTimestamp');
+      }
+    };
+    
+    // Register listeners with broadcast service
+    broadcastService.onUploadStateChange(handleUploadState);
+    broadcastService.onUploadProgressUpdate(handleUploadProgress);
+    broadcastService.onUploadCommand(handleUploadCommand);
+    
+    // Cleanup when component unmounts
+    return () => {
+      // No need to clean up as broadcastService handles this
+    };
+  }, [isUploading, uploadProgress]);
   
   // Helper function to access the refresh function
   const refreshData = () => refreshDataRef.current();

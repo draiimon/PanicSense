@@ -16,6 +16,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cancelUpload } from "@/lib/api";
+import { broadcastService, broadcastCancelUpload } from "@/lib/broadcast-service";
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
@@ -218,6 +219,12 @@ export function UploadProgressModal() {
           // Try to cancel through the API first (which will delete the session from the database)
           await cancelUpload();
           console.log('Force close: Upload cancelled through API to ensure database cleanup');
+          
+          // Broadcast the cancellation to all tabs/windows
+          broadcastService.broadcastUploadCommand({
+            command: 'cancel',
+            sessionId
+          });
         } catch (cancelError) {
           // If the cancel API fails, it probably means there was no actual upload
           // This is not an error - just log it and continue with cleanup
@@ -260,6 +267,12 @@ export function UploadProgressModal() {
       // to prevent race conditions with new session checks
       setIsUploading(false);
       setIsCancelling(false);
+      
+      // Broadcast the final state to all tabs/windows
+      broadcastService.broadcastUploadState({
+        isUploading: false,
+        sessionId: null
+      });
     }
   };
   
@@ -273,6 +286,13 @@ export function UploadProgressModal() {
     setIsCancelling(true);
     
     try {
+      // Get the current session ID for broadcast
+      const sessionId = localStorage.getItem('uploadSessionId');
+      
+      // Broadcast cancellation to all tabs
+      broadcastCancelUpload(sessionId || undefined);
+      console.log('🔊 Broadcasting cancel command to all tabs');
+      
       // Attempt to cancel the upload via API
       try {
         const result = await cancelUpload();
@@ -293,6 +313,12 @@ export function UploadProgressModal() {
       // Always force close the modal regardless of server response
       // This ensures the user can always cancel, even if server has issues
       forceCloseModal();
+      
+      // Broadcast the final state again to ensure all tabs are in sync
+      broadcastService.broadcastUploadState({
+        isUploading: false,
+        sessionId: null
+      });
     } catch (error) {
       console.error('Unhandled error during cancel process:', error);
       
@@ -304,6 +330,12 @@ export function UploadProgressModal() {
         localStorage.removeItem('uploadProgress');
         localStorage.removeItem('uploadSessionId');
         setIsUploading(false);
+        
+        // Even in this error case, try to broadcast the cancellation
+        broadcastService.broadcastUploadState({
+          isUploading: false,
+          sessionId: null
+        });
       } catch (e) {
         // Last resort - if even the fallback fails, just hide the modal directly
         setIsUploading(false);
