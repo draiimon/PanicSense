@@ -259,6 +259,8 @@ export async function uploadCSV(
   
   // Store the session ID in both localStorage (legacy) and database
   localStorage.setItem('uploadSessionId', sessionId);
+  // Also store that we're in an uploading state to persist across refreshes
+  localStorage.setItem('isUploading', 'true');
   
   // If onProgress callback is provided, check for any active upload sessions 
   // that might have been interrupted
@@ -328,6 +330,7 @@ export async function uploadCSV(
       // Only clear the session ID after we're sure all progress updates are received
       currentUploadSessionId = null;
       localStorage.removeItem('uploadSessionId');
+      localStorage.removeItem('isUploading');
     }, 5000);
   }
 }

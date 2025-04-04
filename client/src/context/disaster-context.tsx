@@ -128,12 +128,23 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkAndReconnectToActiveUploads = async () => {
       try {
-        // First check database for active uploads
+        // First check localStorage for upload state
+        const wasUploading = localStorage.getItem('isUploading') === 'true';
+        // Get stored progress
+        const storedProgress = localStorage.getItem('uploadProgress');
+        const sessionId = getCurrentUploadSessionId();
+        
+        // Next check database for active uploads
         const activeSessionId = await checkForActiveSessions();
         
+        // If we have an active database session, prioritize it
         if (activeSessionId) {
           console.log('Active upload session found in database:', activeSessionId);
-          setIsUploading(true);
+          
+          // Update UI state
+          if (!isUploading) {
+            setIsUploading(true);
+          }
           
           // Set up EventSource for progress updates
           const eventSource = new EventSource(`/api/upload-progress/${activeSessionId}`);
@@ -142,6 +153,11 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
             try {
               const progress = JSON.parse(event.data);
               setUploadProgress(progress);
+              
+              // Store progress in localStorage to recover in case of page refresh
+              localStorage.setItem('uploadProgress', JSON.stringify(progress));
+              localStorage.setItem('isUploading', 'true');
+              localStorage.setItem('uploadSessionId', activeSessionId);
               
               // If the upload is complete or has an error, close the connection
               if (progress.stage.toLowerCase().includes('complete') || 
@@ -190,91 +206,106 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         }
         
         // Fall back to localStorage check if no active uploads in database
-        const wasUploading = localStorage.getItem('isUploading') === 'true';
-        
-        if (wasUploading) {
-          // Get stored progress
-          const storedProgress = localStorage.getItem('uploadProgress');
-          
-          if (storedProgress) {
-            try {
-              const parsedProgress = JSON.parse(storedProgress);
-              setUploadProgress(parsedProgress);
-              setIsUploading(true);
+        if (wasUploading && storedProgress) {
+          try {
+            // Parse and use the stored progress
+            const parsedProgress = JSON.parse(storedProgress);
+            
+            // Update UI state
+            setUploadProgress(parsedProgress);
+            setIsUploading(true);
+            
+            // If we have a session ID, try to reconnect
+            if (sessionId) {
+              console.log('Reconnecting to upload session from localStorage:', sessionId);
               
-              // Check if there's an active session ID from localStorage
-              const sessionId = getCurrentUploadSessionId();
-              if (sessionId) {
-                console.log('Reconnecting to upload session from localStorage:', sessionId);
-                
-                // Set up EventSource for progress updates
-                const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
-                
-                eventSource.onmessage = (event) => {
-                  try {
-                    const progress = JSON.parse(event.data);
-                    setUploadProgress(progress);
+              // Set up EventSource for progress updates
+              const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
+              
+              eventSource.onmessage = (event) => {
+                try {
+                  const progress = JSON.parse(event.data);
+                  setUploadProgress(progress);
+                  
+                  // Save progress for possible page refresh
+                  localStorage.setItem('uploadProgress', JSON.stringify(progress));
+                  
+                  // If the upload is complete or has an error, close the connection
+                  if (progress.stage.toLowerCase().includes('complete') || 
+                      progress.stage.toLowerCase().includes('error') ||
+                      progress.stage.toLowerCase().includes('cancelled')) {
+                    // Removed console logs to reduce spam
+                    eventSource.close();
                     
-                    // If the upload is complete or has an error, close the connection
-                    if (progress.stage.toLowerCase().includes('complete') || 
-                        progress.stage.toLowerCase().includes('error') ||
+                    // If it completed successfully, refresh data to show new records
+                    if (progress.stage.toLowerCase().includes('complete')) {
+                      // Removed console log to reduce spam
+                      refreshData();
+                    }
+                    
+                    // Clear state on completion or error
+                    if (progress.stage.toLowerCase().includes('error') || 
                         progress.stage.toLowerCase().includes('cancelled')) {
-                      console.log('Upload status detected:', progress.stage);
-                      eventSource.close();
-                      
-                      // If it completed successfully, refresh data to show new records
-                      if (progress.stage.toLowerCase().includes('complete')) {
-                        console.log('Refreshing data after completion');
-                        refreshData();
-                      }
-                      
-                      // If there's an error or the upload was cancelled, close the modal immediately
-                      if (progress.stage.toLowerCase().includes('error') || 
-                          progress.stage.toLowerCase().includes('cancelled')) {
-                        console.log('Closing upload modal immediately due to error or cancellation');
-                        // Close immediately for errors and cancellations
+                      // Close immediately for errors and cancellations
+                      setIsUploading(false);
+                      // Clear the upload progress from localStorage
+                      localStorage.removeItem('isUploading');
+                      localStorage.removeItem('uploadProgress');
+                      localStorage.removeItem('uploadSessionId');
+                    } else {
+                      // For successful completion, close after a short delay
+                      // Force a close after 2 seconds no matter what
+                      setTimeout(() => {
+                        // Removed console log to reduce spam
                         setIsUploading(false);
                         // Clear the upload progress from localStorage
                         localStorage.removeItem('isUploading');
                         localStorage.removeItem('uploadProgress');
                         localStorage.removeItem('uploadSessionId');
-                      } else {
-                        // For successful completion, close after a short delay
-                        console.log('Scheduling modal close after successful completion');
-                        // Force a close after 2 seconds no matter what
-                        setTimeout(() => {
-                          console.log('Closing upload modal after completion delay');
-                          setIsUploading(false);
-                          // Clear the upload progress from localStorage
-                          localStorage.removeItem('isUploading');
-                          localStorage.removeItem('uploadProgress');
-                          localStorage.removeItem('uploadSessionId');
-                        }, 2000);
-                      }
+                      }, 2000);
                     }
-                  } catch (error) {
-                    console.error('Error parsing progress data:', error);
                   }
-                };
-                
-                // Handle connection closing
-                eventSource.onerror = () => {
-                  eventSource.close();
-                  setIsUploading(false);
-                };
-              } else {
-                // No active session found, reset the upload state
+                } catch (error) {
+                  // Silently handle this error to reduce console spam
+                }
+              };
+              
+              // Handle connection closing
+              eventSource.onerror = () => {
+                eventSource.close();
+                // Don't immediately close modal on error, as it might be temporary
+                // and we want to keep the progress visible
+                setTimeout(() => {
+                  // Only close if we're still showing the modal
+                  if (isUploading) {
+                    setIsUploading(false);
+                  }
+                }, 2000);
+              };
+            } else {
+              // No active session found, but we still have progress data
+              // Keep showing it for a moment
+              setTimeout(() => {
                 setIsUploading(false);
-              }
-            } catch (error) {
-              // Error silently handled - removed console.error
-              setIsUploading(false);
+                localStorage.removeItem('isUploading');
+                localStorage.removeItem('uploadProgress');
+              }, 2000);
             }
+          } catch (error) {
+            // Error silently handled - removed console.error
+            setIsUploading(false);
+            localStorage.removeItem('isUploading');
+            localStorage.removeItem('uploadProgress');
+            localStorage.removeItem('uploadSessionId');
           }
         }
       } catch (error) {
         // Error silently handled - removed console.error
         setIsUploading(false);
+        // Clean up any stale state
+        localStorage.removeItem('isUploading');
+        localStorage.removeItem('uploadProgress');
+        localStorage.removeItem('uploadSessionId');
       }
     };
     
