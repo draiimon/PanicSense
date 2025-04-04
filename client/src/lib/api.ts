@@ -151,7 +151,7 @@ export function getCurrentUploadSessionId(): string | null {
 }
 
 // Check if there are any active upload sessions in the database
-// Optimized version with anti-flickering protection
+// Optimized version with anti-flickering protection AND session preservation
 export async function checkForActiveSessions(): Promise<string | null> {
   try {
     // HARD ANTI-FLICKER APPROACH:
@@ -178,6 +178,11 @@ export async function checkForActiveSessions(): Promise<string | null> {
     
     // HIGHEST PRIORITY: Check localStorage first and TRUST it
     const cachedSessionId = localStorage.getItem('uploadSessionId');
+    
+    // If we have a session ID in localStorage, request server to keep it alive
+    if (cachedSessionId) {
+      console.log("📲 Adding preserveSessionId to request to keep session alive:", cachedSessionId);
+    }
     const isLocallyUploading = localStorage.getItem('isUploading') === 'true';
     
     // If localStorage says we're uploading, IMMEDIATELY show that state
@@ -207,7 +212,12 @@ export async function checkForActiveSessions(): Promise<string | null> {
     localStorage.setItem(cacheKey, now.toString());
     
     // Make the actual API request with cache control headers
-    const response = await apiRequest('GET', '/api/active-upload-session');
+    // If we have a cached session ID, pass it as a query parameter to preserve it
+    const url = cachedSessionId 
+      ? `/api/active-upload-session?preserveSessionId=${encodeURIComponent(cachedSessionId)}`
+      : '/api/active-upload-session';
+      
+    const response = await apiRequest('GET', url);
     if (response.ok) {
       const data = await response.json();
       if (data.sessionId) {

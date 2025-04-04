@@ -271,11 +271,13 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
         // No need to log every time - reduces console spam
         console.log('Active upload session confirmed by database:', activeSessionId);
         
-        // Always apply the database upload state
+        // Database tells us we're active, so resurrect localStorage state too
         setIsUploading(true);
+        localStorage.setItem('isUploading', 'true');
+        localStorage.setItem('uploadSessionId', activeSessionId);
         
-        // At this point, localStorage should already be populated with the session data
-        // from checkForActiveSessions, but let's validate it
+        // Create a minimal progress object if it doesn't exist yet
+        // This ensures we always have something to display
         const storedProgress = localStorage.getItem('uploadProgress');
         if (!storedProgress) {
           console.log('Database session active but no progress in localStorage, fetching data');
