@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState, useEffect } from "react";
+import React, { createContext, ReactNode, useContext, useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -164,15 +164,61 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
 
   // Get current location to detect route changes
   const [location] = useLocation();
+
+  // Prepare refresh function to use with data loading
+  const refreshDataRef = useRef<() => void>(() => {});
   
-  // Define refresh function before we use it in useEffects
-  const refreshData = () => {
-    if (refetchSentimentPosts && refetchDisasterEvents && refetchAnalyzedFiles) {
-      refetchSentimentPosts();
-      refetchDisasterEvents();
-      refetchAnalyzedFiles();
-    }
-  };
+  // Queries for data loading
+  const { 
+    data: sentimentPosts = [], 
+    isLoading: isLoadingSentimentPosts,
+    error: errorSentimentPosts,
+    refetch: refetchSentimentPosts
+  } = useQuery({ 
+    queryKey: ['/api/sentiment-posts'],
+    queryFn: () => getSentimentPosts(),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3 // Retry 3 times if failed
+  });
+
+  const { 
+    data: disasterEvents = [], 
+    isLoading: isLoadingDisasterEvents,
+    error: errorDisasterEvents,
+    refetch: refetchDisasterEvents
+  } = useQuery({ 
+    queryKey: ['/api/disaster-events'],
+    queryFn: () => getDisasterEvents(),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3 // Retry 3 times if failed
+  });
+
+  const { 
+    data: analyzedFiles = [], 
+    isLoading: isLoadingAnalyzedFiles,
+    error: errorAnalyzedFiles,
+    refetch: refetchAnalyzedFiles
+  } = useQuery({ 
+    queryKey: ['/api/analyzed-files'],
+    queryFn: () => getAnalyzedFiles(),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3 // Retry 3 times if failed
+  });
+  
+  // Update refresh function after queries are initialized
+  useEffect(() => {
+    // Define refresh function using the refetch functions from queries
+    refreshDataRef.current = () => {
+      if (refetchSentimentPosts && refetchDisasterEvents && refetchAnalyzedFiles) {
+        refetchSentimentPosts();
+        refetchDisasterEvents();
+        refetchAnalyzedFiles();
+      }
+    };
+  }, [refetchSentimentPosts, refetchDisasterEvents, refetchAnalyzedFiles]);
+  
+  // Helper function to access the refresh function
+  const refreshData = () => refreshDataRef.current();
 
   // Restore upload state on app load and check on every page navigation
   useEffect(() => {
@@ -352,10 +398,26 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
           return;
         }
         
-        // Fall back to localStorage check if no active uploads in database  
+        // Fall back to localStorage check if no active uploads in database
+        // But ONLY if there is local storage data (meaning we need to persist it)
         if (isUploadingFromStorage && storedProgress) {
+          // Check if the stored progress is fresh (less than 5 minutes old)
           try {
             const parsedProgress = JSON.parse(storedProgress);
+            const savedAt = parsedProgress.savedAt || 0;
+            const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+            
+            // If data is stale (more than 5 minutes old), we'll ignore it
+            if (savedAt < fiveMinutesAgo) {
+              console.log('Stored upload progress is stale, clearing local storage');
+              localStorage.removeItem('isUploading');
+              localStorage.removeItem('uploadProgress');
+              localStorage.removeItem('uploadSessionId');
+              return;
+            }
+            
+            console.log('Using localStorage data since database check returned no active sessions');
+            // We've already parsed the progress, so use it directly
             setUploadProgress(parsedProgress);
             setIsUploading(true);
             
@@ -641,42 +703,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Queries
-  const { 
-    data: sentimentPosts = [], 
-    isLoading: isLoadingSentimentPosts,
-    error: errorSentimentPosts,
-    refetch: refetchSentimentPosts
-  } = useQuery({ 
-    queryKey: ['/api/sentiment-posts'],
-    queryFn: () => getSentimentPosts(),
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    retry: 3 // Retry 3 times if failed
-  });
-
-  const { 
-    data: disasterEvents = [], 
-    isLoading: isLoadingDisasterEvents,
-    error: errorDisasterEvents,
-    refetch: refetchDisasterEvents
-  } = useQuery({ 
-    queryKey: ['/api/disaster-events'],
-    queryFn: () => getDisasterEvents(),
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    retry: 3 // Retry 3 times if failed
-  });
-
-  const { 
-    data: analyzedFiles = [], 
-    isLoading: isLoadingAnalyzedFiles,
-    error: errorAnalyzedFiles,
-    refetch: refetchAnalyzedFiles
-  } = useQuery({ 
-    queryKey: ['/api/analyzed-files'],
-    queryFn: () => getAnalyzedFiles(),
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    retry: 3 // Retry 3 times if failed
-  });
+  // This section has been moved after the refreshData function
 
   // Calculate stats with safety checks for array data
   const activeDiastersCount = Array.isArray(disasterEvents) ? disasterEvents.length : 0;
