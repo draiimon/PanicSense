@@ -154,34 +154,40 @@ export function getCurrentUploadSessionId(): string | null {
 // Optimized version with anti-flickering protection
 export async function checkForActiveSessions(): Promise<string | null> {
   try {
-    // IMPORTANT: Fetch active session from database - ALWAYS prioritize database over localStorage
+    // FIRST: Always check localStorage first - prioritize localStorage over database
+    // This ensures stability and prevents flickering
+    const cachedSessionId = localStorage.getItem('uploadSessionId');
+    const storedIsUploading = localStorage.getItem('isUploading') === 'true';
+    
+    if (cachedSessionId && storedIsUploading) {
+      console.log('🔥 Using localStorage session ID:', cachedSessionId);
+      return cachedSessionId;
+    }
+    
+    // Only check database if localStorage has no active session
+    // Use cache control to prevent too frequent database checks
     const cacheKey = 'lastDatabaseCheck';
     const lastCheckTime = parseInt(localStorage.getItem(cacheKey) || '0');
     const now = Date.now();
     
     // Rate limit database checks to prevent excessive API calls (5 second cooldown)
-    // This helps reduce server load and avoid flickering from constant database polling
     const minCheckInterval = 5000; // 5 seconds between checks
     
     if (now - lastCheckTime < minCheckInterval) {
-      // Return the stored session ID to avoid flickering during the cooldown period
-      const cachedSessionId = localStorage.getItem('uploadSessionId');
-      if (cachedSessionId && localStorage.getItem('isUploading') === 'true') {
-        return cachedSessionId;
-      }
+      // Skip database check during cooldown - stick with local data
+      return null;
     }
     
     // Update the last check time in localStorage
     localStorage.setItem(cacheKey, now.toString());
     
-    // Make the actual API request with cache control headers
-    const response = await apiRequest('GET', '/api/active-upload-session');
+    // Make the actual API request
+    const response = await fetch('/api/active-upload-session');
     if (response.ok) {
       const data = await response.json();
       if (data.sessionId) {
-        // Set the current session ID
-        currentUploadSessionId = data.sessionId;
-        // Update localStorage for compatibility
+        console.log('📊 Found database session ID:', data.sessionId);
+        // Update localStorage with database session info
         localStorage.setItem('uploadSessionId', data.sessionId);
         // Ensure isUploading flag is set in localStorage
         localStorage.setItem('isUploading', 'true');
