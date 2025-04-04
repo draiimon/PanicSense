@@ -740,6 +740,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/analyzed-files', async (req: Request, res: Response) => {
     try {
       const files = await storage.getAnalyzedFiles();
+      
+      // Update records count with actual count from database
+      for (const file of files) {
+        try {
+          // Count actual sentiment posts for each file
+          const sentimentPosts = await storage.getSentimentPostsByFileId(file.id);
+          const actualCount = sentimentPosts.length;
+          
+          // If actual count is different from stored count, update the record
+          if (actualCount > 0 && file.recordCount !== actualCount) {
+            console.log(`Updating file ${file.id} record count from ${file.recordCount} to ${actualCount}`);
+            
+            // Update the recordCount in database
+            await db.update(analyzedFiles)
+              .set({ recordCount: actualCount })
+              .where(eq(analyzedFiles.id, file.id));
+              
+            // Update in the response object
+            file.recordCount = actualCount;
+          }
+        } catch (countError) {
+          console.error(`Error counting records for file ${file.id}:`, countError);
+        }
+      }
+      
       res.json(files);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch analyzed files" });
@@ -1124,7 +1149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               insertAnalyzedFileSchema.parse({
                 originalName: originalFilename,
                 storedName: `batch-${nanoid()}-${originalFilename}`,
-                recordCount: 0, // Will update later
+                recordCount: filteredResults.length, // Initialize with first batch count
                 evaluationMetrics: null // Will update later
               })
             );
@@ -1200,26 +1225,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`All processing is complete. File ID: ${analyzedFileId}`);
       
       // Update file record with metrics
-      if (analyzedFileId && data.metrics) {
+      if (analyzedFileId) {
         try {
-          // Update the file metrics now that we have the complete data
-          await storage.updateFileMetrics(analyzedFileId, data.metrics);
-          console.log(`Updated file ${analyzedFileId} with evaluation metrics`);
+          // Update metrics if available
+          if (data.metrics) {
+            await storage.updateFileMetrics(analyzedFileId, data.metrics);
+            console.log(`Updated file ${analyzedFileId} with evaluation metrics`);
+          }
           
-          // Get current records count to update the file record
+          // Always update the final record count, regardless of metrics
           const posts = await storage.getSentimentPostsByFileId(analyzedFileId);
+          const actualCount = posts.length;
           
-          // Update record count
-          await db.update(analyzedFiles)
-            .set({ recordCount: posts.length })
-            .where(eq(analyzedFiles.id, analyzedFileId));
-            
-          console.log(`Updated file ${analyzedFileId} with final record count: ${posts.length}`);
+          // Only update if we have records
+          if (actualCount > 0) {
+            // Update record count
+            await db.update(analyzedFiles)
+              .set({ recordCount: actualCount })
+              .where(eq(analyzedFiles.id, analyzedFileId));
+              
+            console.log(`Updated file ${analyzedFileId} with final record count: ${actualCount}`);
+          } else {
+            console.log(`No records found for file ${analyzedFileId}, keeping existing count.`);
+          }
         } catch (error) {
-          console.error(`Error updating file ${analyzedFileId} with metrics:`, error);
+          console.error(`Error updating file ${analyzedFileId}:`, error);
         }
       } else {
-        console.log(`No file ID or metrics available to update.`);
+        console.log(`No file ID available to update.`);
       }
 
       // Final progress update

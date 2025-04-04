@@ -354,12 +354,22 @@ export class DatabaseStorage implements IStorage {
       console.log(`Deleting all sentiment posts for file ID ${id}`);
       await this.deleteSentimentPostsByFileId(id);
       
+      // Then delete any upload sessions that reference this file
+      try {
+        console.log(`Deleting upload sessions for file ID ${id}`);
+        await db.delete(uploadSessions)
+          .where(eq(uploadSessions.fileId, id));
+      } catch (uploadSessionError) {
+        console.error(`Error deleting upload sessions for file ID ${id}:`, uploadSessionError);
+        // Continue with the file deletion anyway
+      }
+      
       // Then delete the analyzed file record
       console.log(`Deleting analyzed file with ID ${id}`);
       await db.delete(analyzedFiles)
         .where(eq(analyzedFiles.id, id));
         
-      console.log(`Successfully deleted file ID ${id} and all related posts`);
+      console.log(`Successfully deleted file ID ${id} and all related posts and sessions`);
     } catch (error) {
       console.error(`Error in cascading delete of file ID ${id}:`, error);
       throw error; // Re-throw the error to be handled by the caller
