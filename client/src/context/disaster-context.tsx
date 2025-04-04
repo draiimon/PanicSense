@@ -109,10 +109,26 @@ const initialProgress: UploadProgress = {
 };
 
 export function DisasterContextProvider({ children }: { children: ReactNode }) {
-  // State
+  // Check localStorage for existing upload state
+  const storedIsUploading = localStorage.getItem('isUploading') === 'true';
+  const storedProgress = localStorage.getItem('uploadProgress');
+  let initialUploadState = storedIsUploading;
+  let initialProgressState = initialProgress;
+  
+  // If we have stored progress, parse it
+  if (storedProgress) {
+    try {
+      const parsedProgress = JSON.parse(storedProgress);
+      initialProgressState = parsedProgress;
+    } catch (error) {
+      console.error('Failed to parse stored upload progress', error);
+    }
+  }
+  
+  // State 
   const [selectedDisasterType, setSelectedDisasterType] = useState<string>("All");
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress>(initialProgress);
+  const [isUploading, setIsUploading] = useState<boolean>(initialUploadState);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>(initialProgressState);
 
   // Get toast for notifications
   const { toast } = useToast();

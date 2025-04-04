@@ -65,6 +65,10 @@ export function UploadProgressModal() {
   // Convert stage to lowercase once for all checks
   const stageLower = stage.toLowerCase();
   
+  // Check if we're in the initializing phase
+  const isInitializing = rawProcessed === 0 || stageLower.includes('initializing') || 
+                        stageLower.includes('starting') || stageLower.includes('preparing');
+  
   // Keep original server values for display
   const processedCount = rawProcessed;
   
@@ -148,51 +152,79 @@ export function UploadProgressModal() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <div className="flex items-center justify-center">
-              <motion.div 
-                className="relative text-center"
-                key={processedCount}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, type: "spring" }}
-              >
-                <div className="flex items-center justify-center">
-                  <span className="text-6xl font-bold text-white drop-shadow-sm">{processedCount}</span>
-                  <div className="flex flex-col items-start ml-2">
-                    <span className="text-xs text-white/70 uppercase tracking-wider">of</span>
-                    <span className="text-2xl font-bold text-white/90">{total}</span>
+            {isInitializing ? (
+              <div className="py-5 flex flex-col items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-white mb-3" />
+                <span className="text-lg font-medium text-white">Preparing Upload...</span>
+                <span className="text-sm text-white/70 mt-1">Initializing processing service</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center">
+                <motion.div 
+                  className="relative text-center"
+                  key={processedCount}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, type: "spring" }}
+                >
+                  <div className="flex items-center justify-center">
+                    <span className="text-6xl font-bold text-white drop-shadow-sm">{processedCount}</span>
+                    <div className="flex flex-col items-start ml-2">
+                      <span className="text-xs text-white/70 uppercase tracking-wider">of</span>
+                      <span className="text-2xl font-bold text-white/90">{total}</span>
+                    </div>
                   </div>
-                </div>
-                <span className="text-sm mt-1 block text-white/80 font-medium uppercase tracking-wider">Records Processed</span>
-              </motion.div>
-            </div>
+                  <span className="text-sm mt-1 block text-white/80 font-medium uppercase tracking-wider">Records Processed</span>
+                </motion.div>
+              </div>
+            )}
             
             {/* Progress bar */}
             <div className="w-full mt-4 mb-1">
               <div className="h-2 bg-black/10 rounded-full overflow-hidden relative">
-                <motion.div
-                  className={`absolute top-0 left-0 h-full ${
-                    hasError 
-                      ? 'bg-red-500' 
-                      : isComplete 
-                        ? 'bg-green-500' 
-                        : 'bg-gradient-to-r from-blue-400 to-purple-500'
-                  }`}
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${percentComplete}%` }}
-                  transition={{ duration: 0.5 }}
-                  style={{ 
-                    backgroundSize: '200% 100%',
-                    animation: isProcessing && !isComplete && !hasError 
-                      ? 'gradientShift 2s linear infinite'
-                      : 'none'
-                  }}
-                />
+                {isInitializing ? (
+                  <motion.div
+                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500"
+                    initial={{ width: "0%" }}
+                    animate={{ width: "100%" }}
+                    transition={{ 
+                      duration: 1.5, 
+                      repeat: Infinity, 
+                      repeatType: "reverse",
+                      ease: "easeInOut"
+                    }}
+                    style={{ 
+                      backgroundSize: '200% 100%',
+                      animation: 'gradientShift 2s linear infinite'
+                    }}
+                  />
+                ) : (
+                  <motion.div
+                    className={`absolute top-0 left-0 h-full ${
+                      hasError 
+                        ? 'bg-red-500' 
+                        : isComplete 
+                          ? 'bg-green-500' 
+                          : 'bg-gradient-to-r from-blue-400 to-purple-500'
+                    }`}
+                    initial={{ width: "0%" }}
+                    animate={{ width: `${percentComplete}%` }}
+                    transition={{ duration: 0.5 }}
+                    style={{ 
+                      backgroundSize: '200% 100%',
+                      animation: isProcessing && !isComplete && !hasError 
+                        ? 'gradientShift 2s linear infinite'
+                        : 'none'
+                    }}
+                  />
+                )}
               </div>
               <div className="flex justify-between text-xs mt-1">
-                <span className="text-white/70">{Math.floor(percentComplete)}%</span>
                 <span className="text-white/70">
-                  {currentSpeed > 0 ? `${currentSpeed.toFixed(1)} records/sec` : ''}
+                  {isInitializing ? 'Initializing...' : `${Math.floor(percentComplete)}%`}
+                </span>
+                <span className="text-white/70">
+                  {!isInitializing && currentSpeed > 0 ? `${currentSpeed.toFixed(1)} records/sec` : ''}
                 </span>
               </div>
             </div>
@@ -235,8 +267,34 @@ export function UploadProgressModal() {
               </div>
             </div>
 
-            {/* Processing stats */}
-            {isProcessing && !hasError && (
+            {/* Processing stats - show either initializing or processing stats */}
+            {isInitializing ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Database className="h-3.5 w-3.5 text-indigo-500" />
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Status</span>
+                    </div>
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                      Preparing
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Terminal className="h-3.5 w-3.5 text-purple-500" />
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">System</span>
+                    </div>
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                      Starting
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (isProcessing && !hasError && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700">
                   <div className="flex flex-col">
@@ -262,7 +320,7 @@ export function UploadProgressModal() {
                   </div>
                 </div>
               </div>
-            )}
+            ))}
             
             {/* Processing stages */}
             {!hasError && (
