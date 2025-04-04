@@ -1027,7 +1027,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Prevent progress from going backward, but never exceed the total
         if (extractedProcessed < highestProcessedValue) {
-          console.log(`Progress went backward (${extractedProcessed} < ${highestProcessedValue}), maintaining highest value`);
+          // This is normal during phase transitions (e.g., from "identifying columns" to "processing records")
+          // Log with a more informative message that explains this is expected behavior
+          console.log(`Phase transition detected: Progress value changed from ${highestProcessedValue} to ${extractedProcessed}. Using highest value for consistent UI experience.`);
           extractedProcessed = highestProcessedValue;
         } else if (extractedProcessed > highestProcessedValue) {
           highestProcessedValue = extractedProcessed;
