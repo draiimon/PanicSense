@@ -20,9 +20,6 @@ export function UploadProgressModal() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isStalled, setIsStalled] = useState(false);
   
-  // Fixed approach for animation with proper conditions
-  const breathingOffset = { scale: 1 };
-
   // Effect to track the highest processed value
   useEffect(() => {
     if (uploadProgress.processed > 0 && uploadProgress.processed > highestProcessed) {
@@ -30,10 +27,9 @@ export function UploadProgressModal() {
     }
   }, [uploadProgress.processed, highestProcessed]);
 
-  // Reset highest processed value when modal is closed plus smoother transitions
+  // Reset highest processed value when modal is closed
   useEffect(() => {
     if (!isUploading) {
-      // Add a small delay to prevent any jump/flash effect during state transitions 
       const timer = setTimeout(() => {
         setHighestProcessed(0);
       }, 300);
@@ -165,7 +161,7 @@ export function UploadProgressModal() {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ 
                 opacity: 1, 
-                scale: isProcessing ? breathingOffset.scale : 1,
+                scale: 1,
                 transition: { duration: 0.5 }
               }}
               className="flex flex-col items-center"
