@@ -236,11 +236,19 @@ export async function uploadCSV(
 }> {
   // Create a session ID for progress tracking
   const sessionId = crypto.randomUUID();
+  // Store the session ID both in memory and localStorage
+  currentUploadSessionId = sessionId;
+  localStorage.setItem('uploadSessionId', sessionId);
+  
   const formData = new FormData();
   formData.append('file', file);
   
+  // Create an abort controller for the fetch request
+  currentUploadController = new AbortController();
+  
   // Set up EventSource for progress updates
   const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
+  currentEventSource = eventSource; // Store the reference for cancel functionality
   
   // Handle progress updates
   eventSource.onmessage = (event) => {
@@ -248,10 +256,32 @@ export async function uploadCSV(
       try {
         const progress = JSON.parse(event.data) as UploadProgress;
         onProgress(progress);
+        
+        // Check for completion or errors to clean up resources
+        if (progress.stage && 
+            (progress.stage.toLowerCase().includes('complete') ||
+             progress.stage.toLowerCase().includes('error') ||
+             progress.stage.toLowerCase().includes('cancelled'))) {
+          
+          // Close the event source after receiving completion status
+          console.log('Upload status updated to:', progress.stage);
+          setTimeout(() => {
+            if (currentEventSource === eventSource) {
+              currentEventSource.close();
+              currentEventSource = null;
+            }
+          }, 1000);
+        }
       } catch (error) {
         console.error('Error parsing progress data:', error);
       }
     }
+  };
+  
+  // Handle EventSource errors
+  eventSource.onerror = (error) => {
+    console.error('EventSource error:', error);
+    // Don't close the event source on errors as it might reconnect automatically
   };
 
   try {
@@ -262,7 +292,8 @@ export async function uploadCSV(
         'X-Session-ID': sessionId
       },
       body: formData,
-      credentials: 'include'
+      credentials: 'include',
+      signal: currentUploadController.signal // Add abort controller signal
     });
 
     if (!response.ok) {
@@ -272,11 +303,20 @@ export async function uploadCSV(
 
     return response.json();
   } catch (error) {
+    // Check if this is an abort error
+    if (error.name === 'AbortError') {
+      console.log('Upload was cancelled');
+      throw new Error('Upload cancelled by user');
+    }
     throw error;
   } finally {
     // Close the event source after a short delay
+    // Don't reset the currentUploadSessionId here as it might be needed for cancellation
     setTimeout(() => {
-      eventSource.close();
+      if (currentEventSource === eventSource) {
+        currentEventSource.close();
+        currentEventSource = null;
+      }
     }, 2000);
   }
 }
