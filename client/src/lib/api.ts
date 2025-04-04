@@ -169,7 +169,7 @@ export async function checkForActiveSessions(): Promise<string | null> {
       
       // Check if this is a stale cleared session notification
       if (data.staleSessionCleared) {
-        console.log('A stale upload session was automatically cleared by the server');
+        // Removed console log to prevent console spam
         localStorage.removeItem('uploadSessionId');
         currentUploadSessionId = null;
         return null;
@@ -188,12 +188,10 @@ export async function checkForActiveSessions(): Promise<string | null> {
         // Update localStorage for compatibility
         localStorage.setItem('uploadSessionId', data.sessionId);
         
-        console.log(`Restored active upload session ${data.sessionId} from database`);
+        // Removed console log to prevent console spam
         
         // If we have progress data, use it immediately
-        if (data.progress) {
-          console.log('Server provided initial progress state:', data.progress);
-        }
+        // Removed console log to prevent console spam
         
         return data.sessionId;
       }
@@ -269,7 +267,7 @@ export async function uploadCSV(
       // Attempt to restore any active session from previous runs
       const activeSessionId = await checkForActiveSessions();
       if (activeSessionId) {
-        console.log(`Detected active upload session: ${activeSessionId}. Using existing session.`);
+        // Removed console log to prevent console spam
         // If there's an active session in the database, use that instead
         currentUploadSessionId = activeSessionId;
       }
@@ -285,10 +283,10 @@ export async function uploadCSV(
   eventSource.onmessage = (event) => {
     try {
       const progress = JSON.parse(event.data) as UploadProgress;
-      console.log('Progress event received:', progress);
+      // Removed console log to prevent console spam
 
       if (onProgress) {
-        console.log('Progress being sent to UI:', progress);
+        // Removed console log to prevent console spam
         onProgress(progress);
       }
     } catch (error) {
@@ -322,7 +320,7 @@ export async function uploadCSV(
     // Don't immediately close the event source - keep it open for 5 seconds
     // so it can receive final completion messages from the server
     setTimeout(() => {
-      console.log('Closing EventSource connection after delay');
+      // Removed console log to prevent console spam
       if (currentEventSource) {
         currentEventSource.close();
         currentEventSource = null;
@@ -444,12 +442,12 @@ export async function submitSentimentFeedback(
     
     // Get response as text first
     const textResponse = await response.text();
-    console.log('Raw response from server:', textResponse);
+    // Removed console log to prevent console spam
     
     // Then try to parse as JSON
     try {
       const jsonResponse = JSON.parse(textResponse);
-      console.log('Successfully parsed sentiment feedback response:', jsonResponse);
+      // Removed console log to prevent console spam
       return jsonResponse;
     } catch (parseError) {
       console.error("Failed to parse JSON response:", parseError, "Raw text:", textResponse);

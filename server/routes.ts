@@ -710,7 +710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If the session is too old, mark it as stale
         if (createdAt && createdAt < thirtyMinutesAgo) {
           // Using debug level instead of log to reduce console spam
-          console.debug(`Found stale upload session ${activeSession.sessionId}, marking as completed`);
+          // Removed console log to prevent console spam
           
           // Update to completed status with retry
           await withRetry(async () => {
@@ -731,7 +731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (!isProcessRunning) {
           // Using debug level instead of log to reduce console spam
-          console.debug(`No active Python process for session ${activeSession.sessionId}, marking as completed`);
+          // Removed console log to prevent console spam
           
           // Update to completed status with retry
           await withRetry(async () => {
