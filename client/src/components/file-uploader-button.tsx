@@ -252,7 +252,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
   const handleButtonClick = (e: React.MouseEvent) => {
     if (isUploading || isCheckingForUploads || uploadBlocked) {
       e.preventDefault();
-      e.stopPropagation(); // Ensure the event doesn't propagate
       
       if (uploadBlocked && uploadBlockReason) {
         toast({
@@ -267,9 +266,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           variant: 'destructive',
         });
       }
-    } else if (fileInputRef.current) {
-      // Directly trigger the file input click event
-      fileInputRef.current.click();
     }
   };
 
@@ -279,7 +275,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <motion.div
+          <motion.label
             whileHover={{ scale: isButtonDisabled ? 1 : 1.03 }}
             whileTap={{ scale: isButtonDisabled ? 1 : 0.97 }}
             className={`
@@ -331,7 +327,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
                 onChange={handleFileUpload}
               />
             )}
-          </motion.div>
+          </motion.label>
         </TooltipTrigger>
         <TooltipContent>
           {isCheckingForUploads 
