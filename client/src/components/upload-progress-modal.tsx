@@ -110,20 +110,25 @@ export function UploadProgressModal() {
     error = ''
   } = uploadProgress;
   
-  // SIMPLIFIED STAGE DETECTION LOGIC
+  // ENHANCED STAGE DETECTION LOGIC
   // Convert stage to lowercase once for all checks
   const stageLower = stage.toLowerCase();
   
-  // Check if we're in the initializing phase
+  // IMPROVED: Check if we're in the initializing phase with stronger prioritization
   // Include the initial loading state when application is started or refreshed
   // and restoring an in-progress upload
-  const isInitializing = rawProcessed === 0 || 
+  // Force initialization display until proper processing starts
+  const isInitializing = (rawProcessed === 0) || 
                         stageLower.includes('initializing') || 
                         stageLower.includes('loading csv file') ||
                         stageLower.includes('file loaded') ||
                         stageLower.includes('identifying columns') || 
                         stageLower.includes('identified data columns') ||
-                        stageLower.includes('preparing');
+                        stageLower.includes('preparing') ||
+                        stageLower.includes('starting');
+                        
+  // IMPROVED: Make initialization a higher priority state
+  // This ensures the initialization UI is always shown during the early phases
   
   // Keep original server values for display
   const processedCount = rawProcessed;
@@ -228,8 +233,13 @@ export function UploadProgressModal() {
             {isInitializing ? (
               <div className="py-5 flex flex-col items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin text-white mb-3" />
-                <span className="text-lg font-medium text-white">Preparing Upload...</span>
-                <span className="text-sm text-white/70 mt-1">Initializing processing service</span>
+                <span className="text-lg font-medium text-white">Preparing Your Dataset...</span>
+                <span className="text-sm text-white/70 mt-1">Setting up the processing system</span>
+                <span className="text-xs text-white/60 mt-1 max-w-[220px] text-center">
+                  {stage.includes('Starting') ? 'Counting records and analyzing structure...' : 
+                   stage.includes('column') ? 'Identifying data structure and columns...' : 
+                   'Loading data and preparing for analysis...'}
+                </span>
               </div>
             ) : (
               <div className="flex items-center justify-center">
@@ -350,7 +360,8 @@ export function UploadProgressModal() {
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Status</span>
                     </div>
                     <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                      Preparing
+                      {stage.includes('column') ? 'Data Analysis' : 
+                      stage.includes('starting') || stage.includes('Starting') ? 'Counting Records' : 'File Loading'}
                     </span>
                   </div>
                 </div>
@@ -362,7 +373,8 @@ export function UploadProgressModal() {
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">System</span>
                     </div>
                     <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                      Starting
+                      {stage.includes('Starting') || stage.includes('starting') ? 'Initializing' : 
+                       stage.includes('column') ? 'Analyzing CSV' : 'Setting Up'}
                     </span>
                   </div>
                 </div>
