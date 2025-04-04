@@ -304,39 +304,70 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                 // Create a message handler function that we can reuse
                 const handleMessage = (event: MessageEvent) => {
                   try {
+                    // Make sure we have valid JSON data
+                    if (!event.data) {
+                      console.log('Empty data received from EventSource');
+                      return;
+                    }
+                    
+                    // Parse the progress data
                     const progress = JSON.parse(event.data);
+                    
+                    // Validate that we have a valid progress object
+                    if (!progress || typeof progress !== 'object') {
+                      console.log('Invalid progress data received:', progress);
+                      return;
+                    }
+                    
+                    // Update UI with progress
                     setUploadProgress(progress);
                     
                     // Store the latest progress in localStorage for reconnection
                     localStorage.setItem('uploadProgress', JSON.stringify(progress));
                     
+                    // Check for completion states in the stage message
+                    const stageLower = progress.stage?.toLowerCase() || '';
+                    const isComplete = stageLower.includes('complete');
+                    const isError = stageLower.includes('error');
+                    const isCancelled = stageLower.includes('cancelled');
+                    
                     // If the upload is complete or has an error, close the connection
-                    if (progress.stage.toLowerCase().includes('complete') || 
-                        progress.stage.toLowerCase().includes('error') ||
-                        progress.stage.toLowerCase().includes('cancelled')) {
+                    if (isComplete || isError || isCancelled) {
+                      
+                      // Log completion state for debugging
+                      console.log(`Upload ${isComplete ? 'completed' : isError ? 'failed with error' : 'was cancelled'}`);
                       
                       // Check if eventSource still exists before closing
                       if (window._activeEventSources?.[sessionId]) {
-                        window._activeEventSources[sessionId].close();
-                        if (window._activeEventSources) {
-                          delete window._activeEventSources[sessionId];
+                        try {
+                          window._activeEventSources[sessionId].close();
+                          if (window._activeEventSources) {
+                            delete window._activeEventSources[sessionId];
+                          }
+                        } catch (e) {
+                          console.error('Error closing EventSource:', e);
                         }
                       }
                       
                       // If it completed successfully, refresh data to show new records
-                      if (progress.stage.toLowerCase().includes('complete')) {
+                      if (isComplete) {
                         refreshData();
                       }
                       
                       // If there's an error or the upload was cancelled, close the modal immediately
-                      if (progress.stage.toLowerCase().includes('error') || 
-                          progress.stage.toLowerCase().includes('cancelled')) {
+                      if (isError || isCancelled) {
                         // Close immediately for errors and cancellations
                         setIsUploading(false);
                         // Clear the upload progress from localStorage
                         localStorage.removeItem('isUploading');
                         localStorage.removeItem('uploadProgress');
                         localStorage.removeItem('uploadSessionId');
+                        
+                        // Show a toast or alert to inform the user
+                        if (isError) {
+                          // We could add a toast notification here
+                          console.error('Upload failed with error:', progress.stage);
+                        }
                       } else {
                         // For successful completion, close after a short delay
                         setTimeout(() => {
@@ -357,45 +388,81 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                 const handleError = (event: Event) => {
                   console.log('EventSource error, attempting to reconnect...');
                   
+                  // Store error occurrence timestamp
+                  const errorTime = new Date();
+                  
                   // Don't immediately close and end the upload - give it a chance to recover
                   // We'll use a timeout to check if we can reconnect
                   setTimeout(() => {
-                    // Make sure we have the global tracking object
-                    if (!window._activeEventSources) {
-                      window._activeEventSources = {};
-                    }
-                    
-                    // Get the current EventSource
-                    const currentSource = window._activeEventSources?.[sessionId];
-                    if (!currentSource) {
-                      // If we no longer have an EventSource, create a new one
-                      createNewEventSource();
-                      return;
-                    }
-                    
-                    // If the connection is in a CLOSED state, try to reopen it
-                    if (currentSource.readyState === EventSource.CLOSED) {
-                      console.log('EventSource connection closed, reconnecting...');
-                      createNewEventSource();
-                    } else if (currentSource.readyState === EventSource.OPEN) {
-                      // If it's already reconnected, do nothing
-                      console.log('EventSource connection recovered');
-                    } else {
-                      // Try a final reconnect
-                      createNewEventSource();
+                    try {
+                      // Make sure we have the global tracking object
+                      if (!window._activeEventSources) {
+                        window._activeEventSources = {};
+                      }
                       
-                      // Set a timeout to check if the reconnection worked
-                      setTimeout(() => {
-                        const source = window._activeEventSources?.[sessionId];
-                        if (!source || source.readyState !== EventSource.OPEN) {
-                          console.log('EventSource failed to reconnect, closing upload modal');
-                          if (source) source.close();
-                          if (window._activeEventSources) {
-                            delete window._activeEventSources[sessionId];
+                      // Get the current EventSource
+                      const currentSource = window._activeEventSources?.[sessionId];
+                      if (!currentSource) {
+                        // If we no longer have an EventSource, create a new one
+                        console.log('No active EventSource found, creating new one');
+                        createNewEventSource();
+                        return;
+                      }
+                      
+                      // If the connection is in a CLOSED state, try to reopen it
+                      if (currentSource.readyState === EventSource.CLOSED) {
+                        console.log('EventSource connection closed, reconnecting...');
+                        createNewEventSource();
+                      } else if (currentSource.readyState === EventSource.OPEN) {
+                        // If it's already reconnected, do nothing
+                        console.log('EventSource connection recovered on its own');
+                      } else {
+                        // Try a final reconnect
+                        console.log('EventSource in connecting state, trying a fresh connection');
+                        createNewEventSource();
+                        
+                        // Set a timeout to check if the reconnection worked
+                        setTimeout(() => {
+                          try {
+                            const source = window._activeEventSources?.[sessionId];
+                            if (!source || source.readyState !== EventSource.OPEN) {
+                              console.log('EventSource failed to reconnect after multiple attempts, closing upload modal');
+                              if (source) {
+                                try {
+                                  source.close();
+                                } catch (closeError) {
+                                  console.error('Error closing EventSource:', closeError);
+                                }
+                              }
+                              
+                              // Clean up the reference
+                              if (window._activeEventSources) {
+                                delete window._activeEventSources[sessionId];
+                              }
+                              
+                              // Show error to user and reset upload state
+                              setIsUploading(false);
+                              
+                              // Clear stored upload data
+                              localStorage.removeItem('isUploading');
+                              localStorage.removeItem('uploadProgress');
+                              localStorage.removeItem('uploadSessionId');
+                              
+                              // We could show a toast notification here about connection issues
+                            } else {
+                              console.log('EventSource reconnected successfully');
+                            }
+                          } catch (innerError) {
+                            console.error('Error during reconnection check:', innerError);
+                            // Failsafe: reset upload state
+                            setIsUploading(false);
                           }
-                          setIsUploading(false);
-                        }
-                      }, 3000); // Give it 3 more seconds to connect
+                        }, 5000); // Give it 5 seconds to connect
+                      }
+                    } catch (outerError) {
+                      console.error('Error in EventSource reconnection logic:', outerError);
+                      // Failsafe: reset upload state on any error in the reconnection logic
+                      setIsUploading(false);
                     }
                   }, 2000);  // Give it 2 seconds before first reconnect attempt
                 };

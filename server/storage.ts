@@ -349,9 +349,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAnalyzedFile(id: number): Promise<void> {
-    await this.deleteSentimentPostsByFileId(id);
-    await db.delete(analyzedFiles)
-      .where(eq(analyzedFiles.id, id));
+    try {
+      // First delete all the sentiment posts that belong to this file
+      console.log(`Deleting all sentiment posts for file ID ${id}`);
+      await this.deleteSentimentPostsByFileId(id);
+      
+      // Then delete the analyzed file record
+      console.log(`Deleting analyzed file with ID ${id}`);
+      await db.delete(analyzedFiles)
+        .where(eq(analyzedFiles.id, id));
+        
+      console.log(`Successfully deleted file ID ${id} and all related posts`);
+    } catch (error) {
+      console.error(`Error in cascading delete of file ID ${id}:`, error);
+      throw error; // Re-throw the error to be handled by the caller
+    }
   }
   async updateFileMetrics(fileId: number, metrics: any): Promise<void> {
     await db.update(analyzedFiles)

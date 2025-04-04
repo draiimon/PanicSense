@@ -157,11 +157,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/upload-progress/:sessionId', async (req: Request, res: Response) => {
     const sessionId = req.params.sessionId;
 
+    // Set proper SSE headers
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive'
     });
+
+    // Disable timeout on the socket to prevent premature connection close
+    req.socket.setTimeout(0);
 
     // Check if there's a stored session in the database
     let storedSession;
@@ -206,80 +210,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         };
         
-    res.write(`data: ${JSON.stringify(initialProgress)}\n\n`);
+    // Send initial progress to ensure the connection is working
+    try {
+      res.write(`data: ${JSON.stringify(initialProgress)}\n\n`);
+    } catch (error) {
+      console.error(`Error writing initial progress for session ${sessionId}:`, error);
+      return res.end();
+    }
 
+    // Create a robust progress sender function
     const sendProgress = async () => {
-      const progress = uploadProgressMap.get(sessionId);
-      if (progress) {
-        // Calculate real-time metrics
-        const now = Date.now();
-        const elapsed = (now - progress.timestamp) / 1000; // seconds
-
-        if (elapsed > 0) {
-          progress.currentSpeed = progress.processed / elapsed;
-          progress.timeRemaining = progress.currentSpeed > 0 
-            ? (progress.total - progress.processed) / progress.currentSpeed 
-            : 0;
+      try {
+        // Check if client has disconnected
+        if (res.writableEnded || req.aborted) {
+          return false; // Signal to stop the interval
         }
+        
+        const progress = uploadProgressMap.get(sessionId);
+        if (progress) {
+          // Calculate real-time metrics
+          const now = Date.now();
+          const elapsed = (now - progress.timestamp) / 1000; // seconds
 
-        // Create enhanced progress object
-        const enhancedProgress = {
-          processed: progress.processed,
-          total: progress.total || 100,
-          stage: progress.stage || "Processing...",
-          batchNumber: progress.batchNumber,
-          totalBatches: progress.totalBatches,
-          batchProgress: progress.batchProgress,
-          currentSpeed: Math.round(progress.currentSpeed * 100) / 100,
-          timeRemaining: Math.round(progress.timeRemaining),
-          processingStats: progress.processingStats,
-          error: progress.error
-        };
+          if (elapsed > 0) {
+            progress.currentSpeed = progress.processed / elapsed;
+            progress.timeRemaining = progress.currentSpeed > 0 
+              ? (progress.total - progress.processed) / progress.currentSpeed 
+              : 0;
+          }
 
-        // Try to update the database record
-        try {
-          let status = 'active';
-          if (progress.error) {
-            status = 'error';
-          } else if (progress.stage === 'Completed') {
-            status = 'complete';
-          } else if (progress.stage === 'Upload cancelled by user') {
-            status = 'canceled';
+          // Create enhanced progress object
+          const enhancedProgress = {
+            processed: progress.processed,
+            total: progress.total || 100,
+            stage: progress.stage || "Processing...",
+            batchNumber: progress.batchNumber || 0,
+            totalBatches: progress.totalBatches || progress.total || 100,
+            batchProgress: progress.batchProgress || 0,
+            currentSpeed: Math.round(progress.currentSpeed * 100) / 100 || 0,
+            timeRemaining: Math.round(progress.timeRemaining) || 0,
+            processingStats: progress.processingStats || {
+              successCount: progress.processed || 0,
+              errorCount: 0,
+              averageSpeed: 0
+            },
+            error: progress.error,
+            timestamp: now // Add timestamp for client-side calculations
+          };
+
+          // Try to update the database record
+          try {
+            let status = 'active';
+            if (progress.error) {
+              status = 'error';
+            } else if (progress.stage && progress.stage.toLowerCase().includes('complete')) {
+              status = 'complete';
+            } else if (progress.stage && progress.stage.toLowerCase().includes('cancel')) {
+              status = 'canceled';
+            }
+            
+            // Check if the session exists in the database
+            const existingSession = await storage.getUploadSession(sessionId);
+            
+            if (existingSession) {
+              // Update existing session
+              await storage.updateUploadSession(sessionId, status, enhancedProgress);
+            } else {
+              // Create new session
+              await storage.createUploadSession({
+                sessionId,
+                status,
+                progress: enhancedProgress,
+                fileId: null,
+                userId: null
+              });
+            }
+          } catch (dbError) {
+            console.error(`Error updating progress in database for session ${sessionId}:`, dbError);
+            // Continue anyway - database errors shouldn't affect the client experience
           }
-          
-          // Check if the session exists in the database
-          const existingSession = await storage.getUploadSession(sessionId);
-          
-          if (existingSession) {
-            // Update existing session
-            await storage.updateUploadSession(sessionId, status, enhancedProgress);
-          } else {
-            // Create new session
-            await storage.createUploadSession({
-              sessionId,
-              status,
-              progress: enhancedProgress,
-              fileId: null,
-              userId: null
-            });
+
+          // Send to browser with error handling
+          try {
+            res.write(`data: ${JSON.stringify(enhancedProgress)}\n\n`);
+          } catch (writeError) {
+            console.error(`Error sending progress update for session ${sessionId}:`, writeError);
+            return false; // Signal to stop the interval
           }
-        } catch (error) {
-          console.error('Error updating upload progress in database:', error);
+        } else {
+          // Send a heartbeat to keep the connection alive
+          try {
+            res.write(`data: ${JSON.stringify({ heartbeat: true, timestamp: Date.now() })}\n\n`);
+          } catch (heartbeatError) {
+            console.error(`Error sending heartbeat for session ${sessionId}:`, heartbeatError);
+            return false; // Signal to stop the interval
+          }
         }
-
-        // Send to browser
-        res.write(`data: ${JSON.stringify(enhancedProgress)}\n\n`);
+        
+        return true; // Signal that everything is OK
+      } catch (error) {
+        console.error(`Unhandled error in progress updater for session ${sessionId}:`, error);
+        return false; // Signal to stop the interval
       }
     };
 
     // Send progress immediately and then set interval
-    await sendProgress();
-    const progressInterval = setInterval(sendProgress, 100);
+    if (await sendProgress()) {
+      const progressInterval = setInterval(async () => {
+        const shouldContinue = await sendProgress();
+        if (!shouldContinue) {
+          clearInterval(progressInterval);
+          try {
+            if (!res.writableEnded) {
+              res.end();
+            }
+          } catch (error) {
+            // Ignore errors when trying to end an already ended response
+          }
+        }
+      }, 100);
 
-    req.on('close', () => {
-      clearInterval(progressInterval);
-      uploadProgressMap.delete(sessionId);
-    });
+      // Handle client disconnect
+      const cleanup = () => {
+        clearInterval(progressInterval);
+        console.log(`Client disconnected from SSE stream for session ${sessionId}`);
+        // Don't delete from uploadProgressMap here as the Python process may still be running
+      };
+
+      req.on('close', cleanup);
+      req.on('error', (err) => {
+        console.error(`Client connection error for session ${sessionId}:`, err);
+        cleanup();
+      });
+      res.on('error', (err) => {
+        console.error(`Response error for session ${sessionId}:`, err);
+        cleanup();
+      });
+    } else {
+      // Initial progress send failed
+      try {
+        if (!res.writableEnded) {
+          res.end();
+        }
+      } catch (error) {
+        // Ignore errors when trying to end an already ended response
+      }
+    }
   });
   
   // Cancel Upload endpoint - with data cleanup
