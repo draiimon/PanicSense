@@ -1007,24 +1007,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
 
-      // Save only the filtered sentiment posts
-      const sentimentPosts = await Promise.all(
-        filteredResults.map(post => 
-          storage.createSentimentPost(
-            insertSentimentPostSchema.parse({
-              text: post.text,
-              timestamp: new Date(post.timestamp),
-              source: post.source,
-              language: post.language,
-              sentiment: post.sentiment,
-              confidence: post.confidence,
-              location: post.location || null,
-              disasterType: post.disasterType || null,
-              fileId: analyzedFile.id
-            })
-          )
-        )
+      // Save filtered sentiment posts using batch insert for better performance with large datasets
+      const parsedPosts = filteredResults.map(post => 
+        insertSentimentPostSchema.parse({
+          text: post.text,
+          timestamp: new Date(post.timestamp),
+          source: post.source,
+          language: post.language,
+          sentiment: post.sentiment,
+          confidence: post.confidence,
+          location: post.location || null,
+          disasterType: post.disasterType || null,
+          fileId: analyzedFile.id
+        })
       );
+      
+      // Use createManySentimentPosts for batch insertion instead of individual inserts
+      console.log(`Inserting ${parsedPosts.length} sentiment posts in batch mode`);
+      const sentimentPosts = await storage.createManySentimentPosts(parsedPosts);
 
       // Generate disaster events from the sentiment posts
       await generateDisasterEvents(sentimentPosts);
