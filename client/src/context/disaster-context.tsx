@@ -366,16 +366,30 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
               
               // If it completed successfully, refresh data to show new records
               if (progress.stage.toLowerCase().includes('complete')) {
-                refreshData();
+                // First refresh data, but wait a bit for server to finalize everything
+                setTimeout(() => {
+                  refreshData();
+                }, 500);
               }
               
-              // For any completion state, close immediately to prevent flickering
-              setIsUploading(false);
-              // Clear the upload progress from localStorage immediately
-              localStorage.removeItem('isUploading');
-              localStorage.removeItem('uploadProgress');
-              localStorage.removeItem('uploadSessionId');
-              localStorage.removeItem('lastProgressTimestamp');
+              // Use a timer before closing the modal to prevent abrupt UI changes
+              // This gives user time to see the final status
+              const completionDelay = stageLower.includes('error') ? 2000 : 3000;
+              
+              // For completion states, we'll delay the modal close slightly
+              // This prevents abrupt UI changes and makes the experience smoother
+              setTimeout(() => {
+                // Clear the upload progress from localStorage immediately
+                localStorage.removeItem('isUploading');
+                localStorage.removeItem('uploadProgress');
+                localStorage.removeItem('uploadSessionId');
+                localStorage.removeItem('lastProgressTimestamp');
+                localStorage.removeItem('lastUIUpdateTimestamp');
+                
+                // Finally close the modal after storage is cleared
+                // This sequence ensures we don't get flickering from localStorage checks
+                setIsUploading(false);
+              }, completionDelay);
             }
           } catch (error) {
             console.error('Error parsing progress data:', error);
@@ -594,33 +608,34 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
                   
                   // If it completed successfully, refresh data to show new records
                   if (isComplete) {
-                    refreshData();
+                    // First refresh data, but wait a bit for server to finalize everything
+                    setTimeout(() => {
+                      refreshData();
+                    }, 500);
                   }
                   
-                  // If there's an error or the upload was cancelled, close the modal immediately
-                  if (isError || isCancelled) {
-                    // Close immediately for errors and cancellations
-                    setIsUploading(false);
+                  // Use a timer before closing the modal to prevent abrupt UI changes
+                  // This gives user time to see the final status
+                  const completionDelay = isError ? 2000 : 3000;
+                  
+                  // For all completion states, we'll delay the modal close slightly
+                  // This prevents abrupt UI changes and makes the experience smoother
+                  setTimeout(() => {
                     // Clear the upload progress from localStorage
                     localStorage.removeItem('isUploading');
                     localStorage.removeItem('uploadProgress');
                     localStorage.removeItem('uploadSessionId');
+                    localStorage.removeItem('lastProgressTimestamp');
+                    localStorage.removeItem('lastUIUpdateTimestamp');
                     
-                    // Show a toast or alert to inform the user
+                    // Finally close the modal after storage is cleared
+                    setIsUploading(false);
+                    
+                    // Show a toast or alert to inform the user if there was an error
                     if (isError) {
-                      // We could add a toast notification here
                       console.error('Upload failed with error:', progress.stage);
                     }
-                  } else {
-                    // For successful completion, close after a short delay
-                    setTimeout(() => {
-                      setIsUploading(false);
-                      // Clear the upload progress from localStorage
-                      localStorage.removeItem('isUploading');
-                      localStorage.removeItem('uploadProgress');
-                      localStorage.removeItem('uploadSessionId');
-                    }, 1000);
-                  }
+                  }, completionDelay);
                 }
               } catch (error) {
                 console.error('Error parsing progress data:', error);

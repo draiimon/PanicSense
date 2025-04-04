@@ -14,6 +14,42 @@ import { pythonService } from "./python-service";
 // This will be used by routes.ts to detect server restarts
 export const SERVER_START_TIMESTAMP = new Date().getTime();
 
+// Cleanup function to terminate Python processes
+// Define this outside any block to avoid strict mode errors
+export function cleanupAndExit(server: any): void {
+  console.log('🧹 Starting cleanup process before shutdown...');
+  
+  try {
+    // First, cancel all active Python processes
+    const activeSessions = pythonService.getActiveProcessSessions();
+    if (activeSessions.length > 0) {
+      console.log(`🔥 Cancelling ${activeSessions.length} active Python processes`);
+      pythonService.cancelAllProcesses();
+      console.log('✅ All Python processes terminated successfully');
+    } else {
+      console.log('ℹ️ No active Python processes to terminate');
+    }
+    
+    // Then close the server
+    console.log('🛑 Closing HTTP server...');
+    server.close(() => {
+      console.log('✅ Server closed successfully');
+      console.log('👋 Exiting process');
+      process.exit(0);
+    });
+    
+    // Force exit after 3 seconds if server.close doesn't complete
+    setTimeout(() => {
+      console.log('⚠️ Forced exit due to timeout');
+      process.exit(1);
+    }, 3000);
+  } catch (error) {
+    console.error('Error during cleanup:', error);
+    // Force exit on error
+    process.exit(1);
+  }
+}
+
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Increased limit for better performance
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
@@ -108,40 +144,7 @@ app.use((req, res, next) => {
       cleanupAndExit(server);
     });
     
-    // Cleanup function to terminate Python processes
-    function cleanupAndExit(server: any) {
-      console.log('🧹 Starting cleanup process before shutdown...');
-      
-      try {
-        // First, cancel all active Python processes
-        const activeSessions = pythonService.getActiveProcessSessions();
-        if (activeSessions.length > 0) {
-          console.log(`🔥 Cancelling ${activeSessions.length} active Python processes`);
-          pythonService.cancelAllProcesses();
-          console.log('✅ All Python processes terminated successfully');
-        } else {
-          console.log('ℹ️ No active Python processes to terminate');
-        }
-        
-        // Then close the server
-        console.log('🛑 Closing HTTP server...');
-        server.close(() => {
-          console.log('✅ Server closed successfully');
-          console.log('👋 Exiting process');
-          process.exit(0);
-        });
-        
-        // Force exit after 3 seconds if server.close doesn't complete
-        setTimeout(() => {
-          console.log('⚠️ Forced exit due to timeout');
-          process.exit(1);
-        }, 3000);
-      } catch (error) {
-        console.error('Error during cleanup:', error);
-        // Force exit on error
-        process.exit(1);
-      }
-    }
+    // We use the global cleanupAndExit function defined at the top of this file
 
     // Enhanced error handling with structured error response
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

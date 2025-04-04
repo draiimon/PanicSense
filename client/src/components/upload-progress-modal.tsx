@@ -165,14 +165,27 @@ export function UploadProgressModal() {
   const formatTimeRemaining = (seconds: number): string => {
     if (!seconds || seconds <= 0) return 'calculating...';
     
+    // Calculate a realistic time remaining based on processed records and speed
+    // This ensures we're showing updated time even if server doesn't update timeRemaining
+    let calculatedTimeRemaining = seconds;
+    if (currentSpeed > 0 && total > processedCount) {
+      // Calculate time remaining based on current speed and records left
+      const recordsRemaining = total - processedCount;
+      calculatedTimeRemaining = recordsRemaining / currentSpeed;
+    }
+    
+    // Use the smaller of the two values to be more accurate
+    // This prevents stale timeRemaining values from server
+    const actualSeconds = Math.min(calculatedTimeRemaining, seconds);
+    
     // Less than a minute
-    if (seconds < 60) return `${Math.ceil(seconds)} sec`;
+    if (actualSeconds < 60) return `${Math.ceil(actualSeconds)} sec`;
     
     // Calculate days, hours, minutes, seconds
-    const days = Math.floor(seconds / 86400); // 86400 seconds in a day
-    const hours = Math.floor((seconds % 86400) / 3600); // 3600 seconds in an hour
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = Math.ceil(seconds % 60);
+    const days = Math.floor(actualSeconds / 86400); // 86400 seconds in a day
+    const hours = Math.floor((actualSeconds % 86400) / 3600); // 3600 seconds in an hour
+    const minutes = Math.floor((actualSeconds % 3600) / 60);
+    const remainingSeconds = Math.ceil(actualSeconds % 60);
     
     // Format based on duration
     if (days > 0) {

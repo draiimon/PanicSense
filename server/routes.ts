@@ -317,24 +317,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (elapsed > 0) {
             // Calculate current speed based on processed records
-            progress.currentSpeed = progress.processed / elapsed;
+            // Limit to reasonable value to prevent division by small numbers creating huge speeds
+            const rawSpeed = progress.processed / elapsed;
+            progress.currentSpeed = Math.min(rawSpeed, 10); // Cap at 10 records/second
             
-            // Calculate time remaining with enhanced batch logic:
-            // 1. Each batch of 30 takes ~30 seconds to process + 60 second pause
-            // 2. So each batch needs ~90 seconds total
-            // 3. Account for current phase (processing vs paused)
+            // Calculate time remaining with enhanced batch logic and improved accuracy:
             if (progress.currentSpeed > 0) {
-              const remainingRecords = progress.total - progress.processed;
+              const remainingRecords = Math.max(0, progress.total - progress.processed);
               const recordsPerBatch = 30; // Standard batch size
               const processTimePerBatch = 30; // 30s processing time per batch
               const pauseTimePerBatch = 60; // 60s pause between batches
               const batchTimeSeconds = processTimePerBatch + pauseTimePerBatch; // total per batch
-              const remainingBatches = Math.ceil(remainingRecords / recordsPerBatch);
               
-              // Start with basic calculation
+              // More accurate calculation of remaining batches - accounts for partial batches
+              const completedBatches = Math.floor(progress.processed / recordsPerBatch);
+              const totalBatches = Math.ceil(progress.total / recordsPerBatch);
+              const remainingBatches = Math.max(0, totalBatches - completedBatches);
+              
+              // Start with basic calculation for remaining full batches
               let estimatedTimeRemaining = remainingBatches * batchTimeSeconds;
               
-              // Handle pause states - if we're in a pause, extract remaining pause time
+              // Prevent time remaining from going up - only allow it to go down
+              // This creates a smoother, more intuitive user experience
+              if (progress.timeRemaining && estimatedTimeRemaining > progress.timeRemaining) {
+                // Don't increase the time, but allow it to decrease slightly each update
+                // This ensures time counts down even if processing slows
+                estimatedTimeRemaining = Math.max(0, progress.timeRemaining - 2);
+              }
+              
+              // Special handling for pause states - extract exact remaining pause time
               if (progress.stage && progress.stage.includes('pause between batches')) {
                 const pauseMatches = progress.stage.match(/(\d+) seconds remaining/);
                 if (pauseMatches && pauseMatches.length > 1) {
@@ -350,7 +361,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               // Apply a cap of 7 days to prevent unrealistic estimates
               const maxTimeSeconds = 7 * 24 * 60 * 60; // 7 days in seconds
-              progress.timeRemaining = Math.min(estimatedTimeRemaining, maxTimeSeconds);
+              progress.timeRemaining = Math.min(
+                Math.max(0, Math.floor(estimatedTimeRemaining)), // Floor to integer and ensure positive
+                maxTimeSeconds
+              );
             } else {
               progress.timeRemaining = 0;
             }
