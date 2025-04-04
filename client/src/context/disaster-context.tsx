@@ -8,7 +8,6 @@ import {
   SentimentPost,
   DisasterEvent,
   AnalyzedFile,
-  getCurrentUploadSessionId,
   checkForActiveSessions
 } from "@/lib/api";
 
@@ -203,7 +202,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
               setIsUploading(true);
               
               // Check if there's an active session ID from localStorage
-              const sessionId = getCurrentUploadSessionId();
+              const sessionId = localStorage.getItem('uploadSessionId');
               if (sessionId) {
                 console.log('Reconnecting to upload session from localStorage:', sessionId);
                 
