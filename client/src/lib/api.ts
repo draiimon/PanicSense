@@ -1,5 +1,4 @@
 import { apiRequest } from './queryClient';
-import { broadcastService, broadcastCancelUpload } from './broadcast-service';
 
 export interface SentimentPost {
   id: number;
@@ -53,8 +52,6 @@ export interface UploadProgress {
   batchProgress?: number;
   currentSpeed?: number;  // Records per second
   timeRemaining?: number; // Seconds
-  timestamp?: number;     // Unix timestamp for message ordering
-  savedAt?: number;       // When the progress was saved to localStorage
   processingStats?: {
     successCount: number;
     errorCount: number;
@@ -180,7 +177,8 @@ export async function checkForActiveSessions(): Promise<string | null> {
     // Mark that we're doing a database check
     localStorage.setItem(cacheKey, now.toString());
     
-    // Silent database check for active sessions 
+    // ALWAYS ask the database (boss) for the truth!
+    console.log('📊 Asking database boss for active sessions');
     const response = await apiRequest('GET', '/api/active-upload-session');
     
     if (!response.ok) {
@@ -189,9 +187,17 @@ export async function checkForActiveSessions(): Promise<string | null> {
     
     const data = await response.json();
     
+    // Handle server restart detection
+    if (data.serverRestartDetected) {
+      console.log('⚠️ Server restart detected! Must follow database rules');
+    }
+    
     // === HANDLE DATABASE RESPONSE ===
     if (data.sessionId) {
-      // Active session exists - update local state
+      // === BOSS SAYS YES: ACTIVE SESSION EXISTS ===
+      console.log('👑 DATABASE BOSS CONFIRMS: Active session ' + data.sessionId);
+      
+      // Update everything according to database (the boss)
       currentUploadSessionId = data.sessionId;
       localStorage.setItem('uploadSessionId', data.sessionId);
       localStorage.setItem('isUploading', 'true');
@@ -221,7 +227,12 @@ export async function checkForActiveSessions(): Promise<string | null> {
       
       return data.sessionId;
     } else {
-      // No active session - clean up
+      // === BOSS SAYS NO: NO ACTIVE SESSION ===
+      console.log('👑 DATABASE BOSS SAYS: No active sessions exist');
+      
+      if (data.staleSessionCleared) {
+        console.log('🧹 Boss cleaned stale session on server');
+      }
       
       // Clear localStorage to match database state
       localStorage.removeItem('isUploading');
@@ -240,6 +251,7 @@ export async function checkForActiveSessions(): Promise<string | null> {
           
           // Only keep very recent sessions to prevent stale UI
           if (savedAt >= fiveMinutesAgo) {
+            console.log('Recent localStorage session kept for UI stability:', localSession);
             return localSession;
           }
         } catch (e) {
@@ -247,6 +259,7 @@ export async function checkForActiveSessions(): Promise<string | null> {
         }
       }
       
+      console.log('Active upload session check complete: No active sessions');
       return null;
     }
   } catch (error) {
@@ -298,16 +311,7 @@ export async function uploadCSV(
   const sessionId = crypto.randomUUID();
   currentUploadSessionId = sessionId;
   
-  // Clear any previous upload state that might be causing issues
-  localStorage.removeItem('isUploading');
-  localStorage.removeItem('uploadProgress');
-  localStorage.removeItem('uploadSessionId');
-  localStorage.removeItem('lastProgressTimestamp');
-  localStorage.removeItem('serverRestartProtection');
-  localStorage.removeItem('serverRestartTimestamp');
-  
-  // ONLY set the session ID after we've cleared previous state
-  // This prevents ghost uploads from appearing
+  // Store the session ID in both localStorage (legacy) and database
   localStorage.setItem('uploadSessionId', sessionId);
   
   // If onProgress callback is provided, check for any active upload sessions 
@@ -333,28 +337,11 @@ export async function uploadCSV(
   eventSource.onmessage = (event) => {
     try {
       const progress = JSON.parse(event.data) as UploadProgress;
-      
-      // Add timestamp if not present to ensure proper ordering
-      const progressWithTimestamp = {
-        ...progress,
-        timestamp: progress.timestamp || Date.now()
-      };
-      
-      // Broadcast progress to all tabs (for cross-tab sync)
-      broadcastService.broadcastUploadProgress(progressWithTimestamp);
-      
-      // Set localStorage "isUploading" flag to true when we get progress
-      // This tells other tabs that an upload is in progress
-      localStorage.setItem('isUploading', 'true');
-      
-      // Store the progress in localStorage for resilience
-      localStorage.setItem('uploadProgress', JSON.stringify({
-        ...progressWithTimestamp,
-        savedAt: Date.now()
-      }));
-      
+      console.log('Progress event received:', progress);
+
       if (onProgress) {
-        onProgress(progressWithTimestamp);
+        console.log('Progress being sent to UI:', progress);
+        onProgress(progress);
       }
     } catch (error) {
       console.error('Error parsing progress data:', error);

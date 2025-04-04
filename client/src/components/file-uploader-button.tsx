@@ -2,10 +2,9 @@ import { Upload, Loader2, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDisasterContext } from '@/context/disaster-context';
 import { useToast } from '@/hooks/use-toast';
-import { uploadCSV, checkForActiveSessions, cleanupErrorSessions, resetUploadSessions, type UploadProgress } from '@/lib/api';
+import { uploadCSV, checkForActiveSessions, cleanupErrorSessions, resetUploadSessions } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 import { useEffect, useState } from 'react';
-import { broadcastService } from '@/lib/broadcast-service';
 import { Button } from '@/components/ui/button';
 
 interface FileUploaderButtonProps {
@@ -25,9 +24,13 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
   useEffect(() => {
     const cleanupOnMount = async () => {
       try {
+        console.log("🧹 Auto-cleaning error sessions on component mount");
         const result = await cleanupErrorSessions();
         if (result.success) {
           setSessionCleanedCount(result.clearedCount);
+          if (result.clearedCount > 0) {
+            console.log(`✅ Auto-cleaned ${result.clearedCount} error/stale sessions on mount`);
+          }
         }
       } catch (error) {
         console.error("Error during auto-cleanup:", error);
@@ -50,6 +53,9 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         if (activeSessionId) {
           // Ensure the upload modal is displayed if we have an active session
           setIsUploading(true);
+          console.log('Active upload session detected:', `Session ${activeSessionId} active`);
+        } else {
+          console.log('Active upload session check complete: No active sessions');
         }
       } catch (error) {
         console.error('Error checking for active uploads:', error);
@@ -123,8 +129,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           processingStats: {
             successCount: 0,
             errorCount: 0,
-            averageSpeed: 0,
-            lastBatchDuration: 0
+            averageSpeed: 0
           }
         });
       }
@@ -169,7 +174,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
     try {
       // Set uploading state and progress in a single update
-      const initialProgress = { 
+      setUploadProgress({ 
         processed: 0, 
         total: 100, 
         stage: 'Initializing...',
@@ -181,14 +186,9 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         processingStats: {
           successCount: 0,
           errorCount: 0,
-          averageSpeed: 0,
-          lastBatchDuration: 0
-        },
-        timestamp: Date.now(),
-        savedAt: Date.now()
-      };
-      
-      setUploadProgress(initialProgress);
+          averageSpeed: 0
+        }
+      });
       
       // Set uploading flag without delay
       setIsUploading(true);
@@ -196,7 +196,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       // Set localStorage flag for persistence across refreshes
       localStorage.setItem('isUploading', 'true');
       localStorage.setItem('uploadStartTime', Date.now().toString());
-      localStorage.setItem('uploadProgress', JSON.stringify(initialProgress));
       
       const result = await uploadCSV(file, (progress) => {
         // Enhanced progress tracking with timestamp
@@ -212,12 +211,13 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           processingStats: {
             successCount: progress.processingStats?.successCount || 0,
             errorCount: progress.processingStats?.errorCount || 0,
-            averageSpeed: progress.processingStats?.averageSpeed || 0,
-            lastBatchDuration: progress.processingStats?.lastBatchDuration || 0
+            averageSpeed: progress.processingStats?.averageSpeed || 0
           },
           timestamp: Date.now(), // Add timestamp for ordered updates
           savedAt: Date.now()    // Add timestamp for freshness check
         };
+
+        console.log('Progress update:', currentProgress);
         
         // Update the UI
         setUploadProgress(currentProgress);
@@ -225,9 +225,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         // Store in localStorage for persistence across refreshes
         localStorage.setItem('uploadProgress', JSON.stringify(currentProgress));
         localStorage.setItem('lastProgressTimestamp', Date.now().toString());
-        
-        // Broadcast update to all tabs
-        broadcastService.broadcastUploadProgress(currentProgress);
       });
 
       if (result?.file && result?.posts) {
@@ -250,89 +247,47 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       console.error('Upload error:', error);
       toast({
         title: 'Upload Failed',
-        description: error instanceof Error ? error.message : 'Failed to upload file. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to upload file',
         variant: 'destructive',
       });
       
-      // Update progress to show error
-      setUploadProgress({
-        processed: 0,
-        total: 100,
-        stage: 'Error: Upload failed. Please try again.',
-        error: error instanceof Error ? error.message : 'Failed to upload file',
-        timestamp: Date.now(),
-        savedAt: Date.now(),
-        currentSpeed: 0,
-        timeRemaining: 0,
-        batchNumber: 0,
-        totalBatches: 0,
-        batchProgress: 0,
-        processingStats: {
-          successCount: 0,
-          errorCount: 1,
-          averageSpeed: 0,
-          lastBatchDuration: 0
-        }
-      });
-      
-      // Make sure to clean up localStorage on error - BUT NOT IMMEDIATELY
-      // Wait a short period so the user can see the error
+      // Make sure to clean up localStorage on error
+      localStorage.removeItem('isUploading');
+      localStorage.removeItem('uploadProgress');
+      localStorage.removeItem('uploadSessionId');
+      localStorage.removeItem('uploadStartTime');
+      localStorage.removeItem('lastProgressTimestamp');
+    } finally {
+      event.target.value = '';
+
+      // Show completion for a moment before closing
       setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress({ 
+          processed: 0, 
+          total: 0, 
+          stage: '',
+          currentSpeed: 0,
+          timeRemaining: 0,
+          batchNumber: 0,
+          totalBatches: 0,
+          batchProgress: 0,
+          processingStats: {
+            successCount: 0,
+            errorCount: 0,
+            averageSpeed: 0
+          }
+        });
+        
+        // Properly clear all localStorage items related to upload
         localStorage.removeItem('isUploading');
         localStorage.removeItem('uploadProgress');
         localStorage.removeItem('uploadSessionId');
         localStorage.removeItem('uploadStartTime');
         localStorage.removeItem('lastProgressTimestamp');
-        setIsUploading(false);
         
-        // Broadcast final state
-        broadcastService.broadcastUploadState({
-          isUploading: false,
-          sessionId: null
-        });
-        
-      }, 5000); // longer delay to show the error message
-    } finally {
-      event.target.value = '';
-
-      // Only clean up if we were successful
-      // Otherwise the error handler will do it
-      if (!event.defaultPrevented) {
-        // Show completion for a moment before closing
-        setTimeout(() => {
-          setIsUploading(false);
-          setUploadProgress({ 
-            processed: 0, 
-            total: 0, 
-            stage: '',
-            currentSpeed: 0,
-            timeRemaining: 0,
-            batchNumber: 0,
-            totalBatches: 0,
-            batchProgress: 0,
-            processingStats: {
-              successCount: 0,
-              errorCount: 0,
-              averageSpeed: 0,
-              lastBatchDuration: 0
-            }
-          });
-          
-          // Properly clear all localStorage items related to upload
-          localStorage.removeItem('isUploading');
-          localStorage.removeItem('uploadProgress');
-          localStorage.removeItem('uploadSessionId');
-          localStorage.removeItem('uploadStartTime');
-          localStorage.removeItem('lastProgressTimestamp');
-          
-          // Broadcast final state
-          broadcastService.broadcastUploadState({
-            isUploading: false,
-            sessionId: null
-          });
-          
-        }, 2000);
-      }
+        console.log('Upload completed, cleared all localStorage items');
+      }, 2000);
     }
   };
 
