@@ -75,34 +75,33 @@ export function UploadProgressModal() {
     minHeight: '420px' // Set min-height to prevent modal shrinking
   };
 
-  // Move stage checks to computed values for cleaner code - do this first
+  // SIMPLIFIED STAGE DETECTION LOGIC
+  // Convert stage to lowercase once for all checks
   const stageLower = stage.toLowerCase();
   
-  // Stage flags - determine these before calculating processed count
-  const isBatchPause = stageLower.includes('pause between batches');
+  // Keep original server values for display - no manipulation
+  const processedCount = rawProcessed;
+  
+  // Basic state detection - clear, explicit flags
+  const isPaused = stageLower.includes('pause between batches');
   const isLoading = stageLower.includes('loading') || stageLower.includes('preparing');
-  const hasProcessingKeyword = (stageLower.includes('processing') || stageLower.includes('record')) && !isBatchPause;
-  const isPaused = isBatchPause;
+  const isProcessingRecord = stageLower.includes('processing record') || stageLower.includes('completed record');
   
-  // ONLY consider an explicit "completed" or "analysis complete" message as completion
-  // This prevents premature "Analysis Complete!" from showing
-  const hasCompletionKeyword = stageLower.includes('completed') || stageLower.includes('analysis complete');
+  // Consider any active work state as "processing"
+  const isProcessing = isProcessingRecord || isPaused || stageLower.includes('processing');
   
-  // Processing and completion flags based only on stage keywords initially
-  let isProcessing = hasProcessingKeyword || isBatchPause; // Consider pause as processing
-  let isComplete = hasCompletionKeyword;
+  // Only set complete when explicitly mentioned OR when we've processed everything
+  // Require 99% completion to avoid premature "Analysis Complete!"
+  const isReallyComplete = stageLower.includes('completed all') || 
+                        stageLower.includes('analysis complete') || 
+                        (rawProcessed >= total * 0.99 && total > 100);
   
-  // IMPORTANT: Always use the server value directly - no modification or logic
-  // We're seeing that the server sends us the correct values, but our UI logic is manipulating it
-  const processed = rawProcessed;
+  // Final completion state
+  const isComplete = isReallyComplete;
   
-  // Now we can update isComplete with count-based detection but only if we're very close to completion
-  // This prevents showing complete too early
-  isComplete = isComplete || (processed >= total && total > 0 && processed > 0.95 * total);
-  
-  // Calculate completion percentage safely - ensure it's always at least 1% when processing
+  // Calculate completion percentage safely - ensure it's visible when processing
   const percentComplete = total > 0 
-    ? Math.min(100, Math.max(isProcessing ? 1 : 0, Math.round((processed / total) * 100)))
+    ? Math.min(100, Math.max(isProcessing ? 1 : 0, Math.round((processedCount / total) * 100)))
     : 0;
   
   // Check for cancellation
@@ -147,7 +146,7 @@ export function UploadProgressModal() {
           {/* Counter with larger size */}
           <div className="flex items-center justify-center my-3">
             <motion.div 
-              key={processed}
+              key={processedCount}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ 
                 opacity: 1, 
@@ -157,7 +156,7 @@ export function UploadProgressModal() {
               className="flex flex-col items-center"
             >
               <div className="flex items-center">
-                <span className="text-5xl font-bold text-white">{processed}</span>
+                <span className="text-5xl font-bold text-white">{processedCount}</span>
                 <span className="text-3xl mx-2 text-white/70">/</span>
                 <span className="text-4xl font-bold text-white/90">{total}</span>
               </div>
