@@ -786,43 +786,35 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
     }
   };
 
-  // Now we'll create a useEffect that checks for active uploads on route changes
-  // This optimized version avoids polling issues and UI flickering 
+  // NOW: ONLY CHECK ONCE PER PAGE LOAD/REFRESH, NOT ON ROUTE CHANGES
+  // This dramatically reduces API calls and prevents UI flickering
   useEffect(() => {
-    // Only log once when active routes change
-    console.log('Checking for active uploads on route:', location);
+    // Set a flag in sessionStorage to track if we've already checked this page load
+    const hasCheckedThisPageLoad = sessionStorage.getItem('checkedActiveUploadsOnLoad');
     
     // Start with sessionId from localStorage to reduce flickering
     const storedSessionId = localStorage.getItem('uploadSessionId');
     const storedIsUploading = localStorage.getItem('isUploading') === 'true';
     
-    // We use a debounced check approach with a more stable polling strategy
-    // Set up polling to check for active sessions (reduced frequency - every 20 seconds)
-    const pollIntervalId = setInterval(() => {
-      // Only run polling check if we're not already showing an upload modal
-      // This prevents disrupting an active upload
-      if (!isUploading) {
-        // Only log 5% of the time to reduce console spam
-        if (Math.random() < 0.05) {
-          console.log('Running session check poll...');
-        }
-        
-        // Use a debounced version of the check to prevent rapid UI changes
-        checkAndReconnectToActiveUploads();
-      }
-    }, 20000); // Increased to 20 seconds
-    
-    // Only run initial check if we don't already have active upload
-    // This reduces UI flickering when we already know an upload is in progress
-    if (!storedIsUploading || !storedSessionId) {
-      checkAndReconnectToActiveUploads();
+    // If we already checked this page load OR we're already uploading, don't check again
+    if (hasCheckedThisPageLoad === 'true' || storedIsUploading) {
+      console.log('⏭️ Skipping database check - already checked this page load or already uploading');
+      return;
     }
     
-    // Clean up polling on unmount
-    return () => {
-      clearInterval(pollIntervalId);
-    };
-  }, [location, isUploading]);
+    // Mark that we've checked for this page load
+    sessionStorage.setItem('checkedActiveUploadsOnLoad', 'true');
+    
+    console.log('🔍 ONE-TIME CHECK for active uploads on route:', location);
+    
+    // Make a single check for active uploads - this will only happen ONCE per page load/refresh
+    checkAndReconnectToActiveUploads();
+    
+    // NO POLLING - we only check once
+    // This is a major optimization that dramatically reduces database load
+    
+    // No need for cleanup since we're not setting any intervals
+  }, [location]);
 
   // WebSocket setup for all non-upload messages (like feedback, post updates)
   // We'll keep this separate from the upload progress handling to avoid conflicts

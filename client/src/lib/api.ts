@@ -150,15 +150,24 @@ export function getCurrentUploadSessionId(): string | null {
   return null;
 }
 
-// Check if there are any active upload sessions in the database
-// Optimized version with anti-flickering protection AND session preservation
+/**
+ * Check if there's an active upload session - WITH ONE-TIME PER PAGE LOAD CHECK PATTERN
+ * 
+ * This function uses a one-time database check pattern to reduce server load:
+ * 1. On initial page load, check the database ONCE for active sessions
+ * 2. Store that information in localStorage
+ * 3. On subsequent calls within the same page load, trust localStorage completely
+ * 4. Since sessionStorage gets cleared on page refresh, we can reliably detect new page loads
+ * 5. This prevents excessive database checks that cause flickering and server load
+ */
 export async function checkForActiveSessions(): Promise<string | null> {
   try {
-    // HARD ANTI-FLICKER APPROACH:
-    // 1. IMMEDIATELY assume localStorage is correct
-    // 2. Update UI instantly based on localStorage
-    // 3. Then check with server in background
-    // 4. UI never flickers because the initial state is already set correctly
+    // Log the current route for debugging
+    console.log('Checking for active uploads on route:', window.location.pathname);
+
+    // REFRESH DETECTION SYSTEM:
+    // - Only make a single database check when page loads (on refresh)
+    // - After that, trust localStorage completely and avoid further database checks
     
     // Track if this is a page refresh
     const pageLoadTime = window.performance?.timing?.navigationStart || 0;
@@ -211,12 +220,35 @@ export async function checkForActiveSessions(): Promise<string | null> {
     // Update the last check time in localStorage
     localStorage.setItem(cacheKey, now.toString());
     
-    // Make the actual API request with cache control headers
+    // REFRESH DETECTION SYSTEM:
+    // - Only make a single database check when page loads (on refresh)
+    // - After that, trust localStorage completely and avoid further database checks
+    
+    // Check if this is the first check after page load - use sessionStorage that clears on refresh
+    const initialCheckDone = sessionStorage.getItem('initialDatabaseCheckDone') === 'true';
+    
+    // If initial check already done this page load, just trust localStorage and return immediately
+    if (initialCheckDone) {
+      console.log("🔒 ONE-TIME CHECK: Already done this page load, using localStorage state");
+      
+      if (cachedSessionId && isLocallyUploading) {
+        return cachedSessionId; // Trust localStorage completely
+      }
+      
+      return null; // No active upload
+    }
+    
+    console.log("🔍 ONE-TIME DATABASE CHECK: First time after page load/refresh");
+    
+    // Make the actual API request with cache control headers - ONLY ONCE PER PAGE LOAD
     // If we have a cached session ID, pass it as a query parameter to preserve it
     const url = cachedSessionId 
       ? `/api/active-upload-session?preserveSessionId=${encodeURIComponent(cachedSessionId)}`
       : '/api/active-upload-session';
       
+    // Mark that we've done the initial check - Use sessionStorage which is cleared on page refresh
+    sessionStorage.setItem('initialDatabaseCheckDone', 'true');
+    
     const response = await apiRequest('GET', url);
     if (response.ok) {
       const data = await response.json();
@@ -366,23 +398,47 @@ export async function uploadCSV(
     }
   }
 
-  // Set up event source for progress updates using the potentially updated sessionId
-  const eventSource = new EventSource(`/api/upload-progress/${currentUploadSessionId}`);
-  currentEventSource = eventSource;
-
-  eventSource.onmessage = (event) => {
+  // IMPROVEMENTS:
+  // 1. Use polling from Python logs in localStorage instead of EventSource
+  // 2. This prevents excessive server connections
+  // 3. Reduces flickering between different data sources
+  
+  console.log('📊 Using localStorage + Python logs for progress updates instead of EventSource');
+  
+  // Save initial progress state to localStorage to show immediately in UI
+  localStorage.setItem('uploadProgress', JSON.stringify({
+    processed: 0,
+    total: 0,
+    stage: 'Preparing to upload...',
+    timestamp: Date.now(),
+    savedAt: Date.now()
+  }));
+  
+  // Set up a polling interval to check localStorage for updates
+  const pollInterval = setInterval(() => {
     try {
-      const progress = JSON.parse(event.data) as UploadProgress;
-      console.log('Progress event received:', progress);
-
-      if (onProgress) {
-        console.log('Progress being sent to UI:', progress);
-        onProgress(progress);
+      // Get progress from localStorage (populated by Python logs)
+      const storedProgress = localStorage.getItem('uploadProgress');
+      if (storedProgress) {
+        const progress = JSON.parse(storedProgress) as UploadProgress;
+        
+        // Every 3 seconds, log to console what we're tracking
+        if (Math.random() < 0.3) {
+          console.log('Progress from localStorage:', progress);
+        }
+        
+        // Send progress to UI component
+        if (onProgress) {
+          onProgress(progress);
+        }
       }
     } catch (error) {
-      console.error('Error parsing progress data:', error);
+      console.error('Error parsing stored progress data:', error);
     }
-  };
+  }, 500);
+  
+  // Clean up the interval when we're done
+  setTimeout(() => clearInterval(pollInterval), 30 * 60 * 1000); // 30 minute timeout
 
   try {
     const response = await fetch('/api/upload-csv', {
@@ -407,11 +463,22 @@ export async function uploadCSV(
     }
     throw error;
   } finally {
-    eventSource.close();
+    // Clear the polling interval
+    clearInterval(pollInterval);
+    
+    // Clean up global variables
     currentEventSource = null;
     currentUploadSessionId = null;
-    // Clear the session ID from localStorage
+    
+    // Clear all session-related data from localStorage
     localStorage.removeItem('uploadSessionId');
+    localStorage.removeItem('isUploading');
+    localStorage.removeItem('uploadProgress');
+    localStorage.removeItem('lastProgressTimestamp');
+    
+    // Also clear from sessionStorage to avoid stale state on next page load
+    sessionStorage.removeItem('initialDatabaseCheckDone');
+    sessionStorage.removeItem('checkedActiveUploadsOnLoad');
   }
 }
 
