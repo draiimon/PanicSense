@@ -26,79 +26,178 @@ export function UploadProgressModal() {
   const serverRestartProtection = localStorage.getItem('serverRestartProtection') === 'true';
   const serverRestartTime = localStorage.getItem('serverRestartTimestamp');
   
-  // Regular check with database boss - if boss says no active sessions but we're showing
-  // a modal, boss is right and we should close the modal
-  // BUT THIS HAS A SPECIAL EXCEPTION FOR SERVER RESTARTS
+  // Regular modal stability check - LOCAL STORAGE IS ABSOLUTE BOSS!
+  // Modal visibility is controlled ONLY by localStorage - database just provides progress updates
   useEffect(() => {
     if (!isUploading) return; // No need to check if we're not showing a modal
     
-    // Function to verify with database - BUT LOCAL STORAGE IS THE TRUE BOSS NOW!
-    const checkWithDatabaseBoss = async () => {
+    // Function to verify state - LOCAL STORAGE IS THE ABSOLUTE BOSS OF MODAL VISIBILITY!
+    const ensureModalStability = async () => {
       try {
-        // PRIORITY FOR VISIBILITY: LOCAL STORAGE > DATABASE
-        // First let's verify our localStorage state to make sure we should still show modal
-        const storageExpirationMinutes = 30; // EXTENDED from 2 to 30 minutes!
+        // EXTREMELY EXPLICIT PRIORITY: LOCAL STORAGE > DATABASE FOR VISIBILITY
+        // First validate our localStorage state to ensure persistence
+        const storageExpirationMinutes = 60; // EXTREME! Now a full hour of retention!
         const storedUploadProgress = localStorage.getItem('uploadProgress');
         const storedSessionId = localStorage.getItem('uploadSessionId');
         const storedIsUploading = localStorage.getItem('isUploading');
         
-        // If we have active state in localStorage, KEEP SHOWING even if database says no
+        // If we have ANY evidence of an active upload in localStorage, KEEP SHOWING the modal
+        // regardless of what the database says - localStorage is the visibility boss!
         if (storedIsUploading === 'true' || storedSessionId) {
-          console.log('🔒 LOCAL STORAGE HAS UPLOAD STATE - KEEPING MODAL VISIBLE', storedSessionId);
+          console.log('🔒 LOCAL STORAGE IS VISIBILITY BOSS - KEEPING MODAL VISIBLE', storedSessionId);
           
-          // Super strong persistence - force UI to match localStorage state
+          // Super aggressive persistence - force UI to match localStorage state
+          // This is critical during server restarts or network issues
           if (!isUploading) {
+            console.log('🔄 Re-showing upload modal based on localStorage command');
             setIsUploading(true);
           }
           
-          // Now check with database - but just for data updates, not for visibility control
-          console.log('📊 Checking database for progress updates only (not for visibility control)');
-          const response = await fetch('/api/active-upload-session');
-        
-          if (response.ok) {
-            const data = await response.json();
-            
-            if (data.sessionId) {
-              console.log('✅ DATABASE CONFIRMS ACTIVE SESSION', data.sessionId);
-              // If we already have sessionId in localStorage, update it if different
-              if (storedSessionId !== data.sessionId) {
-                localStorage.setItem('uploadSessionId', data.sessionId);
+          // Calculate how old our localStorage data is
+          let dataAge = Infinity;
+          if (storedUploadProgress) {
+            try {
+              const parsedProgress = JSON.parse(storedUploadProgress);
+              if (parsedProgress.savedAt) {
+                dataAge = Date.now() - parsedProgress.savedAt;
               }
+            } catch (e) {
+              // Parse error, proceed with age check
             }
           }
-        } else {
-          // No upload state in localStorage, ask database
-          console.log('📊 Upload modal checking with database');
-          const response = await fetch('/api/active-upload-session');
           
-          if (response.ok) {
-            const data = await response.json();
-            
-            // If database has active session but we don't know about it yet
-            if (data.sessionId) {
-              console.log('👑 DATABASE HAS ACTIVE SESSION WE DIDNT KNOW ABOUT', data.sessionId);
+          // Only check with database for progress updates if our data isn't too old
+          const MAX_AGE_MS = storageExpirationMinutes * 60 * 1000;
+          if (dataAge < MAX_AGE_MS) {
+            console.log('📊 Checking database ONLY for progress updates (not for visibility control)');
+            try {
+              const response = await fetch('/api/active-upload-session');
               
-              // Update localStorage with the session ID
-              localStorage.setItem('uploadSessionId', data.sessionId);
-              localStorage.setItem('isUploading', 'true');
-              
-              // Show the upload modal
-              setIsUploading(true);
+              if (response.ok) {
+                const data = await response.json();
+                
+                if (data.sessionId) {
+                  console.log('✅ DATABASE HAS PROGRESS DATA', data.sessionId);
+                  
+                  // Store session ID but NEVER change isUploading to false!
+                  // Just update the session ID if it's different
+                  if (storedSessionId !== data.sessionId) {
+                    localStorage.setItem('uploadSessionId', data.sessionId);
+                  }
+                  
+                  // If database has progress info, use it for display only
+                  // But NEVER for controlling visibility - localStorage is the visibility boss!
+                  if (data.progress && typeof data.progress === 'object') {
+                    try {
+                      // Always check if database progress is newer than what we have
+                      let currentProgress = null;
+                      if (storedUploadProgress) {
+                        try {
+                          currentProgress = JSON.parse(storedUploadProgress);
+                        } catch (e) {
+                          // Ignore parse errors
+                        }
+                      }
+                      
+                      // Only use database progress if it has more processed records
+                      // or if our local progress is missing/invalid
+                      const shouldUseDatabase = !currentProgress || 
+                                              (data.progress.processed > currentProgress.processed);
+                      
+                      if (shouldUseDatabase) {
+                        console.log('📈 Using database progress data for display');
+                        
+                        // Don't update localStorage here - that's handled by the context
+                        // Just ensure the modal stays visible during data updates
+                        localStorage.setItem('isUploading', 'true');
+                      } else {
+                        console.log('🛡️ Local progress data is more recent, ignoring database update');
+                      }
+                    } catch (error) {
+                      console.error('Error processing database progress:', error);
+                    }
+                  }
+                } else if (data.serverRestartDetected) {
+                  // Special handling for server restarts - super aggressive visibility persistence
+                  console.log('⚠️ SERVER RESTART DETECTED! Enabling super protection mode');
+                  localStorage.setItem('serverRestartProtection', 'true');
+                  localStorage.setItem('serverRestartTimestamp', Date.now().toString());
+                }
+              }
+            } catch (error) {
+              console.error('Error checking database:', error);
+              // On database errors, do nothing - keep showing the modal
+              // LOCAL STORAGE IS THE BOSS, so database errors don't affect visibility
             }
-            // Otherwise, both localStorage and database agree - no active uploads
+          } else {
+            // Data is too old - time to clean up after the maximum retention period
+            console.log(`📊 Upload data is very old (>${storageExpirationMinutes}min), cleaning up`);
+            
+            // Hard-close the modal after the extended retention period
+            forceCloseModal();
+          }
+        } else {
+          // No upload state in localStorage!
+          // This is rare - maybe localStorage was cleared manually
+          console.log('❓ No upload state in localStorage, checking with database as fallback');
+          
+          try {
+            const response = await fetch('/api/active-upload-session');
+            
+            if (response.ok) {
+              const data = await response.json();
+              
+              // If database has active session but localStorage doesn't know about it
+              if (data.sessionId) {
+                console.log('🔄 DATABASE HAS SESSION LOCALSTORAGE DOESN\'T KNOW ABOUT', data.sessionId);
+                
+                // Restore localStorage state from database
+                localStorage.setItem('uploadSessionId', data.sessionId);
+                localStorage.setItem('isUploading', 'true');
+                
+                // Show the upload modal
+                if (!isUploading) {
+                  setIsUploading(true);
+                }
+                
+                // If database has progress info, store it
+                if (data.progress) {
+                  const progressStr = typeof data.progress === 'string' 
+                    ? data.progress 
+                    : JSON.stringify({
+                        ...data.progress,
+                        savedAt: Date.now(),
+                        timestamp: Date.now()
+                      });
+                  
+                  localStorage.setItem('uploadProgress', progressStr);
+                }
+              } else {
+                // Both localStorage and database agree - no active uploads
+                // Only in this case should we close the modal
+                if (isUploading) {
+                  console.log('🔄 Both localStorage and database agree: no active uploads');
+                  forceCloseModal();
+                }
+              }
+            }
+          } catch (error) {
+            // Database check error - NEVER close the modal on database errors
+            // If modal is showing, keep it visible despite database errors
+            console.error('Error checking database:', error);
           }
         }
       } catch (error) {
         // Silently handle errors to avoid disrupting the UI
-        console.error('Error checking database:', error);
+        console.error('Error in modal stability check:', error);
       }
     };
     
-    // Check with database boss immediately
-    checkWithDatabaseBoss();
+    // Run stability check immediately
+    ensureModalStability();
     
-    // Then set up regular checks with the boss
-    const intervalId = setInterval(checkWithDatabaseBoss, 5000);
+    // Then set up regular checks - but less frequently to reduce load
+    const intervalId = setInterval(ensureModalStability, 8000); // Every 8 seconds 
     
     // Cleanup on unmount
     return () => clearInterval(intervalId);
