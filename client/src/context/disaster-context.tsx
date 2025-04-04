@@ -33,6 +33,7 @@ interface UploadProgress {
   processed: number;
   total: number;
   stage: string;
+  timestamp?: number;  // Add timestamp to ensure proper ordering of updates
   batchNumber?: number;
   totalBatches?: number;
   batchProgress?: number;
@@ -99,6 +100,7 @@ const initialProgress: UploadProgress = {
   processed: 1,  // Start with 1 to avoid showing 0/100 initially
   total: 100,    // Default to 100 to avoid showing 0/0 initially
   stage: 'Preparing upload...',
+  timestamp: Date.now(),  // Add current timestamp for proper ordering
   batchNumber: 1,
   totalBatches: 1,
   batchProgress: 0,
@@ -150,16 +152,37 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
           // Create a message handler function that we can reuse
           const handleMessage = (event: MessageEvent) => {
             try {
-              const progress = JSON.parse(event.data);
-              setUploadProgress(progress);
+              if (!event.data) return;
               
-              // Store the latest progress in localStorage for reconnection
-              localStorage.setItem('uploadProgress', JSON.stringify(progress));
+              // Parse progress data
+              const progress = JSON.parse(event.data);
+              
+              // Log the progress data
+              console.log("Progress event received:", progress);
+              
+              // Important: Check timestamps - only update if this is newer than our last update
+              // This prevents out-of-order updates from causing flickering
+              const currentTimestamp = progress.timestamp || Date.now();
+              const lastTimestamp = parseInt(localStorage.getItem('lastProgressTimestamp') || '0');
+              
+              // Only update if this is a newer message
+              if (currentTimestamp >= lastTimestamp) {
+                // Log what we're sending to the UI
+                console.log("Progress being sent to UI:", progress);
+                
+                // Update UI with progress
+                setUploadProgress(progress);
+                
+                // Store the latest progress and timestamp in localStorage
+                localStorage.setItem('uploadProgress', JSON.stringify(progress));
+                localStorage.setItem('lastProgressTimestamp', currentTimestamp.toString());
+              }
               
               // If the upload is complete or has an error, close the connection
-              if (progress.stage.toLowerCase().includes('complete') || 
-                  progress.stage.toLowerCase().includes('error') ||
-                  progress.stage.toLowerCase().includes('cancelled')) {
+              const stageLower = progress.stage.toLowerCase();
+              if (stageLower.includes('complete') || 
+                  stageLower.includes('error') ||
+                  stageLower.includes('cancelled')) {
                 
                 // Check if eventSource still exists before closing
                 if (window._activeEventSources?.[activeSessionId]) {
@@ -306,7 +329,6 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                   try {
                     // Make sure we have valid JSON data
                     if (!event.data) {
-                      console.log('Empty data received from EventSource');
                       return;
                     }
                     
@@ -315,15 +337,29 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                     
                     // Validate that we have a valid progress object
                     if (!progress || typeof progress !== 'object') {
-                      console.log('Invalid progress data received:', progress);
                       return;
                     }
                     
-                    // Update UI with progress
-                    setUploadProgress(progress);
+                    // Log the progress data for debugging
+                    console.log("Progress event received:", progress);
                     
-                    // Store the latest progress in localStorage for reconnection
-                    localStorage.setItem('uploadProgress', JSON.stringify(progress));
+                    // Important: Check timestamps - only update if this is newer than our last update
+                    // This prevents out-of-order updates from causing flickering
+                    const currentTimestamp = progress.timestamp || Date.now();
+                    const lastTimestamp = parseInt(localStorage.getItem('lastProgressTimestamp') || '0');
+                    
+                    // Only update if this is a newer message
+                    if (currentTimestamp >= lastTimestamp) {
+                      // Log what we're sending to the UI
+                      console.log("Progress being sent to UI:", progress);
+                      
+                      // Update UI with progress
+                      setUploadProgress(progress);
+                      
+                      // Store the latest progress and timestamp in localStorage
+                      localStorage.setItem('uploadProgress', JSON.stringify(progress));
+                      localStorage.setItem('lastProgressTimestamp', currentTimestamp.toString());
+                    }
                     
                     // Check for completion states in the stage message
                     const stageLower = progress.stage?.toLowerCase() || '';
@@ -333,10 +369,6 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                     
                     // If the upload is complete or has an error, close the connection
                     if (isComplete || isError || isCancelled) {
-                      
-                      // Log completion state for debugging
-                      console.log(`Upload ${isComplete ? 'completed' : isError ? 'failed with error' : 'was cancelled'}`);
-                      
                       // Check if eventSource still exists before closing
                       if (window._activeEventSources?.[sessionId]) {
                         try {
@@ -345,7 +377,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                             delete window._activeEventSources[sessionId];
                           }
                         } catch (e) {
-                          console.error('Error closing EventSource:', e);
+                          // Suppress error
                         }
                       }
                       
@@ -517,8 +549,13 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     checkAndReconnectToActiveUploads();
   }, []);
 
-  // WebSocket setup
+  // WebSocket setup for all non-upload messages (like feedback, post updates)
+  // We'll keep this separate from the upload progress handling to avoid conflicts
   useEffect(() => {
+    // Flag to determine if we're in upload mode - only handle WebSocket progress in this mode
+    // We'll use EventSource for the main method of communication during uploads
+    const isInUploadMode = localStorage.getItem('isUploading') === 'true';
+
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     const socket = new WebSocket(wsUrl);
@@ -529,8 +566,6 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         
         // Handle sentiment feedback updates (for real-time UI updates)
         if (data.type === 'feedback-update') {
-          console.log('WebSocket feedback update received:', data);
-          
           // This will trigger a refresh of all data including sentiment posts
           refreshData();
           
@@ -543,8 +578,6 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         }
         // Handle specific post update messages
         else if (data.type === 'post-updated') {
-          console.log('WebSocket post update received:', data);
-          
           // Force an immediate refresh to update the UI with the new sentiment
           refreshData();
           
@@ -555,57 +588,11 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
             variant: 'default',
           });
         }
-        // Handle progress updates for file processing 
-        else if (data.type === 'progress') {
-          // Only log once to avoid console spam
-          console.log('WebSocket progress update:', data);
-
-          // Extract progress info from Python service
-          const pythonProgress = data.progress;
-          if (pythonProgress && typeof pythonProgress === 'object') {
-            // Check if this is a valid progress update with needed fields
-            if (pythonProgress.stage && pythonProgress.total) {
-              // Parse numbers from the progress message
-              const matches = pythonProgress.stage?.match(/(\d+)\/(\d+)/);
-              const currentRecord = matches ? parseInt(matches[1]) : 0;
-              const totalRecords = matches ? parseInt(matches[2]) : pythonProgress.total || 0;
-
-              // Calculate actual progress percentage
-              const processedCount = pythonProgress.processed;
-
-              // Important: Use direct values from the server without additional logic/filtering
-              // Always update with the latest values - don't try to prevent flicker by conditional logic
-              setUploadProgress({
-                processed: pythonProgress.processed, // Use this value directly
-                total: pythonProgress.total,
-                stage: pythonProgress.stage,
-                batchNumber: pythonProgress.batchNumber || 0,
-                totalBatches: pythonProgress.totalBatches || 0,
-                batchProgress: pythonProgress.total > 0 
-                  ? Math.round((pythonProgress.processed / pythonProgress.total) * 100) 
-                  : 0,
-                currentSpeed: pythonProgress.currentSpeed || 0,
-                timeRemaining: pythonProgress.timeRemaining || 0,
-                processingStats: {
-                  successCount: pythonProgress.processingStats?.successCount || 0,
-                  errorCount: pythonProgress.processingStats?.errorCount || 0,
-                  averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
-                }
-              });
-            }
-          }
-        }
+        // We're now IGNORING progress updates from WebSocket when using EventSource
+        // This prevents duplicate updates that cause flickering
       } catch (error) {
-        // Error silently handled - removed console.error
+        // Error silently handled
       }
-    };
-
-    socket.onopen = () => {
-      // WebSocket connection established - removed console.log
-    };
-
-    socket.onerror = (error) => {
-      // WebSocket error silently handled - removed console.error
     };
 
     return () => {

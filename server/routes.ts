@@ -51,10 +51,20 @@ const uploadProgressMap = new Map<string, {
 // Track connected WebSocket clients
 const connectedClients = new Set<WebSocket>();
 
-// Improved broadcastUpdate function
+// Improved broadcastUpdate function with timestamp-based consistency
 function broadcastUpdate(data: any) {
+  // Add timestamp to all messages for client-side ordering and deduplication
+  // This is critical for solving the counter flickering issues when multiple progress
+  // sources (WebSocket, EventSource) send competing updates
+  data.timestamp = Date.now();
+  
   if (data.type === 'progress') {
     try {
+      // Add timestamp to the progress data as well
+      if (data.progress && typeof data.progress === 'object') {
+        data.progress.timestamp = data.timestamp;
+      }
+      
       // Handle Python service progress messages
       const progressStr = data.progress?.stage || '';
       const matches = progressStr.match(/(\d+)\/(\d+)/);
@@ -62,9 +72,10 @@ function broadcastUpdate(data: any) {
       const totalRecords = matches ? parseInt(matches[2]) : data.progress?.total || 0;
       const processedCount = data.progress?.processed || currentRecord;
 
-      // Create enhanced progress object
+      // Create enhanced progress object with timestamp
       const enhancedProgress = {
         type: 'progress',
+        timestamp: Date.now(), // Add timestamp at message level
         progress: {
           processed: processedCount,
           total: totalRecords,
@@ -78,7 +89,8 @@ function broadcastUpdate(data: any) {
             successCount: processedCount,
             errorCount: data.progress?.processingStats?.errorCount || 0,
             averageSpeed: data.progress?.processingStats?.averageSpeed || 0
-          }
+          },
+          timestamp: Date.now() // Add timestamp inside progress object for client deduplication
         }
       };
 
@@ -212,7 +224,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
     // Send initial progress to ensure the connection is working
     try {
-      res.write(`data: ${JSON.stringify(initialProgress)}\n\n`);
+      // Add timestamp to the initial progress message
+      const initialProgressWithTimestamp = {
+        ...initialProgress,
+        timestamp: Date.now() // Add current timestamp
+      };
+      res.write(`data: ${JSON.stringify(initialProgressWithTimestamp)}\n\n`);
     } catch (error) {
       console.error(`Error writing initial progress for session ${sessionId}:`, error);
       return res.end();
