@@ -169,6 +169,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/upload-progress/:sessionId', async (req: Request, res: Response) => {
     const sessionId = req.params.sessionId;
 
+    // Add some debugging
+    console.log(`SSE connection established for session ID: ${sessionId}`);
+
     // Set proper SSE headers
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -1089,6 +1092,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         };
+        
+        // Update the uploadProgressMap with the latest values for EventSource connection
+        uploadProgressMap.set(sessionId, {
+          processed: extractedProcessed,
+          total: extractedTotal,
+          stage: extractedStage || 'Processing...',
+          timestamp: Date.now(),
+          batchNumber: batchInfo?.batchNumber || 0,
+          totalBatches: batchInfo?.totalBatches || 0,
+          batchProgress: batchInfo?.batchProgress || 0,
+          currentSpeed: 0, // Will be calculated on next update
+          timeRemaining: 0, // Will be calculated on next update
+          processingStats: batchInfo?.stats || {
+            successCount: extractedProcessed,
+            errorCount: 0,
+            lastBatchDuration: 0,
+            averageSpeed: 0
+          }
+        });
 
         // Only log important formatted data (batch related, completion, errors)
         if (extractedStage && (extractedStage.includes("batch") || extractedStage.includes("complete") || 
