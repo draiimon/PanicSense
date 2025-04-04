@@ -165,6 +165,15 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   // Get current location to detect route changes
   const [location] = useLocation();
   
+  // Define refresh function before we use it in useEffects
+  const refreshData = () => {
+    if (refetchSentimentPosts && refetchDisasterEvents && refetchAnalyzedFiles) {
+      refetchSentimentPosts();
+      refetchDisasterEvents();
+      refetchAnalyzedFiles();
+    }
+  };
+
   // Restore upload state on app load and check on every page navigation
   useEffect(() => {
     console.log('Checking for active uploads on route:', location);
@@ -579,7 +588,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     };
     
     checkAndReconnectToActiveUploads();
-  }, [location, refreshData]);
+  }, [location]);
 
   // WebSocket setup for all non-upload messages (like feedback, post updates)
   // We'll keep this separate from the upload progress handling to avoid conflicts
@@ -764,13 +773,6 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   const modelConfidence = Array.isArray(sentimentPosts) && sentimentPosts.length > 0 
     ? totalConfidence / sentimentPosts.length 
     : 0;
-
-  // Refresh function
-  const refreshData = () => {
-    refetchSentimentPosts();
-    refetchDisasterEvents();
-    refetchAnalyzedFiles();
-  };
 
   return (
     <DisasterContext.Provider
