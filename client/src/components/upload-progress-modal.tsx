@@ -16,12 +16,53 @@ import { cancelUpload } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 export function UploadProgressModal() {
-  const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
+  const { isUploading, uploadProgress, setIsUploading, setUploadProgress } = useDisasterContext();
   const [highestProcessed, setHighestProcessed] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isStalled, setIsStalled] = useState(false);
   const { toast } = useToast();
+  
+  // Special effect to check localStorage on mount and try to recover upload state
+  useEffect(() => {
+    // Import the upload-persistence module dynamically to avoid circular deps
+    import('@/lib/upload-persistence').then(({ 
+      isUploading: checkIsUploading, 
+      getUploadProgress 
+    }) => {
+      // Check if we have upload data in localStorage but not showing in UI
+      const wasUploading = checkIsUploading();
+      const storedProgress = getUploadProgress();
+      
+      if (wasUploading && storedProgress && !isUploading) {
+        try {
+          console.log('Recovering upload progress from localStorage using persistence module');
+          // Force the UI to show the upload modal
+          setIsUploading(true);
+          setUploadProgress(storedProgress);
+        } catch (error) {
+          console.error('Error recovering upload progress:', error);
+        }
+      }
+    }).catch(err => {
+      console.error('Failed to import upload-persistence module:', err);
+      
+      // Fallback to direct localStorage access if module import fails
+      const wasUploading = localStorage.getItem('isUploading') === 'true';
+      const storedProgress = localStorage.getItem('uploadProgress');
+      
+      if (wasUploading && storedProgress && !isUploading) {
+        try {
+          console.log('Recovering upload progress using direct localStorage access');
+          const parsedProgress = JSON.parse(storedProgress);
+          setIsUploading(true);
+          setUploadProgress(parsedProgress);
+        } catch (error) {
+          console.error('Error recovering upload progress (fallback):', error);
+        }
+      }
+    });
+  }, []);
   
   // Reference for retry mechanism
   const stalledRetryCount = useRef(0);
@@ -89,6 +130,7 @@ export function UploadProgressModal() {
     processingStats = {
       successCount: 0,
       errorCount: 0,
+      lastBatchDuration: 0,
       averageSpeed: 0
     },
     currentSpeed = 0,

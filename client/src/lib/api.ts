@@ -257,10 +257,36 @@ export async function uploadCSV(
   const sessionId = crypto.randomUUID();
   currentUploadSessionId = sessionId;
   
-  // Store the session ID in both localStorage (legacy) and database
-  localStorage.setItem('uploadSessionId', sessionId);
-  // Also store that we're in an uploading state to persist across refreshes
-  localStorage.setItem('isUploading', 'true');
+  // Store upload information in localStorage for persistence across refreshes using the persistence module
+  // Import the persistence module functions dynamically to avoid circular deps
+  const { 
+    saveUploadSessionId, 
+    saveUploadingState, 
+    saveUploadProgress 
+  } = await import('./upload-persistence');
+  
+  // Save session ID and upload state
+  saveUploadSessionId(sessionId);
+  saveUploadingState(true);
+  
+  // Store initial progress state
+  const initialProgress = { 
+    processed: 0, 
+    total: 0, 
+    stage: 'Initializing...',
+    currentSpeed: 0,
+    timeRemaining: 0,
+    batchNumber: 0,
+    totalBatches: 0,
+    batchProgress: 0,
+    processingStats: {
+      successCount: 0,
+      errorCount: 0,
+      lastBatchDuration: 0,
+      averageSpeed: 0
+    }
+  };
+  saveUploadProgress(initialProgress);
   
   // If onProgress callback is provided, check for any active upload sessions 
   // that might have been interrupted
@@ -327,10 +353,21 @@ export async function uploadCSV(
         currentEventSource.close();
         currentEventSource = null;
       }
+      
       // Only clear the session ID after we're sure all progress updates are received
       currentUploadSessionId = null;
-      localStorage.removeItem('uploadSessionId');
-      localStorage.removeItem('isUploading');
+      
+      // Use our new persistence module to clear all upload state
+      // This ensures we clean up all state consistently
+      import('./upload-persistence').then(({ clearUploadState }) => {
+        clearUploadState();
+      }).catch(err => {
+        console.error('Failed to import upload-persistence module:', err);
+        // Fallback to direct localStorage removal if module import fails
+        localStorage.removeItem('uploadSessionId');
+        localStorage.removeItem('isUploading');
+        localStorage.removeItem('uploadProgress');
+      });
     }, 5000);
   }
 }
