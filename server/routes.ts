@@ -1066,9 +1066,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         details: error instanceof Error ? error.message : String(error)
       });
     } finally {
+      // Keep progress map entries longer to ensure all clients can get the final state
+      // This helps prevent progress indicators from disappearing too early
       setTimeout(() => {
+        console.log(`Cleaning up upload progress map for session ${sessionId} after processing`);
         uploadProgressMap.delete(sessionId);
-      }, 5000);
+      }, 30000); // Increased from 5s to 30s to give clients more time to get final state
     }
   });
 

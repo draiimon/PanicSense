@@ -327,23 +327,41 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
 
             // Calculate actual progress percentage
             const processedCount = pythonProgress.processed || currentRecord;
+            
+            // Store incoming progress in localStorage to recover in case of page refresh
+            try {
+              localStorage.setItem('uploadProgress', JSON.stringify({
+                ...pythonProgress,
+                processed: processedCount,
+                total: totalRecords || pythonProgress.total,
+                stage: pythonProgress.stage
+              }));
+            } catch (e) {
+              console.warn('Could not save progress to localStorage', e);
+            }
 
-            setUploadProgress(prev => ({
-              ...prev,
-              processed: processedCount,
-              total: totalRecords || prev.total,
-              stage: pythonProgress.stage || prev.stage,
-              batchNumber: currentRecord,
-              totalBatches: totalRecords,
-              batchProgress: totalRecords > 0 ? Math.round((processedCount / totalRecords) * 100) : 0,
-              currentSpeed: pythonProgress.currentSpeed || prev.currentSpeed,
-              timeRemaining: pythonProgress.timeRemaining || prev.timeRemaining,
-              processingStats: {
-                successCount: processedCount,
-                errorCount: pythonProgress.processingStats?.errorCount || 0,
-                averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
-              }
-            }));
+            setUploadProgress(prev => {
+              // Only update if the new progress is equal or greater than current,
+              // never go backwards to prevent progress indicators from jumping
+              const newProcessed = Math.max(processedCount, prev.processed);
+              
+              return {
+                ...prev,
+                processed: newProcessed,
+                total: totalRecords || prev.total,
+                stage: pythonProgress.stage || prev.stage,
+                batchNumber: currentRecord,
+                totalBatches: totalRecords,
+                batchProgress: totalRecords > 0 ? Math.round((newProcessed / totalRecords) * 100) : 0,
+                currentSpeed: pythonProgress.currentSpeed || prev.currentSpeed,
+                timeRemaining: pythonProgress.timeRemaining || prev.timeRemaining,
+                processingStats: {
+                  successCount: newProcessed,
+                  errorCount: pythonProgress.processingStats?.errorCount || 0,
+                  averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
+                }
+              };
+            });
           }
         }
       } catch (error) {

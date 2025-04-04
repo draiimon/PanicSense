@@ -41,6 +41,26 @@ export function UploadProgressModal() {
     }
   }, [isUploading]);
   
+  // Handle cancel button click
+  const handleCancel = async () => {
+    if (isCancelling) return;
+    
+    setShowCancelDialog(false);
+    setIsCancelling(true);
+    try {
+      const result = await cancelUpload();
+      
+      if (result.success) {
+        // We'll let the server-side events close the modal
+      } else {
+        setIsCancelling(false);
+      }
+    } catch (error) {
+      // Error handling
+      setIsCancelling(false);
+    }
+  };
+
   // Don't render the modal if not uploading
   if (!isUploading) return null;
   
@@ -106,26 +126,6 @@ export function UploadProgressModal() {
       if (stalledTimer) clearTimeout(stalledTimer);
     };
   }, [processed, isComplete, hasError, total, highestProcessed]);
-  
-  // Handle cancel button click
-  const handleCancel = async () => {
-    if (isCancelling) return;
-    
-    setShowCancelDialog(false);
-    setIsCancelling(true);
-    try {
-      const result = await cancelUpload();
-      
-      if (result.success) {
-        // We'll let the server-side events close the modal
-      } else {
-        setIsCancelling(false);
-      }
-    } catch (error) {
-      // Error handling
-      setIsCancelling(false);
-    }
-  };
 
   return createPortal(
     <motion.div

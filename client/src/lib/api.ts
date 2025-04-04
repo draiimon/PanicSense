@@ -270,11 +270,18 @@ export async function uploadCSV(
     }
     throw error;
   } finally {
-    eventSource.close();
-    currentEventSource = null;
-    currentUploadSessionId = null;
-    // Clear the session ID from localStorage
-    localStorage.removeItem('uploadSessionId');
+    // Don't immediately close the event source - keep it open for 5 seconds
+    // so it can receive final completion messages from the server
+    setTimeout(() => {
+      console.log('Closing EventSource connection after delay');
+      if (currentEventSource) {
+        currentEventSource.close();
+        currentEventSource = null;
+      }
+      // Only clear the session ID after we're sure all progress updates are received
+      currentUploadSessionId = null;
+      localStorage.removeItem('uploadSessionId');
+    }, 5000);
   }
 }
 
