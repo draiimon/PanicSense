@@ -7,6 +7,8 @@ import { checkPortPeriodically, checkPort } from "./debug-port";
 import { applyEmergencyFixes } from "./emergency-db-fix";
 // Import the simple fix (now ESM compatible)
 import { simpleDbFix } from "./db-simple-fix";
+// Import Python service for shutdown handling
+import { pythonService } from "./python-service";
 
 // Create a global server start timestamp for detecting restarts
 // This will be used by routes.ts to detect server restarts
@@ -84,6 +86,62 @@ app.use((req, res, next) => {
     
     const server = await registerRoutes(app);
     console.log("Routes registered successfully");
+    
+    // Setup process shutdown handlers to ensure cleanup
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM signal received: closing server and cleaning up Python processes');
+      cleanupAndExit(server);
+    });
+    
+    process.on('SIGINT', () => {
+      console.log('SIGINT signal received: closing server and cleaning up Python processes');
+      cleanupAndExit(server);
+    });
+    
+    // Unhandled promise rejections and exceptions
+    process.on('unhandledRejection', (reason) => {
+      console.error('Unhandled Rejection, reason:', reason);
+    });
+    
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught Exception:', error);
+      cleanupAndExit(server);
+    });
+    
+    // Cleanup function to terminate Python processes
+    function cleanupAndExit(server: any) {
+      console.log('🧹 Starting cleanup process before shutdown...');
+      
+      try {
+        // First, cancel all active Python processes
+        const activeSessions = pythonService.getActiveProcessSessions();
+        if (activeSessions.length > 0) {
+          console.log(`🔥 Cancelling ${activeSessions.length} active Python processes`);
+          pythonService.cancelAllProcesses();
+          console.log('✅ All Python processes terminated successfully');
+        } else {
+          console.log('ℹ️ No active Python processes to terminate');
+        }
+        
+        // Then close the server
+        console.log('🛑 Closing HTTP server...');
+        server.close(() => {
+          console.log('✅ Server closed successfully');
+          console.log('👋 Exiting process');
+          process.exit(0);
+        });
+        
+        // Force exit after 3 seconds if server.close doesn't complete
+        setTimeout(() => {
+          console.log('⚠️ Forced exit due to timeout');
+          process.exit(1);
+        }, 3000);
+      } catch (error) {
+        console.error('Error during cleanup:', error);
+        // Force exit on error
+        process.exit(1);
+      }
+    }
 
     // Enhanced error handling with structured error response
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

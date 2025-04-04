@@ -313,17 +313,41 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
             const currentTimestamp = progress.timestamp || Date.now();
             const lastTimestamp = parseInt(localStorage.getItem('lastProgressTimestamp') || '0');
             
+            // Anti-flicker protection
+            const lastUIUpdate = parseInt(localStorage.getItem('lastUIUpdateTimestamp') || '0');
+            const now = Date.now();
+            const timeSinceLastUpdate = now - lastUIUpdate;
+            
             // Only update if this is a newer message
             if (currentTimestamp >= lastTimestamp) {
-              // Log what we're sending to the UI
-              console.log("Progress being sent to UI:", progress);
-              
-              // Update UI with progress
-              setUploadProgress(progress);
-              
-              // Store the latest progress and timestamp in localStorage
-              localStorage.setItem('uploadProgress', JSON.stringify(progress));
+              // Store the latest progress in localStorage immediately
+              // This ensures we don't lose data even if UI updates are debounced
+              localStorage.setItem('uploadProgress', JSON.stringify({
+                ...progress,
+                savedAt: now
+              }));
               localStorage.setItem('lastProgressTimestamp', currentTimestamp.toString());
+              
+              // DEBOUNCE UI updates - limit to one update per 300ms to prevent flickering
+              // BUT make exceptions for important state changes that should be immediate
+              const isImportantStateChange = 
+                // Always show immediately when batch changes
+                progress.batchNumber !== uploadProgress.batchNumber ||
+                // Always show immediately when state changes (complete, error, etc)
+                progress.stage !== uploadProgress.stage ||
+                // Always update if we haven't updated in over 500ms
+                timeSinceLastUpdate > 500;
+                
+              if (isImportantStateChange || timeSinceLastUpdate > 300) {
+                // Log what we're sending to the UI
+                console.log("Progress being sent to UI:", progress);
+                
+                // Update UI with progress
+                setUploadProgress(progress);
+                
+                // Record the time of this UI update
+                localStorage.setItem('lastUIUpdateTimestamp', now.toString());
+              }
             }
             
             // If the upload is complete or has an error, close the connection
@@ -511,17 +535,41 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
                 const currentTimestamp = progress.timestamp || Date.now();
                 const lastTimestamp = parseInt(localStorage.getItem('lastProgressTimestamp') || '0');
                 
+                // Anti-flicker protection
+                const lastUIUpdate = parseInt(localStorage.getItem('lastUIUpdateTimestamp') || '0');
+                const now = Date.now();
+                const timeSinceLastUpdate = now - lastUIUpdate;
+                
                 // Only update if this is a newer message
                 if (currentTimestamp >= lastTimestamp) {
-                  // Log what we're sending to the UI
-                  console.log("Progress being sent to UI:", progress);
-                  
-                  // Update UI with progress
-                  setUploadProgress(progress);
-                  
-                  // Store the latest progress and timestamp in localStorage
-                  localStorage.setItem('uploadProgress', JSON.stringify(progress));
+                  // Store the latest progress in localStorage immediately
+                  // This ensures we don't lose data even if UI updates are debounced
+                  localStorage.setItem('uploadProgress', JSON.stringify({
+                    ...progress,
+                    savedAt: now
+                  }));
                   localStorage.setItem('lastProgressTimestamp', currentTimestamp.toString());
+                  
+                  // DEBOUNCE UI updates - limit to one update per 300ms to prevent flickering
+                  // BUT make exceptions for important state changes that should be immediate
+                  const isImportantStateChange = 
+                    // Always show immediately when batch changes
+                    progress.batchNumber !== uploadProgress.batchNumber ||
+                    // Always show immediately when state changes (complete, error, etc)
+                    progress.stage !== uploadProgress.stage ||
+                    // Always update if we haven't updated in over 500ms
+                    timeSinceLastUpdate > 500;
+                    
+                  if (isImportantStateChange || timeSinceLastUpdate > 300) {
+                    // Log what we're sending to the UI
+                    console.log("Progress being sent to UI:", progress);
+                    
+                    // Update UI with progress
+                    setUploadProgress(progress);
+                    
+                    // Record the time of this UI update
+                    localStorage.setItem('lastUIUpdateTimestamp', now.toString());
+                  }
                 }
                 
                 // Check for completion states in the stage message
