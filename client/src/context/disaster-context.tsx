@@ -573,27 +573,24 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
               // Calculate actual progress percentage
               const processedCount = pythonProgress.processed;
 
-              // Important: Only update if we have a valid processed count greater than previous
-              setUploadProgress(prev => {
-                // Avoid updating if the value isn't increasing - prevents UI flickering
-                if (processedCount < prev.processed) return prev;
-                
-                return {
-                  ...prev,
-                  processed: processedCount,
-                  total: totalRecords || prev.total,
-                  stage: pythonProgress.stage || prev.stage,
-                  batchNumber: pythonProgress.batchNumber || currentRecord,
-                  totalBatches: pythonProgress.totalBatches || totalRecords,
-                  batchProgress: totalRecords > 0 ? Math.round((processedCount / totalRecords) * 100) : 0,
-                  currentSpeed: pythonProgress.currentSpeed || prev.currentSpeed,
-                  timeRemaining: pythonProgress.timeRemaining || prev.timeRemaining,
-                  processingStats: {
-                    successCount: processedCount,
-                    errorCount: pythonProgress.processingStats?.errorCount || 0,
-                    averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
-                  }
-                };
+              // Important: Use direct values from the server without additional logic/filtering
+              // Always update with the latest values - don't try to prevent flicker by conditional logic
+              setUploadProgress({
+                processed: pythonProgress.processed, // Use this value directly
+                total: pythonProgress.total,
+                stage: pythonProgress.stage,
+                batchNumber: pythonProgress.batchNumber || 0,
+                totalBatches: pythonProgress.totalBatches || 0,
+                batchProgress: pythonProgress.total > 0 
+                  ? Math.round((pythonProgress.processed / pythonProgress.total) * 100) 
+                  : 0,
+                currentSpeed: pythonProgress.currentSpeed || 0,
+                timeRemaining: pythonProgress.timeRemaining || 0,
+                processingStats: {
+                  successCount: pythonProgress.processingStats?.successCount || 0,
+                  errorCount: pythonProgress.processingStats?.errorCount || 0,
+                  averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
+                }
               });
             }
           }

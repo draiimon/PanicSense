@@ -89,12 +89,10 @@ export function UploadProgressModal() {
   let isProcessing = hasProcessingKeyword;
   let isComplete = hasCompletionKeyword;
   
-  // Use the actual processed value directly from the server and ensure we match progress
-  // Ensure the displayed value matches the processing stage
-  const processed = isProcessing || isComplete ? 
-    Math.max(1, rawProcessed) : // Never show 0 during processing
-    1; // Always show at least 1 when preparing
-
+  // IMPORTANT: Always use the server value directly - no modification or logic
+  // We're seeing that the server sends us the correct values, but our UI logic is manipulating it
+  const processed = rawProcessed;
+  
   // Now we can update isComplete with count-based detection
   isComplete = isComplete || (processed >= total && total > 0);
   
