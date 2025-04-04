@@ -120,7 +120,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
   const storedSessionId = localStorage.getItem('uploadSessionId');
   
   // Initialize with localStorage data for immediate UI response
-  let initialUploadState = storedIsUploading;
+  // SUPER AGGRESSIVE LOADING OF INITIALIZING STATE - NEVER LOSE THE INITIALIZING MODAL!
+  // If there's ANY evidence of an upload, show it (progress || isUploading flag)
+  let initialUploadState = storedIsUploading || !!storedProgress || !!storedSessionId;
   let initialProgressState = initialProgress;
   
   // If we have stored progress, parse it for immediate UI display
@@ -155,13 +157,40 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
   // Get toast for notifications
   const { toast } = useToast();
   
-  // ====== HYBRID APPROACH: DATABASE IS BOSS, LOCALSTORAGE IS ASSISTANT ======
-  // This effect runs once on component mount to verify with the database (authoritative source)
+  // ====== HYBRID APPROACH: LOCALSTORAGE IS AUTHORITATIVE FOR UI STATE, DATABASE FOR DATA ======
+  // localStorage controls the UI visibility, DATABASE provides data for display
+  // This approach prioritizes UI stability over real-time database accuracy
   useEffect(() => {
     // Define the database verification function - DATABASE IS BOSS!
     const verifyWithDatabase = async () => {
       try {
-        console.log('Database check running - DATABASE IS BOSS!');
+        console.log('📊 LOCAL is boss for visibility, database for data updates!');
+        
+        // STABILITY FIRST: Always ensure UI state from localStorage is shown immediately
+        // This ensures we never have a flicker or lost initializing state
+        if (storedProgress || storedSessionId || storedIsUploading) {
+          // Maintain the uploading state from localStorage
+          if (!isUploading) {
+            setIsUploading(true);
+            
+            // If we have local progress, use it while waiting for database
+            if (storedProgress) {
+              try {
+                const parsedProgress = JSON.parse(storedProgress);
+                setUploadProgress(parsedProgress);
+              } catch (e) {
+                // If parse error, still show the initializing state
+                setUploadProgress(initialProgress);
+              }
+            } else {
+              // No stored progress, but we have a session - show initializing
+              setUploadProgress(initialProgress);  
+            }
+          }
+        }
+        
+        // THEN check with database, but only for data updates
+        console.log('📊 Checking database for progress updates...');
         
         // Immediate UI setup from localStorage for fast loading
         // But database will always overrule this if different
@@ -237,10 +266,12 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
             console.log('Official database progress saved to localStorage:', officialProgress);
           }
         } else {
-          // DATABASE SAYS NO ACTIVE UPLOADS - BOSS SAYS NO
-          // BUT WE NEED TO BE CAREFUL ABOUT SERVER RESTARTS!
-          console.log('DATABASE BOSS SAYS: No active uploads exist');
+          // DATABASE SAYS NO ACTIVE UPLOADS - BUT LOCAL IS THE REAL BOSS!
+          // We need to be extremely careful about server restarts
+          console.log('DATABASE says: No active uploads, but LOCAL storage still decides visibility');
           
+          // CRITICAL: If we have ANY evidence of a recent upload in localStorage
+          // we will IGNORE the database and TRUST localStorage
           if (isUploading) {
             // CHECK FOR SERVER RESTART CONDITION
             // If the localStorage has very recent data, it could be due to server restart
@@ -272,10 +303,11 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
               }
             }
             
-            // Normal case - follow database boss and clean up
-            console.log('Clearing all upload state because database says so');
+            // Old data - local storage now over 2 minutes
+            // Only in this case we follow database and clean up
+            console.log('✂️ Clearing upload state only because LOCAL DATA is old (>2 min)');
             
-            // Clear localStorage completely - follow the boss
+            // Clear localStorage completely (only for old data)
             localStorage.removeItem('isUploading');
             localStorage.removeItem('uploadProgress');
             localStorage.removeItem('uploadSessionId');
