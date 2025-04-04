@@ -941,6 +941,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let analyzedFileId: number | null = null;
     // Track the highest progress value to prevent jumping backward
     let highestProcessedValue = 0;
+    // Keep track of completed records across batches
+    let cumulativeProcessedRecords = 0;
+    // Track the current batch number to detect batch transitions
+    let currentBatchNumber = 0;
     
     // This flag tracks if the batch saving process is currently active
     let isBatchSavingActive = false;
@@ -1053,9 +1057,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const isInitPhaseComplete = extractedStage?.toLowerCase().includes('identified data columns') || 
                                   extractedStage?.toLowerCase().includes('starting batch');
         
-        // Detect real phase transition (column identification -> record processing)
-        if (isProcessingRecord && extractedProcessed < highestProcessedValue && extractedProcessed <= 5) {
+        // Extract batch number if present in the stage information
+        let batchNum = 0;
+        if (isProcessingRecord) {
+          // Try to extract batch number from "Starting batch X of Y" message
+          const batchStartMatch = stage.match(/Starting batch (\d+) of (\d+)/i);
+          if (batchStartMatch) {
+            batchNum = parseInt(batchStartMatch[1]);
+            if (batchNum > currentBatchNumber) {
+              // New batch starting - log the transition
+              console.log(`Batch transition detected: from batch ${currentBatchNumber} to ${batchNum}`);
+              // Store the batch size from the previous batch to calculate cumulative progress
+              const previousBatchSize = highestProcessedValue;
+              // Update cumulative count
+              if (currentBatchNumber > 0) {
+                cumulativeProcessedRecords += previousBatchSize;
+                console.log(`Cumulative records processed: ${cumulativeProcessedRecords}`);
+              }
+              // Reset highest value for new batch
+              highestProcessedValue = 0;
+              // Update current batch
+              currentBatchNumber = batchNum;
+            }
+          }
+        }
+        
+        // Special case: detect the initialization transition (usually 5 -> 1)
+        const isInitialDataProcessingStart = 
+          // We're looking for the first time we encounter a "Processing record 1/X" message
+          extractedProcessed === 1 && 
+          stage.includes("Processing record 1/") && 
+          // And we've previously seen some other "progress" (like column identification)
+          highestProcessedValue > 0 && 
+          // And we haven't started actual record processing yet (currentBatchNumber will be 0)
+          currentBatchNumber === 0;
+          
+        if (isInitialDataProcessingStart) {
+          console.log(`Initial record processing transition detected! Preventing jump backwards from ${highestProcessedValue} to 1`);
+          // Don't add to cumulative records since this is the start of processing 
+          // just keep the UI showing the higher value for continuity
+          extractedProcessed = highestProcessedValue;
+          // Mark that we're now in the data processing phase
+          currentBatchNumber = 1;
+        }
+        // Normal batch transition detection
+        else if (isProcessingRecord && extractedProcessed < highestProcessedValue && extractedProcessed <= 5) {
           console.log(`Phase transition detected: Progress value changed from ${highestProcessedValue} to ${extractedProcessed}`);
+          
+          // Check if this is a new batch starting
+          if (extractedProcessed === 1 && highestProcessedValue > 20) {
+            // This might be a new batch starting - update cumulative count
+            console.log(`New batch detected, likely starting record 1. Previous highest: ${highestProcessedValue}`);
+            cumulativeProcessedRecords += highestProcessedValue;
+          }
           
           // Allow progress to "reset" and start counting from actual record processing
           // instead of maintaining the artificially high value from column identification
@@ -1065,12 +1119,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           highestProcessedValue = extractedProcessed;
         }
         
+        // Calculate real processed count including previous batches
+        const actualProcessedCount = cumulativeProcessedRecords + extractedProcessed;
+        console.log(`Current batch: ${extractedProcessed}, Cumulative: ${actualProcessedCount}`);
+        
         // Make sure processed never exceeds total
         if (extractedTotal > 0 && extractedProcessed > extractedTotal) {
           console.log(`Progress exceeds total (${extractedProcessed} > ${extractedTotal}), capping at total`);
           extractedProcessed = extractedTotal;
           highestProcessedValue = extractedTotal; // Reset highest value too
         }
+        
+        // Update the extracted processed value to include previous batches
+        extractedProcessed = actualProcessedCount;
 
         // Create progress update for broadcasting
         const progressData = {
