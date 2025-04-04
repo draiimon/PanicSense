@@ -688,11 +688,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get active upload session with stale check
   app.get('/api/active-upload-session', async (req: Request, res: Response) => {
     try {
-      // Query all sessions from the database
-      const sessions = await db.select().from(uploadSessions)
-        .where(eq(uploadSessions.status, 'active'))
-        .orderBy(desc(uploadSessions.id))
-        .limit(1);
+      // Import the withRetry function
+      const { withRetry } = await import('./db');
+      
+      // Use withRetry to handle potential database errors with auto-retry
+      const sessions = await withRetry(async () => {
+        return await db.select().from(uploadSessions)
+          .where(eq(uploadSessions.status, 'active'))
+          .orderBy(desc(uploadSessions.id))
+          .limit(1);
+      }, 3, 500); // 3 retries with 500ms initial delay
       
       if (sessions.length > 0) {
         const activeSession = sessions[0];
@@ -706,13 +711,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (createdAt && createdAt < thirtyMinutesAgo) {
           console.log(`Found stale upload session ${activeSession.sessionId}, marking as completed`);
           
-          // Update to completed status
-          await db.update(uploadSessions)
-            .set({ 
-              status: 'completed',
-              updatedAt: new Date()
-            })
-            .where(eq(uploadSessions.sessionId, activeSession.sessionId));
+          // Update to completed status with retry
+          await withRetry(async () => {
+            await db.update(uploadSessions)
+              .set({ 
+                status: 'completed',
+                updatedAt: new Date()
+              })
+              .where(eq(uploadSessions.sessionId, activeSession.sessionId));
+          });
           
           // Return no active session
           return res.json({ sessionId: null, staleSessionCleared: true });
@@ -724,13 +731,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!isProcessRunning) {
           console.log(`No active Python process for session ${activeSession.sessionId}, marking as completed`);
           
-          // Update to completed status
-          await db.update(uploadSessions)
-            .set({ 
-              status: 'completed',
-              updatedAt: new Date()
-            })
-            .where(eq(uploadSessions.sessionId, activeSession.sessionId));
+          // Update to completed status with retry
+          await withRetry(async () => {
+            await db.update(uploadSessions)
+              .set({ 
+                status: 'completed',
+                updatedAt: new Date()
+              })
+              .where(eq(uploadSessions.sessionId, activeSession.sessionId));
+          });
           
           // Return no active session
           return res.json({ sessionId: null, staleSessionCleared: true });
@@ -750,9 +759,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ sessionId: null });
     } catch (error) {
       console.error('Error retrieving active upload session:', error);
-      res.status(500).json({ 
-        error: 'Failed to retrieve active upload session',
-        details: error instanceof Error ? error.message : String(error)
+      
+      // Return a graceful fallback response for the UI
+      // This prevents errors in the UI when the database is temporarily down
+      return res.json({ 
+        sessionId: null, 
+        error: true,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        recoverable: true
       });
     }
   });
@@ -760,13 +774,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Reset all upload sessions (emergency endpoint)
   app.post('/api/reset-upload-sessions', async (req: Request, res: Response) => {
     try {
-      // Update all active sessions to completed
-      await db.update(uploadSessions)
-        .set({ 
-          status: 'completed',
-          updatedAt: new Date()
-        })
-        .where(eq(uploadSessions.status, 'active'));
+      // Import the withRetry function
+      const { withRetry } = await import('./db');
+      
+      // Update all active sessions to completed with retry
+      await withRetry(async () => {
+        await db.update(uploadSessions)
+          .set({ 
+            status: 'completed',
+            updatedAt: new Date()
+          })
+          .where(eq(uploadSessions.status, 'active'));
+      });
       
       // Cancel all running processes
       pythonService.cancelAllProcesses();
