@@ -253,10 +253,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const elapsed = (now - progress.timestamp) / 1000; // seconds
 
           if (elapsed > 0) {
+            // Calculate current speed based on processed records
             progress.currentSpeed = progress.processed / elapsed;
-            progress.timeRemaining = progress.currentSpeed > 0 
-              ? (progress.total - progress.processed) / progress.currentSpeed 
-              : 0;
+            
+            // Calculate time remaining with batch logic:
+            // 1. Each batch of 30 takes ~30 seconds to process + 60 second pause
+            // 2. So each batch needs ~90 seconds total
+            if (progress.currentSpeed > 0) {
+              const remainingRecords = progress.total - progress.processed;
+              const recordsPerBatch = 30; // Standard batch size
+              const batchTimeSeconds = 90; // 30s processing + 60s pause
+              const remainingBatches = Math.ceil(remainingRecords / recordsPerBatch);
+              progress.timeRemaining = remainingBatches * batchTimeSeconds;
+            } else {
+              progress.timeRemaining = 0;
+            }
           }
 
           // Create enhanced progress object

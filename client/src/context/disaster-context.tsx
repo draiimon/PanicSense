@@ -175,8 +175,10 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         // First check database for active uploads
         const activeSessionId = await checkForActiveSessions();
         
+        // If found an active session in database
         if (activeSessionId) {
           console.log('Active upload session found in database:', activeSessionId);
+          // Make sure the upload modal is shown
           setIsUploading(true);
           
           // Set up a more robust EventSource for progress updates

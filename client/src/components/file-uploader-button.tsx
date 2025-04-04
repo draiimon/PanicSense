@@ -26,8 +26,13 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         // If there's an active session and we're not already in upload mode,
         // the DisasterContext will handle setting up the connection
         
-        console.log('Active upload session check complete:', 
-          activeSessionId ? `Session ${activeSessionId} active` : 'No active sessions');
+        if (activeSessionId) {
+          // Ensure the upload modal is displayed if we have an active session
+          setIsUploading(true);
+          console.log('Active upload session detected:', `Session ${activeSessionId} active`);
+        } else {
+          console.log('Active upload session check complete: No active sessions');
+        }
       } catch (error) {
         console.error('Error checking for active uploads:', error);
       } finally {
@@ -36,7 +41,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     };
     
     checkActive();
-  }, []);
+  }, [setIsUploading]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -66,12 +71,10 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     }
 
     try {
-      // Reset sequence
-      setIsUploading(false);
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Set uploading state and progress in a single update
       setUploadProgress({ 
         processed: 0, 
-        total: 0, 
+        total: 100, 
         stage: 'Initializing...',
         currentSpeed: 0,
         timeRemaining: 0,
@@ -84,7 +87,8 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           averageSpeed: 0
         }
       });
-      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Set uploading flag without delay
       setIsUploading(true);
 
       const result = await uploadCSV(file, (progress) => {

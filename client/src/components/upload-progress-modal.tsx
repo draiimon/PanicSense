@@ -65,13 +65,16 @@ export function UploadProgressModal() {
   // Convert stage to lowercase once for all checks
   const stageLower = stage.toLowerCase();
   
-  // Check if we're in the initializing phase - ONLY include initial column detection
+  // Check if we're in the initializing phase
+  // Include the initial loading state when application is started or refreshed
+  // and restoring an in-progress upload
   const isInitializing = rawProcessed === 0 || 
                         stageLower.includes('initializing') || 
                         stageLower.includes('loading csv file') ||
                         stageLower.includes('file loaded') ||
                         stageLower.includes('identifying columns') || 
-                        stageLower.includes('identified data columns');
+                        stageLower.includes('identified data columns') ||
+                        stageLower.includes('preparing');
   
   // Keep original server values for display
   const processedCount = rawProcessed;
