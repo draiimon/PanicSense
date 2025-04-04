@@ -166,7 +166,27 @@ export async function checkForActiveSessions(): Promise<string | null> {
         console.log(`Restored active upload session ${data.sessionId} from database`);
         return data.sessionId;
       }
+      
+      // Check if a stale session was cleared
+      if (data.staleSessionCleared) {
+        console.log('Stale session was cleared by server');
+      } else {
+        console.log('Active upload session check complete: No active sessions');
+      }
     }
+    
+    // If no active session in database, but we have data in localStorage
+    // Don't immediately clear localStorage - let the disaster-context handle that
+    const localSessionId = localStorage.getItem('uploadSessionId');
+    const isUploadingFromStorage = localStorage.getItem('isUploading') === 'true';
+    
+    if (localSessionId && isUploadingFromStorage) {
+      console.log('No active database session, but found localStorage session:', localSessionId);
+      // Return the localStorage session ID, but don't set currentUploadSessionId
+      // This ensures the UI shows the modal but doesn't try to reconnect to SSE
+      return null;
+    }
+    
     return null;
   } catch (error) {
     console.error('Error checking for active sessions:', error);

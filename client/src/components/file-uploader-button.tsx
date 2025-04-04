@@ -91,8 +91,12 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       // Set uploading flag without delay
       setIsUploading(true);
 
+      // Set localStorage flag for persistence across refreshes
+      localStorage.setItem('isUploading', 'true');
+      localStorage.setItem('uploadStartTime', Date.now().toString());
+      
       const result = await uploadCSV(file, (progress) => {
-        // Enhanced progress tracking
+        // Enhanced progress tracking with timestamp
         const currentProgress = {
           processed: Number(progress.processed) || 0,
           total: Number(progress.total) || 0,
@@ -106,11 +110,19 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             successCount: progress.processingStats?.successCount || 0,
             errorCount: progress.processingStats?.errorCount || 0,
             averageSpeed: progress.processingStats?.averageSpeed || 0
-          }
+          },
+          timestamp: Date.now(), // Add timestamp for ordered updates
+          savedAt: Date.now()    // Add timestamp for freshness check
         };
 
         console.log('Progress update:', currentProgress);
+        
+        // Update the UI
         setUploadProgress(currentProgress);
+        
+        // Store in localStorage for persistence across refreshes
+        localStorage.setItem('uploadProgress', JSON.stringify(currentProgress));
+        localStorage.setItem('lastProgressTimestamp', Date.now().toString());
       });
 
       if (result?.file && result?.posts) {
@@ -136,6 +148,13 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         description: error instanceof Error ? error.message : 'Failed to upload file',
         variant: 'destructive',
       });
+      
+      // Make sure to clean up localStorage on error
+      localStorage.removeItem('isUploading');
+      localStorage.removeItem('uploadProgress');
+      localStorage.removeItem('uploadSessionId');
+      localStorage.removeItem('uploadStartTime');
+      localStorage.removeItem('lastProgressTimestamp');
     } finally {
       event.target.value = '';
 
@@ -157,6 +176,15 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             averageSpeed: 0
           }
         });
+        
+        // Properly clear all localStorage items related to upload
+        localStorage.removeItem('isUploading');
+        localStorage.removeItem('uploadProgress');
+        localStorage.removeItem('uploadSessionId');
+        localStorage.removeItem('uploadStartTime');
+        localStorage.removeItem('lastProgressTimestamp');
+        
+        console.log('Upload completed, cleared all localStorage items');
       }, 2000);
     }
   };

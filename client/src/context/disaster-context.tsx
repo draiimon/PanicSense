@@ -401,15 +401,28 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
         // Fall back to localStorage check if no active uploads in database
         // But ONLY if there is local storage data (meaning we need to persist it)
         if (isUploadingFromStorage && storedProgress) {
-          // Check if the stored progress is fresh (less than 5 minutes old)
+          // Check if the stored progress is fresh (less than 30 minutes old, increased from 5 minutes)
           try {
             const parsedProgress = JSON.parse(storedProgress);
             const savedAt = parsedProgress.savedAt || 0;
-            const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+            // Use a longer timeout (30 minutes) to ensure modal doesn't disappear too quickly
+            const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
             
-            // If data is stale (more than 5 minutes old), we'll ignore it
-            if (savedAt < fiveMinutesAgo) {
-              console.log('Stored upload progress is stale, clearing local storage');
+            // If data is stale (more than 30 minutes old), we'll ignore it
+            if (savedAt < thirtyMinutesAgo) {
+              console.log('Stored upload progress is stale (older than 30 minutes), clearing local storage');
+              localStorage.removeItem('isUploading');
+              localStorage.removeItem('uploadProgress');
+              localStorage.removeItem('uploadSessionId');
+              return;
+            }
+            
+            // Important fix: Check if the upload has completed based on the stage
+            const stageLower = parsedProgress.stage?.toLowerCase() || '';
+            if (stageLower.includes('complete') || 
+                stageLower.includes('error') || 
+                stageLower.includes('cancelled')) {
+              console.log('Found completed upload in localStorage, clearing data');
               localStorage.removeItem('isUploading');
               localStorage.removeItem('uploadProgress');
               localStorage.removeItem('uploadSessionId');
@@ -420,6 +433,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
             // We've already parsed the progress, so use it directly
             setUploadProgress(parsedProgress);
             setIsUploading(true);
+            
+            // Set a longer display time to ensure modal doesn't disappear too quickly
+            localStorage.setItem('lastDisplayTime', Date.now().toString());
             
             // Check if there's an active session ID from localStorage
             const sessionId = getCurrentUploadSessionId();
