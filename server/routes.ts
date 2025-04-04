@@ -1027,14 +1027,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Prevent progress from going backward, but never exceed the total
-        if (extractedProcessed < highestProcessedValue) {
-          // This is normal during phase transitions (e.g., from "identifying columns" to "processing records")
-          // Log with a more informative message that explains this is expected behavior
-          console.log(`Phase transition detected: Progress value changed from ${highestProcessedValue} to ${extractedProcessed}. Using highest value for consistent UI experience.`);
-          extractedProcessed = highestProcessedValue;
-        } else if (extractedProcessed > highestProcessedValue) {
+        // No need to prevent progress from going backward - let the UI show the actual value
+        // This allows the initialization phase (5 records) and then actual processing (starting at 1)
+        // to be shown accurately without artificially inflating the counter
+        
+        // Just update our tracking of highest value seen for debugging purposes
+        if (extractedProcessed > highestProcessedValue) {
           highestProcessedValue = extractedProcessed;
+        }
+        
+        // For identifying columns phase - don't log every transition
+        if (extractedStage?.toLowerCase().includes('identifying columns') && 
+            extractedProcessed < highestProcessedValue) {
+          console.log(`Phase transition: From column identification (${highestProcessedValue}) to record processing (${extractedProcessed})`);
         }
         
         // Make sure processed never exceeds total

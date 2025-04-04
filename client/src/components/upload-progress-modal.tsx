@@ -18,30 +18,16 @@ import { cancelUpload } from "@/lib/api";
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
-  const [highestProcessed, setHighestProcessed] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   // Fixed approach for animation with proper conditions
   const breathingOffset = { scale: 1 };
 
-  // Effect to track the highest processed value
-  useEffect(() => {
-    if (uploadProgress.processed > 0 && uploadProgress.processed > highestProcessed) {
-      setHighestProcessed(uploadProgress.processed);
-    }
-  }, [uploadProgress.processed, highestProcessed]);
+  // No need to track highest processed value anymore - we're showing the raw value
+  // and using fixed height to prevent layout shifts
 
-  // Reset highest processed value when modal is closed plus smoother transitions
-  useEffect(() => {
-    if (!isUploading) {
-      // Add a small delay to prevent any jump/flash effect during state transitions 
-      const timer = setTimeout(() => {
-        setHighestProcessed(0);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isUploading]);
+  // Since we now let the raw count show directly, we don't need to track highest value anymore
   
   // Handle cancel button click
   const handleCancel = async () => {
@@ -84,11 +70,14 @@ export function UploadProgressModal() {
     error = ''
   } = uploadProgress;
   
-  // Simplified special handling for initial display
-  const displayProcessed = Math.max(rawProcessed, stage.toLowerCase().includes('processing') && rawProcessed === 0 ? 1 : 0);
+  // Use the actual processed value directly from the server
+  // Only for display consistency, don't artificially inflate initial value
+  const processed = rawProcessed;
   
-  // Only use highest recorded value for transitions, not for actual counts
-  const processed = Math.max(displayProcessed, highestProcessed);
+  // Min-height styling to prevent UI shrinking during transitions
+  const modalContentStyle = {
+    minHeight: '420px' // Set min-height to prevent modal shrinking
+  };
 
   // Calculate completion percentage safely
   const percentComplete = total > 0 
@@ -133,6 +122,7 @@ export function UploadProgressModal() {
           boxShadow: "0 8px 32px rgba(31, 38, 135, 0.15)",
           backdropFilter: "blur(8px)",
           border: "1px solid rgba(255, 255, 255, 0.2)",
+          minHeight: "480px", // Fixed height to prevent shrinking
         }}
         className="relative rounded-xl overflow-hidden w-full max-w-sm mx-4"
       >
