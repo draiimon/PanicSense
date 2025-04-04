@@ -292,76 +292,51 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
   };
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <motion.label
-        whileHover={{ scale: isUploading || isCheckingForUploads ? 1 : 1.03 }}
-        whileTap={{ scale: isUploading || isCheckingForUploads ? 1 : 0.97 }}
-        className={`
-          relative inline-flex items-center justify-center px-5 py-2.5 h-10
-          ${isUploading 
-            ? 'bg-gray-500 cursor-not-allowed opacity-70' 
-            : 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 cursor-pointer'
-          }
-          text-white text-sm font-medium rounded-full
-          transition-all duration-300
-          shadow-md hover:shadow-lg
-          overflow-hidden
-          ${className}
-        `}
-      >
-        {/* Content */}
-        <div className="relative flex items-center justify-center">
-          {isCheckingForUploads ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              <span>Checking...</span>
-            </>
-          ) : isUploading ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              <span>Upload in Progress</span>
-            </>
-          ) : (
-            <>
-              <Upload className="h-4 w-4 mr-2" />
-              <span>Upload Dataset</span>
-            </>
-          )}
-        </div>
-
-        {/* Only allow file selection when not uploading */}
-        {!isUploading && !isCheckingForUploads && (
-          <input 
-            type="file" 
-            className="hidden" 
-            accept=".csv" 
-            onChange={handleFileUpload}
-          />
-        )}
-      </motion.label>
-      
-      {/* Troubleshooting button with normal functionality */}
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="flex items-center gap-1 text-xs bg-transparent border-gray-300 hover:bg-gray-100"
-        onClick={handleCleanupErrorSessions}
-        disabled={isCleaningUpSessions}
-      >
-        {isCleaningUpSessions ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
+    <motion.label
+      whileHover={{ scale: isUploading || isCheckingForUploads ? 1 : 1.03 }}
+      whileTap={{ scale: isUploading || isCheckingForUploads ? 1 : 0.97 }}
+      className={`
+        relative inline-flex items-center justify-center px-5 py-2.5 h-10
+        ${isUploading 
+          ? 'bg-gray-500 cursor-not-allowed opacity-70' 
+          : 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 cursor-pointer'
+        }
+        text-white text-sm font-medium rounded-full
+        transition-all duration-300
+        shadow-md hover:shadow-lg
+        overflow-hidden
+        ${className}
+      `}
+    >
+      {/* Content */}
+      <div className="relative flex items-center justify-center">
+        {isCheckingForUploads ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <span>Checking...</span>
+          </>
+        ) : isUploading ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <span>Upload in Progress</span>
+          </>
         ) : (
-          <RefreshCw className="h-3 w-3 text-amber-500" />
+          <>
+            <Upload className="h-4 w-4 mr-2" />
+            <span>Upload Dataset</span>
+          </>
         )}
-        <span>{isCleaningUpSessions ? 'Cleaning...' : 'Fix Upload Issues'}</span>
-      </Button>
-      
-      {/* Auto-cleanup results */}
-      {sessionCleanedCount > 0 && (
-        <div className="bg-green-50 p-2 rounded-md text-xs text-green-700 text-center">
-          Auto-cleaned {sessionCleanedCount} stale sessions.
-        </div>
+      </div>
+
+      {/* Only allow file selection when not uploading */}
+      {!isUploading && !isCheckingForUploads && (
+        <input 
+          type="file" 
+          className="hidden" 
+          accept=".csv" 
+          onChange={handleFileUpload}
+        />
       )}
-    </div>
+    </motion.label>
   );
 }
