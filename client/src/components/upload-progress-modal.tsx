@@ -22,6 +22,31 @@ export function UploadProgressModal() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
+  // Manually close the modal and clean up both localStorage and database
+  const forceCloseModal = async () => {
+    // First try to cancel the upload through the API to ensure database cleanup
+    try {
+      // This ensures the server-side cleanup occurs, deleting the session from the database
+      const sessionId = localStorage.getItem('uploadSessionId');
+      if (sessionId) {
+        // Try to cancel through the API first (which will delete the session from the database)
+        await cancelUpload();
+        console.log('Force close: Upload cancelled through API to ensure database cleanup');
+      }
+    } catch (error) {
+      console.error('Error cancelling upload during force close:', error);
+    }
+    
+    // Then clean up local storage
+    localStorage.removeItem('isUploading');
+    localStorage.removeItem('uploadProgress');
+    localStorage.removeItem('uploadSessionId');
+    localStorage.removeItem('lastProgressTimestamp');
+    
+    // Finally update context state
+    setIsUploading(false);
+  };
+  
   // Handle cancel button click
   const handleCancel = async () => {
     if (isCancelling) return;
@@ -32,12 +57,15 @@ export function UploadProgressModal() {
       const result = await cancelUpload();
       
       if (result.success) {
-        // We'll let the server-side events close the modal
+        // Force close the modal instead of waiting for events
+        forceCloseModal();
       } else {
         setIsCancelling(false);
       }
     } catch (error) {
-      setIsCancelling(false);
+      console.error('Error cancelling upload:', error);
+      // Even on error, force close the modal
+      forceCloseModal();
     }
   };
 
@@ -437,7 +465,7 @@ export function UploadProgressModal() {
                 
                 <div className="mt-3 text-center">
                   <Button
-                    onClick={() => setIsUploading(false)}
+                    onClick={() => forceCloseModal()}
                     variant="destructive"
                     className="bg-red-600 hover:bg-red-700 text-white px-4"
                   >
@@ -479,7 +507,7 @@ export function UploadProgressModal() {
                   variant="default"
                   size="sm"
                   className="gap-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-full px-5"
-                  onClick={() => setIsUploading(false)}
+                  onClick={() => forceCloseModal()}
                 >
                   <CheckCircle className="h-4 w-4" />
                   <span>Complete - Close</span>

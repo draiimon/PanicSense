@@ -505,8 +505,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Update the database record
           try {
             if (existingSession) {
-              // Update existing session to canceled status
+              // First, update the session to show it's being cancelled
               await storage.updateUploadSession(sessionId, 'canceled', progress);
+              
+              // Then properly delete the upload session from the database
+              await storage.deleteUploadSession(sessionId);
+              console.log(`Successfully deleted upload session ${sessionId} from database`);
             }
           } catch (error) {
             console.error('Error updating upload session in database:', error);
