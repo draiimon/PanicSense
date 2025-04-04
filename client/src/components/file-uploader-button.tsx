@@ -173,11 +173,8 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     }
 
     try {
-      // Generate a session ID for tracking this upload
-      const sessionId = crypto.randomUUID();
-      
       // Set uploading state and progress in a single update
-      const initialProgress = { 
+      setUploadProgress({ 
         processed: 0, 
         total: 100, 
         stage: 'Initializing...',
@@ -190,38 +187,15 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           successCount: 0,
           errorCount: 0,
           averageSpeed: 0
-        },
-        timestamp: Date.now() // Add timestamp for ordering
-      };
-      
-      setUploadProgress(initialProgress);
+        }
+      });
       
       // Set uploading flag without delay
       setIsUploading(true);
 
       // Set localStorage flag for persistence across refreshes
       localStorage.setItem('isUploading', 'true');
-      localStorage.setItem('uploadSessionId', sessionId);
       localStorage.setItem('uploadStartTime', Date.now().toString());
-      localStorage.setItem('uploadProgress', JSON.stringify({
-        ...initialProgress,
-        savedAt: Date.now()
-      }));
-      
-      // Broadcast to other tabs via BroadcastChannel
-      if ('BroadcastChannel' in window) {
-        try {
-          const broadcastChannel = new BroadcastChannel('upload_progress_sync');
-          broadcastChannel.postMessage({
-            type: 'UPLOAD_STARTED',
-            sessionId,
-            progress: initialProgress
-          });
-          // We don't close the channel yet, it will be managed by the context
-        } catch (e) {
-          console.error('Error broadcasting upload start:', e);
-        }
-      }
       
       const result = await uploadCSV(file, (progress) => {
         // Enhanced progress tracking with timestamp
@@ -251,20 +225,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         // Store in localStorage for persistence across refreshes
         localStorage.setItem('uploadProgress', JSON.stringify(currentProgress));
         localStorage.setItem('lastProgressTimestamp', Date.now().toString());
-        
-        // Broadcast progress to other tabs
-        if ('BroadcastChannel' in window) {
-          try {
-            const broadcastChannel = new BroadcastChannel('upload_progress_sync');
-            broadcastChannel.postMessage({
-              type: 'UPLOAD_PROGRESS',
-              sessionId,
-              progress: currentProgress
-            });
-          } catch (e) {
-            console.error('Error broadcasting progress update:', e);
-          }
-        }
       });
 
       if (result?.file && result?.posts) {
@@ -302,7 +262,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
       // Show completion for a moment before closing
       setTimeout(() => {
-        // Clear upload state
         setIsUploading(false);
         setUploadProgress({ 
           processed: 0, 
@@ -327,27 +286,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         localStorage.removeItem('uploadStartTime');
         localStorage.removeItem('lastProgressTimestamp');
         
-        // Broadcast completion to other tabs
-        if ('BroadcastChannel' in window) {
-          try {
-            const broadcastChannel = new BroadcastChannel('upload_progress_sync');
-            broadcastChannel.postMessage({
-              type: 'UPLOAD_COMPLETED'
-            });
-            // Close the channel after sending the message
-            setTimeout(() => {
-              try {
-                broadcastChannel.close();
-              } catch (e) {
-                // Ignore errors when closing
-              }
-            }, 500);
-          } catch (e) {
-            console.error('Error broadcasting upload completion:', e);
-          }
-        }
-        
-        console.log('Upload completed, cleared all localStorage items and broadcast completion');
+        console.log('Upload completed, cleared all localStorage items');
       }, 2000);
     }
   };
