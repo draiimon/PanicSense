@@ -46,14 +46,41 @@ export function UploadProgressModal() {
         const sessionId = getUploadSessionId();
         
         if (wasUploading && storedProgress && sessionId) {
-          console.log('Restoring upload progress after page refresh');
+          console.log('Restoring upload progress after page refresh', storedProgress);
+          
+          // Immediately register the current window with the server to receive updates
+          const connectToSSE = async () => {
+            try {
+              // Create EventSource for server-sent events to get progress updates
+              const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
+              
+              eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('Received SSE progress update for restored session', data);
+                setUploadProgress(data);
+              };
+              
+              eventSource.onerror = () => {
+                console.error('SSE connection error for restored session');
+                eventSource.close();
+              };
+              
+              // Set cleanup function
+              return () => {
+                console.log('Closing SSE connection for restored session');
+                eventSource.close();
+              };
+            } catch (err) {
+              console.error('Failed to connect to SSE for restored session', err);
+            }
+          };
           
           // Force the UI to show the upload modal with stored progress
           setIsUploading(true);
           setUploadProgress(storedProgress);
           
-          // No need to reconnect to WebSocket - the main app context will handle that
-          // as soon as we set isUploading to true
+          // Establish SSE connection for live updates
+          connectToSSE();
         }
       } catch (error) {
         console.error('Error recovering upload progress:', error);
