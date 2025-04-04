@@ -109,10 +109,17 @@ const initialProgress: UploadProgress = {
   timeRemaining: 0
 };
 
-export function DisasterContextProvider({ children }: { children: ReactNode }) {
-  // Check localStorage for existing upload state
+export function DisasterContextProvider({ children }: { children: ReactNode }): JSX.Element {
+  // Create a ref to track if initial session check has been performed
+  const sessionCheckPerformedRef = useRef(false);
+  
+  // Check localStorage for existing upload state, but don't trust it completely
+  // We'll validate with the database check
   const storedIsUploading = localStorage.getItem('isUploading') === 'true';
   const storedProgress = localStorage.getItem('uploadProgress');
+  const storedSessionId = localStorage.getItem('uploadSessionId');
+  
+  // Initialize with localStorage data, but we'll override based on database
   let initialUploadState = storedIsUploading;
   let initialProgressState = initialProgress;
   
@@ -219,470 +226,490 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   
   // Helper function to access the refresh function
   const refreshData = () => refreshDataRef.current();
-
-  // Restore upload state on app load and check on every page navigation
-  useEffect(() => {
-    console.log('Checking for active uploads on route:', location);
-    const checkAndReconnectToActiveUploads = async () => {
-      try {
-        // FIRST check database for active uploads - ALWAYS prioritize database
-        const activeSessionId = await checkForActiveSessions();
+  
+  // The check and reconnect function
+  const checkAndReconnectToActiveUploads = async () => {
+    try {
+      // FIRST check database for active uploads - ALWAYS prioritize database
+      const activeSessionId = await checkForActiveSessions();
+      
+      // If found an active session in database, this is the authority source of truth
+      if (activeSessionId) {
+        console.log('Active upload session found in database:', activeSessionId);
+        // Make sure the upload modal is shown
+        setIsUploading(true);
         
-        // If found an active session in database, this is the authority source of truth
-        if (activeSessionId) {
-          console.log('Active upload session found in database:', activeSessionId);
-          // Make sure the upload modal is shown
-          setIsUploading(true);
-          
-          // At this point, localStorage should already be populated with the session data
-          // from checkForActiveSessions, but let's validate it
-          const storedProgress = localStorage.getItem('uploadProgress');
-          if (!storedProgress) {
-            console.log('Database session active but no progress in localStorage, fetching data');
-            // If progress isn't in localStorage, make a direct API call to get current progress
-            try {
-              const response = await fetch(`/api/upload-progress/${activeSessionId}`);
-              if (response.ok) {
-                const progressEvent = await response.json();
-                if (progressEvent) {
-                  setUploadProgress(progressEvent);
-                  localStorage.setItem('uploadProgress', JSON.stringify({
-                    ...progressEvent,
-                    savedAt: Date.now()
-                  }));
-                }
+        // At this point, localStorage should already be populated with the session data
+        // from checkForActiveSessions, but let's validate it
+        const storedProgress = localStorage.getItem('uploadProgress');
+        if (!storedProgress) {
+          console.log('Database session active but no progress in localStorage, fetching data');
+          // If progress isn't in localStorage, make a direct API call to get current progress
+          try {
+            const response = await fetch(`/api/upload-progress/${activeSessionId}`);
+            if (response.ok) {
+              const progressEvent = await response.json();
+              if (progressEvent) {
+                setUploadProgress(progressEvent);
+                localStorage.setItem('uploadProgress', JSON.stringify({
+                  ...progressEvent,
+                  savedAt: Date.now()
+                }));
               }
-            } catch (err) {
-              console.error('Error fetching initial progress', err);
             }
+          } catch (err) {
+            console.error('Error fetching initial progress', err);
           }
-          
-          // Set up a more robust EventSource for progress updates
-          // Keep a reference for cleanup and reconnection
-          // Create a message handler function that we can reuse
-          const handleMessage = (event: MessageEvent) => {
-            try {
-              if (!event.data) return;
+        }
+        
+        // Set up a more robust EventSource for progress updates
+        // Keep a reference for cleanup and reconnection
+        // Create a message handler function that we can reuse
+        const handleMessage = (event: MessageEvent) => {
+          try {
+            if (!event.data) return;
+            
+            // Parse progress data
+            const progress = JSON.parse(event.data);
+            
+            // Log the progress data
+            console.log("Progress event received:", progress);
+            
+            // Important: Check timestamps - only update if this is newer than our last update
+            // This prevents out-of-order updates from causing flickering
+            const currentTimestamp = progress.timestamp || Date.now();
+            const lastTimestamp = parseInt(localStorage.getItem('lastProgressTimestamp') || '0');
+            
+            // Only update if this is a newer message
+            if (currentTimestamp >= lastTimestamp) {
+              // Log what we're sending to the UI
+              console.log("Progress being sent to UI:", progress);
               
-              // Parse progress data
-              const progress = JSON.parse(event.data);
+              // Update UI with progress
+              setUploadProgress(progress);
               
-              // Log the progress data
-              console.log("Progress event received:", progress);
+              // Store the latest progress and timestamp in localStorage
+              localStorage.setItem('uploadProgress', JSON.stringify(progress));
+              localStorage.setItem('lastProgressTimestamp', currentTimestamp.toString());
+            }
+            
+            // If the upload is complete or has an error, close the connection
+            const stageLower = progress.stage.toLowerCase();
+            if (stageLower.includes('complete') || 
+                stageLower.includes('error') ||
+                stageLower.includes('cancelled')) {
               
-              // Important: Check timestamps - only update if this is newer than our last update
-              // This prevents out-of-order updates from causing flickering
-              const currentTimestamp = progress.timestamp || Date.now();
-              const lastTimestamp = parseInt(localStorage.getItem('lastProgressTimestamp') || '0');
-              
-              // Only update if this is a newer message
-              if (currentTimestamp >= lastTimestamp) {
-                // Log what we're sending to the UI
-                console.log("Progress being sent to UI:", progress);
-                
-                // Update UI with progress
-                setUploadProgress(progress);
-                
-                // Store the latest progress and timestamp in localStorage
-                localStorage.setItem('uploadProgress', JSON.stringify(progress));
-                localStorage.setItem('lastProgressTimestamp', currentTimestamp.toString());
+              // Check if eventSource still exists before closing
+              if (window._activeEventSources?.[activeSessionId]) {
+                window._activeEventSources[activeSessionId].close();
+                if (window._activeEventSources) {
+                  delete window._activeEventSources[activeSessionId];
+                }
               }
               
-              // If the upload is complete or has an error, close the connection
-              const stageLower = progress.stage.toLowerCase();
-              if (stageLower.includes('complete') || 
-                  stageLower.includes('error') ||
-                  stageLower.includes('cancelled')) {
-                
-                // Check if eventSource still exists before closing
-                if (window._activeEventSources?.[activeSessionId]) {
-                  window._activeEventSources[activeSessionId].close();
-                  if (window._activeEventSources) {
-                    delete window._activeEventSources[activeSessionId];
-                  }
-                }
-                
-                // If it completed successfully, refresh data to show new records
-                if (progress.stage.toLowerCase().includes('complete')) {
-                  refreshData();
-                }
-                
-                // If there's an error or the upload was cancelled, close the modal immediately
-                if (progress.stage.toLowerCase().includes('error') || 
-                    progress.stage.toLowerCase().includes('cancelled')) {
-                  // Close immediately for errors and cancellations
+              // If it completed successfully, refresh data to show new records
+              if (progress.stage.toLowerCase().includes('complete')) {
+                refreshData();
+              }
+              
+              // If there's an error or the upload was cancelled, close the modal immediately
+              if (progress.stage.toLowerCase().includes('error') || 
+                  progress.stage.toLowerCase().includes('cancelled')) {
+                // Close immediately for errors and cancellations
+                setIsUploading(false);
+                // Clear the upload progress from localStorage
+                localStorage.removeItem('isUploading');
+                localStorage.removeItem('uploadProgress');
+                localStorage.removeItem('uploadSessionId');
+              } else {
+                // For successful completion, close after a short delay
+                setTimeout(() => {
                   setIsUploading(false);
                   // Clear the upload progress from localStorage
                   localStorage.removeItem('isUploading');
                   localStorage.removeItem('uploadProgress');
                   localStorage.removeItem('uploadSessionId');
-                } else {
-                  // For successful completion, close after a short delay
-                  setTimeout(() => {
+                }, 1000);
+              }
+            }
+          } catch (error) {
+            console.error('Error parsing progress data:', error);
+          }
+        };
+        
+        // Create an error handler function that we can reuse
+        const handleError = (event: Event) => {
+          console.log('EventSource error, attempting to reconnect...');
+          
+          // Don't immediately close and end the upload - give it a chance to recover
+          // We'll use a timeout to check if we can reconnect
+          setTimeout(() => {
+            // Make sure we have the global tracking object
+            if (!window._activeEventSources) {
+              window._activeEventSources = {};
+            }
+            
+            // Get the current EventSource
+            const currentSource = window._activeEventSources?.[activeSessionId];
+            if (!currentSource) {
+              // If we no longer have an EventSource, create a new one
+              createNewEventSource();
+              return;
+            }
+            
+            // If the connection is in a CLOSED state, try to reopen it
+            if (currentSource.readyState === EventSource.CLOSED) {
+              console.log('EventSource connection closed, reconnecting...');
+              createNewEventSource();
+            } else if (currentSource.readyState === EventSource.OPEN) {
+              // If it's already reconnected, do nothing
+              console.log('EventSource connection recovered');
+            } else {
+              // Try a final reconnect
+              createNewEventSource();
+              
+              // Set a timeout to check if the reconnection worked
+              setTimeout(() => {
+                const source = window._activeEventSources?.[activeSessionId];
+                if (!source || source.readyState !== EventSource.OPEN) {
+                  console.log('EventSource failed to reconnect, closing upload modal');
+                  if (source) source.close();
+                  if (window._activeEventSources) {
+                    delete window._activeEventSources[activeSessionId];
+                  }
+                  setIsUploading(false);
+                }
+              }, 3000); // Give it 3 more seconds to connect
+            }
+          }, 2000);  // Give it 2 seconds before first reconnect attempt
+        };
+        
+        // Function to create a new EventSource with proper setup
+        const createNewEventSource = () => {
+          // Close any existing source first
+          if (window._activeEventSources?.[activeSessionId]) {
+            try {
+              window._activeEventSources[activeSessionId].close();
+            } catch (e) {
+              // Ignore errors on close
+            }
+          }
+          
+          // Create the global tracking object if it doesn't exist
+          if (!window._activeEventSources) {
+            window._activeEventSources = {};
+          }
+          
+          // Create new EventSource
+          const newSource = new EventSource(`/api/upload-progress/${activeSessionId}`);
+          
+          // Set event handlers
+          newSource.onmessage = handleMessage;
+          newSource.onerror = handleError;
+          
+          // Store in the global registry
+          window._activeEventSources[activeSessionId] = newSource;
+          
+          return newSource;
+        };
+        
+        // Initialize the EventSource
+        createNewEventSource();
+        
+        return;
+      }
+      
+      // Fall back to localStorage check if no active uploads in database
+      // But ONLY if there is local storage data (meaning we need to persist it)
+      const isUploadingFromStorage = localStorage.getItem('isUploading') === 'true';
+      if (isUploadingFromStorage && storedProgress) {
+        // Check if the stored progress is fresh (less than 30 minutes old, increased from 5 minutes)
+        try {
+          const parsedProgress = JSON.parse(storedProgress);
+          const savedAt = parsedProgress.savedAt || 0;
+          // Use a longer timeout (30 minutes) to ensure modal doesn't disappear too quickly
+          const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
+          
+          // If data is stale (more than 30 minutes old), we'll ignore it
+          if (savedAt < thirtyMinutesAgo) {
+            console.log('Stored upload progress is stale (older than 30 minutes), clearing local storage');
+            localStorage.removeItem('isUploading');
+            localStorage.removeItem('uploadProgress');
+            localStorage.removeItem('uploadSessionId');
+            return;
+          }
+          
+          // Important fix: Check if the upload has completed based on the stage
+          const stageLower = parsedProgress.stage?.toLowerCase() || '';
+          if (stageLower.includes('complete') || 
+              stageLower.includes('error') || 
+              stageLower.includes('cancelled')) {
+            console.log('Found completed upload in localStorage, clearing data');
+            localStorage.removeItem('isUploading');
+            localStorage.removeItem('uploadProgress');
+            localStorage.removeItem('uploadSessionId');
+            return;
+          }
+          
+          console.log('Using localStorage data since database check returned no active sessions');
+          // We've already parsed the progress, so use it directly
+          setUploadProgress(parsedProgress);
+          setIsUploading(true);
+          
+          // Set a longer display time to ensure modal doesn't disappear too quickly
+          localStorage.setItem('lastDisplayTime', Date.now().toString());
+          
+          // Check if there's an active session ID from localStorage
+          const sessionId = getCurrentUploadSessionId();
+          if (sessionId) {
+            console.log('Reconnecting to upload session from localStorage:', sessionId);
+            
+            // Set up a more robust EventSource for progress updates
+            // Keep a reference for cleanup and reconnection
+            // Create a message handler function that we can reuse
+            const handleMessage = (event: MessageEvent) => {
+              try {
+                // Make sure we have valid JSON data
+                if (!event.data) {
+                  return;
+                }
+                
+                // Parse the progress data
+                const progress = JSON.parse(event.data);
+                
+                // Validate that we have a valid progress object
+                if (!progress || typeof progress !== 'object') {
+                  return;
+                }
+                
+                // Log the progress data for debugging
+                console.log("Progress event received:", progress);
+                
+                // Important: Check timestamps - only update if this is newer than our last update
+                // This prevents out-of-order updates from causing flickering
+                const currentTimestamp = progress.timestamp || Date.now();
+                const lastTimestamp = parseInt(localStorage.getItem('lastProgressTimestamp') || '0');
+                
+                // Only update if this is a newer message
+                if (currentTimestamp >= lastTimestamp) {
+                  // Log what we're sending to the UI
+                  console.log("Progress being sent to UI:", progress);
+                  
+                  // Update UI with progress
+                  setUploadProgress(progress);
+                  
+                  // Store the latest progress and timestamp in localStorage
+                  localStorage.setItem('uploadProgress', JSON.stringify(progress));
+                  localStorage.setItem('lastProgressTimestamp', currentTimestamp.toString());
+                }
+                
+                // Check for completion states in the stage message
+                const stageLower = progress.stage?.toLowerCase() || '';
+                const isComplete = stageLower.includes('complete');
+                const isError = stageLower.includes('error');
+                const isCancelled = stageLower.includes('cancelled');
+                
+                // If the upload is complete or has an error, close the connection
+                if (isComplete || isError || isCancelled) {
+                  // Check if eventSource still exists before closing
+                  if (window._activeEventSources?.[sessionId]) {
+                    try {
+                      window._activeEventSources[sessionId].close();
+                      if (window._activeEventSources) {
+                        delete window._activeEventSources[sessionId];
+                      }
+                    } catch (e) {
+                      // Suppress error
+                    }
+                  }
+                  
+                  // If it completed successfully, refresh data to show new records
+                  if (isComplete) {
+                    refreshData();
+                  }
+                  
+                  // If there's an error or the upload was cancelled, close the modal immediately
+                  if (isError || isCancelled) {
+                    // Close immediately for errors and cancellations
                     setIsUploading(false);
                     // Clear the upload progress from localStorage
                     localStorage.removeItem('isUploading');
                     localStorage.removeItem('uploadProgress');
                     localStorage.removeItem('uploadSessionId');
-                  }, 1000);
-                }
-              }
-            } catch (error) {
-              console.error('Error parsing progress data:', error);
-            }
-          };
-          
-          // Create an error handler function that we can reuse
-          const handleError = (event: Event) => {
-            console.log('EventSource error, attempting to reconnect...');
-            
-            // Don't immediately close and end the upload - give it a chance to recover
-            // We'll use a timeout to check if we can reconnect
-            setTimeout(() => {
-              // Make sure we have the global tracking object
-              if (!window._activeEventSources) {
-                window._activeEventSources = {};
-              }
-              
-              // Get the current EventSource
-              const currentSource = window._activeEventSources?.[activeSessionId];
-              if (!currentSource) {
-                // If we no longer have an EventSource, create a new one
-                createNewEventSource();
-                return;
-              }
-              
-              // If the connection is in a CLOSED state, try to reopen it
-              if (currentSource.readyState === EventSource.CLOSED) {
-                console.log('EventSource connection closed, reconnecting...');
-                createNewEventSource();
-              } else if (currentSource.readyState === EventSource.OPEN) {
-                // If it's already reconnected, do nothing
-                console.log('EventSource connection recovered');
-              } else {
-                // Try a final reconnect
-                createNewEventSource();
-                
-                // Set a timeout to check if the reconnection worked
-                setTimeout(() => {
-                  const source = window._activeEventSources?.[activeSessionId];
-                  if (!source || source.readyState !== EventSource.OPEN) {
-                    console.log('EventSource failed to reconnect, closing upload modal');
-                    if (source) source.close();
-                    if (window._activeEventSources) {
-                      delete window._activeEventSources[activeSessionId];
+                    
+                    // Show a toast or alert to inform the user
+                    if (isError) {
+                      // We could add a toast notification here
+                      console.error('Upload failed with error:', progress.stage);
                     }
-                    setIsUploading(false);
-                  }
-                }, 3000); // Give it 3 more seconds to connect
-              }
-            }, 2000);  // Give it 2 seconds before first reconnect attempt
-          };
-          
-          // Function to create a new EventSource with proper setup
-          const createNewEventSource = () => {
-            // Close any existing source first
-            if (window._activeEventSources?.[activeSessionId]) {
-              try {
-                window._activeEventSources[activeSessionId].close();
-              } catch (e) {
-                // Ignore errors on close
-              }
-            }
-            
-            // Create the global tracking object if it doesn't exist
-            if (!window._activeEventSources) {
-              window._activeEventSources = {};
-            }
-            
-            // Create new EventSource
-            const newSource = new EventSource(`/api/upload-progress/${activeSessionId}`);
-            
-            // Set event handlers
-            newSource.onmessage = handleMessage;
-            newSource.onerror = handleError;
-            
-            // Store in the global registry
-            window._activeEventSources[activeSessionId] = newSource;
-            
-            return newSource;
-          };
-          
-          // Initialize the EventSource
-          createNewEventSource();
-          
-          return;
-        }
-        
-        // Fall back to localStorage check if no active uploads in database
-        // But ONLY if there is local storage data (meaning we need to persist it)
-        if (isUploadingFromStorage && storedProgress) {
-          // Check if the stored progress is fresh (less than 30 minutes old, increased from 5 minutes)
-          try {
-            const parsedProgress = JSON.parse(storedProgress);
-            const savedAt = parsedProgress.savedAt || 0;
-            // Use a longer timeout (30 minutes) to ensure modal doesn't disappear too quickly
-            const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
-            
-            // If data is stale (more than 30 minutes old), we'll ignore it
-            if (savedAt < thirtyMinutesAgo) {
-              console.log('Stored upload progress is stale (older than 30 minutes), clearing local storage');
-              localStorage.removeItem('isUploading');
-              localStorage.removeItem('uploadProgress');
-              localStorage.removeItem('uploadSessionId');
-              return;
-            }
-            
-            // Important fix: Check if the upload has completed based on the stage
-            const stageLower = parsedProgress.stage?.toLowerCase() || '';
-            if (stageLower.includes('complete') || 
-                stageLower.includes('error') || 
-                stageLower.includes('cancelled')) {
-              console.log('Found completed upload in localStorage, clearing data');
-              localStorage.removeItem('isUploading');
-              localStorage.removeItem('uploadProgress');
-              localStorage.removeItem('uploadSessionId');
-              return;
-            }
-            
-            console.log('Using localStorage data since database check returned no active sessions');
-            // We've already parsed the progress, so use it directly
-            setUploadProgress(parsedProgress);
-            setIsUploading(true);
-            
-            // Set a longer display time to ensure modal doesn't disappear too quickly
-            localStorage.setItem('lastDisplayTime', Date.now().toString());
-            
-            // Check if there's an active session ID from localStorage
-            const sessionId = getCurrentUploadSessionId();
-            if (sessionId) {
-              console.log('Reconnecting to upload session from localStorage:', sessionId);
-              
-              // Set up a more robust EventSource for progress updates
-              // Keep a reference for cleanup and reconnection
-              // Create a message handler function that we can reuse
-              const handleMessage = (event: MessageEvent) => {
-                try {
-                  // Make sure we have valid JSON data
-                  if (!event.data) {
-                    return;
-                  }
-                  
-                  // Parse the progress data
-                  const progress = JSON.parse(event.data);
-                  
-                  // Validate that we have a valid progress object
-                  if (!progress || typeof progress !== 'object') {
-                    return;
-                  }
-                  
-                  // Log the progress data for debugging
-                  console.log("Progress event received:", progress);
-                  
-                  // Important: Check timestamps - only update if this is newer than our last update
-                  // This prevents out-of-order updates from causing flickering
-                  const currentTimestamp = progress.timestamp || Date.now();
-                  const lastTimestamp = parseInt(localStorage.getItem('lastProgressTimestamp') || '0');
-                  
-                  // Only update if this is a newer message
-                  if (currentTimestamp >= lastTimestamp) {
-                    // Log what we're sending to the UI
-                    console.log("Progress being sent to UI:", progress);
-                    
-                    // Update UI with progress
-                    setUploadProgress(progress);
-                    
-                    // Store the latest progress and timestamp in localStorage
-                    localStorage.setItem('uploadProgress', JSON.stringify(progress));
-                    localStorage.setItem('lastProgressTimestamp', currentTimestamp.toString());
-                  }
-                  
-                  // Check for completion states in the stage message
-                  const stageLower = progress.stage?.toLowerCase() || '';
-                  const isComplete = stageLower.includes('complete');
-                  const isError = stageLower.includes('error');
-                  const isCancelled = stageLower.includes('cancelled');
-                  
-                  // If the upload is complete or has an error, close the connection
-                  if (isComplete || isError || isCancelled) {
-                    // Check if eventSource still exists before closing
-                    if (window._activeEventSources?.[sessionId]) {
-                      try {
-                        window._activeEventSources[sessionId].close();
-                        if (window._activeEventSources) {
-                          delete window._activeEventSources[sessionId];
-                        }
-                      } catch (e) {
-                        // Suppress error
-                      }
-                    }
-                    
-                    // If it completed successfully, refresh data to show new records
-                    if (isComplete) {
-                      refreshData();
-                    }
-                    
-                    // If there's an error or the upload was cancelled, close the modal immediately
-                    if (isError || isCancelled) {
-                      // Close immediately for errors and cancellations
+                  } else {
+                    // For successful completion, close after a short delay
+                    setTimeout(() => {
                       setIsUploading(false);
                       // Clear the upload progress from localStorage
                       localStorage.removeItem('isUploading');
                       localStorage.removeItem('uploadProgress');
                       localStorage.removeItem('uploadSessionId');
-                      
-                      // Show a toast or alert to inform the user
-                      if (isError) {
-                        // We could add a toast notification here
-                        console.error('Upload failed with error:', progress.stage);
-                      }
-                    } else {
-                      // For successful completion, close after a short delay
-                      setTimeout(() => {
-                        setIsUploading(false);
-                        // Clear the upload progress from localStorage
-                        localStorage.removeItem('isUploading');
-                        localStorage.removeItem('uploadProgress');
-                        localStorage.removeItem('uploadSessionId');
-                      }, 1000);
-                    }
+                    }, 1000);
                   }
-                } catch (error) {
-                  console.error('Error parsing progress data:', error);
                 }
-              };
+              } catch (error) {
+                console.error('Error parsing progress data:', error);
+              }
+            };
+            
+            // Create an error handler function that we can reuse
+            const handleError = (event: Event) => {
+              console.log('EventSource error, attempting to reconnect...');
               
-              // Create an error handler function that we can reuse
-              const handleError = (event: Event) => {
-                console.log('EventSource error, attempting to reconnect...');
-                
-                // Store error occurrence timestamp
-                const errorTime = new Date();
-                
-                // Don't immediately close and end the upload - give it a chance to recover
-                // We'll use a timeout to check if we can reconnect
-                setTimeout(() => {
-                  try {
-                    // Make sure we have the global tracking object
-                    if (!window._activeEventSources) {
-                      window._activeEventSources = {};
-                    }
+              // Store error occurrence timestamp
+              const errorTime = new Date();
+              
+              // Don't immediately close and end the upload - give it a chance to recover
+              // We'll use a timeout to check if we can reconnect
+              setTimeout(() => {
+                try {
+                  // Make sure we have the global tracking object
+                  if (!window._activeEventSources) {
+                    window._activeEventSources = {};
+                  }
+                  
+                  // Get the current EventSource
+                  const currentSource = window._activeEventSources?.[sessionId];
+                  if (!currentSource) {
+                    // If we no longer have an EventSource, create a new one
+                    console.log('No active EventSource found, creating new one');
+                    createNewEventSource();
+                    return;
+                  }
+                  
+                  // If the connection is in a CLOSED state, try to reopen it
+                  if (currentSource.readyState === EventSource.CLOSED) {
+                    console.log('EventSource connection closed, reconnecting...');
+                    createNewEventSource();
+                  } else if (currentSource.readyState === EventSource.OPEN) {
+                    // If it's already reconnected, do nothing
+                    console.log('EventSource connection recovered on its own');
+                  } else {
+                    // Try a final reconnect
+                    console.log('EventSource in connecting state, trying a fresh connection');
+                    createNewEventSource();
                     
-                    // Get the current EventSource
-                    const currentSource = window._activeEventSources?.[sessionId];
-                    if (!currentSource) {
-                      // If we no longer have an EventSource, create a new one
-                      console.log('No active EventSource found, creating new one');
-                      createNewEventSource();
-                      return;
-                    }
-                    
-                    // If the connection is in a CLOSED state, try to reopen it
-                    if (currentSource.readyState === EventSource.CLOSED) {
-                      console.log('EventSource connection closed, reconnecting...');
-                      createNewEventSource();
-                    } else if (currentSource.readyState === EventSource.OPEN) {
-                      // If it's already reconnected, do nothing
-                      console.log('EventSource connection recovered on its own');
-                    } else {
-                      // Try a final reconnect
-                      console.log('EventSource in connecting state, trying a fresh connection');
-                      createNewEventSource();
-                      
-                      // Set a timeout to check if the reconnection worked
-                      setTimeout(() => {
-                        try {
-                          const source = window._activeEventSources?.[sessionId];
-                          if (!source || source.readyState !== EventSource.OPEN) {
-                            console.log('EventSource failed to reconnect after multiple attempts, closing upload modal');
-                            if (source) {
-                              try {
-                                source.close();
-                              } catch (closeError) {
-                                console.error('Error closing EventSource:', closeError);
-                              }
+                    // Set a timeout to check if the reconnection worked
+                    setTimeout(() => {
+                      try {
+                        const source = window._activeEventSources?.[sessionId];
+                        if (!source || source.readyState !== EventSource.OPEN) {
+                          console.log('EventSource failed to reconnect after multiple attempts, closing upload modal');
+                          if (source) {
+                            try {
+                              source.close();
+                            } catch (closeError) {
+                              console.error('Error closing EventSource:', closeError);
                             }
-                            
-                            // Clean up the reference
-                            if (window._activeEventSources) {
-                              delete window._activeEventSources[sessionId];
-                            }
-                            
-                            // Show error to user and reset upload state
-                            setIsUploading(false);
-                            
-                            // Clear stored upload data
-                            localStorage.removeItem('isUploading');
-                            localStorage.removeItem('uploadProgress');
-                            localStorage.removeItem('uploadSessionId');
-                            
-                            // We could show a toast notification here about connection issues
-                          } else {
-                            console.log('EventSource reconnected successfully');
                           }
-                        } catch (innerError) {
-                          console.error('Error during reconnection check:', innerError);
-                          // Failsafe: reset upload state
+                          
+                          // Clean up the reference
+                          if (window._activeEventSources) {
+                            delete window._activeEventSources[sessionId];
+                          }
+                          
+                          // Show error to user and reset upload state
                           setIsUploading(false);
+                          
+                          // Clear stored upload data
+                          localStorage.removeItem('isUploading');
+                          localStorage.removeItem('uploadProgress');
+                          localStorage.removeItem('uploadSessionId');
+                          
+                          // We could show a toast notification here about connection issues
+                        } else {
+                          console.log('EventSource reconnected successfully');
                         }
-                      }, 5000); // Give it 5 seconds to connect
-                    }
-                  } catch (outerError) {
-                    console.error('Error in EventSource reconnection logic:', outerError);
-                    // Failsafe: reset upload state on any error in the reconnection logic
-                    setIsUploading(false);
+                      } catch (innerError) {
+                        console.error('Error during reconnection check:', innerError);
+                        // Failsafe: reset upload state
+                        setIsUploading(false);
+                      }
+                    }, 5000); // Give it 5 seconds to connect
                   }
-                }, 2000);  // Give it 2 seconds before first reconnect attempt
-              };
-              
-              // Function to create a new EventSource with proper setup
-              const createNewEventSource = () => {
-                // Close any existing source first
-                if (window._activeEventSources?.[sessionId]) {
-                  try {
-                    window._activeEventSources[sessionId].close();
-                  } catch (e) {
-                    // Ignore errors on close
-                  }
+                } catch (outerError) {
+                  console.error('Error in EventSource reconnection logic:', outerError);
+                  // Failsafe: reset upload state on any error in the reconnection logic
+                  setIsUploading(false);
                 }
-                
-                // Create the global tracking object if it doesn't exist
-                if (!window._activeEventSources) {
-                  window._activeEventSources = {};
+              }, 2000);  // Give it 2 seconds before first reconnect attempt
+            };
+            
+            // Function to create a new EventSource with proper setup
+            const createNewEventSource = () => {
+              // Close any existing source first
+              if (window._activeEventSources?.[sessionId]) {
+                try {
+                  window._activeEventSources[sessionId].close();
+                } catch (e) {
+                  // Ignore errors on close
                 }
-                
-                // Create new EventSource
-                const newSource = new EventSource(`/api/upload-progress/${sessionId}`);
-                
-                // Set event handlers
-                newSource.onmessage = handleMessage;
-                newSource.onerror = handleError;
-                
-                // Store in the global registry
-                window._activeEventSources[sessionId] = newSource;
-                
-                return newSource;
-              };
+              }
               
-              // Initialize the EventSource
-              createNewEventSource();
-            } else {
-              // No active session found, reset the upload state
-              setIsUploading(false);
-            }
-          } catch (error) {
-            // Error silently handled - removed console.error
+              // Create the global tracking object if it doesn't exist
+              if (!window._activeEventSources) {
+                window._activeEventSources = {};
+              }
+              
+              // Create new EventSource
+              const newSource = new EventSource(`/api/upload-progress/${sessionId}`);
+              
+              // Set event handlers
+              newSource.onmessage = handleMessage;
+              newSource.onerror = handleError;
+              
+              // Store in the global registry
+              window._activeEventSources[sessionId] = newSource;
+              
+              return newSource;
+            };
+            
+            // Initialize the EventSource
+            createNewEventSource();
+          } else {
+            // No active session found, reset the upload state
             setIsUploading(false);
           }
+        } catch (error) {
+          // Error silently handled - removed console.error
+          setIsUploading(false);
         }
-      } catch (error) {
-        // Error silently handled - removed console.error
-        setIsUploading(false);
       }
-    };
+    } catch (error) {
+      // Error silently handled - removed console.error
+      setIsUploading(false);
+    }
+  };
+
+  // Now we'll create a useEffect that checks for active uploads on route changes
+  // and sets up polling to periodically check for active sessions
+  useEffect(() => {
+    console.log('Checking for active uploads on route:', location);
     
+    // Set up polling to check for active sessions (every 10 seconds)
+    const pollIntervalId = setInterval(() => {
+      // Only run polling check if we're not already showing an upload modal
+      // This prevents disrupting an active upload
+      if (!isUploading) {
+        console.log('Running session check poll...');
+        checkAndReconnectToActiveUploads();
+      }
+    }, 10000);
+    
+    // Run initial check immediately
     checkAndReconnectToActiveUploads();
-  }, [location]);
+    
+    // Clean up polling on unmount
+    return () => {
+      clearInterval(pollIntervalId);
+    };
+  }, [location, isUploading]);
 
   // WebSocket setup for all non-upload messages (like feedback, post updates)
   // We'll keep this separate from the upload progress handling to avoid conflicts
@@ -746,7 +773,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   const totalPosts = Array.isArray(sentimentPosts) ? sentimentPosts.length : 0;
   
   if (totalPosts > 0) {
-    sentimentPosts.forEach(post => {
+    sentimentPosts.forEach((post: SentimentPost) => {
       sentimentCounts[post.sentiment] = (sentimentCounts[post.sentiment] || 0) + 1;
     });
   }
@@ -784,7 +811,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   let validDisasterPostsCount = 0;
   
   if (totalPosts > 0) {
-    sentimentPosts.forEach(post => {
+    sentimentPosts.forEach((post: SentimentPost) => {
       if (post.disasterType && 
           post.disasterType !== "Not Specified" && 
           post.disasterType !== "NONE" && 
@@ -827,7 +854,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
 
   // Calculate average model confidence with safety checks
   const totalConfidence = Array.isArray(sentimentPosts) 
-    ? sentimentPosts.reduce((sum, post) => sum + (post.confidence || 0), 0)
+    ? sentimentPosts.reduce((sum: number, post: SentimentPost) => sum + (post.confidence || 0), 0)
     : 0;
   const modelConfidence = Array.isArray(sentimentPosts) && sentimentPosts.length > 0 
     ? totalConfidence / sentimentPosts.length 

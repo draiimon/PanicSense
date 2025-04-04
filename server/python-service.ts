@@ -88,6 +88,31 @@ export class PythonService {
   }
   
   // Check if a process is running for a given session ID
+  /**
+   * Returns an array of all active session IDs
+   * This is the most reliable way to determine if an upload is in progress
+   */
+  public getActiveProcessSessions(): string[] {
+    return Array.from(this.activeProcesses.keys());
+  }
+  
+  /**
+   * Get detailed information about all active processes
+   * Useful for debugging and monitoring
+   */
+  public getActiveProcessesInfo(): {sessionId: string, startTime: Date}[] {
+    const result: {sessionId: string, startTime: Date}[] = [];
+    
+    this.activeProcesses.forEach((process, sessionId) => {
+      result.push({
+        sessionId,
+        startTime: new Date() // We don't have actual start time in the current implementation
+      });
+    });
+    
+    return result;
+  }
+  
   public isProcessRunning(sessionId: string): boolean {
     return this.activeProcesses.has(sessionId);
   }

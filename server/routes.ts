@@ -909,7 +909,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get active upload session with stale check
   app.get('/api/active-upload-session', async (req: Request, res: Response) => {
     try {
-      // Query all sessions from the database
+      console.log("⭐ Checking for active upload sessions...");
+
+      // Before checking the database, check if there's an active Python process
+      // This is the most reliable indicator of an active upload
+      const activePythonSessions = pythonService.getActiveProcessSessions();
+      if (activePythonSessions.length > 0) {
+        console.log(`⭐ Found ${activePythonSessions.length} active Python sessions:`, activePythonSessions);
+        
+        // Get the first active session
+        const activeSessionId = activePythonSessions[0];
+        
+        // Check if this session exists in the database
+        const dbSessions = await db.select().from(uploadSessions)
+          .where(eq(uploadSessions.sessionId, activeSessionId));
+        
+        if (dbSessions.length > 0) {
+          // Session exists in database, update it to ensure it's marked as active
+          const session = dbSessions[0];
+          
+          // Make sure it's marked as active
+          if (session.status !== 'active') {
+            await db.update(uploadSessions)
+              .set({ 
+                status: 'active',
+                updatedAt: new Date()
+              })
+              .where(eq(uploadSessions.sessionId, activeSessionId));
+          }
+          
+          // Get the progress from the upload progress map
+          const progress = uploadProgressMap.get(activeSessionId);
+          
+          console.log(`⭐ Returning active session ${activeSessionId} with progress:`, progress);
+          
+          // Return the session with progress
+          return res.json({ 
+            sessionId: activeSessionId,
+            status: 'active',
+            progress: progress || session.progress
+          });
+        } else {
+          // Session doesn't exist in database but Python process is running
+          // This is unusual but can happen if the database record failed to create
+          console.log(`⭐ Active Python process ${activeSessionId} has no database record, creating one`);
+          
+          // Create a new session record
+          const progress = uploadProgressMap.get(activeSessionId);
+          await db.insert(uploadSessions)
+            .values({
+              sessionId: activeSessionId,
+              status: 'active',
+              progress: JSON.stringify(progress || {}),
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+            
+          // Return the session
+          return res.json({ 
+            sessionId: activeSessionId,
+            status: 'active',
+            progress: progress || {}
+          });
+        }
+      }
+      
+      // No active Python processes, check the database
+      console.log("⭐ No active Python processes, checking database...");
       const sessions = await db.select().from(uploadSessions)
         .where(eq(uploadSessions.status, 'active'))
         .orderBy(desc(uploadSessions.id))
@@ -917,17 +983,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (sessions.length > 0) {
         const activeSession = sessions[0];
+        console.log(`⭐ Found active session in database: ${activeSession.sessionId}`);
         
-        // Check if the session might be stale (created more than 30 minutes ago with no updates)
-        // IMPORTANT: Using 30 minutes instead of 5 minutes to ensure uploads aren't prematurely marked completed
-        const createdAt = activeSession.createdAt;
+        // Check if the session might be stale (created more than 60 minutes ago with no updates)
+        // Increased to 60 minutes to be extra sure we don't close active sessions
         const updatedAt = activeSession.updatedAt || activeSession.createdAt;
         const currentTime = new Date();
-        const thirtyMinutesAgo = new Date(currentTime.getTime() - 30 * 60 * 1000);
+        const sixtyMinutesAgo = new Date(currentTime.getTime() - 60 * 60 * 1000);
         
         // If the session is too old and hasn't been updated recently, mark it as stale
-        if (updatedAt && updatedAt < thirtyMinutesAgo) {
-          console.log(`Found stale upload session ${activeSession.sessionId}, marking as completed`);
+        if (updatedAt && updatedAt < sixtyMinutesAgo) {
+          console.log(`⭐ Session ${activeSession.sessionId} is stale (older than 60 minutes), marking as completed`);
           
           // Update to completed status
           await db.update(uploadSessions)
@@ -941,35 +1007,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.json({ sessionId: null, staleSessionCleared: true });
         }
         
-        // Check if Python process is actually running
-        const isProcessRunning = pythonService.isProcessRunning(activeSession.sessionId);
+        // Get the most up-to-date progress
+        const progress = uploadProgressMap.get(activeSession.sessionId) || 
+          (typeof activeSession.progress === 'string' 
+            ? JSON.parse(activeSession.progress) 
+            : activeSession.progress);
+            
+        // Always update the session to keep it fresh
+        await db.update(uploadSessions)
+          .set({ 
+            updatedAt: new Date(),
+            progress: JSON.stringify(progress || {})
+          })
+          .where(eq(uploadSessions.sessionId, activeSession.sessionId));
         
-        if (!isProcessRunning) {
-          console.log(`No active Python process for session ${activeSession.sessionId}, marking as completed`);
-          
-          // Update to completed status
-          await db.update(uploadSessions)
-            .set({ 
-              status: 'completed',
-              updatedAt: new Date()
-            })
-            .where(eq(uploadSessions.sessionId, activeSession.sessionId));
-          
-          // Return no active session
-          return res.json({ sessionId: null, staleSessionCleared: true });
-        }
-        
-        // Valid active session
+        // Return the session
         return res.json({ 
           sessionId: activeSession.sessionId,
           status: activeSession.status,
-          progress: typeof activeSession.progress === 'string' 
-            ? JSON.parse(activeSession.progress) 
-            : activeSession.progress
+          progress: progress
         });
       }
       
       // No active session found
+      console.log("⭐ No active sessions found in database");
       return res.json({ sessionId: null });
     } catch (error) {
       console.error('Error retrieving active upload session:', error);
