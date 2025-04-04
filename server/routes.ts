@@ -948,8 +948,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       error?: string
     ) => {
       if (sessionId) {
-        // Log the raw progress update from Python service
-        console.log('Raw progress update:', { processed, stage, total });
+        // Only log important stage transitions, not every update
+        if (stage.includes("batch") || stage.includes("complete") || stage.includes("error") || stage.includes("cancel")) {
+          console.log('Progress update:', { stage });
+        }
 
         // Get existing progress from the map
         const existingProgress = uploadProgressMap.get(sessionId);
@@ -979,11 +981,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 extractedStage = progressJson.stage;
               }
 
-              console.log('Extracted progress from message with marker:', { 
-                extractedProcessed, 
-                extractedStage, 
-                extractedTotal 
-              });
+              // Only log for important events - batch completion, errors, etc.
+              if (extractedStage && (extractedStage.includes("batch") || extractedStage.includes("complete") || 
+                  extractedStage.includes("error") || extractedStage.includes("cancel"))) {
+                console.log('Progress update:', { stage: extractedStage });
+              }
             } else {
               // Legacy fallback for old PROGRESS: format without ::END_PROGRESS marker
               const jsonStartIndex = stage.indexOf("PROGRESS:");
@@ -1001,11 +1003,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 extractedStage = progressJson.stage;
               }
 
-              console.log('Extracted progress from legacy message:', { 
-                extractedProcessed, 
-                extractedStage, 
-                extractedTotal 
-              });
+              // Only log for important events - batch completion, errors, etc.
+              if (extractedStage && (extractedStage.includes("batch") || extractedStage.includes("complete") || 
+                  extractedStage.includes("error") || extractedStage.includes("cancel"))) {
+                console.log('Progress update:', { stage: extractedStage });
+              }
             }
           } catch (err) {
             console.error('Failed to parse PROGRESS message:', err);
@@ -1018,10 +1020,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (matches) {
             extractedProcessed = parseInt(matches[1]);
             extractedTotal = parseInt(matches[2]);
-            console.log('Extracted progress from completed record:', { 
-              extractedProcessed, 
-              extractedTotal 
-            });
+            // Only log every 10th record to reduce noise
+            if (extractedProcessed % 10 === 0) {
+              console.log(`Progress: Record ${extractedProcessed}/${extractedTotal}`);
+            }
           }
         }
 
@@ -1063,8 +1065,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         };
 
-        // Log the formatted progress data before broadcasting
-        console.log('Formatted progress data:', progressData);
+        // Only log important formatted data (batch related, completion, errors)
+        if (extractedStage && (extractedStage.includes("batch") || extractedStage.includes("complete") || 
+            extractedStage.includes("error") || extractedStage.includes("cancel"))) {
+          console.log('Progress update:', { stage: extractedStage, batchNumber: batchInfo?.batchNumber || 0 });
+        }
 
         broadcastUpdate(progressData);
       }
