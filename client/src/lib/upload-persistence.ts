@@ -1,10 +1,13 @@
-// upload-persistence.ts
-// This file handles persistent state management for upload operations across browser sessions
+/**
+ * Upload Persistence Module
+ * 
+ * This module handles persistence of upload state across page refreshes
+ * using localStorage. It provides a consistent interface for saving and
+ * retrieving upload progress information.
+ */
 
-import { UploadProgress as ApiUploadProgress } from './api';
-
-// Define our own version of UploadProgress to avoid circular dependencies
-export interface UploadProgress {
+// Types
+export interface UploadProgressStorage {
   processed: number;
   total: number;
   stage: string;
@@ -28,129 +31,80 @@ const UPLOAD_PROGRESS_KEY = 'uploadProgress';
 const IS_UPLOADING_KEY = 'isUploading';
 
 // Helper function to safely access localStorage
-function getStorageItem<T>(key: string): T | null {
+function safelyAccessStorage<T>(
+  operation: () => T,
+  fallback: T
+): T {
   try {
-    const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : null;
+    return operation();
   } catch (error) {
-    console.error(`Error reading ${key} from localStorage:`, error);
-    return null;
+    console.warn('LocalStorage access failed:', error);
+    return fallback;
   }
 }
 
-// Helper function to safely write to localStorage
-function setStorageItem(key: string, value: any): boolean {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch (error) {
-    console.error(`Error writing ${key} to localStorage:`, error);
-    return false;
-  }
-}
-
-// Helper function to remove items from localStorage
-function removeStorageItem(key: string): boolean {
-  try {
-    localStorage.removeItem(key);
-    return true;
-  } catch (error) {
-    console.error(`Error removing ${key} from localStorage:`, error);
-    return false;
-  }
-}
-
-// Save upload session data
-export function saveUploadSession(sessionId: string): boolean {
-  return setStorageItem(UPLOAD_SESSION_KEY, sessionId);
-}
-
-// Get upload session ID
-export function getUploadSessionId(): string | null {
-  const rawValue = localStorage.getItem(UPLOAD_SESSION_KEY);
-  return rawValue; // Don't parse as JSON since it's a string
-}
-
-// Save upload progress
-export function saveUploadProgress(progress: UploadProgress): boolean {
-  return setStorageItem(UPLOAD_PROGRESS_KEY, progress);
-}
-
-// Get upload progress
-export function getUploadProgress(): UploadProgress | null {
-  return getStorageItem<UploadProgress>(UPLOAD_PROGRESS_KEY);
-}
-
-// Save uploading state
-export function saveUploadingState(isUploading: boolean): boolean {
-  return setStorageItem(IS_UPLOADING_KEY, isUploading);
-}
-
-// Get uploading state
+/**
+ * Check if an upload is in progress according to localStorage
+ */
 export function isUploading(): boolean {
-  return getStorageItem<boolean>(IS_UPLOADING_KEY) || false;
+  return safelyAccessStorage(() => localStorage.getItem(IS_UPLOADING_KEY) === 'true', false);
 }
 
-// Clear all upload state
-export function clearUploadState(): void {
-  removeStorageItem(UPLOAD_SESSION_KEY);
-  removeStorageItem(UPLOAD_PROGRESS_KEY);
-  removeStorageItem(IS_UPLOADING_KEY);
+/**
+ * Get the current upload session ID if available
+ */
+export function getUploadSessionId(): string | null {
+  return safelyAccessStorage(() => localStorage.getItem(UPLOAD_SESSION_KEY), null);
 }
 
-// Function to register a callback for storage events
-// This allows other tabs to detect when upload state changes
-export function registerStorageEventListener(callback: (event: StorageEvent) => void): void {
-  window.addEventListener('storage', callback);
+/**
+ * Set the current upload session ID
+ */
+export function setUploadSessionId(sessionId: string): void {
+  safelyAccessStorage(() => localStorage.setItem(UPLOAD_SESSION_KEY, sessionId), undefined);
 }
 
-// Function to remove storage event listener
-export function removeStorageEventListener(callback: (event: StorageEvent) => void): void {
-  window.removeEventListener('storage', callback);
+/**
+ * Get the current upload progress if available
+ */
+export function getUploadProgress(): UploadProgressStorage | null {
+  return safelyAccessStorage(() => {
+    const storedProgress = localStorage.getItem(UPLOAD_PROGRESS_KEY);
+    if (storedProgress) {
+      return JSON.parse(storedProgress) as UploadProgressStorage;
+    }
+    return null;
+  }, null);
 }
 
-// Check if there's an in-progress upload based on localStorage
-export function hasActiveUpload(): boolean {
-  return isUploading() && !!getUploadSessionId();
+/**
+ * Save the current upload progress
+ */
+export function saveUploadProgress(progress: UploadProgressStorage): void {
+  safelyAccessStorage(() => {
+    localStorage.setItem(UPLOAD_PROGRESS_KEY, JSON.stringify(progress));
+    localStorage.setItem(IS_UPLOADING_KEY, 'true');
+  }, undefined);
 }
 
-// Function to store all upload state at once
-export function saveUploadState(sessionId: string, progress: UploadProgress, uploading: boolean = true): boolean {
-  try {
-    saveUploadSessionId(sessionId);
-    saveUploadProgress(progress);
-    saveUploadingState(uploading);
-    return true;
-  } catch (error) {
-    console.error('Error saving upload state:', error);
-    return false;
-  }
-}
-
-// Save just the session ID to localStorage
-export function saveUploadSessionId(sessionId: string | null): boolean {
-  if (sessionId === null) {
-    removeStorageItem(UPLOAD_SESSION_KEY);
-    return true;
-  }
-  try {
+/**
+ * Start tracking an upload with the given session ID
+ */
+export function startTrackingUpload(sessionId: string, initialProgress: UploadProgressStorage): void {
+  safelyAccessStorage(() => {
     localStorage.setItem(UPLOAD_SESSION_KEY, sessionId);
-    return true;
-  } catch (error) {
-    console.error('Error saving upload session ID:', error);
-    return false;
-  }
+    localStorage.setItem(UPLOAD_PROGRESS_KEY, JSON.stringify(initialProgress));
+    localStorage.setItem(IS_UPLOADING_KEY, 'true');
+  }, undefined);
 }
 
-// Get all upload state at once
-export function getUploadState(): {
-  sessionId: string | null;
-  progress: UploadProgress | null;
-  isUploading: boolean;
-} {
-  return {
-    sessionId: getUploadSessionId(),
-    progress: getUploadProgress(),
-    isUploading: isUploading()
-  };
+/**
+ * Clear all upload state (used after completion or cancellation)
+ */
+export function clearUploadState(): void {
+  safelyAccessStorage(() => {
+    localStorage.removeItem(UPLOAD_SESSION_KEY);
+    localStorage.removeItem(UPLOAD_PROGRESS_KEY);
+    localStorage.removeItem(IS_UPLOADING_KEY);
+  }, undefined);
 }

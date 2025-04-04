@@ -1,13 +1,14 @@
 import { Upload, Loader2, AlertCircle, Ban } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDisasterContext } from '@/context/disaster-context';
+// Rename imported context isUploading hook to avoid name conflicts
+import { isUploading as checkIsUploading } from '@/lib/upload-persistence';
 import { useToast } from '@/hooks/use-toast';
 import { uploadCSV, checkForActiveSessions } from '@/lib/api';
 import { 
-  hasActiveUpload, 
-  saveUploadSessionId, 
+  setUploadSessionId, 
   saveUploadProgress,
-  saveUploadingState
+  startTrackingUpload
 } from '@/lib/upload-persistence';
 import { queryClient } from '@/lib/queryClient';
 import { useEffect, useState, useRef } from 'react';
@@ -47,7 +48,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         }
         
         // Check if an upload was in progress before refresh using the persistence module
-        const wasUploading = hasActiveUpload();
+        const wasUploading = checkIsUploading();
         
         // If there's an active session that isn't showing in our UI,
         // block the upload and explain why
@@ -158,6 +159,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         processingStats: {
           successCount: 0,
           errorCount: 0,
+          lastBatchDuration: 0,
           averageSpeed: 0
         }
       });

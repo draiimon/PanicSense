@@ -16,6 +16,7 @@ import {
 interface ProcessingStats {
   successCount: number;
   errorCount: number;
+  lastBatchDuration: number;
   averageSpeed: number;
 }
 
@@ -97,6 +98,7 @@ const initialProgress: UploadProgress = {
   processingStats: {
     successCount: 0,
     errorCount: 0,
+    lastBatchDuration: 0,
     averageSpeed: 0
   }
 };
@@ -422,6 +424,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                 processingStats: {
                   successCount: newProcessed,
                   errorCount: pythonProgress.processingStats?.errorCount || 0,
+                  lastBatchDuration: pythonProgress.processingStats?.lastBatchDuration || 0,
                   averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
                 }
               };
