@@ -66,14 +66,9 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     }
 
     try {
-      // Reset sequence - initialize the progress first then set uploading state
-      // First, reset the uploading state to make sure we start from scratch
+      // Reset sequence
       setIsUploading(false);
-      
-      // Small delay to ensure state is updated before proceeding
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Set initial progress values
       setUploadProgress({ 
         processed: 0, 
         total: 0, 
@@ -89,11 +84,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           averageSpeed: 0
         }
       });
-      
-      // Small delay to ensure progress is set before showing the modal
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Now activate the upload modal
       setIsUploading(true);
 
       const result = await uploadCSV(file, (progress) => {

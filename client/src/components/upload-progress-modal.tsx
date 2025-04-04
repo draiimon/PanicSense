@@ -44,7 +44,6 @@ export function UploadProgressModal() {
   // Don't render the modal if not uploading
   if (!isUploading) return null;
 
-  // Get values from uploadProgress with fallbacks
   const { 
     stage = 'Processing...', 
     processed: rawProcessed = 0, 
