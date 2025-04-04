@@ -1044,19 +1044,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // No need to prevent progress from going backward - let the UI show the actual value
-        // This allows the initialization phase (5 records) and then actual processing (starting at 1)
-        // to be shown accurately without artificially inflating the counter
+        // Check if we're transitioning from column identification to actual record processing
+        // This would appear as a backward progress (e.g., 5 -> 1) but is normal
+        const isProcessingRecord = stage.includes("Processing record") || stage.includes("Completed record");
+        const isInitPhaseComplete = extractedStage?.toLowerCase().includes('identified data columns') || 
+                                  extractedStage?.toLowerCase().includes('starting batch');
         
-        // Just update our tracking of highest value seen for debugging purposes
-        if (extractedProcessed > highestProcessedValue) {
+        // Detect real phase transition (column identification -> record processing)
+        if (isProcessingRecord && extractedProcessed < highestProcessedValue && extractedProcessed <= 5) {
+          console.log(`Phase transition detected: Progress value changed from ${highestProcessedValue} to ${extractedProcessed}`);
+          
+          // Allow progress to "reset" and start counting from actual record processing
+          // instead of maintaining the artificially high value from column identification
           highestProcessedValue = extractedProcessed;
-        }
-        
-        // For identifying columns phase - don't log every transition
-        if (extractedStage?.toLowerCase().includes('identifying columns') && 
-            extractedProcessed < highestProcessedValue) {
-          console.log(`Phase transition: From column identification (${highestProcessedValue}) to record processing (${extractedProcessed})`);
+        } else if (extractedProcessed > highestProcessedValue) {
+          // Otherwise track the highest value for normal progress
+          highestProcessedValue = extractedProcessed;
         }
         
         // Make sure processed never exceeds total
