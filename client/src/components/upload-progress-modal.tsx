@@ -22,6 +22,52 @@ export function UploadProgressModal() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
+  // Regular check with database boss - if boss says no active sessions but we're showing
+  // a modal, boss is right and we should close the modal
+  useEffect(() => {
+    if (!isUploading) return; // No need to check if we're not showing a modal
+    
+    // Function to verify with database boss
+    const checkWithDatabaseBoss = async () => {
+      try {
+        // Always consult the database (the boss)
+        console.log('📊 Upload modal checking with database boss...');
+        const response = await fetch('/api/active-upload-session');
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          // If database says no active sessions but we're showing modal,
+          // database is right (the boss) and we must obey
+          if (!data.sessionId && isUploading) {
+            console.log('👑 DATABASE BOSS SAYS NO ACTIVE UPLOADS - MUST CLOSE MODAL');
+            
+            // Clear all localStorage to match database state
+            localStorage.removeItem('isUploading');
+            localStorage.removeItem('uploadProgress');
+            localStorage.removeItem('uploadSessionId');
+            localStorage.removeItem('lastProgressTimestamp');
+            localStorage.removeItem('lastUIUpdateTimestamp');
+            
+            // Close modal - the boss has spoken!
+            setIsUploading(false);
+          }
+        }
+      } catch (error) {
+        // Silently handle errors to avoid disrupting the UI
+      }
+    };
+    
+    // Check with database boss immediately
+    checkWithDatabaseBoss();
+    
+    // Then set up regular checks with the boss
+    const intervalId = setInterval(checkWithDatabaseBoss, 5000);
+    
+    // Cleanup on unmount
+    return () => clearInterval(intervalId);
+  }, [isUploading, setIsUploading]);
+  
   // Manually close the modal and clean up both localStorage and database
   // This improved version handles race conditions and prevents UI flicker
   const forceCloseModal = async () => {

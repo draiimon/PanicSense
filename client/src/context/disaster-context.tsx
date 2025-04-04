@@ -112,28 +112,39 @@ const initialProgress: UploadProgress = {
 export function DisasterContextProvider({ children }: { children: ReactNode }): JSX.Element {
   // Create a ref to track if initial session check has been performed
   const sessionCheckPerformedRef = useRef(false);
+  const databaseCheckCompletedRef = useRef(false);
   
-  // Check localStorage for existing upload state, but don't trust it completely
-  // We'll validate with the database check
+  // Load from localStorage for immediate response (but database will be authoritative)
   const storedIsUploading = localStorage.getItem('isUploading') === 'true';
   const storedProgress = localStorage.getItem('uploadProgress');
   const storedSessionId = localStorage.getItem('uploadSessionId');
   
-  // Initialize with localStorage data, but we'll override based on database
+  // Initialize with localStorage data for immediate UI response
   let initialUploadState = storedIsUploading;
   let initialProgressState = initialProgress;
   
-  // If we have stored progress, parse it
+  // If we have stored progress, parse it for immediate UI display
   if (storedProgress) {
     try {
       const parsedProgress = JSON.parse(storedProgress);
-      initialProgressState = parsedProgress;
+      // Check if the stored data is recent (within the last hour)
+      const savedAt = parsedProgress.savedAt || 0;
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+      
+      if (savedAt >= oneHourAgo) {
+        // Use the stored progress for immediate display while we check the database
+        initialProgressState = parsedProgress;
+        console.log('Using locally cached progress while waiting for database verification');
+      } else {
+        console.log('Stored progress is too old (>1h), not using for initial display');
+      }
     } catch (error) {
       console.error('Failed to parse stored upload progress', error);
     }
   }
   
-  // State 
+  // State initialization with potentially localStorage data
+  // This gives us immediate UI while we wait for the database check
   const [selectedDisasterType, setSelectedDisasterType] = useState<string>("All");
   const [isUploading, setIsUploading] = useState<boolean>(initialUploadState);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>(initialProgressState);
@@ -141,23 +152,151 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
   // Get toast for notifications
   const { toast } = useToast();
   
-  // Persistence for upload state
-  // Store upload state in localStorage when it changes
+  // ====== HYBRID APPROACH: DATABASE IS BOSS, LOCALSTORAGE IS ASSISTANT ======
+  // This effect runs once on component mount to verify with the database (authoritative source)
+  useEffect(() => {
+    // Define the database verification function - DATABASE IS BOSS!
+    const verifyWithDatabase = async () => {
+      try {
+        console.log('Database check running - DATABASE IS BOSS!');
+        
+        // Immediate UI setup from localStorage for fast loading
+        // But database will always overrule this if different
+        if (storedSessionId && storedIsUploading && storedProgress) {
+          try {
+            const parsedProgress = JSON.parse(storedProgress);
+            // Only show loading state if the stored data is recent (last 15 minutes)
+            const fifteenMinutesAgo = Date.now() - (15 * 60 * 1000);
+            if (parsedProgress.savedAt >= fifteenMinutesAgo) {
+              // Show immediate UI from localStorage while waiting for database
+              setIsUploading(true);
+              setUploadProgress(parsedProgress);
+              console.log('Showing cached UI while waiting for database verdict...');
+            }
+          } catch (e) {
+            // Ignore parse errors, database will fix things
+          }
+        }
+        
+        // Check with the boss (database) for the real status
+        console.log('Asking database for the real upload status...');
+        const response = await fetch('/api/active-upload-session');
+        if (!response.ok) throw new Error('Failed to check for active uploads');
+        
+        const data = await response.json();
+        
+        if (data.sessionId) {
+          // DATABASE HAS ACTIVE SESSION - BOSS SAYS YES
+          console.log('DATABASE BOSS SAYS: Yes, there is an active upload', data.sessionId);
+          
+          // Save the boss's decision to localStorage 
+          localStorage.setItem('uploadSessionId', data.sessionId);
+          localStorage.setItem('isUploading', 'true');
+          
+          // UI must follow the boss's decision
+          setIsUploading(true);
+          
+          // If boss has progress info, that's the official info
+          if (data.progress) {
+            let dbProgress;
+            
+            // Parse the progress if needed
+            if (typeof data.progress === 'string') {
+              try {
+                dbProgress = JSON.parse(data.progress);
+              } catch (e) {
+                console.error('Error parsing progress data from database');
+                // Create a basic progress object on error
+                dbProgress = {
+                  processed: 0,
+                  total: 100,
+                  stage: "Processing data...",
+                  timestamp: Date.now()
+                };
+              }
+            } else {
+              dbProgress = data.progress;
+            }
+            
+            // Add timestamps and make official record
+            const officialProgress = {
+              ...dbProgress,
+              timestamp: Date.now(),
+              savedAt: Date.now(), 
+              officialDbUpdate: true // Mark this as coming from the database
+            };
+            
+            // Update UI with the official data
+            setUploadProgress(officialProgress);
+            
+            // Update localStorage with the official data
+            localStorage.setItem('uploadProgress', JSON.stringify(officialProgress));
+            console.log('Official database progress saved to localStorage:', officialProgress);
+          }
+        } else {
+          // DATABASE SAYS NO ACTIVE UPLOADS - BOSS SAYS NO
+          console.log('DATABASE BOSS SAYS: No active uploads exist');
+          
+          if (isUploading) {
+            console.log('Clearing all upload state because database says so');
+            
+            // Clear localStorage completely - follow the boss
+            localStorage.removeItem('isUploading');
+            localStorage.removeItem('uploadProgress');
+            localStorage.removeItem('uploadSessionId');
+            localStorage.removeItem('lastProgressTimestamp');
+            localStorage.removeItem('lastUIUpdateTimestamp');
+            
+            // Update UI state to match database (the boss)
+            setIsUploading(false);
+            setUploadProgress(initialProgress);
+          } else {
+            console.log('UI already matches database - no uploads active');
+          }
+        }
+        
+        // Mark database check as completed - we listened to the boss
+        databaseCheckCompletedRef.current = true;
+      } catch (error) {
+        console.error('Error checking with database boss:', error);
+        // On error, keep current state to avoid flickering, but try again soon
+      }
+    };
+    
+    // Start by asking the boss right away
+    verifyWithDatabase();
+    
+    // Keep checking with the boss regularly
+    const intervalId = setInterval(() => {
+      console.log('Running session check poll...');
+      verifyWithDatabase();
+    }, 10000); // Every 10 seconds, check with the boss
+    
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
+  
+  // Persistence for upload state - save to localStorage when state changes
   useEffect(() => {
     if (isUploading) {
       try {
-        // Store with timestamp to ensure we have the most recent data
-        const dataToStore = {
-          ...uploadProgress,
-          savedAt: Date.now() // Add timestamp for freshness check
-        };
-        
-        // Store the current upload progress and state
-        localStorage.setItem('isUploading', 'true');
-        localStorage.setItem('uploadProgress', JSON.stringify(dataToStore));
-        
-        // Log persistence for debugging
-        console.log('Saved upload progress to localStorage:', dataToStore);
+        // Only update localStorage if database check has completed
+        // This prevents localStorage from overriding database state during startup
+        if (databaseCheckCompletedRef.current) {
+          // Add timestamp for freshness check
+          const dataToStore = {
+            ...uploadProgress,
+            savedAt: Date.now()
+          };
+          
+          // Store the current upload progress and state
+          localStorage.setItem('isUploading', 'true');
+          localStorage.setItem('uploadProgress', JSON.stringify(dataToStore));
+          
+          // Log persistence for debugging
+          console.log('Saved upload progress to localStorage:', dataToStore);
+        }
       } catch (error) {
         // Handle storage errors gracefully
         console.error('Failed to store upload progress:', error);
@@ -166,6 +305,8 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
       // Clear storage when upload is finished
       localStorage.removeItem('isUploading');
       localStorage.removeItem('uploadProgress');
+      localStorage.removeItem('uploadSessionId');
+      localStorage.removeItem('lastProgressTimestamp');
     }
   }, [isUploading, uploadProgress]);
 
