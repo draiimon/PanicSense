@@ -8,6 +8,10 @@ import { applyEmergencyFixes } from "./emergency-db-fix";
 // Import the simple fix (now ESM compatible)
 import { simpleDbFix } from "./db-simple-fix";
 
+// Create a global server start timestamp for detecting restarts
+// This will be used by routes.ts to detect server restarts
+export const SERVER_START_TIMESTAMP = new Date().getTime();
+
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Increased limit for better performance
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));

@@ -906,10 +906,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get active upload session with stale check
+  // Get active upload session with stale check and server restart detection
   app.get('/api/active-upload-session', async (req: Request, res: Response) => {
     try {
       console.log("⭐ Checking for active upload sessions...");
+      
+      // Import the SERVER_START_TIMESTAMP from server/index.ts
+      const { SERVER_START_TIMESTAMP } = await import('./index');
 
       // Before checking the database, check if there's an active Python process
       // This is the most reliable indicator of an active upload
@@ -928,18 +931,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Session exists in database, update it to ensure it's marked as active
           const session = dbSessions[0];
           
-          // Make sure it's marked as active
-          if (session.status !== 'active') {
-            await db.update(uploadSessions)
-              .set({ 
-                status: 'active',
-                updatedAt: new Date()
-              })
-              .where(eq(uploadSessions.sessionId, activeSessionId));
-          }
-          
           // Get the progress from the upload progress map
           const progress = uploadProgressMap.get(activeSessionId);
+          
+          // Update the session to keep it fresh and store the current server timestamp
+          await db.update(uploadSessions)
+            .set({ 
+              status: 'active',
+              updatedAt: new Date(),
+              serverStartTimestamp: SERVER_START_TIMESTAMP.toString()
+            })
+            .where(eq(uploadSessions.sessionId, activeSessionId));
           
           console.log(`⭐ Returning active session ${activeSessionId} with progress:`, progress);
           
@@ -962,7 +964,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               status: 'active',
               progress: JSON.stringify(progress || {}),
               createdAt: new Date(),
-              updatedAt: new Date()
+              updatedAt: new Date(),
+              serverStartTimestamp: SERVER_START_TIMESTAMP.toString()
             });
             
           // Return the session
@@ -984,6 +987,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (sessions.length > 0) {
         const activeSession = sessions[0];
         console.log(`⭐ Found active session in database: ${activeSession.sessionId}`);
+        
+        // Check for server restart - if the stored server timestamp doesn't match current one
+        if (activeSession.serverStartTimestamp && 
+            activeSession.serverStartTimestamp !== SERVER_START_TIMESTAMP.toString()) {
+          console.log(`⭐ Server restart detected! Session ${activeSession.sessionId} was created on a different server instance.`);
+          console.log(`⭐ Stored timestamp: ${activeSession.serverStartTimestamp}, Current: ${SERVER_START_TIMESTAMP}`);
+          
+          // Update to completed status
+          await db.update(uploadSessions)
+            .set({ 
+              status: 'completed',
+              updatedAt: new Date()
+            })
+            .where(eq(uploadSessions.sessionId, activeSession.sessionId));
+          
+          // Return no active session with a restart flag
+          return res.json({ 
+            sessionId: null, 
+            serverRestartDetected: true
+          });
+        }
         
         // Check if the session might be stale (created more than 60 minutes ago with no updates)
         // Increased to 60 minutes to be extra sure we don't close active sessions
@@ -1013,11 +1037,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? JSON.parse(activeSession.progress) 
             : activeSession.progress);
             
-        // Always update the session to keep it fresh
+        // Always update the session to keep it fresh and ensure server timestamp is current
         await db.update(uploadSessions)
           .set({ 
             updatedAt: new Date(),
-            progress: JSON.stringify(progress || {})
+            progress: JSON.stringify(progress || {}),
+            serverStartTimestamp: SERVER_START_TIMESTAMP.toString()
           })
           .where(eq(uploadSessions.sessionId, activeSession.sessionId));
         

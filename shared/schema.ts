@@ -111,6 +111,7 @@ export const uploadSessions = pgTable("upload_sessions", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   userId: integer("user_id").references(() => users.id),
+  serverStartTimestamp: text("server_start_timestamp"), // Store server start timestamp to detect restarts
 });
 
 export const insertSentimentFeedbackSchema = createInsertSchema(sentimentFeedback).pick({
@@ -138,7 +139,8 @@ export const insertUploadSessionSchema = createInsertSchema(uploadSessions).pick
   status: true,
   fileId: true,
   progress: true,
-  userId: true
+  userId: true,
+  serverStartTimestamp: true
 });
 
 // Schema Validation
