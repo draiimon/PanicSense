@@ -5,29 +5,22 @@ import {
   Database, 
   FileText, 
   Loader2, 
-  XCircle
+  XCircle,
+  AlertCircle,
+  BarChart3,
+  Server,
+  Terminal
 } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cancelUpload } from "@/lib/api";
-// removed import to fix errors
-
-// Simple helper functions for upload progress
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  
-  // Fixed approach for animation with proper conditions
-  const breathingOffset = { scale: 1 };
-
-  // No need to track highest processed value anymore - we're showing the raw value
-  // and using fixed height to prevent layout shifts
-
-  // Since we now let the raw count show directly, we don't need to track highest value anymore
   
   // Handle cancel button click
   const handleCancel = async () => {
@@ -37,7 +30,6 @@ export function UploadProgressModal() {
     setIsCancelling(true);
     try {
       const result = await cancelUpload();
-      // Removed console.log as requested
       
       if (result.success) {
         // We'll let the server-side events close the modal
@@ -45,7 +37,6 @@ export function UploadProgressModal() {
         setIsCancelling(false);
       }
     } catch (error) {
-      // Removed console.error as requested
       setIsCancelling(false);
     }
   };
@@ -70,16 +61,11 @@ export function UploadProgressModal() {
     error = ''
   } = uploadProgress;
   
-  // Min-height styling to prevent UI shrinking during transitions
-  const modalContentStyle = {
-    minHeight: '420px' // Set min-height to prevent modal shrinking
-  };
-
   // SIMPLIFIED STAGE DETECTION LOGIC
   // Convert stage to lowercase once for all checks
   const stageLower = stage.toLowerCase();
   
-  // Keep original server values for display - no manipulation
+  // Keep original server values for display
   const processedCount = rawProcessed;
   
   // Basic state detection - clear, explicit flags
@@ -108,7 +94,16 @@ export function UploadProgressModal() {
   const isCancelled = stageLower.includes('cancel');
   
   // Improved error detection
-  const hasError = stage.toLowerCase().includes('error');
+  const hasError = stageLower.includes('error');
+  
+  // Calculate time remaining in human-readable format
+  const formatTimeRemaining = (seconds: number): string => {
+    if (!seconds || seconds <= 0) return 'calculating...';
+    if (seconds < 60) return `${Math.ceil(seconds)} sec`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.ceil(seconds % 60);
+    return `${minutes}m ${remainingSeconds}s`;
+  };
 
   return createPortal(
     <motion.div
@@ -118,249 +113,329 @@ export function UploadProgressModal() {
       transition={{ duration: 0.2 }}
       className="fixed inset-0 flex items-center justify-center z-[9999]"
     >
-      {/* Gradient backdrop */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 via-indigo-400/20 to-purple-500/30 backdrop-blur-md"></div>
+      {/* Modern blur backdrop */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-indigo-600/10 to-purple-600/20 backdrop-blur-lg"></div>
 
-      {/* Content */}
+      {/* Content Container */}
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        transition={{ duration: 0.2 }}
+        transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
+        className="relative bg-white/90 dark:bg-gray-900/90 rounded-2xl overflow-hidden w-full max-w-sm mx-4 shadow-2xl border border-white/20 backdrop-blur"
         style={{
-          background: "rgba(255, 255, 255, 0.85)",
-          boxShadow: "0 8px 32px rgba(31, 38, 135, 0.15)",
-          backdropFilter: "blur(8px)",
-          border: "1px solid rgba(255, 255, 255, 0.2)",
-          height: "520px", // Fixed exact height instead of min-height
-          width: "380px", // Fixed exact width too
+          background: "rgba(255, 255, 255, 0.95)",
+          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1)",
         }}
-        className="relative rounded-xl overflow-hidden w-full max-w-sm mx-4"
       >
-        {/* Gradient Header */}
-        <div className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 p-4 text-white">
-          <h3 className="text-xl font-bold text-center">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-5 text-white relative overflow-hidden">
+          {/* Background pattern */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute right-0 top-0 w-32 h-32 bg-white/20 rounded-full -mr-16 -mt-16"></div>
+            <div className="absolute left-0 bottom-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
+          </div>
+          
+          {/* Title */}
+          <h3 className="text-xl font-bold text-center mb-4 relative">
             {isComplete ? 'Analysis Complete!' : hasError ? 'Upload Error' : `Processing Records`}
           </h3>
           
-          {/* Counter with larger size */}
-          <div className="flex items-center justify-center my-3">
-            <motion.div 
-              key={processedCount}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ 
-                opacity: 1, 
-                scale: isProcessing ? breathingOffset.scale : 1,
-                transition: { duration: 0.5 }
-              }}
-              className="flex flex-col items-center"
-            >
-              <div className="flex items-center">
-                <span className="text-5xl font-bold text-white">{processedCount}</span>
-                <span className="text-3xl mx-2 text-white/70">/</span>
-                <span className="text-4xl font-bold text-white/90">{total}</span>
+          {/* Counter with animations */}
+          <motion.div 
+            className="flex flex-col items-center justify-center relative z-10"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <div className="flex items-center justify-center">
+              <motion.div 
+                className="relative text-center"
+                key={processedCount}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, type: "spring" }}
+              >
+                <div className="flex items-center justify-center">
+                  <span className="text-6xl font-bold text-white drop-shadow-sm">{processedCount}</span>
+                  <div className="flex flex-col items-start ml-2">
+                    <span className="text-xs text-white/70 uppercase tracking-wider">of</span>
+                    <span className="text-2xl font-bold text-white/90">{total}</span>
+                  </div>
+                </div>
+                <span className="text-sm mt-1 block text-white/80 font-medium uppercase tracking-wider">Records Processed</span>
+              </motion.div>
+            </div>
+            
+            {/* Progress bar */}
+            <div className="w-full mt-4 mb-1">
+              <div className="h-2 bg-black/10 rounded-full overflow-hidden relative">
+                <motion.div
+                  className={`absolute top-0 left-0 h-full ${
+                    hasError 
+                      ? 'bg-red-500' 
+                      : isComplete 
+                        ? 'bg-green-500' 
+                        : 'bg-gradient-to-r from-blue-400 to-purple-500'
+                  }`}
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${percentComplete}%` }}
+                  transition={{ duration: 0.5 }}
+                  style={{ 
+                    backgroundSize: '200% 100%',
+                    animation: isProcessing && !isComplete && !hasError 
+                      ? 'gradientShift 2s linear infinite'
+                      : 'none'
+                  }}
+                />
               </div>
-              <span className="text-sm text-white/80 mt-1">Records Processed</span>
-            </motion.div>
-          </div>
+              <div className="flex justify-between text-xs mt-1">
+                <span className="text-white/70">{Math.floor(percentComplete)}%</span>
+                <span className="text-white/70">
+                  {currentSpeed > 0 ? `${currentSpeed.toFixed(1)} records/sec` : ''}
+                </span>
+              </div>
+            </div>
+          </motion.div>
         </div>
         
+        {/* Body content */}
         <div className="p-5">
-          {/* Enhanced Progress Bar */}
-          <div className="mb-4">
-            <div className="flex justify-between text-sm font-medium mb-1">
-              <span className="text-gray-600">Overall Progress</span>
-              <span className={`font-medium
-                ${isComplete ? 'text-green-600' : hasError ? 'text-red-600' : 'text-blue-600'}
-              `}>
-                {percentComplete}%
-              </span>
-            </div>
-            <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-              <motion.div 
-                className={`h-full ${
+          {/* Status cards */}
+          <div className="space-y-3">
+            {/* Current status */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="flex items-start gap-3">
+                <div className={`p-2 rounded-full flex-shrink-0 ${
                   hasError 
-                    ? 'bg-gradient-to-r from-red-400 to-red-600'
-                    : isComplete
-                      ? 'bg-gradient-to-r from-green-400 to-emerald-500' 
-                      : 'bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500'
-                }`}
-                initial={{ width: 0 }}
-                animate={{ 
-                  width: `${percentComplete}%`,
-                  transition: { duration: 0.5 }
-                }}
-                style={{
-                  backgroundSize: '200% 100%',
-                  animation: isComplete
-                    ? 'completion-pulse 2s ease-in-out infinite' 
-                    : 'progress-flow 2s linear infinite'
-                }}
-              />
-            </div>
-          </div>
-          
-          {/* Enhanced Real-time Processing Stats with improved UI */}
-          {!hasError && !isComplete && (
-            <div className="grid grid-cols-1 gap-3 mb-4">               
-              {/* Records Remaining with dynamic display */}
-              <div className="bg-white/80 rounded-lg p-3 shadow-sm border border-blue-100 hover:shadow-md transition-all">
-                <div className="flex items-center gap-2 text-blue-600 mb-1">
-                  <Database className="h-4 w-4" />
-                  <span className="text-xs font-medium">Records Remaining</span>
+                    ? 'bg-red-100 text-red-600' 
+                    : isComplete 
+                      ? 'bg-green-100 text-green-600' 
+                      : 'bg-blue-100 text-blue-600'
+                }`}>
+                  {hasError ? (
+                    <AlertCircle className="h-5 w-5" />
+                  ) : isComplete ? (
+                    <CheckCircle className="h-5 w-5" />
+                  ) : (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  )}
                 </div>
-                <div className="text-sm font-bold text-gray-700">
-                  {Math.max(0, total - processedCount)}
-                  <span className={`text-xs ml-1 ${isPaused ? 'text-amber-500' : 'text-green-500'}`}>
-                    {isPaused ? '(paused)' : '(processing)'}
-                  </span>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Current Status</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">
+                    {stage}
+                  </p>
+                  {isPaused && (
+                    <p className="text-xs text-amber-600 mt-1 font-medium">
+                      System is paused between batches to prevent overloading
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
-          )}
-          
-          {/* Error display section */}
-          {hasError && (
-            <div className="my-4 px-3">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <div className="flex items-center gap-2 text-red-600 mb-2">
-                  <XCircle className="h-5 w-5" />
-                  <h4 className="font-medium">Upload Error</h4>
+
+            {/* Processing stats */}
+            {isProcessing && !hasError && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Server className="h-3.5 w-3.5 text-indigo-500" />
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Records Remaining</span>
+                    </div>
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                      {Math.max(0, total - processedCount)}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-sm text-red-700">{error || 'There was an error processing your upload. Please try again.'}</p>
+                
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Clock className="h-3.5 w-3.5 text-purple-500" />
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Est. Time Left</span>
+                    </div>
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                      {formatTimeRemaining(timeRemaining)}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="mt-4 text-center">
+            )}
+            
+            {/* Processing stages */}
+            {!hasError && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+                <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                  Processing Stages
+                </h4>
+                
+                <div className="space-y-2">
+                  {/* File loading */}
+                  <div className="flex items-center gap-2">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                      !isLoading && (isProcessing || isComplete) 
+                        ? 'bg-green-100 text-green-600' 
+                        : isLoading 
+                          ? 'bg-blue-100 text-blue-600' 
+                          : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      {!isLoading && (isProcessing || isComplete) ? (
+                        <CheckCircle className="h-3 w-3" />
+                      ) : isLoading ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <span className="text-xs">1</span>
+                      )}
+                    </div>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">File Preparation</span>
+                  </div>
+                  
+                  {/* Records processing */}
+                  <div className="flex items-center gap-2">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                      isComplete 
+                        ? 'bg-green-100 text-green-600' 
+                        : isProcessing && !isComplete 
+                          ? 'bg-blue-100 text-blue-600' 
+                          : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      {isComplete ? (
+                        <CheckCircle className="h-3 w-3" />
+                      ) : isProcessing && !isComplete ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <span className="text-xs">2</span>
+                      )}
+                    </div>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Records Processing</span>
+                  </div>
+                  
+                  {/* Batch information */}
+                  {(isProcessing || isComplete) && batchNumber > 0 && totalBatches > 0 && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400 pl-7">
+                      {isComplete ? (
+                        `All batches completed successfully`
+                      ) : (
+                        `Currently on batch ${batchNumber} of ${totalBatches}`
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Completion */}
+                  <div className="flex items-center gap-2">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                      isComplete 
+                        ? 'bg-green-100 text-green-600' 
+                        : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      {isComplete ? (
+                        <CheckCircle className="h-3 w-3" />
+                      ) : (
+                        <span className="text-xs">3</span>
+                      )}
+                    </div>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Analysis Complete</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Error message */}
+            {hasError && (
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-100 dark:border-red-800/30">
+                <div className="flex gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-medium text-red-800 dark:text-red-300">Processing Error</h4>
+                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">{error || 'An error occurred during processing'}</p>
+                  </div>
+                </div>
+                
+                <div className="mt-3 text-center">
+                  <Button
+                    onClick={() => setIsUploading(false)}
+                    variant="destructive"
+                    className="bg-red-600 hover:bg-red-700 text-white px-4"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {/* Action buttons */}
+            {!isComplete && !hasError && (
+              <div className="mt-3 flex justify-center">
                 <Button
-                  onClick={() => setIsUploading(false)}
-                  className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white"
+                  variant="destructive"
+                  size="sm"
+                  className="gap-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white rounded-full px-5"
+                  onClick={() => setShowCancelDialog(true)}
+                  disabled={isCancelling}
                 >
-                  Close
+                  {isCancelling ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Cancelling...</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4" />
+                      <span>Cancel Upload</span>
+                    </>
+                  )}
                 </Button>
               </div>
-            </div>
-          )}
-          
-          {/* Processing Steps - Only show when no error */}
-          {!hasError && (
-            <div className="space-y-2 mb-4">
-              {/* Loading Stage */}
-              <div className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
-                isLoading 
-                  ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100' 
-                  : 'bg-gray-50 text-gray-500 border border-gray-100'
-              }`}>
-                <div className={`flex items-center justify-center w-6 h-6 rounded-full 
-                  ${isLoading ? 'bg-blue-100' : 'bg-gray-200'}`
-                }>
-                  <FileText className="h-3 w-3" />
-                </div>
-                <span className="text-sm font-medium">File Preparation</span>
-                {isLoading && <Loader2 className="h-4 w-4 ml-auto animate-spin text-blue-500" />}
-                {!isLoading && <CheckCircle className="h-4 w-4 ml-auto text-green-500" />}
+            )}
+            
+            {/* Success message and close button */}
+            {isComplete && (
+              <div className="mt-3 flex justify-center">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="gap-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-full px-5"
+                  onClick={() => setIsUploading(false)}
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Complete - Close</span>
+                </Button>
               </div>
-              
-              {/* Processing Stage */}
-              <div className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
-                isProcessing && !isComplete
-                  ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100' 
-                  : isComplete
-                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-100'
-                    : 'bg-gray-50 text-gray-500 border border-gray-100'
-              }`}>
-                <div className={`flex items-center justify-center w-6 h-6 rounded-full 
-                  ${isProcessing && !isComplete 
-                    ? 'bg-blue-100' 
-                    : isComplete 
-                      ? 'bg-green-100' 
-                      : 'bg-gray-200'}`
-                }>
-                  <Database className="h-3 w-3" />
-                </div>
-                <span className="text-sm font-medium">
-                  {isComplete 
-                    ? "Processing Complete" 
-                    : isProcessing 
-                      ? `Processing Records` 
-                      : "Waiting to Process"}
-                </span>
-                {isProcessing && !isComplete && <Loader2 className="h-4 w-4 ml-auto animate-spin text-blue-500" />}
-                {isComplete && <CheckCircle className="h-4 w-4 ml-auto text-green-500" />}
-                {!isProcessing && !isComplete && <Clock className="h-4 w-4 ml-auto text-gray-400" />}
-              </div>
-              
-              {/* Batch Processing Info */}
-              {isProcessing && batchNumber && totalBatches && (
-                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 border border-purple-100">
-                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-100">
-                    <Database className="h-3 w-3" />
-                  </div>
-                  <span className="text-sm font-medium">
-                    Saving Batch {batchNumber} of {totalBatches}
-                  </span>
-                  <Loader2 className="h-4 w-4 ml-auto animate-spin text-purple-500" />
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* Cancel button */}
-          {!isComplete && !hasError && (
-            <div className="mt-3 text-center">
-              <Button
-                variant="destructive"
-                size="sm"
-                className="gap-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-medium rounded-full px-5 py-2"
-                onClick={() => setShowCancelDialog(true)}
-                disabled={isCancelling}
-              >
-                {isCancelling ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Cancelling...</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-4 w-4" />
-                    <span>Cancel Upload</span>
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-        </div>
-        
-        {/* Animated patterns */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/20 to-transparent rounded-full -mr-10 -mt-10"></div>
-          <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-purple-500/20 to-transparent rounded-full -ml-8 -mb-8"></div>
+            )}
+          </div>
         </div>
       </motion.div>
       
-      {/* Prettier Cancel Confirmation Dialog */}
+      {/* Cancel confirmation dialog */}
       {showCancelDialog && createPortal(
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[10000]" onClick={() => setShowCancelDialog(false)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[10000]" onClick={() => setShowCancelDialog(false)}>
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-xl p-4 max-w-xs mx-4 shadow-xl border border-gray-200" 
+            className="bg-white dark:bg-gray-800 rounded-xl p-5 max-w-xs mx-4 shadow-xl border border-gray-200 dark:border-gray-700" 
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="bg-red-100 p-2 rounded-full">
-                <XCircle className="h-5 w-5 text-red-500" />
+            <div className="flex items-start gap-3 mb-3">
+              <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-full">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-lg font-bold text-gray-800">Cancel Upload?</h3>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Cancel Upload?</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  This will stop the current processing job. Progress will be lost and you'll need to start over.
+                </p>
+              </div>
             </div>
-            <p className="text-gray-600 text-sm mb-4">
-              All progress will be lost and you'll need to start the upload again.
-            </p>
-            <div className="flex justify-end gap-2">
+            
+            <div className="flex justify-end gap-2 mt-5">
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => setShowCancelDialog(false)}
-                className="bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-gray-200 rounded-full px-4"
+                className="bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 hover:text-gray-900 border-gray-200 dark:border-gray-700 rounded-full px-4"
               >
                 No, Continue
               </Button>
@@ -381,27 +456,12 @@ export function UploadProgressModal() {
       {/* Animations */}
       <style>
         {`
-          @keyframes progress-flow {
+          @keyframes gradientShift {
             0% {
               background-position: 100% 0;
             }
             100% {
               background-position: -100% 0;
-            }
-          }
-
-          @keyframes completion-pulse {
-            0% {
-              opacity: 0.8;
-              transform: scale(1);
-            }
-            50% {
-              opacity: 1;
-              transform: scale(1.02);
-            }
-            100% {
-              opacity: 0.8;
-              transform: scale(1);
             }
           }
         `}

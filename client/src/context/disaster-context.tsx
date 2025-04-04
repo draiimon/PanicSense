@@ -126,9 +126,23 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   // Store upload state in localStorage when it changes
   useEffect(() => {
     if (isUploading) {
-      // Store the current upload progress and state
-      localStorage.setItem('isUploading', 'true');
-      localStorage.setItem('uploadProgress', JSON.stringify(uploadProgress));
+      try {
+        // Store with timestamp to ensure we have the most recent data
+        const dataToStore = {
+          ...uploadProgress,
+          savedAt: Date.now() // Add timestamp for freshness check
+        };
+        
+        // Store the current upload progress and state
+        localStorage.setItem('isUploading', 'true');
+        localStorage.setItem('uploadProgress', JSON.stringify(dataToStore));
+        
+        // Log persistence for debugging
+        console.log('Saved upload progress to localStorage:', dataToStore);
+      } catch (error) {
+        // Handle storage errors gracefully
+        console.error('Failed to store upload progress:', error);
+      }
     } else {
       // Clear storage when upload is finished
       localStorage.removeItem('isUploading');
