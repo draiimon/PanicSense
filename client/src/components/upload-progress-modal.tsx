@@ -64,6 +64,40 @@ export function UploadProgressModal() {
               if (storedSessionId !== data.sessionId) {
                 localStorage.setItem('uploadSessionId', data.sessionId);
               }
+              
+              // Check if database has progress data that's ahead of local storage
+              if (data.progress) {
+                try {
+                  // Parse database progress
+                  const dbProgress = typeof data.progress === 'string' 
+                    ? JSON.parse(data.progress) 
+                    : data.progress;
+                  
+                  // Parse local progress  
+                  const localProgress = storedUploadProgress 
+                    ? JSON.parse(storedUploadProgress)
+                    : null;
+                    
+                  // Compare processed counts - if database is ahead, update localStorage
+                  if (localProgress && dbProgress.processed > localProgress.processed) {
+                    console.log('DATABASE COUNT AHEAD OF LOCAL - Syncing to database', 
+                      `DB: ${dbProgress.processed}, Local: ${localProgress.processed}`);
+                    
+                    // Add timestamps and mark as official database data
+                    const officialData = {
+                      ...dbProgress,
+                      timestamp: Date.now(),
+                      savedAt: Date.now(),
+                      officialDbUpdate: true 
+                    };
+                    
+                    // Save to localStorage for fast access - database wakes up localStorage
+                    localStorage.setItem('uploadProgress', JSON.stringify(officialData));
+                  }
+                } catch (e) {
+                  console.error('Error comparing progress data:', e);
+                }
+              }
             }
           }
         } else {

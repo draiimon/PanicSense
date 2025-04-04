@@ -41,6 +41,44 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     ws.addEventListener('message', (event) => {
       try {
         const data = JSON.parse(event.data);
+        
+        // If this is a progress update message, ensure localStorage is synchronized
+        if (data && data.type === 'progress' && data.sessionId && data.progress) {
+          const storedSessionId = localStorage.getItem('uploadSessionId');
+          
+          // If this progress update is for our active upload session, update localStorage
+          if (storedSessionId === data.sessionId) {
+            try {
+              // Parse existing progress if available
+              const storedProgress = localStorage.getItem('uploadProgress');
+              if (storedProgress) {
+                const localProgress = JSON.parse(storedProgress);
+                const newProgress = data.progress;
+                
+                // Only update if server has newer/greater count than local
+                if (newProgress.processed > localProgress.processed) {
+                  // Add timestamp and mark as WebSocket update
+                  const syncedProgress = {
+                    ...newProgress,
+                    timestamp: Date.now(),
+                    savedAt: Date.now(),
+                    websocketUpdate: true
+                  };
+                  
+                  // Update localStorage with newer progress from WebSocket
+                  localStorage.setItem('uploadProgress', JSON.stringify(syncedProgress));
+                  console.log('WebSocket progress ahead of local - updating localStorage', 
+                    `WS: ${newProgress.processed}, Local: ${localProgress.processed}`);
+                }
+              }
+            } catch (e) {
+              // Error handling localStorage, just continue
+              console.error('Error handling WebSocket progress in localStorage', e);
+            }
+          }
+        }
+        
+        // Set the last message received for context consumers
         setLastMessage(data);
       } catch (error) {
         console.error('Failed to parse WebSocket message:', error);

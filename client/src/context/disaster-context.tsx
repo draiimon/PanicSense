@@ -258,12 +258,39 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
               officialDbUpdate: true // Mark this as coming from the database
             };
             
-            // Update UI with the official data
-            setUploadProgress(officialProgress);
-            
-            // Update localStorage with the official data
-            localStorage.setItem('uploadProgress', JSON.stringify(officialProgress));
-            console.log('Official database progress saved to localStorage:', officialProgress);
+            // Check if local storage counts are behind database counts
+            // This implements the "wake up" feature where database count takes precedence
+            const storedProgress = localStorage.getItem('uploadProgress');
+            if (storedProgress) {
+              try {
+                const localProgress = JSON.parse(storedProgress);
+                // If database is ahead OR local is not marked as official, use database
+                if (!localProgress.officialDbUpdate || dbProgress.processed > localProgress.processed) {
+                  console.log('DATABASE COUNT AHEAD OF LOCAL - Syncing to database count', 
+                    `DB: ${dbProgress.processed}, Local: ${localProgress.processed}`);
+                  // Update UI with the official data
+                  setUploadProgress(officialProgress);
+                  
+                  // Update localStorage with the official data - the database is "waking up" localStorage
+                  localStorage.setItem('uploadProgress', JSON.stringify(officialProgress));
+                  console.log('Official database progress saved to localStorage:', officialProgress);
+                } else {
+                  // Local is ahead, keep local count but note in logs
+                  console.log('LOCAL COUNT AHEAD OF DATABASE - Keeping local progress', 
+                    `DB: ${dbProgress.processed}, Local: ${localProgress.processed}`);
+                }
+              } catch (e) {
+                // Error parsing local progress, use database
+                setUploadProgress(officialProgress);
+                localStorage.setItem('uploadProgress', JSON.stringify(officialProgress));
+                console.log('Error parsing local progress, using database:', officialProgress);
+              }
+            } else {
+              // No local progress, use database
+              setUploadProgress(officialProgress);
+              localStorage.setItem('uploadProgress', JSON.stringify(officialProgress));
+              console.log('Official database progress saved to localStorage:', officialProgress);
+            }
           }
         } else {
           // DATABASE SAYS NO ACTIVE UPLOADS - BUT LOCAL IS THE REAL BOSS!
