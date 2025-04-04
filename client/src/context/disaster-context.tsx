@@ -141,32 +141,116 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
   // Get toast for notifications
   const { toast } = useToast();
   
-  // Persistence for upload state
-  // Store upload state in localStorage when it changes
+  // Database as the single source of truth for upload state
+  // with cross-tab synchronization using BroadcastChannel API
   useEffect(() => {
+    // Create a reference to a BroadcastChannel for cross-tab communication
+    let broadcastChannel: BroadcastChannel | null = null;
+    
+    // Setup a BroadcastChannel for cross-tab synchronization
+    if ('BroadcastChannel' in window) {
+      broadcastChannel = new BroadcastChannel('upload_progress_sync');
+      
+      // Listen for messages from other tabs
+      broadcastChannel.onmessage = (event) => {
+        console.log('📱 Cross-tab event received:', event.data);
+        
+        // Only process messages that match our expected format
+        if (event.data && typeof event.data === 'object') {
+          // Extract upload state information
+          const { isUploading: remoteIsUploading, progress: remoteProgress } = event.data;
+          
+          // If the remote tab is uploading and we're not, or vice versa,
+          // update our state to match
+          if (remoteIsUploading !== isUploading) {
+            setIsUploading(remoteIsUploading);
+          }
+          
+          // If we received progress data and it's newer than what we have,
+          // update our progress state
+          if (remoteProgress && remoteProgress.timestamp) {
+            const currentTimestamp = uploadProgress.timestamp || 0;
+            if (remoteProgress.timestamp > currentTimestamp) {
+              setUploadProgress(remoteProgress);
+            }
+          }
+        }
+      };
+    }
+    
+    // Save state to database (via API) and broadcast to other tabs
     if (isUploading) {
       try {
-        // Store with timestamp to ensure we have the most recent data
-        const dataToStore = {
+        // Add timestamp to ensure we have the most recent data
+        const updatedProgress = {
           ...uploadProgress,
-          savedAt: Date.now() // Add timestamp for freshness check
+          timestamp: uploadProgress.timestamp || Date.now()
         };
         
-        // Store the current upload progress and state
-        localStorage.setItem('isUploading', 'true');
-        localStorage.setItem('uploadProgress', JSON.stringify(dataToStore));
+        // Step 1: Update the server - the database is the single source of truth
+        // This is an optimistic update - we don't wait for the server response
+        const sessionId = localStorage.getItem('uploadSessionId');
+        if (sessionId) {
+          fetch(`/api/upload-session/${sessionId}/progress`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              status: 'active',
+              progress: updatedProgress
+            }),
+            // Use this option to avoid waiting for the response
+            cache: 'no-store',
+          }).catch(error => {
+            // Silently catch errors to prevent console spam
+            // The next polling cycle will fix any inconsistencies
+          });
+        }
         
-        // Log persistence for debugging
-        console.log('Saved upload progress to localStorage:', dataToStore);
+        // Step 2: Broadcast to other tabs for instant update
+        if (broadcastChannel) {
+          broadcastChannel.postMessage({
+            isUploading: true,
+            progress: updatedProgress
+          });
+        }
+        
+        // Step 3: Maintain localStorage for backward compatibility and quick initial load
+        localStorage.setItem('isUploading', 'true');
+        localStorage.setItem('uploadProgress', JSON.stringify({
+          ...updatedProgress,
+          savedAt: Date.now() // Add savedAt for freshness check
+        }));
+        
+        // Log the update (but not on every update to reduce console spam)
+        if (Math.random() < 0.1) { // Only log about 10% of updates
+          console.log('Progress update:', updatedProgress);
+        }
       } catch (error) {
-        // Handle storage errors gracefully
-        console.error('Failed to store upload progress:', error);
+        console.error('Failed to update upload progress:', error);
       }
     } else {
-      // Clear storage when upload is finished
+      // If we're not uploading, clear the upload state and broadcast that
+      if (broadcastChannel) {
+        broadcastChannel.postMessage({
+          isUploading: false,
+          progress: null
+        });
+      }
+      
+      // Remove from localStorage also
       localStorage.removeItem('isUploading');
       localStorage.removeItem('uploadProgress');
+      localStorage.removeItem('uploadSessionId');
     }
+    
+    // Cleanup function to close the BroadcastChannel
+    return () => {
+      if (broadcastChannel) {
+        broadcastChannel.close();
+      }
+    };
   }, [isUploading, uploadProgress]);
 
   // Get current location to detect route changes
@@ -784,6 +868,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
 
   // Now we'll create a useEffect that checks for active uploads on route changes
   // This optimized version avoids polling issues and UI flickering 
+  // It also adds BroadcastChannel support for cross-tab synchronization
   useEffect(() => {
     // Only log once when active routes change
     console.log('Checking for active uploads on route:', location);
@@ -791,6 +876,65 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
     // Start with sessionId from localStorage to reduce flickering
     const storedSessionId = localStorage.getItem('uploadSessionId');
     const storedIsUploading = localStorage.getItem('isUploading') === 'true';
+    
+    // Initialize BroadcastChannel for cross-tab communication
+    let broadcastChannel: BroadcastChannel | null = null;
+    
+    // Setup BroadcastChannel if the browser supports it
+    if ('BroadcastChannel' in window) {
+      // Create a new channel for upload progress synchronization
+      broadcastChannel = new BroadcastChannel('upload_progress_sync');
+      console.log('✨ BroadcastChannel initialized for cross-tab sync');
+      
+      // Listen for messages from other tabs
+      broadcastChannel.onmessage = (event) => {
+        if (!event.data) return;
+        
+        // Log occasionally to avoid console spam
+        if (Math.random() < 0.1) {
+          console.log('📱 Received cross-tab message:', event.data.type);
+        }
+        
+        // Handle different message types
+        if (event.data.type === 'UPLOAD_PROGRESS' && event.data.progress) {
+          // Only update if the progress is newer than what we have
+          const currentTimestamp = uploadProgress.timestamp || 0;
+          const newTimestamp = event.data.progress.timestamp || 0;
+          
+          if (newTimestamp > currentTimestamp) {
+            setUploadProgress(event.data.progress);
+            
+            // Also update localStorage for persistence
+            localStorage.setItem('uploadProgress', JSON.stringify({
+              ...event.data.progress,
+              savedAt: Date.now()
+            }));
+          }
+        }
+        else if (event.data.type === 'UPLOAD_STARTED') {
+          setIsUploading(true);
+          if (event.data.sessionId) {
+            localStorage.setItem('uploadSessionId', event.data.sessionId);
+          }
+          if (event.data.progress) {
+            setUploadProgress(event.data.progress);
+            localStorage.setItem('uploadProgress', JSON.stringify({
+              ...event.data.progress,
+              savedAt: Date.now()
+            }));
+          }
+        }
+        else if (event.data.type === 'UPLOAD_COMPLETED') {
+          setIsUploading(false);
+          localStorage.removeItem('isUploading');
+          localStorage.removeItem('uploadSessionId');
+          localStorage.removeItem('uploadProgress');
+          
+          // Refresh data to show new uploads
+          refreshData();
+        }
+      };
+    }
     
     // We use a debounced check approach with a more stable polling strategy
     // Set up polling to check for active sessions (reduced frequency - every 20 seconds)
