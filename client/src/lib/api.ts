@@ -154,21 +154,53 @@ export function getCurrentUploadSessionId(): string | null {
 // Optimized version with anti-flickering protection
 export async function checkForActiveSessions(): Promise<string | null> {
   try {
-    // IMPORTANT: Fetch active session from database - ALWAYS prioritize database over localStorage
+    // HARD ANTI-FLICKER APPROACH:
+    // 1. IMMEDIATELY assume localStorage is correct
+    // 2. Update UI instantly based on localStorage
+    // 3. Then check with server in background
+    // 4. UI never flickers because the initial state is already set correctly
+    
+    // Track if this is a page refresh
+    const pageLoadTime = window.performance?.timing?.navigationStart || 0;
+    const timeOnPage = Date.now() - pageLoadTime;
+    const isRecentPageLoad = timeOnPage < 5000; // Within 5 seconds of page load
+    const refreshCounter = parseInt(localStorage.getItem('pageRefreshCounter') || '0');
+    
+    if (isRecentPageLoad) {
+      // Increment refresh counter on page load
+      localStorage.setItem('pageRefreshCounter', (refreshCounter + 1).toString());
+      console.log(`🔄 Page refresh detected (${refreshCounter + 1})`);
+    }
+    
     const cacheKey = 'lastDatabaseCheck';
     const lastCheckTime = parseInt(localStorage.getItem(cacheKey) || '0');
     const now = Date.now();
     
-    // Rate limit database checks to prevent excessive API calls (5 second cooldown)
-    // This helps reduce server load and avoid flickering from constant database polling
-    const minCheckInterval = 5000; // 5 seconds between checks
+    // HIGHEST PRIORITY: Check localStorage first and TRUST it
+    const cachedSessionId = localStorage.getItem('uploadSessionId');
+    const isLocallyUploading = localStorage.getItem('isUploading') === 'true';
     
-    if (now - lastCheckTime < minCheckInterval) {
-      // Return the stored session ID to avoid flickering during the cooldown period
-      const cachedSessionId = localStorage.getItem('uploadSessionId');
-      if (cachedSessionId && localStorage.getItem('isUploading') === 'true') {
-        return cachedSessionId;
+    // If localStorage says we're uploading, IMMEDIATELY show that state
+    // Don't even wait for the API call - this is what prevents flickering
+    if (cachedSessionId && isLocallyUploading) {
+      console.log('🔒 STRICT ANTI-FLICKER: Using localStorage session with FORCED STABILITY');
+      
+      // If this is a refresh, always check with server but KEEP showing upload UI
+      if (isRecentPageLoad) {
+        console.log('🔄 Page refresh detected, checking server but maintaining UI state');
+      } else {
+        // For regular polling, rate limit to reduce server load (15 second cooldown)
+        const minCheckInterval = 15000; // 15 seconds between checks when not a refresh
+        
+        if (now - lastCheckTime < minCheckInterval) {
+          // Skip the API call completely during cooldown period
+          return cachedSessionId;
+        }
       }
+      
+      // We'll continue with the API call, but UI already shows uploading
+      // So no matter how long the API call takes, the UI won't flicker
+      console.log('⏳ Running session check in background while keeping UI stable...');
     }
     
     // Update the last check time in localStorage

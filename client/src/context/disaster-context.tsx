@@ -235,42 +235,44 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
     const storedIsUploading = localStorage.getItem('isUploading') === 'true';
     let storedProgress = null;
     
-    try {
-      // If we already have active upload data in localStorage, use it first
-      // This prevents flickering while we wait for the database check
-      if (storedIsUploading && storedSessionId && !isUploading) {
-        setIsUploading(true);
-        
-        try {
-          const progressData = localStorage.getItem('uploadProgress');
-          if (progressData) {
-            storedProgress = JSON.parse(progressData);
-            // Only update if we have data and it's newer than what we have
-            if (storedProgress && (!uploadProgress.timestamp || 
-                storedProgress.timestamp > uploadProgress.timestamp)) {
-              setUploadProgress(storedProgress);
-            }
+    // ******************************************
+    // THIS IS THE KEY ANTI-FLICKERING TECHNIQUE:
+    // IMMEDIATELY APPLY THE LOCALSTORAGE STATE
+    // ******************************************    
+    // If localStorage shows as uploading, immediately restore that state
+    // This creates a smooth non-flickering experience by never "turning off" the modal
+    // until we're 100% sure the upload is done
+    if (storedIsUploading && storedSessionId && !isUploading) {
+      console.log("📱 Immediately restoring upload state from localStorage:", storedSessionId);
+      // Immediately set UI state to uploading to prevent flickering
+      setIsUploading(true);
+      
+      try {
+        const progressData = localStorage.getItem('uploadProgress');
+        if (progressData) {
+          storedProgress = JSON.parse(progressData);
+          // Prevent showing an empty progress state
+          if (storedProgress && storedProgress.processed > 0) {
+            setUploadProgress(storedProgress);
           }
-        } catch (e) {
-          // Silently handle parse errors
         }
+      } catch (e) {
+        // Silently handle parse errors
       }
+    }
     
-      // THEN check database for active uploads - ALWAYS prioritize database for source of truth
+    try {
+      // THEN check database for active uploads - but UI already shows upload in progress
+      // This way, even if the API is slow, the user still sees consistent state
       const activeSessionId = await checkForActiveSessions();
       
       // If found an active session in database, this is the authority source of truth
       if (activeSessionId) {
-        // Limit logging to reduce console spam
-        if (Math.random() < 0.05) {
-          console.log('Active upload session found in database:', activeSessionId);
-        }
+        // No need to log every time - reduces console spam
+        console.log('Active upload session confirmed by database:', activeSessionId);
         
-        // Make sure the upload modal is shown, but ONLY if it's not already
-        // This prevents unnecessary re-renders
-        if (!isUploading) {
-          setIsUploading(true);
-        }
+        // Always apply the database upload state
+        setIsUploading(true);
         
         // At this point, localStorage should already be populated with the session data
         // from checkForActiveSessions, but let's validate it
