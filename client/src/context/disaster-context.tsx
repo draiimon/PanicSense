@@ -312,25 +312,13 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
                 refreshData();
               }
               
-              // If there's an error or the upload was cancelled, close the modal immediately
-              if (progress.stage.toLowerCase().includes('error') || 
-                  progress.stage.toLowerCase().includes('cancelled')) {
-                // Close immediately for errors and cancellations
-                setIsUploading(false);
-                // Clear the upload progress from localStorage
-                localStorage.removeItem('isUploading');
-                localStorage.removeItem('uploadProgress');
-                localStorage.removeItem('uploadSessionId');
-              } else {
-                // For successful completion, close after a short delay
-                setTimeout(() => {
-                  setIsUploading(false);
-                  // Clear the upload progress from localStorage
-                  localStorage.removeItem('isUploading');
-                  localStorage.removeItem('uploadProgress');
-                  localStorage.removeItem('uploadSessionId');
-                }, 1000);
-              }
+              // For any completion state, close immediately to prevent flickering
+              setIsUploading(false);
+              // Clear the upload progress from localStorage immediately
+              localStorage.removeItem('isUploading');
+              localStorage.removeItem('uploadProgress');
+              localStorage.removeItem('uploadSessionId');
+              localStorage.removeItem('lastProgressTimestamp');
             }
           } catch (error) {
             console.error('Error parsing progress data:', error);

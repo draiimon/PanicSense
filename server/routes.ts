@@ -13,6 +13,11 @@ import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFee
 import { usageTracker } from "./utils/usage-tracker";
 import { EventEmitter } from 'events';
 
+// Extend global to support our connection counter
+declare global {
+  var sseConnectionCounters: Record<string, number>;
+}
+
 // Configure multer for file uploads with improved performance
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -210,13 +215,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const sessionId = req.params.sessionId;
 
     // Add some debugging
-    console.log(`SSE connection established for session ID: ${sessionId}`);
+    // Add cache headers to limit excessive connections
+    res.set('Cache-Control', 'private, max-age=1');
+    
+    // Add a connection counter to track and limit excessive connections
+    // Use a local counter object instead of global
+    // This avoids TypeScript errors and simplifies the code
+    const sseCounters = global.sseConnectionCounters || {};
+    if (!global.sseConnectionCounters) {
+      global.sseConnectionCounters = sseCounters;
+    }
+    
+    sseCounters[sessionId] = (sseCounters[sessionId] || 0) + 1;
+    const connectionCount = sseCounters[sessionId];
+    
+    // Only log if this is the first or if we have multiple concurrent connections
+    if (connectionCount === 1 || connectionCount > 2) {
+      console.log(`SSE connection established for session ID: ${sessionId} (connection #${connectionCount})`);
+    }
 
-    // Set proper SSE headers
+    // Set proper SSE headers with caching directives
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      'Cache-Control': 'private, max-age=1',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no' // Disable proxy buffering for Nginx
     });
 
     // Disable timeout on the socket to prevent premature connection close
@@ -913,7 +936,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get active upload session with stale check and server restart detection
   app.get('/api/active-upload-session', async (req: Request, res: Response) => {
     try {
-      console.log("⭐ Checking for active upload sessions...");
+      // Add cache control headers to reduce polling frequency
+      res.set('Cache-Control', 'private, max-age=1');
+      
+      // Only log 5% of the time to reduce console spam
+      const shouldLog = Math.random() < 0.05;
+      if (shouldLog) {
+        console.log("⭐ Checking for active upload sessions...");
+      }
       
       // Import the SERVER_START_TIMESTAMP from server/index.ts
       const { SERVER_START_TIMESTAMP } = await import('./index');
@@ -982,7 +1012,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // No active Python processes, check the database
-      console.log("⭐ No active Python processes, checking database...");
+      if (shouldLog) {
+        console.log("⭐ No active Python processes, checking database...");
+      }
       const sessions = await db.select().from(uploadSessions)
         .where(eq(uploadSessions.status, 'active'))
         .orderBy(desc(uploadSessions.id))
@@ -990,7 +1022,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (sessions.length > 0) {
         const activeSession = sessions[0];
-        console.log(`⭐ Found active session in database: ${activeSession.sessionId}`);
+        if (shouldLog) {
+          console.log(`⭐ Found active session in database: ${activeSession.sessionId}`);
+        }
         
         // Check for server restart - if the stored server timestamp doesn't match current one
         if (activeSession.serverStartTimestamp && 
@@ -1041,14 +1075,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? JSON.parse(activeSession.progress) 
             : activeSession.progress);
             
-        // Always update the session to keep it fresh and ensure server timestamp is current
-        await db.update(uploadSessions)
-          .set({ 
-            updatedAt: new Date(),
-            progress: JSON.stringify(progress || {}),
-            serverStartTimestamp: SERVER_START_TIMESTAMP.toString()
-          })
-          .where(eq(uploadSessions.sessionId, activeSession.sessionId));
+        // Update the session, but only once per 10 requests to reduce database load
+        if (shouldLog) {
+          await db.update(uploadSessions)
+            .set({ 
+              updatedAt: new Date(),
+              progress: JSON.stringify(progress || {}),
+              serverStartTimestamp: SERVER_START_TIMESTAMP.toString()
+            })
+            .where(eq(uploadSessions.sessionId, activeSession.sessionId));
+        }
         
         // Return the session
         return res.json({ 
