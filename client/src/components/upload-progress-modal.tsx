@@ -5,13 +5,15 @@ import {
   Database, 
   FileText, 
   Loader2, 
-  XCircle
+  XCircle,
+  AlertTriangle
 } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { cancelUpload } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
@@ -19,11 +21,18 @@ export function UploadProgressModal() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isStalled, setIsStalled] = useState(false);
+  const { toast } = useToast();
+  
+  // Reference for retry mechanism
+  const stalledRetryCount = useRef(0);
+  const lastProcessedTime = useRef(Date.now());
   
   // Effect to track the highest processed value
   useEffect(() => {
     if (uploadProgress.processed > 0 && uploadProgress.processed > highestProcessed) {
       setHighestProcessed(uploadProgress.processed);
+      lastProcessedTime.current = Date.now();
+      setIsStalled(false);
     }
   }, [uploadProgress.processed, highestProcessed]);
 
@@ -36,6 +45,39 @@ export function UploadProgressModal() {
       return () => clearTimeout(timer);
     }
   }, [isUploading]);
+
+  // Add stalled detection with auto-recovery
+  useEffect(() => {
+    // If processing but no progress change for 30 seconds, consider it stalled
+    let stalledTimer: NodeJS.Timeout;
+    const stalledCheckInterval = 10000; // Check every 10 seconds
+    
+    if (isUploading && !isStalled && uploadProgress.processed > 0 && uploadProgress.processed < uploadProgress.total) {
+      stalledTimer = setInterval(() => {
+        const now = Date.now();
+        const timeSinceLastProgress = now - lastProcessedTime.current;
+        
+        // If no progress for 30 seconds
+        if (timeSinceLastProgress > 30000) {
+          setIsStalled(true);
+          stalledRetryCount.current++;
+          
+          // After 3 retry attempts, suggest cancellation
+          if (stalledRetryCount.current >= 3) {
+            toast({
+              title: "Upload appears to be stuck",
+              description: "The upload has been stalled for a while. Consider canceling and trying again.",
+              variant: "destructive"
+            });
+          }
+        }
+      }, stalledCheckInterval);
+    }
+    
+    return () => {
+      if (stalledTimer) clearInterval(stalledTimer);
+    };
+  }, [isUploading, isStalled, uploadProgress, toast]);
   
   // Don't render the modal if not uploading
   if (!isUploading) return null;
@@ -81,45 +123,37 @@ export function UploadProgressModal() {
   // Improved error detection
   const hasError = stage.toLowerCase().includes('error');
   
-  // Add stalled detection effect
-  useEffect(() => {
-    // If processing but no progress change for 30 seconds, consider it stalled
-    let stalledTimer: NodeJS.Timeout;
-    
-    if (!isComplete && !hasError && processed > 0 && processed < total) {
-      // Set a timer to check if progress is stalled
-      stalledTimer = setTimeout(() => {
-        setIsStalled(true);
-      }, 30000); // 30 seconds
-    }
-    
-    // Reset stalled state when progress updates
-    if (processed !== highestProcessed) {
-      setIsStalled(false);
-    }
-    
-    return () => {
-      if (stalledTimer) clearTimeout(stalledTimer);
-    };
-  }, [processed, isComplete, hasError, total, highestProcessed]);
-  
   // Handle cancel button click
   const handleCancel = async () => {
     if (isCancelling) return;
     
     setShowCancelDialog(false);
     setIsCancelling(true);
+    
     try {
       const result = await cancelUpload();
       
       if (result.success) {
         // We'll let the server-side events close the modal
+        toast({
+          title: "Upload cancelled",
+          description: "The upload has been cancelled successfully."
+        });
       } else {
         setIsCancelling(false);
+        toast({
+          title: "Cancellation failed",
+          description: result.message || "Failed to cancel upload. Please try again.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      // Error handling
       setIsCancelling(false);
+      toast({
+        title: "Cancellation error",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
+      });
     }
   };
 
@@ -151,7 +185,7 @@ export function UploadProgressModal() {
         {/* Gradient Header */}
         <div className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 p-4 text-white">
           <h3 className="text-xl font-bold text-center">
-            {isComplete ? 'Analysis Complete!' : hasError ? 'Upload Error' : `Processing Records`}
+            {isComplete ? 'Analysis Complete!' : hasError ? 'Upload Error' : isStalled ? 'Upload Stalled' : `Processing Records`}
           </h3>
           
           {/* Counter with larger size */}
@@ -182,7 +216,7 @@ export function UploadProgressModal() {
             <div className="flex justify-between text-sm font-medium mb-1">
               <span className="text-gray-600">Overall Progress</span>
               <span className={`font-medium
-                ${isComplete ? 'text-green-600' : hasError ? 'text-red-600' : 'text-blue-600'}
+                ${isComplete ? 'text-green-600' : hasError ? 'text-red-600' : isStalled ? 'text-amber-600' : 'text-blue-600'}
               `}>
                 {percentComplete}%
               </span>
@@ -192,9 +226,11 @@ export function UploadProgressModal() {
                 className={`h-full ${
                   hasError 
                     ? 'bg-gradient-to-r from-red-400 to-red-600'
-                    : isComplete
-                      ? 'bg-gradient-to-r from-green-400 to-emerald-500' 
-                      : 'bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500'
+                    : isStalled
+                      ? 'bg-gradient-to-r from-amber-400 to-amber-500'
+                      : isComplete
+                        ? 'bg-gradient-to-r from-green-400 to-emerald-500' 
+                        : 'bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500'
                 }`}
                 initial={{ width: 0 }}
                 animate={{ 
@@ -205,7 +241,9 @@ export function UploadProgressModal() {
                   backgroundSize: '200% 100%',
                   animation: isComplete
                     ? 'completion-pulse 2s ease-in-out infinite' 
-                    : 'progress-flow 2s linear infinite'
+                    : isStalled 
+                      ? 'stalled-pulse 2s ease-in-out infinite'
+                      : 'progress-flow 2s linear infinite'
                 }}
               />
             </div>
@@ -222,8 +260,8 @@ export function UploadProgressModal() {
                 </div>
                 <div className="text-sm font-bold text-gray-700">
                   {Math.max(0, total - processed)}
-                  <span className={`text-xs ml-1 ${isPaused ? 'text-amber-500' : 'text-green-500'}`}>
-                    {isPaused ? '(paused)' : '(processing)'}
+                  <span className={`text-xs ml-1 ${isStalled ? 'text-amber-500' : isPaused ? 'text-amber-500' : 'text-green-500'}`}>
+                    {isStalled ? '(stalled)' : isPaused ? '(paused)' : '(processing)'}
                   </span>
                 </div>
               </div>
@@ -273,9 +311,7 @@ export function UploadProgressModal() {
                     : "Waiting to Process"}
               </span>
               {isProcessing && !isComplete && !isStalled && <Loader2 className="h-4 w-4 ml-auto animate-spin text-blue-500" />}
-              {isProcessing && !isComplete && isStalled && (
-                <span className="ml-auto text-xs text-amber-500 font-medium">No progress for 30s</span>
-              )}
+              {isProcessing && !isComplete && isStalled && <AlertTriangle className="h-4 w-4 ml-auto text-amber-500" />}
               {isComplete && <CheckCircle className="h-4 w-4 ml-auto text-green-500" />}
               {!isProcessing && !isComplete && <Clock className="h-4 w-4 ml-auto text-gray-400" />}
             </div>
@@ -286,11 +322,7 @@ export function UploadProgressModal() {
             <div className="mb-4 p-3 bg-amber-50 border border-amber-100 rounded-lg text-amber-700">
               <div className="flex items-start gap-2">
                 <div className="flex-shrink-0 mt-0.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
-                    <path d="M12 9v4"></path>
-                    <path d="M12 17h.01"></path>
-                  </svg>
+                  <AlertTriangle className="h-4 w-4" />
                 </div>
                 <div>
                   <p className="text-xs font-medium">Upload appears to be stalled</p>
@@ -399,6 +431,18 @@ export function UploadProgressModal() {
             100% {
               opacity: 0.8;
               transform: scale(1);
+            }
+          }
+          
+          @keyframes stalled-pulse {
+            0% {
+              opacity: 0.7;
+            }
+            50% {
+              opacity: 1;
+            }
+            100% {
+              opacity: 0.7;
             }
           }
         `}

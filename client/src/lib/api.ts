@@ -153,10 +153,35 @@ export function getCurrentUploadSessionId(): string | null {
 // Check if there are any active upload sessions in the database
 export async function checkForActiveSessions(): Promise<string | null> {
   try {
-    // Fetch active session from database
-    const response = await apiRequest('GET', '/api/active-upload-session');
+    // Use fetch directly to get more details about the error if any
+    const response = await fetch('/api/active-upload-session', {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      credentials: 'include'
+    });
+    
     if (response.ok) {
       const data = await response.json();
+      
+      // Check if this is a stale cleared session notification
+      if (data.staleSessionCleared) {
+        console.log('A stale upload session was automatically cleared by the server');
+        localStorage.removeItem('uploadSessionId');
+        currentUploadSessionId = null;
+        return null;
+      }
+      
+      // Server reported an error but recovered
+      if (data.error && data.recoverable) {
+        console.warn('Server reported recoverable error:', data.errorMessage);
+        // If there's no active session but we had an error, we take a conservative approach
+        return data.sessionId || null;
+      }
+      
       if (data.sessionId) {
         // Set the current session ID
         currentUploadSessionId = data.sessionId;
@@ -164,13 +189,37 @@ export async function checkForActiveSessions(): Promise<string | null> {
         localStorage.setItem('uploadSessionId', data.sessionId);
         
         console.log(`Restored active upload session ${data.sessionId} from database`);
+        
+        // If we have progress data, use it immediately
+        if (data.progress) {
+          console.log('Server provided initial progress state:', data.progress);
+        }
+        
         return data.sessionId;
       }
+    } else {
+      // If response is not ok, we still need to check if there's content
+      try {
+        const errorData = await response.json();
+        console.error('Server error checking active sessions:', errorData);
+        // In case of error, take the safer approach of assuming an upload might be in progress
+        return errorData.sessionId || 'error'; // Return 'error' as a signal that we should block uploads
+      } catch (parseError) {
+        // If we can't parse the error response, assume something's very wrong
+        console.error('Failed to parse error response:', parseError);
+        return 'error';
+      }
     }
+    
+    // No active session found
+    localStorage.removeItem('uploadSessionId');
+    currentUploadSessionId = null;
     return null;
   } catch (error) {
-    console.error('Error checking for active sessions:', error);
-    return null;
+    console.error('Network error checking for active sessions:', error);
+    // On error, we can't be sure if there's an active session, so return 'error'
+    // to signal that uploads should be blocked
+    return 'error';
   }
 }
 
