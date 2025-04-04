@@ -118,6 +118,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
   const [selectedDisasterType, setSelectedDisasterType] = useState<string>("All");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>(initialProgress);
+  
+  // State for tracking if we're reconnecting to an upload
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   // Get toast for notifications
   const { toast } = useToast();
@@ -150,14 +153,68 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     }
   }, [isUploading, uploadProgress]);
 
+  // Keep track of the last time we checked for active uploads
+  const [lastUploadCheck, setLastUploadCheck] = useState<number>(0);
+  
+  // Handle page navigation and refreshes
+  useEffect(() => {
+    // First, check if we have an active upload in localStorage
+    const wasUploading = localStorage.getItem('isUploading') === 'true';
+    const storedSessionId = localStorage.getItem('uploadSessionId');
+    
+    if (wasUploading && storedSessionId) {
+      console.log('Found stored upload session on page load:', storedSessionId);
+      // Restore the upload state immediately to prevent flicker
+      setIsUploading(true);
+      
+      // Get stored progress if available
+      const storedProgress = localStorage.getItem('uploadProgress');
+      if (storedProgress) {
+        try {
+          setUploadProgress(JSON.parse(storedProgress));
+        } catch (e) {
+          console.error('Error parsing stored progress:', e);
+        }
+      }
+    }
+    
+    // Set up an event listener for page refreshes/navigation
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isUploading) {
+        // Store the current state before unload
+        localStorage.setItem('isUploading', 'true');
+        // The session ID should already be set in the checkAndReconnectToActiveUploads function
+      }
+    };
+    
+    // Add event listener for page unload
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Clean up event listener on component unmount
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isUploading]);
+
   // Restore upload state on app load
   useEffect(() => {
+    // Function to check both localStorage AND server for active sessions
     const checkAndReconnectToActiveUploads = async () => {
       try {
+        console.log('Checking for active upload sessions...');
+        
+        // Set a timestamp for this check
+        const checkTime = Date.now();
+        setLastUploadCheck(checkTime);
+        
         // First check database for active uploads
         const activeSessionId = await checkForActiveSessions();
         
+        // Store session ID in localStorage for persistence across refreshes
         if (activeSessionId) {
+          localStorage.setItem('uploadSessionId', activeSessionId);
+          localStorage.setItem('isUploading', 'true');
+          localStorage.setItem('lastUploadCheck', checkTime.toString());
           console.log('Active upload session found in database:', activeSessionId);
           setIsUploading(true);
           
