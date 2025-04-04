@@ -153,7 +153,7 @@ export function getCurrentUploadSessionId(): string | null {
 // Check if there are any active upload sessions in the database
 export async function checkForActiveSessions(): Promise<string | null> {
   try {
-    // Fetch active session from database
+    // IMPORTANT: Fetch active session from database - ALWAYS prioritize database over localStorage
     const response = await apiRequest('GET', '/api/active-upload-session');
     if (response.ok) {
       const data = await response.json();
@@ -162,29 +162,64 @@ export async function checkForActiveSessions(): Promise<string | null> {
         currentUploadSessionId = data.sessionId;
         // Update localStorage for compatibility
         localStorage.setItem('uploadSessionId', data.sessionId);
+        // Ensure isUploading flag is set in localStorage
+        localStorage.setItem('isUploading', 'true');
+        
+        // Store the progress data in localStorage for fast initial rendering
+        if (data.progress) {
+          console.log('Storing progress data from database in localStorage:', data.progress);
+          localStorage.setItem('uploadProgress', JSON.stringify({
+            ...data.progress,
+            savedAt: Date.now() // Add timestamp for freshness check
+          }));
+        }
         
         console.log(`Restored active upload session ${data.sessionId} from database`);
         return data.sessionId;
       }
       
+      // If no active session was found, clear localStorage data to avoid stale states
       // Check if a stale session was cleared
       if (data.staleSessionCleared) {
-        console.log('Stale session was cleared by server');
+        console.log('Stale session was cleared by server, clearing localStorage');
+        localStorage.removeItem('isUploading');
+        localStorage.removeItem('uploadProgress');
+        localStorage.removeItem('uploadSessionId');
+        localStorage.removeItem('lastProgressTimestamp');
       } else {
         console.log('Active upload session check complete: No active sessions');
       }
     }
     
     // If no active session in database, but we have data in localStorage
-    // Don't immediately clear localStorage - let the disaster-context handle that
+    // Check if it might be valid before returning null
     const localSessionId = localStorage.getItem('uploadSessionId');
     const isUploadingFromStorage = localStorage.getItem('isUploading') === 'true';
+    const storedProgress = localStorage.getItem('uploadProgress');
     
-    if (localSessionId && isUploadingFromStorage) {
-      console.log('No active database session, but found localStorage session:', localSessionId);
-      // Return the localStorage session ID, but don't set currentUploadSessionId
-      // This ensures the UI shows the modal but doesn't try to reconnect to SSE
-      return null;
+    if (localSessionId && isUploadingFromStorage && storedProgress) {
+      try {
+        // Parse the stored progress to check its timestamp
+        const progress = JSON.parse(storedProgress);
+        const savedAt = progress.savedAt || 0;
+        // Ensure the data isn't more than 30 minutes old
+        const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
+        
+        if (savedAt >= thirtyMinutesAgo) {
+          console.log('No active database session, but found recent localStorage session:', localSessionId);
+          // Return null for now, as we'll handle the UI state in disaster-context
+          return null;
+        } else {
+          console.log('LocalStorage session is too old (>30 min), clearing', {savedAt, thirtyMinutesAgo});
+          // Clear localStorage data
+          localStorage.removeItem('isUploading');
+          localStorage.removeItem('uploadProgress');
+          localStorage.removeItem('uploadSessionId');
+          localStorage.removeItem('lastProgressTimestamp');
+        }
+      } catch (e) {
+        console.error('Error parsing stored progress:', e);
+      }
     }
     
     return null;

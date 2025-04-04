@@ -225,21 +225,37 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     console.log('Checking for active uploads on route:', location);
     const checkAndReconnectToActiveUploads = async () => {
       try {
-        // Check if there's an isUploading flag in localStorage first
-        const isUploadingFromStorage = localStorage.getItem('isUploading') === 'true';
-        const storedProgress = localStorage.getItem('uploadProgress');
-        let storedSessionId = localStorage.getItem('uploadSessionId');
-          
-        console.log('Initial check for upload state:', { isUploadingFromStorage, storedSessionId });
-        
-        // First check database for active uploads
+        // FIRST check database for active uploads - ALWAYS prioritize database
         const activeSessionId = await checkForActiveSessions();
         
-        // If found an active session in database
+        // If found an active session in database, this is the authority source of truth
         if (activeSessionId) {
           console.log('Active upload session found in database:', activeSessionId);
           // Make sure the upload modal is shown
           setIsUploading(true);
+          
+          // At this point, localStorage should already be populated with the session data
+          // from checkForActiveSessions, but let's validate it
+          const storedProgress = localStorage.getItem('uploadProgress');
+          if (!storedProgress) {
+            console.log('Database session active but no progress in localStorage, fetching data');
+            // If progress isn't in localStorage, make a direct API call to get current progress
+            try {
+              const response = await fetch(`/api/upload-progress/${activeSessionId}`);
+              if (response.ok) {
+                const progressEvent = await response.json();
+                if (progressEvent) {
+                  setUploadProgress(progressEvent);
+                  localStorage.setItem('uploadProgress', JSON.stringify({
+                    ...progressEvent,
+                    savedAt: Date.now()
+                  }));
+                }
+              }
+            } catch (err) {
+              console.error('Error fetching initial progress', err);
+            }
+          }
           
           // Set up a more robust EventSource for progress updates
           // Keep a reference for cleanup and reconnection
