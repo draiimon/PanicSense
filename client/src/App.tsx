@@ -13,6 +13,7 @@ import RealTime from "@/pages/real-time";
 import About from "@/pages/about";
 import { DisasterContextProvider } from "@/context/disaster-context";
 import { MainLayout } from "@/components/layout/main-layout";
+import { UploadProgressModal } from "@/components/upload-progress-modal";
 
 function Router() {
   return (
@@ -37,6 +38,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <DisasterContextProvider>
+        {/* Global upload progress modal to ensure it stays visible across all pages */}
+        <UploadProgressModal />
         <MainLayout>
           <Router />
         </MainLayout>

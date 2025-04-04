@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useDisasterContext } from "@/context/disaster-context";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { FileUploaderButton } from "./file-uploader-button";
-import { UploadProgressModal } from "./upload-progress-modal";
+// Removed UploadProgressModal import since it's now globally included in App.tsx
 
 interface FileUploaderProps {
   onSuccess?: (data: any) => void;
@@ -10,10 +10,6 @@ interface FileUploaderProps {
 }
 
 export function FileUploader({ onSuccess, className }: FileUploaderProps) {
-  return (
-    <>
-      <FileUploaderButton onSuccess={onSuccess} className={className} />
-      <UploadProgressModal />
-    </>
-  );
+  // Removed UploadProgressModal since it's now included globally in App.tsx
+  return <FileUploaderButton onSuccess={onSuccess} className={className} />;
 }
