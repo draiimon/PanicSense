@@ -170,6 +170,10 @@ class DisasterSentimentBackend:
         self.max_retries = 10
         self.failed_keys = set()
         self.key_success_count = {}
+        
+        # Rate limit tracking with cooldown period
+        self.rate_limited_keys = {}  # Key index => timestamp when rate limit occurred
+        self.cooldown_period = 300  # 5 minutes (300 seconds) cooldown for rate-limited keys
 
         # Initialize success counter for each key
         for i in range(len(self.api_keys)):  # Use api_keys, not groq_api_keys
@@ -178,7 +182,7 @@ class DisasterSentimentBackend:
         # Make sure the current_key_index is properly initialized
         self.current_key_index = 0  # Start with the first key
             
-        logging.info(f"API key rotation initialized with {len(self.api_keys)} keys")
+        logging.info(f"API key rotation initialized with {len(self.api_keys)} keys with 5-minute cooldown for rate-limited keys")
 
     def extract_disaster_type(self, text):
         """
@@ -679,9 +683,51 @@ class DisasterSentimentBackend:
             
         logging.info(f"Starting with current_key_index = {self.current_key_index} of {num_keys} keys")
 
+        # Try available keys, skipping rate-limited ones
+        # Get current time for checking cooldown periods
+        current_time = time.time()
+        
+        # Count available keys that aren't in cooldown period
+        available_keys = 0
+        for i in range(num_keys):
+            # Skip if key is in rate-limit cooldown period
+            if i in self.rate_limited_keys:
+                cooldown_time = self.rate_limited_keys[i]
+                if current_time - cooldown_time < self.cooldown_period:
+                    # Key is still in cooldown
+                    cooldown_remaining = int(self.cooldown_period - (current_time - cooldown_time))
+                    logging.info(f"Key #{i+1} is in rate-limit cooldown ({cooldown_remaining}s remaining)")
+                    continue
+                else:
+                    # Cooldown period has elapsed, remove from rate-limited keys
+                    logging.info(f"Key #{i+1} cooldown completed, removing from rate-limited list")
+                    del self.rate_limited_keys[i]
+            available_keys += 1
+            
+        if available_keys == 0:
+            logging.warning("All keys are in cooldown period! Using fallback method.")
+            fallback_result = self._rule_based_sentiment_analysis(text, language)
+            fallback_result["disasterType"] = self.extract_disaster_type(text)
+            fallback_result["location"] = self.extract_location(text)
+            fallback_result["language"] = language
+            return fallback_result
+            
         # Try up to 3 different keys before giving up
         for attempt in range(min(3, num_keys)):
             key_index = (self.current_key_index + attempt) % num_keys
+            
+            # Skip if key is in rate-limit cooldown period
+            if key_index in self.rate_limited_keys:
+                cooldown_time = self.rate_limited_keys[key_index]
+                if current_time - cooldown_time < self.cooldown_period:
+                    # Key is still in cooldown, skip to next
+                    cooldown_remaining = int(self.cooldown_period - (current_time - cooldown_time))
+                    logging.info(f"Skipping key #{key_index+1} - in rate-limit cooldown ({cooldown_remaining}s remaining)")
+                    continue
+                else:
+                    # Cooldown period has elapsed, remove from rate-limited keys
+                    logging.info(f"Key #{key_index+1} cooldown completed, removing from rate-limited list")
+                    del self.rate_limited_keys[key_index]
             
             # Log which key we're using (without showing the full key)
             current_key = self.api_keys[key_index]
@@ -823,11 +869,13 @@ class DisasterSentimentBackend:
                                          json=data,
                                          timeout=15)
 
-                # Handle rate limiting with a simple retry
+                # Handle rate limiting with cooldown period
                 if response.status_code == 429:  # Too Many Requests
+                    # Add this key to rate limited keys with current timestamp
                     logging.warning(
-                        f"API key {key_index + 1} rate limited, trying next key"
+                        f"API key {key_index + 1} rate limited! Adding to cooldown for 5 minutes."
                     )
+                    self.rate_limited_keys[key_index] = time.time()
                     continue
 
                 response.raise_for_status()
@@ -899,7 +947,8 @@ class DisasterSentimentBackend:
                 logging.error(
                     f"Labeling {key_index + 1} request failed: {str(e)}")
                 if "rate limit" in str(e).lower() or "429" in str(e):
-                    logging.warning(f"Rate limit detected, trying next key")
+                    logging.warning(f"Rate limit detected in key #{key_index+1}, adding to cooldown for 5 minutes")
+                    self.rate_limited_keys[key_index] = time.time()
                     continue
 
         # All attempts failed, use rule-based fallback
