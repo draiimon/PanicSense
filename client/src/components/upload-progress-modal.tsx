@@ -76,6 +76,9 @@ export function UploadProgressModal() {
       errorCount: 0,
       averageSpeed: 0
     },
+    batchNumber = 0,
+    totalBatches = 0,
+    batchProgress = 0,
     currentSpeed = 0,
     timeRemaining = 0,
     error = ''
