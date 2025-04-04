@@ -346,7 +346,7 @@ export function UploadProgressModal() {
               <XCircle className="h-6 w-6 mx-auto text-red-500 mb-2" />
               <h4 className="font-medium text-red-800">Processing Error</h4>
               <p className="text-sm text-gray-600 mt-1">
-                {uploadProgress.error || "An error occurred during processing."}
+                {uploadProgress?.error || "An error occurred during processing."}
               </p>
             </div>
           )}

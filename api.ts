@@ -46,7 +46,7 @@ export interface UploadProgress {
   processed: number;
   total?: number;
   stage: string;
-  error?: string; // Error message if processing failed
+  error?: string;
   batchNumber?: number;
   totalBatches?: number;
   batchProgress?: number;
@@ -153,35 +153,10 @@ export function getCurrentUploadSessionId(): string | null {
 // Check if there are any active upload sessions in the database
 export async function checkForActiveSessions(): Promise<string | null> {
   try {
-    // Use fetch directly to get more details about the error if any
-    const response = await fetch('/api/active-upload-session', {
-      method: 'GET',
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      },
-      credentials: 'include'
-    });
-    
+    // Fetch active session from database
+    const response = await apiRequest('GET', '/api/active-upload-session');
     if (response.ok) {
       const data = await response.json();
-      
-      // Check if this is a stale cleared session notification
-      if (data.staleSessionCleared) {
-        console.log('A stale upload session was automatically cleared by the server');
-        localStorage.removeItem('uploadSessionId');
-        currentUploadSessionId = null;
-        return null;
-      }
-      
-      // Server reported an error but recovered
-      if (data.error && data.recoverable) {
-        console.warn('Server reported recoverable error:', data.errorMessage);
-        // If there's no active session but we had an error, we take a conservative approach
-        return data.sessionId || null;
-      }
-      
       if (data.sessionId) {
         // Set the current session ID
         currentUploadSessionId = data.sessionId;
@@ -189,36 +164,17 @@ export async function checkForActiveSessions(): Promise<string | null> {
         localStorage.setItem('uploadSessionId', data.sessionId);
         
         console.log(`Restored active upload session ${data.sessionId} from database`);
-        
-        // If we have progress data, use it immediately
-        if (data.progress) {
-          console.log('Server provided initial progress state:', data.progress);
-        }
-        
         return data.sessionId;
       }
-      
-      console.log('Active upload session check complete:', 
-        data.sessionId ? `Session ${data.sessionId} active` : 'No active sessions');
-      return data.sessionId || null;
-    } else {
-      if (response.status === 503 || response.status === 429) {
-        // If the service is unavailable (503) or rate-limited (429), don't block uploads
-        console.error('Server unavailable or rate-limited:', response.status);
-        return null;
-      }
-      
-      console.error('Error checking active sessions, server returned:', response.status, response.statusText);
-      // Return a special value for errors that will be handled by the callers
-      return 'error';
     }
+    return null;
   } catch (error) {
-    console.error('Error checking for active upload sessions:', error);
-    // Return a special value for errors that will be handled by the callers
-    return 'error';
+    console.error('Error checking for active sessions:', error);
+    return null;
   }
 }
 
+// File Upload with enhanced progress tracking and cancellation
 export async function uploadCSV(
   file: File,
   onProgress?: (progress: UploadProgress) => void
@@ -232,66 +188,74 @@ export async function uploadCSV(
     f1Score: number;
   } | null;
 }> {
-  // Create a session ID for progress tracking
-  const sessionId = crypto.randomUUID();
-  // Store the session ID both in memory and localStorage
-  currentUploadSessionId = sessionId;
-  localStorage.setItem('uploadSessionId', sessionId);
+  // Clean up any existing uploads first
+  if (currentEventSource) {
+    currentEventSource.close();
+    currentEventSource = null;
+  }
+  
+  if (currentUploadController) {
+    currentUploadController.abort();
+    currentUploadController = null;
+  }
+  
+  // Create a new abort controller
+  currentUploadController = new AbortController();
+  const { signal } = currentUploadController;
   
   const formData = new FormData();
   formData.append('file', file);
+
+  // Generate a unique session ID
+  const sessionId = crypto.randomUUID();
+  currentUploadSessionId = sessionId;
   
-  // Create an abort controller for the fetch request
-  currentUploadController = new AbortController();
+  // Store the session ID in both localStorage (legacy) and database
+  localStorage.setItem('uploadSessionId', sessionId);
   
-  // Set up EventSource for progress updates
-  const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
-  currentEventSource = eventSource; // Store the reference for cancel functionality
-  
-  // Handle progress updates
-  eventSource.onmessage = (event) => {
-    if (onProgress) {
-      try {
-        const progress = JSON.parse(event.data) as UploadProgress;
-        onProgress(progress);
-        
-        // Check for completion or errors to clean up resources
-        if (progress.stage && 
-            (progress.stage.toLowerCase().includes('complete') ||
-             progress.stage.toLowerCase().includes('error') ||
-             progress.stage.toLowerCase().includes('cancelled'))) {
-          
-          // Close the event source after receiving completion status
-          console.log('Upload status updated to:', progress.stage);
-          setTimeout(() => {
-            if (currentEventSource === eventSource) {
-              currentEventSource.close();
-              currentEventSource = null;
-            }
-          }, 1000);
-        }
-      } catch (error) {
-        console.error('Error parsing progress data:', error);
+  // If onProgress callback is provided, check for any active upload sessions 
+  // that might have been interrupted
+  if (onProgress) {
+    try {
+      // Attempt to restore any active session from previous runs
+      const activeSessionId = await checkForActiveSessions();
+      if (activeSessionId) {
+        console.log(`Detected active upload session: ${activeSessionId}. Using existing session.`);
+        // If there's an active session in the database, use that instead
+        currentUploadSessionId = activeSessionId;
       }
+    } catch (error) {
+      console.error('Error checking for active sessions:', error);
     }
-  };
-  
-  // Handle EventSource errors
-  eventSource.onerror = (error) => {
-    console.error('EventSource error:', error);
-    // Don't close the event source on errors as it might reconnect automatically
+  }
+
+  // Set up event source for progress updates using the potentially updated sessionId
+  const eventSource = new EventSource(`/api/upload-progress/${currentUploadSessionId}`);
+  currentEventSource = eventSource;
+
+  eventSource.onmessage = (event) => {
+    try {
+      const progress = JSON.parse(event.data) as UploadProgress;
+      console.log('Progress event received:', progress);
+
+      if (onProgress) {
+        console.log('Progress being sent to UI:', progress);
+        onProgress(progress);
+      }
+    } catch (error) {
+      console.error('Error parsing progress data:', error);
+    }
   };
 
   try {
-    // Perform the upload
     const response = await fetch('/api/upload-csv', {
       method: 'POST',
       headers: {
-        'X-Session-ID': sessionId
+        'X-Session-ID': currentUploadSessionId  // Use the potentially updated sessionId
       },
       body: formData,
       credentials: 'include',
-      signal: currentUploadController.signal // Add abort controller signal
+      signal, // Add abort signal
     });
 
     if (!response.ok) {
@@ -300,22 +264,17 @@ export async function uploadCSV(
     }
 
     return response.json();
-  } catch (error: any) { // Using any here to safely check error.name
-    // Check if this is an abort error
-    if (error.name === 'AbortError') {
-      console.log('Upload was cancelled');
-      throw new Error('Upload cancelled by user');
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error('Upload was cancelled');
     }
     throw error;
   } finally {
-    // Close the event source after a short delay
-    // Don't reset the currentUploadSessionId here as it might be needed for cancellation
-    setTimeout(() => {
-      if (currentEventSource === eventSource) {
-        currentEventSource.close();
-        currentEventSource = null;
-      }
-    }, 2000);
+    eventSource.close();
+    currentEventSource = null;
+    currentUploadSessionId = null;
+    // Clear the session ID from localStorage
+    localStorage.removeItem('uploadSessionId');
   }
 }
 
