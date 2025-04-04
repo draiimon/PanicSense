@@ -1,3 +1,0 @@
-Testing API keys #3-3
-Found 1 API keys to test
-Testing API key #3... 
