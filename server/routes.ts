@@ -1123,13 +1123,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Reset all upload sessions (emergency endpoint)
   app.post('/api/reset-upload-sessions', async (req: Request, res: Response) => {
     try {
-      // Update all active sessions to completed
+      console.log("🚨 RESET request received - cleaning all upload sessions");
+      // Update all active sessions to error status instead of completed
+      // Using 'error' state triggers client-side cleanup better than 'completed'
       await db.update(uploadSessions)
         .set({ 
-          status: 'completed',
+          status: 'error',
+          progress: JSON.stringify({
+            processed: 0,
+            total: 0,
+            stage: "Error: Session manually reset by administrator",
+            batchNumber: 0,
+            totalBatches: 0,
+            batchProgress: 0,
+            currentSpeed: 0,
+            timeRemaining: 0,
+            error: "Session was manually reset",
+            timestamp: Date.now(),
+            processingStats: {
+              successCount: 0,
+              errorCount: 0,
+              lastBatchDuration: 0,
+              averageSpeed: 0
+            }
+          }),
           updatedAt: new Date()
         })
         .where(eq(uploadSessions.status, 'active'));
+      
+      // Then delete all upload sessions to ensure complete cleanup
+      await db.delete(uploadSessions);
       
       // Cancel all running processes
       pythonService.cancelAllProcesses();
@@ -1137,15 +1160,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Clear the upload progress map
       uploadProgressMap.clear();
       
+      // Force broadcast an update to all clients to clean up their UI
+      broadcastUpdate({
+        type: 'upload_reset',
+        message: 'All uploads have been reset by administrator',
+        timestamp: Date.now()
+      });
+      
+      console.log("✅ All upload sessions successfully reset and cleared");
+      
       return res.json({ 
         success: true, 
-        message: 'All upload sessions have been reset'
+        message: 'All upload sessions have been reset and cleared from database'
       });
     } catch (error) {
       console.error('Error resetting upload sessions:', error);
       res.status(500).json({ 
         error: 'Failed to reset upload sessions',
         details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // New endpoint to clean stuck error sessions automatically
+  app.post('/api/cleanup-error-sessions', async (req: Request, res: Response) => {
+    try {
+      console.log("🧹 Starting cleanup of error sessions...");
+      
+      // First get all sessions
+      const allSessions = await db.select().from(uploadSessions);
+      
+      // Count how many were deleted
+      let clearedCount = 0;
+      
+      // Filter for error sessions or stuck sessions
+      for (const session of allSessions) {
+        let shouldClear = false;
+        
+        // Check if session status indicates error or canceled state
+        if (session.status === 'error' || session.status === 'canceled') {
+          shouldClear = true;
+        }
+        
+        // Check if progress contains error markers
+        if (session.progress) {
+          try {
+            const progress = typeof session.progress === 'string' 
+              ? JSON.parse(session.progress) 
+              : session.progress;
+              
+            if (progress.stage && 
+                (progress.stage.toLowerCase().includes('error') || 
+                 progress.stage.toLowerCase().includes('cancel'))) {
+              shouldClear = true;
+            }
+            
+            // Check if explicitly has error field
+            if (progress.error) {
+              shouldClear = true;
+            }
+          } catch (e) {
+            // If we can't parse the progress, it's probably corrupted, so clear it
+            shouldClear = true;
+          }
+        }
+        
+        // Check if session is more than 2 hours old
+        const twoHoursAgo = new Date();
+        twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
+        
+        if (session.updatedAt && new Date(session.updatedAt) < twoHoursAgo) {
+          shouldClear = true;
+        }
+        
+        // Is there an active Python process for this session?
+        const hasActiveProcess = pythonService.isProcessRunning(session.sessionId);
+        
+        // If should clear and no active process, delete it
+        if (shouldClear && !hasActiveProcess) {
+          console.log(`🗑️ Clearing stale/error session: ${session.sessionId}`);
+          
+          try {
+            // Delete the session
+            await db.delete(uploadSessions)
+              .where(eq(uploadSessions.sessionId, session.sessionId));
+              
+            clearedCount++;
+          } catch (deleteError) {
+            console.error(`Error deleting session ${session.sessionId}:`, deleteError);
+          }
+        }
+      }
+      
+      console.log(`✅ Cleared ${clearedCount} error/stale sessions`);
+      
+      res.json({
+        success: true,
+        clearedCount,
+        message: `Successfully cleared ${clearedCount} error or stale sessions`
+      });
+    } catch (error) {
+      console.error("Error cleaning error sessions:", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   });

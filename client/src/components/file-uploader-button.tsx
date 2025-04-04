@@ -1,10 +1,11 @@
-import { Upload, Loader2 } from 'lucide-react';
+import { Upload, Loader2, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDisasterContext } from '@/context/disaster-context';
 import { useToast } from '@/hooks/use-toast';
-import { uploadCSV, checkForActiveSessions } from '@/lib/api';
+import { uploadCSV, checkForActiveSessions, cleanupErrorSessions, resetUploadSessions } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface FileUploaderButtonProps {
   onSuccess?: (data: any) => void;
@@ -15,8 +16,31 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
   const { toast } = useToast();
   const { isUploading, setIsUploading, setUploadProgress } = useDisasterContext();
   const [isCheckingForUploads, setIsCheckingForUploads] = useState(true);
+  const [isCleaningUpSessions, setIsCleaningUpSessions] = useState(false);
+  const [isResettingUploads, setIsResettingUploads] = useState(false);
+  const [sessionCleanedCount, setSessionCleanedCount] = useState(0);
 
-  // Check for active uploads on mount
+  // Automatically cleanup error sessions on mount to help with flickering issues
+  useEffect(() => {
+    const cleanupOnMount = async () => {
+      try {
+        console.log("🧹 Auto-cleaning error sessions on component mount");
+        const result = await cleanupErrorSessions();
+        if (result.success) {
+          setSessionCleanedCount(result.clearedCount);
+          if (result.clearedCount > 0) {
+            console.log(`✅ Auto-cleaned ${result.clearedCount} error/stale sessions on mount`);
+          }
+        }
+      } catch (error) {
+        console.error("Error during auto-cleanup:", error);
+      }
+    };
+    
+    cleanupOnMount();
+  }, []);
+
+  // Check for active uploads on mount (after cleanup)
   useEffect(() => {
     const checkActive = async () => {
       try {
@@ -42,6 +66,84 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     
     checkActive();
   }, [setIsUploading]);
+  
+  // Handler for manual cleanup of error sessions
+  const handleCleanupErrorSessions = async () => {
+    try {
+      setIsCleaningUpSessions(true);
+      const result = await cleanupErrorSessions();
+      if (result.success) {
+        setSessionCleanedCount(result.clearedCount);
+        toast({
+          title: 'Sessions Cleaned',
+          description: `Successfully cleaned ${result.clearedCount} error or stale sessions`,
+          duration: 3000,
+        });
+        
+        // Refresh data
+        queryClient.invalidateQueries({ queryKey: ['/api/sentiment-posts'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/analyzed-files'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/disaster-events'] });
+        
+        // Force reload of any active session info
+        await checkForActiveSessions();
+      }
+    } catch (error) {
+      console.error('Error cleaning sessions:', error);
+      toast({
+        title: 'Cleanup Failed',
+        description: error instanceof Error ? error.message : 'Failed to clean up sessions',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCleaningUpSessions(false);
+    }
+  };
+  
+  // Handler for emergency reset of upload system
+  const handleResetUploads = async () => {
+    try {
+      setIsResettingUploads(true);
+      const result = await resetUploadSessions();
+      if (result.success) {
+        toast({
+          title: 'Upload System Reset',
+          description: 'Successfully reset all upload sessions',
+          duration: 3000,
+        });
+        
+        // Refresh all data
+        queryClient.invalidateQueries();
+        
+        // Clear any uploading state
+        setIsUploading(false);
+        setUploadProgress({ 
+          processed: 0, 
+          total: 0, 
+          stage: '',
+          currentSpeed: 0,
+          timeRemaining: 0,
+          batchNumber: 0,
+          totalBatches: 0,
+          batchProgress: 0,
+          processingStats: {
+            successCount: 0,
+            errorCount: 0,
+            averageSpeed: 0
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error resetting uploads:', error);
+      toast({
+        title: 'Reset Failed',
+        description: error instanceof Error ? error.message : 'Failed to reset upload system',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResettingUploads(false);
+    }
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -190,51 +292,76 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
   };
 
   return (
-    <motion.label
-      whileHover={{ scale: isUploading || isCheckingForUploads ? 1 : 1.03 }}
-      whileTap={{ scale: isUploading || isCheckingForUploads ? 1 : 0.97 }}
-      className={`
-        relative inline-flex items-center justify-center px-5 py-2.5 h-10
-        ${isUploading 
-          ? 'bg-gray-500 cursor-not-allowed opacity-70' 
-          : 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 cursor-pointer'
-        }
-        text-white text-sm font-medium rounded-full
-        transition-all duration-300
-        shadow-md hover:shadow-lg
-        overflow-hidden
-        ${className}
-      `}
-    >
-      {/* Content */}
-      <div className="relative flex items-center justify-center">
-        {isCheckingForUploads ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            <span>Checking...</span>
-          </>
-        ) : isUploading ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            <span>Upload in Progress</span>
-          </>
-        ) : (
-          <>
-            <Upload className="h-4 w-4 mr-2" />
-            <span>Upload Dataset</span>
-          </>
-        )}
-      </div>
+    <div className="flex flex-col items-center gap-2">
+      <motion.label
+        whileHover={{ scale: isUploading || isCheckingForUploads ? 1 : 1.03 }}
+        whileTap={{ scale: isUploading || isCheckingForUploads ? 1 : 0.97 }}
+        className={`
+          relative inline-flex items-center justify-center px-5 py-2.5 h-10
+          ${isUploading 
+            ? 'bg-gray-500 cursor-not-allowed opacity-70' 
+            : 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 cursor-pointer'
+          }
+          text-white text-sm font-medium rounded-full
+          transition-all duration-300
+          shadow-md hover:shadow-lg
+          overflow-hidden
+          ${className}
+        `}
+      >
+        {/* Content */}
+        <div className="relative flex items-center justify-center">
+          {isCheckingForUploads ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <span>Checking...</span>
+            </>
+          ) : isUploading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <span>Upload in Progress</span>
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4 mr-2" />
+              <span>Upload Dataset</span>
+            </>
+          )}
+        </div>
 
-      {/* Only allow file selection when not uploading */}
-      {!isUploading && !isCheckingForUploads && (
-        <input 
-          type="file" 
-          className="hidden" 
-          accept=".csv" 
-          onChange={handleFileUpload}
-        />
+        {/* Only allow file selection when not uploading */}
+        {!isUploading && !isCheckingForUploads && (
+          <input 
+            type="file" 
+            className="hidden" 
+            accept=".csv" 
+            onChange={handleFileUpload}
+          />
+        )}
+      </motion.label>
+      
+      {/* Troubleshooting button with normal functionality */}
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="flex items-center gap-1 text-xs bg-transparent border-gray-300 hover:bg-gray-100"
+        onClick={handleCleanupErrorSessions}
+        disabled={isCleaningUpSessions}
+      >
+        {isCleaningUpSessions ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <RefreshCw className="h-3 w-3 text-amber-500" />
+        )}
+        <span>{isCleaningUpSessions ? 'Cleaning...' : 'Fix Upload Issues'}</span>
+      </Button>
+      
+      {/* Auto-cleanup results */}
+      {sessionCleanedCount > 0 && (
+        <div className="bg-green-50 p-2 rounded-md text-xs text-green-700 text-center">
+          Auto-cleaned {sessionCleanedCount} stale sessions.
+        </div>
       )}
-    </motion.label>
+    </div>
   );
 }

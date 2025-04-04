@@ -498,15 +498,26 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
             return;
           }
           
-          // Important fix: Check if the upload has completed based on the stage
+          // Enhanced error detection: Check if the upload has completed or has an error
           const stageLower = parsedProgress.stage?.toLowerCase() || '';
-          if (stageLower.includes('complete') || 
-              stageLower.includes('error') || 
-              stageLower.includes('cancelled')) {
-            console.log('Found completed upload in localStorage, clearing data');
+          const isCompleteOrError = stageLower.includes('complete') || 
+                                    stageLower.includes('error') || 
+                                    stageLower.includes('cancelled');
+                                    
+          // Also check for error-like conditions that should be cleared
+          const isErrorCondition = stageLower === 'error' || 
+                                   parsedProgress.total === 0 ||
+                                   parsedProgress.error;
+                                   
+          if (isCompleteOrError || isErrorCondition) {
+            console.log('Found completed or error upload in localStorage, clearing data');
+            // Clear all localStorage items related to uploads
             localStorage.removeItem('isUploading');
             localStorage.removeItem('uploadProgress');
             localStorage.removeItem('uploadSessionId');
+            localStorage.removeItem('lastProgressTimestamp');
+            localStorage.removeItem('lastUIUpdateTimestamp');
+            localStorage.removeItem('lastDisplayTime');
             return;
           }
           

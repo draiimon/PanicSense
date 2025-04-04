@@ -408,6 +408,43 @@ export async function deleteAllData(): Promise<{
   return response.json();
 }
 
+// Reset all upload sessions (admin endpoint)
+export async function resetUploadSessions(): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const response = await fetch('/api/reset-upload-sessions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ all: true })
+  });
+  
+  // Clean up localStorage
+  localStorage.removeItem('isUploading');
+  localStorage.removeItem('uploadProgress');
+  localStorage.removeItem('uploadSessionId');
+  localStorage.removeItem('lastProgressTimestamp');
+  
+  return response.json();
+}
+
+// Clean up any error or stale sessions in the database
+export async function cleanupErrorSessions(): Promise<{
+  success: boolean;
+  clearedCount: number;
+  message: string;
+}> {
+  const response = await fetch('/api/cleanup-error-sessions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+  return response.json();
+}
+
 // Interface for Python console messages
 export interface PythonConsoleMessage {
   message: string;
