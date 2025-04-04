@@ -670,6 +670,9 @@ export class PythonService {
     const tempFilePath = path.join(this.tempDir, storedFilename);
     // Use the provided sessionId or generate a new one
     const uploadSessionId = sessionId || nanoid();
+    
+    // Log the session ID to help with debugging
+    log(`Processing CSV with session ID: ${uploadSessionId}`, 'python-service');
 
     try {
       const content = fileBuffer.toString('utf-8');

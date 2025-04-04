@@ -61,10 +61,13 @@ function broadcastUpdate(data: any) {
       const totalRecords = matches ? parseInt(matches[2]) : data.progress?.total || 0;
       const processedCount = data.progress?.processed || currentRecord;
 
+      // Log real sessionId for debugging
+      console.log(`broadcastUpdate received sessionId: ${data.sessionId}`);
+      
       // Create enhanced progress object
       const enhancedProgress = {
         type: 'progress',
-        sessionId: data.sessionId || null, // Preserve the session ID in broadcasts
+        sessionId: data.sessionId || '', // Use empty string instead of null to prevent "null" string
         progress: {
           processed: processedCount,
           total: totalRecords,
