@@ -11,6 +11,7 @@ import { pythonService, pythonConsoleMessages } from "./python-service";
 import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts, uploadSessions, type SentimentPost } from "@shared/schema";
 import { usageTracker } from "./utils/usage-tracker";
 import { EventEmitter } from 'events';
+import { nanoid } from 'nanoid';
 
 // Configure multer for file uploads with improved performance
 const upload = multer({ 
@@ -810,12 +811,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Enhanced file upload endpoint
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
-    let sessionId = '';
+    // Generate a new session ID right at the start
+    const sessionId = nanoid();
+    
     // Track the highest progress value to prevent jumping backward
     let highestProcessedValue = 0;
 
     // Log start of a new upload
-    console.log('Starting new CSV upload, resetting progress tracking');
+    console.log('Starting new CSV upload with session ID:', sessionId);
 
     let updateProgress = (
       processed: number, 
@@ -834,6 +837,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       },
       error?: string
     ) => {
+      // Session ID is guaranteed to exist now
       if (sessionId) {
         // Log the raw progress update from Python service
         console.log('Raw progress update:', { processed, stage, total });
@@ -960,9 +964,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      sessionId = req.headers['x-session-id'] as string;
-      if (!sessionId) {
-        return res.status(400).json({ error: "Session ID is required" });
+      // We already generated a session ID at the start of this function,
+      // so this line is no longer needed.
+      // Using the header only as a fallback mechanism now
+      if (req.headers['x-session-id']) {
+        const headerSessionId = req.headers['x-session-id'] as string; 
+        console.log(`Client provided session ID in header: ${headerSessionId}, using server generated ID: ${sessionId} instead`);
       }
 
       const fileBuffer = req.file.buffer;
