@@ -32,34 +32,65 @@ export function UploadProgressModal() {
   useEffect(() => {
     if (!isUploading) return; // No need to check if we're not showing a modal
     
-    // Function to verify with database boss
+    // Function to verify with database - BUT LOCAL STORAGE IS THE TRUE BOSS NOW!
     const checkWithDatabaseBoss = async () => {
       try {
-        // Always consult the database (the boss)
-        console.log('📊 Upload modal checking with database boss...');
-        const response = await fetch('/api/active-upload-session');
+        // PRIORITY FOR VISIBILITY: LOCAL STORAGE > DATABASE
+        // First let's verify our localStorage state to make sure we should still show modal
+        const storageExpirationMinutes = 30; // EXTENDED from 2 to 30 minutes!
+        const storedUploadProgress = localStorage.getItem('uploadProgress');
+        const storedSessionId = localStorage.getItem('uploadSessionId');
+        const storedIsUploading = localStorage.getItem('isUploading');
         
-        if (response.ok) {
-          const data = await response.json();
+        // If we have active state in localStorage, KEEP SHOWING even if database says no
+        if (storedIsUploading === 'true' || storedSessionId) {
+          console.log('🔒 LOCAL STORAGE HAS UPLOAD STATE - KEEPING MODAL VISIBLE', storedSessionId);
           
-          // If database says no active sessions but we're showing modal,
-          // database is right (the boss) and we must obey
-          if (!data.sessionId && isUploading) {
-            console.log('👑 DATABASE BOSS SAYS NO ACTIVE UPLOADS - MUST CLOSE MODAL');
+          // Super strong persistence - force UI to match localStorage state
+          if (!isUploading) {
+            setIsUploading(true);
+          }
+          
+          // Now check with database - but just for data updates, not for visibility control
+          console.log('📊 Checking database for progress updates only (not for visibility control)');
+          const response = await fetch('/api/active-upload-session');
+        
+          if (response.ok) {
+            const data = await response.json();
             
-            // Clear all localStorage to match database state
-            localStorage.removeItem('isUploading');
-            localStorage.removeItem('uploadProgress');
-            localStorage.removeItem('uploadSessionId');
-            localStorage.removeItem('lastProgressTimestamp');
-            localStorage.removeItem('lastUIUpdateTimestamp');
+            if (data.sessionId) {
+              console.log('✅ DATABASE CONFIRMS ACTIVE SESSION', data.sessionId);
+              // If we already have sessionId in localStorage, update it if different
+              if (storedSessionId !== data.sessionId) {
+                localStorage.setItem('uploadSessionId', data.sessionId);
+              }
+            }
+          }
+        } else {
+          // No upload state in localStorage, ask database
+          console.log('📊 Upload modal checking with database');
+          const response = await fetch('/api/active-upload-session');
+          
+          if (response.ok) {
+            const data = await response.json();
             
-            // Close modal - the boss has spoken!
-            setIsUploading(false);
+            // If database has active session but we don't know about it yet
+            if (data.sessionId) {
+              console.log('👑 DATABASE HAS ACTIVE SESSION WE DIDNT KNOW ABOUT', data.sessionId);
+              
+              // Update localStorage with the session ID
+              localStorage.setItem('uploadSessionId', data.sessionId);
+              localStorage.setItem('isUploading', 'true');
+              
+              // Show the upload modal
+              setIsUploading(true);
+            }
+            // Otherwise, both localStorage and database agree - no active uploads
           }
         }
       } catch (error) {
         // Silently handle errors to avoid disrupting the UI
+        console.error('Error checking database:', error);
       }
     };
     
