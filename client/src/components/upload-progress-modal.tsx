@@ -214,20 +214,34 @@ export function UploadProgressModal() {
       // This ensures the server-side cleanup occurs, deleting the session from the database
       const sessionId = localStorage.getItem('uploadSessionId');
       if (sessionId) {
-        // Try to cancel through the API first (which will delete the session from the database)
-        await cancelUpload();
-        console.log('Force close: Upload cancelled through API to ensure database cleanup');
+        try {
+          // Try to cancel through the API first (which will delete the session from the database)
+          await cancelUpload();
+          console.log('Force close: Upload cancelled through API to ensure database cleanup');
+        } catch (cancelError) {
+          // If the cancel API fails, it probably means there was no actual upload
+          // This is not an error - just log it and continue with cleanup
+          console.log('Upload was already completed or no active upload found');
+        }
       }
     } catch (error) {
-      console.error('Error cancelling upload during force close:', error);
+      console.error('Error during force close:', error);
     } finally {
-      // Always clean up localStorage regardless of API success/failure
-      // This prevents stale state that could cause UI flickering
+      console.log('Upload completed, cleared all localStorage items');
+      
+      // SUPER AGGRESSIVE CLEANUP: Always clean up ALL upload-related localStorage
+      // This prevents any ghost modals from appearing
       localStorage.removeItem('isUploading');
       localStorage.removeItem('uploadProgress');
       localStorage.removeItem('uploadSessionId');
       localStorage.removeItem('lastProgressTimestamp');
       localStorage.removeItem('lastDatabaseCheck');
+      localStorage.removeItem('serverRestartProtection');
+      localStorage.removeItem('serverRestartTimestamp');
+      localStorage.removeItem('localStorageOverride');
+      localStorage.removeItem('localStorageOverrideTime');
+      localStorage.removeItem('forceCloseUploadModal');
+      localStorage.removeItem('forceCloseTimestamp');
       
       // Clean up any existing EventSource connections
       if (window._activeEventSources) {
@@ -249,25 +263,53 @@ export function UploadProgressModal() {
     }
   };
   
-  // Handle cancel button click
+  // Enhanced cancel button click handler with improved error handling
   const handleCancel = async () => {
+    // Prevent multiple cancel attempts
     if (isCancelling) return;
     
+    // Close any confirmation dialog and set cancelling state
     setShowCancelDialog(false);
     setIsCancelling(true);
+    
     try {
-      const result = await cancelUpload();
-      
-      if (result.success) {
-        // Force close the modal instead of waiting for events
-        forceCloseModal();
-      } else {
-        setIsCancelling(false);
+      // Attempt to cancel the upload via API
+      try {
+        const result = await cancelUpload();
+        
+        if (result?.success) {
+          console.log('Upload successfully cancelled via API');
+        } else {
+          // Even if the server says it failed, we'll still close the modal
+          // The user wants to cancel, so we'll respect that regardless
+          console.log('Server reported cancel failure, but continuing with cleanup');
+        }
+      } catch (cancelError) {
+        // If the API call fails (network error, no session, etc.)
+        // Still proceed with local cleanup - don't block the user
+        console.log('Cancel API error, proceeding with local cleanup only');
       }
-    } catch (error) {
-      console.error('Error cancelling upload:', error);
-      // Even on error, force close the modal
+      
+      // Always force close the modal regardless of server response
+      // This ensures the user can always cancel, even if server has issues
       forceCloseModal();
+    } catch (error) {
+      console.error('Unhandled error during cancel process:', error);
+      
+      // CRITICAL: Even with a catastrophic error, still clean up local state
+      // This is the absolute fallback to ensure the modal can always be closed
+      try {
+        // Super aggressive final cleanup attempt
+        localStorage.removeItem('isUploading');
+        localStorage.removeItem('uploadProgress');
+        localStorage.removeItem('uploadSessionId');
+        setIsUploading(false);
+      } catch (e) {
+        // Last resort - if even the fallback fails, just hide the modal directly
+        setIsUploading(false);
+      }
+      
+      setIsCancelling(false);
     }
   };
 

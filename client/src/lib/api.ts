@@ -311,7 +311,16 @@ export async function uploadCSV(
   const sessionId = crypto.randomUUID();
   currentUploadSessionId = sessionId;
   
-  // Store the session ID in both localStorage (legacy) and database
+  // Clear any previous upload state that might be causing issues
+  localStorage.removeItem('isUploading');
+  localStorage.removeItem('uploadProgress');
+  localStorage.removeItem('uploadSessionId');
+  localStorage.removeItem('lastProgressTimestamp');
+  localStorage.removeItem('serverRestartProtection');
+  localStorage.removeItem('serverRestartTimestamp');
+  
+  // ONLY set the session ID after we've cleared previous state
+  // This prevents ghost uploads from appearing
   localStorage.setItem('uploadSessionId', sessionId);
   
   // If onProgress callback is provided, check for any active upload sessions 
