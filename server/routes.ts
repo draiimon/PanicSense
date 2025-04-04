@@ -166,7 +166,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Check if there's a stored session in the database
     let storedSession;
     try {
-      storedSession = await storage.getUploadSession(sessionId);
+      // Import the withRetry function for better database error handling
+      const { withRetry } = await import('./db');
+      
+      // Use withRetry to get upload session with 3 retries and increasing backoff
+      storedSession = await withRetry(
+        async () => await storage.getUploadSession(sessionId),
+        3,  // 3 retries
+        500 // 500ms initial delay with exponential backoff
+      );
       
       // If session is in the database but not in memory, restore it to memory
       if (storedSession && !uploadProgressMap.has(sessionId) && 
@@ -179,7 +187,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Add timestamp for speed calculations
         progressData.timestamp = progressData.timestamp || Date.now();
         
+        // Store in memory map and add session ID to payload
         uploadProgressMap.set(sessionId, progressData);
+        
+        // Add the sessionId to the progressData for client persistence
+        progressData.sessionId = sessionId;
+        
         console.log(`Restored upload session ${sessionId} from database`);
       }
     } catch (error) {
@@ -692,13 +705,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import the withRetry function
       const { withRetry } = await import('./db');
       
+      // Log the attempt to check for active sessions
+      console.log('Checking for active upload sessions...');
+      
       // Use withRetry to handle potential database errors with auto-retry
+      // Increased to 5 retries with longer initial delay
       const sessions = await withRetry(async () => {
+        // Force a new connection to ensure we're not using a stale connection
+        await db.execute(sql`SELECT 1`);
+        
         return await db.select().from(uploadSessions)
           .where(eq(uploadSessions.status, 'active'))
           .orderBy(desc(uploadSessions.id))
           .limit(1);
-      }, 3, 500); // 3 retries with 500ms initial delay
+      }, 5, 1000); // 5 retries with 1000ms initial delay
       
       if (sessions.length > 0) {
         const activeSession = sessions[0];
