@@ -178,6 +178,17 @@ function cleanupAllUploadResources(): void {
   // Clear localStorage data
   localStorage.removeItem('uploadSessionId');
   localStorage.removeItem('isUploading');
+  
+  // Dispatch cross-tab synchronization event to notify all other tabs
+  // This allows all open tabs to update their UI immediately
+  try {
+    const syncEvent = new CustomEvent('upload-state-changed', {
+      detail: { isUploading: false, progress: null }
+    });
+    window.dispatchEvent(syncEvent);
+  } catch (error) {
+    console.error('Error dispatching cross-tab sync event:', error);
+  }
   localStorage.removeItem('uploadProgress');
   localStorage.removeItem('lastProgressTimestamp');
   

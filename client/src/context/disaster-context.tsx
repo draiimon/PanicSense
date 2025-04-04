@@ -156,6 +156,13 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
         localStorage.setItem('isUploading', 'true');
         localStorage.setItem('uploadProgress', JSON.stringify(dataToStore));
         
+        // Fire a custom event for cross-tab synchronization
+        // This allows other tabs to update their state when this tab changes
+        const syncEvent = new CustomEvent('upload-state-changed', {
+          detail: { isUploading: true, progress: dataToStore }
+        });
+        window.dispatchEvent(syncEvent);
+        
         // Log persistence for debugging
         console.log('Saved upload progress to localStorage:', dataToStore);
       } catch (error) {
@@ -166,6 +173,12 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
       // Clear storage when upload is finished
       localStorage.removeItem('isUploading');
       localStorage.removeItem('uploadProgress');
+      
+      // Fire a custom event for cross-tab synchronization
+      const syncEvent = new CustomEvent('upload-state-changed', {
+        detail: { isUploading: false, progress: null }
+      });
+      window.dispatchEvent(syncEvent);
     }
   }, [isUploading, uploadProgress]);
 
@@ -815,6 +828,57 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
     
     // No need for cleanup since we're not setting any intervals
   }, [location]);
+
+  // Setup cross-tab synchronization with storage events
+  // This allows different tabs to stay in sync when one tab cancels an upload
+  useEffect(() => {
+    // Function to handle storage events (another tab changed localStorage)
+    const handleStorageChange = (event: StorageEvent) => {
+      // Only process keys related to uploads
+      if (event.key === 'isUploading' || event.key === 'uploadProgress' || event.key === 'uploadSessionId') {
+        console.log(`📱 Cross-tab sync: ${event.key} changed in another tab`);
+        
+        // If isUploading was set to false or removed, close our upload modal too
+        if (event.key === 'isUploading' && (event.newValue === null || event.newValue === 'false')) {
+          console.log('📱 Cross-tab sync: Upload cancelled or completed in another tab');
+          setIsUploading(false);
+        }
+        
+        // If a new progress was set, update our progress too
+        if (event.key === 'uploadProgress' && event.newValue) {
+          try {
+            const newProgress = JSON.parse(event.newValue);
+            console.log('📱 Cross-tab sync: Progress updated in another tab:', newProgress);
+            setUploadProgress(newProgress);
+          } catch (error) {
+            console.error('Error parsing progress from another tab:', error);
+          }
+        }
+      }
+    };
+    
+    // Function to handle direct cross-tab events
+    const handleUploadStateChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{isUploading: boolean, progress: any}>;
+      console.log('📱 Cross-tab event received:', customEvent.detail);
+      
+      // Update our local state based on the event
+      setIsUploading(customEvent.detail.isUploading);
+      if (customEvent.detail.progress) {
+        setUploadProgress(customEvent.detail.progress);
+      }
+    };
+    
+    // Add event listeners for both storage events and custom events
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('upload-state-changed', handleUploadStateChange);
+    
+    // Clean up event listeners when component unmounts
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('upload-state-changed', handleUploadStateChange);
+    };
+  }, []); // Empty dependency array ensures this only runs once
 
   // WebSocket setup for all non-upload messages (like feedback, post updates)
   // We'll keep this separate from the upload progress handling to avoid conflicts

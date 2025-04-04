@@ -48,6 +48,18 @@ export function UploadProgressModal() {
       localStorage.removeItem('lastProgressTimestamp');
       localStorage.removeItem('lastDatabaseCheck');
       
+      // Dispatch cross-tab synchronization event to notify all other tabs
+      // This is critical for keeping all tabs in sync when one tab cancels an upload
+      try {
+        const syncEvent = new CustomEvent('upload-state-changed', {
+          detail: { isUploading: false, progress: null }
+        });
+        window.dispatchEvent(syncEvent);
+        console.log('📱 Cross-tab sync: Notified all tabs of cancellation');
+      } catch (error) {
+        console.error('Error dispatching cross-tab event:', error);
+      }
+      
       // Clean up any existing EventSource connections
       if (window._activeEventSources) {
         Object.values(window._activeEventSources).forEach(source => {
