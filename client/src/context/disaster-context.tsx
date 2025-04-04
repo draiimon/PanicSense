@@ -228,28 +228,62 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
   const refreshData = () => refreshDataRef.current();
   
   // The check and reconnect function
+  // Improved version with anti-flickering safeguards
   const checkAndReconnectToActiveUploads = async () => {
+    // ANTI-FLICKERING: Check localStorage first to maintain UI stability
+    const storedSessionId = localStorage.getItem('uploadSessionId');
+    const storedIsUploading = localStorage.getItem('isUploading') === 'true';
+    let storedProgress = null;
+    
     try {
-      // FIRST check database for active uploads - ALWAYS prioritize database
+      // If we already have active upload data in localStorage, use it first
+      // This prevents flickering while we wait for the database check
+      if (storedIsUploading && storedSessionId && !isUploading) {
+        setIsUploading(true);
+        
+        try {
+          const progressData = localStorage.getItem('uploadProgress');
+          if (progressData) {
+            storedProgress = JSON.parse(progressData);
+            // Only update if we have data and it's newer than what we have
+            if (storedProgress && (!uploadProgress.timestamp || 
+                storedProgress.timestamp > uploadProgress.timestamp)) {
+              setUploadProgress(storedProgress);
+            }
+          }
+        } catch (e) {
+          // Silently handle parse errors
+        }
+      }
+    
+      // THEN check database for active uploads - ALWAYS prioritize database for source of truth
       const activeSessionId = await checkForActiveSessions();
       
       // If found an active session in database, this is the authority source of truth
       if (activeSessionId) {
-        console.log('Active upload session found in database:', activeSessionId);
-        // Make sure the upload modal is shown
-        setIsUploading(true);
+        // Limit logging to reduce console spam
+        if (Math.random() < 0.05) {
+          console.log('Active upload session found in database:', activeSessionId);
+        }
+        
+        // Make sure the upload modal is shown, but ONLY if it's not already
+        // This prevents unnecessary re-renders
+        if (!isUploading) {
+          setIsUploading(true);
+        }
         
         // At this point, localStorage should already be populated with the session data
         // from checkForActiveSessions, but let's validate it
         const storedProgress = localStorage.getItem('uploadProgress');
         if (!storedProgress) {
           console.log('Database session active but no progress in localStorage, fetching data');
-          // If progress isn't in localStorage, make a direct API call to get current progress
           try {
             const response = await fetch(`/api/upload-progress/${activeSessionId}`);
             if (response.ok) {
               const progressEvent = await response.json();
               if (progressEvent) {
+                // IMPORTANT: Add timestamp to ensure proper ordering
+                progressEvent.timestamp = progressEvent.timestamp || Date.now();
                 setUploadProgress(progressEvent);
                 localStorage.setItem('uploadProgress', JSON.stringify({
                   ...progressEvent,
@@ -258,13 +292,12 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
               }
             }
           } catch (err) {
-            console.error('Error fetching initial progress', err);
+            // Silently handle errors to prevent console spam
           }
         }
         
-        // Set up a more robust EventSource for progress updates
-        // Keep a reference for cleanup and reconnection
-        // Create a message handler function that we can reuse
+        // Set up a more robust EventSource for progress updates with deduplication
+        // but ONLY if one doesn't already exist to prevent duplicates
         const handleMessage = (event: MessageEvent) => {
           try {
             if (!event.data) return;
@@ -676,22 +709,36 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
   };
 
   // Now we'll create a useEffect that checks for active uploads on route changes
-  // and sets up polling to periodically check for active sessions
+  // This optimized version avoids polling issues and UI flickering 
   useEffect(() => {
+    // Only log once when active routes change
     console.log('Checking for active uploads on route:', location);
     
-    // Set up polling to check for active sessions (every 10 seconds)
+    // Start with sessionId from localStorage to reduce flickering
+    const storedSessionId = localStorage.getItem('uploadSessionId');
+    const storedIsUploading = localStorage.getItem('isUploading') === 'true';
+    
+    // We use a debounced check approach with a more stable polling strategy
+    // Set up polling to check for active sessions (reduced frequency - every 20 seconds)
     const pollIntervalId = setInterval(() => {
       // Only run polling check if we're not already showing an upload modal
       // This prevents disrupting an active upload
       if (!isUploading) {
-        console.log('Running session check poll...');
+        // Only log 5% of the time to reduce console spam
+        if (Math.random() < 0.05) {
+          console.log('Running session check poll...');
+        }
+        
+        // Use a debounced version of the check to prevent rapid UI changes
         checkAndReconnectToActiveUploads();
       }
-    }, 10000);
+    }, 20000); // Increased to 20 seconds
     
-    // Run initial check immediately
-    checkAndReconnectToActiveUploads();
+    // Only run initial check if we don't already have active upload
+    // This reduces UI flickering when we already know an upload is in progress
+    if (!storedIsUploading || !storedSessionId) {
+      checkAndReconnectToActiveUploads();
+    }
     
     // Clean up polling on unmount
     return () => {

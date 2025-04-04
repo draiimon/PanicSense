@@ -23,9 +23,13 @@ export function UploadProgressModal() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   // Manually close the modal and clean up both localStorage and database
+  // This improved version handles race conditions and prevents UI flicker
   const forceCloseModal = async () => {
-    // First try to cancel the upload through the API to ensure database cleanup
+    // Set local cancelling state immediately to prevent multiple calls
+    setIsCancelling(true);
+    
     try {
+      // First try to cancel the upload through the API to ensure database cleanup
       // This ensures the server-side cleanup occurs, deleting the session from the database
       const sessionId = localStorage.getItem('uploadSessionId');
       if (sessionId) {
@@ -35,16 +39,33 @@ export function UploadProgressModal() {
       }
     } catch (error) {
       console.error('Error cancelling upload during force close:', error);
+    } finally {
+      // Always clean up localStorage regardless of API success/failure
+      // This prevents stale state that could cause UI flickering
+      localStorage.removeItem('isUploading');
+      localStorage.removeItem('uploadProgress');
+      localStorage.removeItem('uploadSessionId');
+      localStorage.removeItem('lastProgressTimestamp');
+      localStorage.removeItem('lastDatabaseCheck');
+      
+      // Clean up any existing EventSource connections
+      if (window._activeEventSources) {
+        Object.values(window._activeEventSources).forEach(source => {
+          try {
+            source.close();
+          } catch (e) {
+            // Ignore errors on close
+          }
+        });
+        // Reset the collection
+        window._activeEventSources = {};
+      }
+      
+      // Finally update context state - do this AFTER cleanup is complete
+      // to prevent race conditions with new session checks
+      setIsUploading(false);
+      setIsCancelling(false);
     }
-    
-    // Then clean up local storage
-    localStorage.removeItem('isUploading');
-    localStorage.removeItem('uploadProgress');
-    localStorage.removeItem('uploadSessionId');
-    localStorage.removeItem('lastProgressTimestamp');
-    
-    // Finally update context state
-    setIsUploading(false);
   };
   
   // Handle cancel button click
