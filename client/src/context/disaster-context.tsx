@@ -560,14 +560,33 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
               }
             }
             
-            // If the upload is complete or has an error, close the connection
+            // ULTRA-AGGRESSIVE AUTO-CLOSE DETECTION
+            // Check for ANY completion/error/cancellation signals
             const stageLower = progress.stage.toLowerCase();
-            if (stageLower.includes('complete') || 
-                stageLower.includes('error') ||
-                stageLower.includes('cancelled')) {
+            
+            // BROADER PATTERN MATCHING for terminal states
+            const isCompleteState = stageLower.includes('complete') || 
+                                  stageLower.includes('finish') || 
+                                  stageLower.includes('done') ||
+                                  (progress.processed >= progress.total && progress.total > 0);
+                                  
+            const isErrorState = stageLower.includes('error') || 
+                               stageLower.includes('fail') || 
+                               stageLower.includes('exception');
+                               
+            const isCancelledState = stageLower.includes('cancel') || 
+                                   stageLower.includes('abort') ||
+                                   stageLower.includes('stop');
+            
+            // FINAL TERMINAL STATE CHECK
+            const isTerminalState = isCompleteState || isErrorState || isCancelledState;
+            
+            if (isTerminalState) {
+              console.log('🚨 TERMINAL STATE DETECTED! AUTO-CLOSING!', stageLower);
               
               // Check if eventSource still exists before closing
               if (window._activeEventSources?.[activeSessionId]) {
+                console.log('Closing EventSource connection');
                 window._activeEventSources[activeSessionId].close();
                 if (window._activeEventSources) {
                   delete window._activeEventSources[activeSessionId];
@@ -575,26 +594,35 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
               }
               
               // If it completed successfully, refresh data to show new records
-              if (progress.stage.toLowerCase().includes('complete')) {
+              if (isCompleteState) {
+                console.log('Success completion detected - refreshing data');
                 // First refresh data, but wait a bit for server to finalize everything
                 setTimeout(() => {
                   refreshData();
                 }, 500);
               }
               
+              // ULTRA-STRICT: Flag to force close due to terminal state
+              // This flag tells other systems that local storage should be cleared
+              localStorage.setItem('forceCloseUploadModal', 'true');
+              localStorage.setItem('forceCloseTimestamp', Date.now().toString());
+              
               // Use a timer before closing the modal to prevent abrupt UI changes
               // This gives user time to see the final status
-              const completionDelay = stageLower.includes('error') ? 2000 : 3000;
+              const completionDelay = isErrorState ? 2000 : 3000;
               
               // For completion states, we'll delay the modal close slightly
               // This prevents abrupt UI changes and makes the experience smoother
               setTimeout(() => {
+                console.log('🚪 AUTO-CLOSING UPLOAD MODAL DUE TO TERMINAL STATE');
                 // Clear the upload progress from localStorage immediately
                 localStorage.removeItem('isUploading');
                 localStorage.removeItem('uploadProgress');
                 localStorage.removeItem('uploadSessionId');
                 localStorage.removeItem('lastProgressTimestamp');
                 localStorage.removeItem('lastUIUpdateTimestamp');
+                localStorage.removeItem('forceCloseUploadModal');
+                localStorage.removeItem('forceCloseTimestamp');
                 
                 // Finally close the modal after storage is cleared
                 // This sequence ensures we don't get flickering from localStorage checks
