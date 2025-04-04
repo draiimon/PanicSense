@@ -120,6 +120,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       environment: process.env.NODE_ENV || 'development'
     });
   });
+  
+  // Test time formatting with different durations
+  app.get('/api/test-time-estimates', (req: Request, res: Response) => {
+    // Create a test session ID
+    const sessionId = `test-${Date.now()}`;
+    
+    // Get the requested time in seconds from query parameter, default to 10 minutes
+    const durationSeconds = parseInt(req.query.seconds as string, 10) || 600;
+    
+    // Add a test session to the progress map
+    uploadProgressMap.set(sessionId, {
+      processed: 10,
+      total: 1000,
+      stage: 'Test time estimation',
+      timestamp: Date.now(),
+      batchNumber: 1,
+      totalBatches: 100,
+      batchProgress: 0.1,
+      currentSpeed: 0.5,
+      timeRemaining: durationSeconds, // Set explicitly from parameter
+      processingStats: {
+        successCount: 10,
+        errorCount: 0,
+        lastBatchDuration: 10,
+        averageSpeed: 0.5
+      }
+    });
+    
+    // Return the session ID and duration
+    res.json({
+      sessionId,
+      durationSeconds,
+      durationFormatted: {
+        seconds: durationSeconds,
+        minutes: Math.floor(durationSeconds / 60),
+        hours: Math.floor(durationSeconds / 3600),
+        days: Math.floor(durationSeconds / 86400)
+      }
+    });
+  });
 
   // Serve static files from attached_assets
   app.use('/assets', express.static(path.join(process.cwd(), 'attached_assets')));
@@ -256,15 +296,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Calculate current speed based on processed records
             progress.currentSpeed = progress.processed / elapsed;
             
-            // Calculate time remaining with batch logic:
+            // Calculate time remaining with enhanced batch logic:
             // 1. Each batch of 30 takes ~30 seconds to process + 60 second pause
             // 2. So each batch needs ~90 seconds total
+            // 3. Account for current phase (processing vs paused)
             if (progress.currentSpeed > 0) {
               const remainingRecords = progress.total - progress.processed;
               const recordsPerBatch = 30; // Standard batch size
-              const batchTimeSeconds = 90; // 30s processing + 60s pause
+              const processTimePerBatch = 30; // 30s processing time per batch
+              const pauseTimePerBatch = 60; // 60s pause between batches
+              const batchTimeSeconds = processTimePerBatch + pauseTimePerBatch; // total per batch
               const remainingBatches = Math.ceil(remainingRecords / recordsPerBatch);
-              progress.timeRemaining = remainingBatches * batchTimeSeconds;
+              
+              // Start with basic calculation
+              let estimatedTimeRemaining = remainingBatches * batchTimeSeconds;
+              
+              // Handle pause states - if we're in a pause, extract remaining pause time
+              if (progress.stage && progress.stage.includes('pause between batches')) {
+                const pauseMatches = progress.stage.match(/(\d+) seconds remaining/);
+                if (pauseMatches && pauseMatches.length > 1) {
+                  const remainingPauseSeconds = parseInt(pauseMatches[1], 10);
+                  
+                  // Adjust time - remove one full pause (already included in calculation)
+                  // and add the exact remaining pause time
+                  if (!isNaN(remainingPauseSeconds) && remainingPauseSeconds > 0) {
+                    estimatedTimeRemaining = estimatedTimeRemaining - pauseTimePerBatch + remainingPauseSeconds;
+                  }
+                }
+              }
+              
+              // Apply a cap of 7 days to prevent unrealistic estimates
+              const maxTimeSeconds = 7 * 24 * 60 * 60; // 7 days in seconds
+              progress.timeRemaining = Math.min(estimatedTimeRemaining, maxTimeSeconds);
             } else {
               progress.timeRemaining = 0;
             }

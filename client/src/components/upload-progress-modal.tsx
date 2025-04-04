@@ -110,10 +110,27 @@ export function UploadProgressModal() {
   // Calculate time remaining in human-readable format
   const formatTimeRemaining = (seconds: number): string => {
     if (!seconds || seconds <= 0) return 'calculating...';
+    
+    // Less than a minute
     if (seconds < 60) return `${Math.ceil(seconds)} sec`;
-    const minutes = Math.floor(seconds / 60);
+    
+    // Calculate days, hours, minutes, seconds
+    const days = Math.floor(seconds / 86400); // 86400 seconds in a day
+    const hours = Math.floor((seconds % 86400) / 3600); // 3600 seconds in an hour
+    const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = Math.ceil(seconds % 60);
-    return `${minutes}m ${remainingSeconds}s`;
+    
+    // Format based on duration
+    if (days > 0) {
+      // If we have days, show days and hours
+      return `${days}d ${hours}h`;
+    } else if (hours > 0) {
+      // If we have hours, show hours and minutes
+      return `${hours}h ${minutes}m`;
+    } else {
+      // Otherwise just show minutes and seconds
+      return `${minutes}m ${remainingSeconds}s`;
+    }
   };
 
   return createPortal(
