@@ -197,34 +197,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       localStorage.setItem('isUploading', 'true');
       localStorage.setItem('uploadStartTime', Date.now().toString());
       
-      // Dispatch cross-tab synchronization event for initial upload state
-      try {
-        const initialProgress = { 
-          processed: 0, 
-          total: 100, 
-          stage: 'Initializing...',
-          currentSpeed: 0,
-          timeRemaining: 0,
-          batchNumber: 0,
-          totalBatches: 0,
-          batchProgress: 0,
-          processingStats: {
-            successCount: 0,
-            errorCount: 0,
-            averageSpeed: 0
-          },
-          timestamp: Date.now()
-        };
-        
-        const syncEvent = new CustomEvent('upload-state-changed', {
-          detail: { isUploading: true, progress: initialProgress }
-        });
-        window.dispatchEvent(syncEvent);
-        console.log('📱 Cross-tab sync: Notified all tabs of upload start');
-      } catch (error) {
-        console.error('Error dispatching cross-tab event:', error);
-      }
-      
       const result = await uploadCSV(file, (progress) => {
         // Enhanced progress tracking with timestamp
         const currentProgress = {
@@ -253,17 +225,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         // Store in localStorage for persistence across refreshes
         localStorage.setItem('uploadProgress', JSON.stringify(currentProgress));
         localStorage.setItem('lastProgressTimestamp', Date.now().toString());
-        
-        // Dispatch cross-tab synchronization event to notify all other tabs
-        try {
-          const syncEvent = new CustomEvent('upload-state-changed', {
-            detail: { isUploading: true, progress: currentProgress }
-          });
-          window.dispatchEvent(syncEvent);
-          console.log('📱 Cross-tab sync: Notified all tabs of progress update');
-        } catch (error) {
-          console.error('Error dispatching cross-tab event:', error);
-        }
       });
 
       if (result?.file && result?.posts) {
@@ -296,23 +257,13 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       localStorage.removeItem('uploadSessionId');
       localStorage.removeItem('uploadStartTime');
       localStorage.removeItem('lastProgressTimestamp');
-      
-      // Notify all tabs about the error and upload cancellation
-      try {
-        const syncEvent = new CustomEvent('upload-state-changed', {
-          detail: { isUploading: false, progress: null, error: true }
-        });
-        window.dispatchEvent(syncEvent);
-        console.log('📱 Cross-tab sync: Notified all tabs of upload error/cancellation');
-      } catch (error) {
-        console.error('Error dispatching error event:', error);
-      }
     } finally {
       event.target.value = '';
 
       // Show completion for a moment before closing
       setTimeout(() => {
-        const emptyProgress = { 
+        setIsUploading(false);
+        setUploadProgress({ 
           processed: 0, 
           total: 0, 
           stage: '',
@@ -326,11 +277,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             errorCount: 0,
             averageSpeed: 0
           }
-        };
-        
-        // Update UI state
-        setIsUploading(false);
-        setUploadProgress(emptyProgress);
+        });
         
         // Properly clear all localStorage items related to upload
         localStorage.removeItem('isUploading');
@@ -338,17 +285,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         localStorage.removeItem('uploadSessionId');
         localStorage.removeItem('uploadStartTime');
         localStorage.removeItem('lastProgressTimestamp');
-        
-        // Broadcast to all tabs that upload is complete
-        try {
-          const syncEvent = new CustomEvent('upload-state-changed', {
-            detail: { isUploading: false, progress: null }
-          });
-          window.dispatchEvent(syncEvent);
-          console.log('📱 Cross-tab sync: Notified all tabs that upload is complete');
-        } catch (error) {
-          console.error('Error dispatching complete event:', error);
-        }
         
         console.log('Upload completed, cleared all localStorage items');
       }, 2000);

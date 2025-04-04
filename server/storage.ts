@@ -566,26 +566,8 @@ export class DatabaseStorage implements IStorage {
         progress: session.progress,
         createdAt: new Date(),
         updatedAt: new Date(),
-        userId: session.userId || null,   // Ensure userId is null if undefined
-        serverStartTimestamp: session.serverStartTimestamp || null
+        userId: session.userId || null   // Ensure userId is null if undefined
       };
-    }
-  }
-
-  async updateUploadSessionStatus(sessionId: string, status: string): Promise<UploadSession | undefined> {
-    try {
-      console.log(`Updating upload session ${sessionId} status to ${status}`);
-      const [result] = await db.update(uploadSessions)
-        .set({
-          status,
-          updatedAt: new Date()
-        })
-        .where(eq(uploadSessions.sessionId, sessionId))
-        .returning();
-      return result;
-    } catch (error) {
-      console.error(`Error updating session ${sessionId} status to ${status}:`, error);
-      return undefined;
     }
   }
 

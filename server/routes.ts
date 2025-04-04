@@ -961,36 +961,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Import the SERVER_START_TIMESTAMP from server/index.ts
       const { SERVER_START_TIMESTAMP } = await import('./index');
-      
-      // KEEP-ALIVE ENHANCEMENT: Check if client is requesting to preserve a specific session
-      const preserveSessionId = req.query.preserveSessionId as string;
-      if (preserveSessionId) {
-        console.log(`⭐ Client requested to preserve session ${preserveSessionId}`);
-        // Check if this session exists in database
-        const dbSessions = await db.select().from(uploadSessions)
-          .where(eq(uploadSessions.sessionId, preserveSessionId));
-          
-        if (dbSessions.length > 0) {
-          // Session exists, keep it alive by updating timestamp
-          console.log(`⭐ Preserving session ${preserveSessionId} by updating timestamp`);
-          await db.update(uploadSessions)
-            .set({ 
-              status: 'active',  // Ensure status is active
-              updatedAt: new Date(),
-              serverStartTimestamp: SERVER_START_TIMESTAMP.toString()
-            })
-            .where(eq(uploadSessions.sessionId, preserveSessionId));
-          
-          const session = dbSessions[0];
-          // Return the preserved session
-          return res.json({ 
-            sessionId: preserveSessionId,
-            status: 'active',
-            progress: session.progress,
-            preserved: true  // Flag to indicate this was preserved
-          });
-        }
-      }
 
       // Before checking the database, check if there's an active Python process
       // This is the most reliable indicator of an active upload

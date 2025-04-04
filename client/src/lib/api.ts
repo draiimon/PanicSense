@@ -94,112 +94,42 @@ let currentEventSource: EventSource | null = null;
 let currentUploadSessionId: string | null = null;
 
 // Cancel the current upload
-/**
- * Cancels an active upload and aggressively cleans up all resources
- * 
- * This function performs a thorough cleanup to ensure the UI returns to a clean state
- * even if the server is unavailable or shuts down during the cancellation process.
- * 
- * @returns Promise with success status and message
- */
 export async function cancelUpload(): Promise<{ success: boolean; message: string }> {
-  // Get the current session ID, if any
-  const sessionId = currentUploadSessionId || localStorage.getItem('uploadSessionId');
-  
-  if (sessionId) {
+  if (currentUploadSessionId) {
     try {
-      // Immediately perform client-side cleanup first
-      // This ensures UI goes back to normal even if server communication fails
-      cleanupAllUploadResources();
-            
-      // Then attempt to communicate with server (non-blocking)
-      // We use fetch directly instead of apiRequest for better control
-      const cancelPromise = fetch(`/api/cancel-upload/${sessionId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        // Short timeout to avoid hanging if server is down
-        signal: AbortSignal.timeout(5000)
-      })
-      .then(response => response.json())
-      .catch(error => {
-        console.warn('Server-side cancel failed, but client resources cleaned up:', error);
-        return { 
-          success: true, 
-          message: 'Upload resources cleared (server unreachable)' 
-        };
-      });
+      // Close the event source
+      if (currentEventSource) {
+        currentEventSource.close();
+        currentEventSource = null;
+      }
       
-      // Wait for server response (with timeout protection)
-      const result = await cancelPromise;
+      // Abort the fetch request
+      if (currentUploadController) {
+        currentUploadController.abort();
+        currentUploadController = null;
+      }
       
-      return {
-        success: true,
-        message: result.message || 'Upload cancelled successfully'
-      };
+      // Call the server to cancel processing
+      const response = await apiRequest('POST', `/api/cancel-upload/${currentUploadSessionId}`);
+      const result = await response.json();
+      
+      // Reset the current session ID
+      currentUploadSessionId = null;
+      
+      // Clear localStorage
+      localStorage.removeItem('uploadSessionId');
+      
+      return result;
     } catch (error) {
-      console.error('Error during upload cancellation:', error);
-      
-      // Even if error occurred, client-side was already cleaned up
+      console.error('Error cancelling upload:', error);
       return { 
-        success: true, 
-        message: 'Upload stopped (client-side only)' 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Failed to cancel upload' 
       };
     }
   }
   
-  // No active session, but clean up anyway as a precaution
-  cleanupAllUploadResources();
   return { success: false, message: 'No active upload to cancel' };
-}
-
-/**
- * Helper function to clean up all upload-related resources
- * This ensures a consistent cleanup across all cancellation scenarios
- */
-function cleanupAllUploadResources(): void {
-  console.log('🧹 Cleaning up all upload resources...');
-  
-  // Close event source connections
-  if (currentEventSource) {
-    console.log('Closing EventSource connection');
-    currentEventSource.close();
-    currentEventSource = null;
-  }
-  
-  // Abort any in-progress fetch requests
-  if (currentUploadController) {
-    console.log('Aborting in-progress fetch request');
-    currentUploadController.abort();
-    currentUploadController = null;
-  }
-  
-  // Clear localStorage data
-  localStorage.removeItem('uploadSessionId');
-  localStorage.removeItem('isUploading');
-  
-  // Dispatch cross-tab synchronization event to notify all other tabs
-  // This allows all open tabs to update their UI immediately
-  try {
-    const syncEvent = new CustomEvent('upload-state-changed', {
-      detail: { isUploading: false, progress: null }
-    });
-    window.dispatchEvent(syncEvent);
-  } catch (error) {
-    console.error('Error dispatching cross-tab sync event:', error);
-  }
-  localStorage.removeItem('uploadProgress');
-  localStorage.removeItem('lastProgressTimestamp');
-  
-  // Clear sessionStorage data that tracks uploads
-  sessionStorage.removeItem('initialDatabaseCheckDone');
-  sessionStorage.removeItem('checkedActiveUploadsOnLoad');
-  
-  // Reset in-memory session ID
-  currentUploadSessionId = null;
-  
-  console.log('✅ Upload resources cleaned up successfully');
 }
 
 // Return the current upload session ID with database support
@@ -220,106 +150,32 @@ export function getCurrentUploadSessionId(): string | null {
   return null;
 }
 
-/**
- * Check if there's an active upload session - WITH ONE-TIME PER PAGE LOAD CHECK PATTERN
- * 
- * This function uses a one-time database check pattern to reduce server load:
- * 1. On initial page load, check the database ONCE for active sessions
- * 2. Store that information in localStorage
- * 3. On subsequent calls within the same page load, trust localStorage completely
- * 4. Since sessionStorage gets cleared on page refresh, we can reliably detect new page loads
- * 5. This prevents excessive database checks that cause flickering and server load
- */
+// Check if there are any active upload sessions in the database
+// Optimized version with anti-flickering protection
 export async function checkForActiveSessions(): Promise<string | null> {
   try {
-    // Log the current route for debugging
-    console.log('Checking for active uploads on route:', window.location.pathname);
-
-    // REFRESH DETECTION SYSTEM:
-    // - Only make a single database check when page loads (on refresh)
-    // - After that, trust localStorage completely and avoid further database checks
-    
-    // Track if this is a page refresh
-    const pageLoadTime = window.performance?.timing?.navigationStart || 0;
-    const timeOnPage = Date.now() - pageLoadTime;
-    const isRecentPageLoad = timeOnPage < 5000; // Within 5 seconds of page load
-    const refreshCounter = parseInt(localStorage.getItem('pageRefreshCounter') || '0');
-    
-    if (isRecentPageLoad) {
-      // Increment refresh counter on page load
-      localStorage.setItem('pageRefreshCounter', (refreshCounter + 1).toString());
-      console.log(`🔄 Page refresh detected (${refreshCounter + 1})`);
-    }
-    
+    // IMPORTANT: Fetch active session from database - ALWAYS prioritize database over localStorage
     const cacheKey = 'lastDatabaseCheck';
     const lastCheckTime = parseInt(localStorage.getItem(cacheKey) || '0');
     const now = Date.now();
     
-    // HIGHEST PRIORITY: Check localStorage first and TRUST it
-    const cachedSessionId = localStorage.getItem('uploadSessionId');
+    // Rate limit database checks to prevent excessive API calls (5 second cooldown)
+    // This helps reduce server load and avoid flickering from constant database polling
+    const minCheckInterval = 5000; // 5 seconds between checks
     
-    // If we have a session ID in localStorage, request server to keep it alive
-    if (cachedSessionId) {
-      console.log("📲 Adding preserveSessionId to request to keep session alive:", cachedSessionId);
-    }
-    const isLocallyUploading = localStorage.getItem('isUploading') === 'true';
-    
-    // If localStorage says we're uploading, IMMEDIATELY show that state
-    // Don't even wait for the API call - this is what prevents flickering
-    if (cachedSessionId && isLocallyUploading) {
-      console.log('🔒 STRICT ANTI-FLICKER: Using localStorage session with FORCED STABILITY');
-      
-      // If this is a refresh, always check with server but KEEP showing upload UI
-      if (isRecentPageLoad) {
-        console.log('🔄 Page refresh detected, checking server but maintaining UI state');
-      } else {
-        // For regular polling, rate limit to reduce server load (15 second cooldown)
-        const minCheckInterval = 15000; // 15 seconds between checks when not a refresh
-        
-        if (now - lastCheckTime < minCheckInterval) {
-          // Skip the API call completely during cooldown period
-          return cachedSessionId;
-        }
+    if (now - lastCheckTime < minCheckInterval) {
+      // Return the stored session ID to avoid flickering during the cooldown period
+      const cachedSessionId = localStorage.getItem('uploadSessionId');
+      if (cachedSessionId && localStorage.getItem('isUploading') === 'true') {
+        return cachedSessionId;
       }
-      
-      // We'll continue with the API call, but UI already shows uploading
-      // So no matter how long the API call takes, the UI won't flicker
-      console.log('⏳ Running session check in background while keeping UI stable...');
     }
     
     // Update the last check time in localStorage
     localStorage.setItem(cacheKey, now.toString());
     
-    // REFRESH DETECTION SYSTEM:
-    // - Only make a single database check when page loads (on refresh)
-    // - After that, trust localStorage completely and avoid further database checks
-    
-    // Check if this is the first check after page load - use sessionStorage that clears on refresh
-    const initialCheckDone = sessionStorage.getItem('initialDatabaseCheckDone') === 'true';
-    
-    // If initial check already done this page load, just trust localStorage and return immediately
-    if (initialCheckDone) {
-      console.log("🔒 ONE-TIME CHECK: Already done this page load, using localStorage state");
-      
-      if (cachedSessionId && isLocallyUploading) {
-        return cachedSessionId; // Trust localStorage completely
-      }
-      
-      return null; // No active upload
-    }
-    
-    console.log("🔍 ONE-TIME DATABASE CHECK: First time after page load/refresh");
-    
-    // Make the actual API request with cache control headers - ONLY ONCE PER PAGE LOAD
-    // If we have a cached session ID, pass it as a query parameter to preserve it
-    const url = cachedSessionId 
-      ? `/api/active-upload-session?preserveSessionId=${encodeURIComponent(cachedSessionId)}`
-      : '/api/active-upload-session';
-      
-    // Mark that we've done the initial check - Use sessionStorage which is cleared on page refresh
-    sessionStorage.setItem('initialDatabaseCheckDone', 'true');
-    
-    const response = await apiRequest('GET', url);
+    // Make the actual API request with cache control headers
+    const response = await apiRequest('GET', '/api/active-upload-session');
     if (response.ok) {
       const data = await response.json();
       if (data.sessionId) {
@@ -468,47 +324,23 @@ export async function uploadCSV(
     }
   }
 
-  // IMPROVEMENTS:
-  // 1. Use polling from Python logs in localStorage instead of EventSource
-  // 2. This prevents excessive server connections
-  // 3. Reduces flickering between different data sources
-  
-  console.log('📊 Using localStorage + Python logs for progress updates instead of EventSource');
-  
-  // Save initial progress state to localStorage to show immediately in UI
-  localStorage.setItem('uploadProgress', JSON.stringify({
-    processed: 0,
-    total: 0,
-    stage: 'Preparing to upload...',
-    timestamp: Date.now(),
-    savedAt: Date.now()
-  }));
-  
-  // Set up a polling interval to check localStorage for updates
-  const pollInterval = setInterval(() => {
+  // Set up event source for progress updates using the potentially updated sessionId
+  const eventSource = new EventSource(`/api/upload-progress/${currentUploadSessionId}`);
+  currentEventSource = eventSource;
+
+  eventSource.onmessage = (event) => {
     try {
-      // Get progress from localStorage (populated by Python logs)
-      const storedProgress = localStorage.getItem('uploadProgress');
-      if (storedProgress) {
-        const progress = JSON.parse(storedProgress) as UploadProgress;
-        
-        // Every 3 seconds, log to console what we're tracking
-        if (Math.random() < 0.3) {
-          console.log('Progress from localStorage:', progress);
-        }
-        
-        // Send progress to UI component
-        if (onProgress) {
-          onProgress(progress);
-        }
+      const progress = JSON.parse(event.data) as UploadProgress;
+      console.log('Progress event received:', progress);
+
+      if (onProgress) {
+        console.log('Progress being sent to UI:', progress);
+        onProgress(progress);
       }
     } catch (error) {
-      console.error('Error parsing stored progress data:', error);
+      console.error('Error parsing progress data:', error);
     }
-  }, 500);
-  
-  // Clean up the interval when we're done
-  setTimeout(() => clearInterval(pollInterval), 30 * 60 * 1000); // 30 minute timeout
+  };
 
   try {
     const response = await fetch('/api/upload-csv', {
@@ -533,22 +365,11 @@ export async function uploadCSV(
     }
     throw error;
   } finally {
-    // Clear the polling interval
-    clearInterval(pollInterval);
-    
-    // Clean up global variables
+    eventSource.close();
     currentEventSource = null;
     currentUploadSessionId = null;
-    
-    // Clear all session-related data from localStorage
+    // Clear the session ID from localStorage
     localStorage.removeItem('uploadSessionId');
-    localStorage.removeItem('isUploading');
-    localStorage.removeItem('uploadProgress');
-    localStorage.removeItem('lastProgressTimestamp');
-    
-    // Also clear from sessionStorage to avoid stale state on next page load
-    sessionStorage.removeItem('initialDatabaseCheckDone');
-    sessionStorage.removeItem('checkedActiveUploadsOnLoad');
   }
 }
 

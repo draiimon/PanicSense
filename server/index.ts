@@ -24,33 +24,8 @@ export function cleanupAndExit(server: any): void {
     const activeSessions = pythonService.getActiveProcessSessions();
     if (activeSessions.length > 0) {
       console.log(`🔥 Cancelling ${activeSessions.length} active Python processes`);
-      
-      // Update database to mark sessions as cancelled
-      import('./db').then(({ db }) => {
-        import('./storage').then(async ({ storage }) => {
-          try {
-            console.log('💾 Marking sessions as cancelled in database...');
-            
-            // Mark all sessions as cancelled in database before terminating
-            for (const sessionId of activeSessions) {
-              await storage.updateUploadSessionStatus(sessionId, 'cancelled');
-              console.log(`📝 Marked session ${sessionId} as cancelled in database`);
-            }
-            
-            console.log('✅ All active sessions marked as cancelled in database');
-          } catch (dbError) {
-            console.error('Failed to update sessions in database:', dbError);
-          }
-          
-          // Now terminate the processes
-          pythonService.cancelAllProcesses();
-          console.log('✅ All Python processes terminated successfully');
-        });
-      }).catch(err => {
-        console.error('Failed to import database modules:', err);
-        // Still try to cancel processes even if DB update fails
-        pythonService.cancelAllProcesses();
-      });
+      pythonService.cancelAllProcesses();
+      console.log('✅ All Python processes terminated successfully');
     } else {
       console.log('ℹ️ No active Python processes to terminate');
     }

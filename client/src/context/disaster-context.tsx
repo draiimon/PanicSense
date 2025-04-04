@@ -156,13 +156,6 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
         localStorage.setItem('isUploading', 'true');
         localStorage.setItem('uploadProgress', JSON.stringify(dataToStore));
         
-        // Fire a custom event for cross-tab synchronization
-        // This allows other tabs to update their state when this tab changes
-        const syncEvent = new CustomEvent('upload-state-changed', {
-          detail: { isUploading: true, progress: dataToStore }
-        });
-        window.dispatchEvent(syncEvent);
-        
         // Log persistence for debugging
         console.log('Saved upload progress to localStorage:', dataToStore);
       } catch (error) {
@@ -173,12 +166,6 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
       // Clear storage when upload is finished
       localStorage.removeItem('isUploading');
       localStorage.removeItem('uploadProgress');
-      
-      // Fire a custom event for cross-tab synchronization
-      const syncEvent = new CustomEvent('upload-state-changed', {
-        detail: { isUploading: false, progress: null }
-      });
-      window.dispatchEvent(syncEvent);
     }
   }, [isUploading, uploadProgress]);
 
@@ -248,49 +235,45 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
     const storedIsUploading = localStorage.getItem('isUploading') === 'true';
     let storedProgress = null;
     
-    // ******************************************
-    // THIS IS THE KEY ANTI-FLICKERING TECHNIQUE:
-    // IMMEDIATELY APPLY THE LOCALSTORAGE STATE
-    // ******************************************    
-    // If localStorage shows as uploading, immediately restore that state
-    // This creates a smooth non-flickering experience by never "turning off" the modal
-    // until we're 100% sure the upload is done
-    if (storedIsUploading && storedSessionId && !isUploading) {
-      console.log("📱 Immediately restoring upload state from localStorage:", storedSessionId);
-      // Immediately set UI state to uploading to prevent flickering
-      setIsUploading(true);
-      
-      try {
-        const progressData = localStorage.getItem('uploadProgress');
-        if (progressData) {
-          storedProgress = JSON.parse(progressData);
-          // Prevent showing an empty progress state
-          if (storedProgress && storedProgress.processed > 0) {
-            setUploadProgress(storedProgress);
-          }
-        }
-      } catch (e) {
-        // Silently handle parse errors
-      }
-    }
-    
     try {
-      // THEN check database for active uploads - but UI already shows upload in progress
-      // This way, even if the API is slow, the user still sees consistent state
+      // If we already have active upload data in localStorage, use it first
+      // This prevents flickering while we wait for the database check
+      if (storedIsUploading && storedSessionId && !isUploading) {
+        setIsUploading(true);
+        
+        try {
+          const progressData = localStorage.getItem('uploadProgress');
+          if (progressData) {
+            storedProgress = JSON.parse(progressData);
+            // Only update if we have data and it's newer than what we have
+            if (storedProgress && (!uploadProgress.timestamp || 
+                storedProgress.timestamp > uploadProgress.timestamp)) {
+              setUploadProgress(storedProgress);
+            }
+          }
+        } catch (e) {
+          // Silently handle parse errors
+        }
+      }
+    
+      // THEN check database for active uploads - ALWAYS prioritize database for source of truth
       const activeSessionId = await checkForActiveSessions();
       
       // If found an active session in database, this is the authority source of truth
       if (activeSessionId) {
-        // No need to log every time - reduces console spam
-        console.log('Active upload session confirmed by database:', activeSessionId);
+        // Limit logging to reduce console spam
+        if (Math.random() < 0.05) {
+          console.log('Active upload session found in database:', activeSessionId);
+        }
         
-        // Database tells us we're active, so resurrect localStorage state too
-        setIsUploading(true);
-        localStorage.setItem('isUploading', 'true');
-        localStorage.setItem('uploadSessionId', activeSessionId);
+        // Make sure the upload modal is shown, but ONLY if it's not already
+        // This prevents unnecessary re-renders
+        if (!isUploading) {
+          setIsUploading(true);
+        }
         
-        // Create a minimal progress object if it doesn't exist yet
-        // This ensures we always have something to display
+        // At this point, localStorage should already be populated with the session data
+        // from checkForActiveSessions, but let's validate it
         const storedProgress = localStorage.getItem('uploadProgress');
         if (!storedProgress) {
           console.log('Database session active but no progress in localStorage, fetching data');
@@ -799,149 +782,43 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
     }
   };
 
-  // NOW: ONLY CHECK ONCE PER PAGE LOAD/REFRESH, NOT ON ROUTE CHANGES
-  // This dramatically reduces API calls and prevents UI flickering
+  // Now we'll create a useEffect that checks for active uploads on route changes
+  // This optimized version avoids polling issues and UI flickering 
   useEffect(() => {
-    // Set a flag in sessionStorage to track if we've already checked this page load
-    const hasCheckedThisPageLoad = sessionStorage.getItem('checkedActiveUploadsOnLoad');
+    // Only log once when active routes change
+    console.log('Checking for active uploads on route:', location);
     
     // Start with sessionId from localStorage to reduce flickering
     const storedSessionId = localStorage.getItem('uploadSessionId');
     const storedIsUploading = localStorage.getItem('isUploading') === 'true';
     
-    // If we already checked this page load OR we're already uploading, don't check again
-    if (hasCheckedThisPageLoad === 'true' || storedIsUploading) {
-      console.log('⏭️ Skipping database check - already checked this page load or already uploading');
-      return;
+    // We use a debounced check approach with a more stable polling strategy
+    // Set up polling to check for active sessions (reduced frequency - every 20 seconds)
+    const pollIntervalId = setInterval(() => {
+      // Only run polling check if we're not already showing an upload modal
+      // This prevents disrupting an active upload
+      if (!isUploading) {
+        // Only log 5% of the time to reduce console spam
+        if (Math.random() < 0.05) {
+          console.log('Running session check poll...');
+        }
+        
+        // Use a debounced version of the check to prevent rapid UI changes
+        checkAndReconnectToActiveUploads();
+      }
+    }, 20000); // Increased to 20 seconds
+    
+    // Only run initial check if we don't already have active upload
+    // This reduces UI flickering when we already know an upload is in progress
+    if (!storedIsUploading || !storedSessionId) {
+      checkAndReconnectToActiveUploads();
     }
     
-    // Mark that we've checked for this page load
-    sessionStorage.setItem('checkedActiveUploadsOnLoad', 'true');
-    
-    console.log('🔍 ONE-TIME CHECK for active uploads on route:', location);
-    
-    // Make a single check for active uploads - this will only happen ONCE per page load/refresh
-    checkAndReconnectToActiveUploads();
-    
-    // NO POLLING - we only check once
-    // This is a major optimization that dramatically reduces database load
-    
-    // No need for cleanup since we're not setting any intervals
-  }, [location]);
-
-  // Setup cross-tab synchronization with storage events
-  // This allows different tabs to stay in sync when one tab cancels an upload
-  useEffect(() => {
-    // Function to handle storage events (another tab changed localStorage)
-    const handleStorageChange = (event: StorageEvent) => {
-      // Only process keys related to uploads
-      if (event.key === 'isUploading' || event.key === 'uploadProgress' || event.key === 'uploadSessionId') {
-        console.log(`📱 Cross-tab sync via localStorage: ${event.key} changed in another tab`);
-        
-        // If isUploading was set to false or removed, close our upload modal too
-        if (event.key === 'isUploading') {
-          if (event.newValue === null || event.newValue === 'false') {
-            console.log('📱 Cross-tab sync: Upload cancelled or completed in another tab');
-            setIsUploading(false);
-            
-            // Also make sure to reset progress when upload is cancelled/completed
-            setUploadProgress({
-              processed: 0,
-              total: 0,
-              stage: '',
-              currentSpeed: 0,
-              timeRemaining: 0
-            });
-          } else if (event.newValue === 'true' && !isUploading) {
-            // If another tab started uploading, show the modal in this tab too
-            console.log('📱 Cross-tab sync: Upload started in another tab');
-            setIsUploading(true);
-          }
-        }
-        
-        // If a new progress was set, update our progress too
-        if (event.key === 'uploadProgress' && event.newValue) {
-          try {
-            const newProgress = JSON.parse(event.newValue);
-            console.log('📱 Cross-tab sync: Progress updated in another tab:', newProgress);
-            
-            // Only update progress if we're in uploading state to prevent
-            // unnecessary UI updates
-            if (isUploading || localStorage.getItem('isUploading') === 'true') {
-              setUploadProgress(newProgress);
-            }
-          } catch (error) {
-            console.error('Error parsing progress from another tab:', error);
-          }
-        }
-        
-        // If uploadSessionId changes, that means a new upload started
-        if (event.key === 'uploadSessionId') {
-          if (event.newValue) {
-            console.log('📱 Cross-tab sync: New upload session started in another tab');
-            // Only set uploading state if it's not already set
-            if (!isUploading) {
-              setIsUploading(true);
-            }
-          } else {
-            // Session ID removed, which likely means upload ended
-            console.log('📱 Cross-tab sync: Upload session ended in another tab');
-          }
-        }
-      }
-    };
-    
-    // Function to handle direct cross-tab events
-    const handleUploadStateChange = (event: Event) => {
-      const customEvent = event as CustomEvent<{isUploading: boolean, progress: any, error?: boolean}>;
-      console.log('📱 Cross-tab event received:', customEvent.detail);
-      
-      // Keep track of the previous uploading state for transition detection
-      const wasUploading = isUploading;
-      
-      // Update our local state based on the event
-      setIsUploading(customEvent.detail.isUploading);
-      
-      // If we're transitioning from uploading to not uploading, and it's due to an error,
-      // we could show an error notification here
-      if (wasUploading && !customEvent.detail.isUploading && customEvent.detail.error) {
-        console.log('📱 Cross-tab sync: Upload error detected in another tab');
-      }
-      
-      // Only update progress if we have valid progress data
-      if (customEvent.detail.progress) {
-        // Save this progress to localStorage for any tabs that might be opened later
-        try {
-          localStorage.setItem('uploadProgress', JSON.stringify(customEvent.detail.progress));
-          console.log('Saved upload progress to localStorage:', customEvent.detail.progress);
-        } catch (error) {
-          console.error('Error saving progress to localStorage:', error);
-        }
-        
-        // Update the context state with the new progress
-        setUploadProgress(customEvent.detail.progress);
-      } else if (!customEvent.detail.isUploading) {
-        // If upload is complete/cancelled, reset progress
-        setUploadProgress({
-          processed: 0,
-          total: 0,
-          stage: '',
-          currentSpeed: 0,
-          timeRemaining: 0
-        });
-      }
-    };
-    
-    // Add event listeners for both storage events and custom events
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('upload-state-changed', handleUploadStateChange);
-    
-    // Clean up event listeners when component unmounts
+    // Clean up polling on unmount
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('upload-state-changed', handleUploadStateChange);
+      clearInterval(pollIntervalId);
     };
-  }, []); // Empty dependency array ensures this only runs once
+  }, [location, isUploading]);
 
   // WebSocket setup for all non-upload messages (like feedback, post updates)
   // We'll keep this separate from the upload progress handling to avoid conflicts
