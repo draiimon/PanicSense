@@ -210,7 +210,7 @@ export function UploadProgressModal() {
                   <span className="text-xs font-medium">Records Remaining</span>
                 </div>
                 <div className="text-sm font-bold text-gray-700">
-                  {Math.max(0, total - processed)}
+                  {Math.max(0, total - processedCount)}
                   <span className={`text-xs ml-1 ${isPaused ? 'text-amber-500' : 'text-green-500'}`}>
                     {isPaused ? '(paused)' : '(processing)'}
                   </span>
