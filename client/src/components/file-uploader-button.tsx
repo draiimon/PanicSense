@@ -1,15 +1,8 @@
 import { Upload, Loader2, AlertCircle, Ban } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDisasterContext } from '@/context/disaster-context';
-// Rename imported context isUploading hook to avoid name conflicts
-import { isUploading as checkIsUploading } from '@/lib/upload-persistence';
 import { useToast } from '@/hooks/use-toast';
 import { uploadCSV, checkForActiveSessions } from '@/lib/api';
-import { 
-  setUploadSessionId, 
-  saveUploadProgress,
-  startTrackingUpload
-} from '@/lib/upload-persistence';
 import { queryClient } from '@/lib/queryClient';
 import { useEffect, useState, useRef } from 'react';
 import { 
@@ -40,44 +33,27 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         const activeSessionId = await checkForActiveSessions();
         
         // Handle special error string from checkForActiveSessions
-        if (activeSessionId === 'error') {
-          setUploadBlocked(true);
-          setUploadBlockReason('Unable to verify upload status. Please refresh the page and try again.');
-          console.warn('Upload blocked: Error checking active sessions');
-          return;
-        }
+      if (activeSessionId === 'error') {
+        setUploadBlocked(true);
+        setUploadBlockReason('Unable to verify upload status. Please refresh the page and try again.');
+        console.warn('Upload blocked: Error checking active sessions');
+        return;
+      }
+      
+      // If there's an active session that isn't showing in our UI,
+      // block the upload and explain why
+      if (activeSessionId && !isUploading) {
+        setUploadBlocked(true);
+        setUploadBlockReason('An upload is already in progress in another tab or window. Please wait for it to complete.');
+        console.warn('Upload blocked: Active session detected in database but not in local state');
+      } else if (!activeSessionId && uploadBlocked) {
+        // Clear the block if there's no active session
+        setUploadBlocked(false);
+        setUploadBlockReason('');
+      }
         
-        // Check if an upload was in progress before refresh using the persistence module
-        const wasUploading = checkIsUploading();
-        
-        // If there's an active session that isn't showing in our UI,
-        // block the upload and explain why
-        if (activeSessionId && !isUploading) {
-          setUploadBlocked(true);
-          setUploadBlockReason('An upload is already in progress in another tab or window. Please wait for it to complete.');
-          
-          // Reconnect to the active upload session
-          if (!isUploading) {
-            setIsUploading(true);
-          }
-          
-          console.warn('Upload blocked: Active session detected in database but not in local state');
-        } else if (wasUploading && !isUploading) {
-          // We had an upload in progress but it's not showing in the UI
-          setUploadBlocked(true);
-          setUploadBlockReason('An upload was in progress. Please refresh the page if you want to start a new one.');
-          console.warn('Upload blocked: Active session detected in localStorage but not in local state');
-        } else if (!activeSessionId && !wasUploading && uploadBlocked) {
-          // Clear the block if there's no active session anywhere
-          setUploadBlocked(false);
-          setUploadBlockReason('');
-        }
-        
-        // Simplified log to reduce console spam
-        if (!uploadBlocked && !isUploading) {
-          console.log('Active upload session check complete:', 
-            activeSessionId ? `Session ${activeSessionId} active` : 'No active sessions');
-        }
+        console.log('Active upload session check complete:', 
+          activeSessionId ? `Session ${activeSessionId} active` : 'No active sessions');
       } catch (error) {
         console.error('Error checking for active uploads:', error);
         // On error, take a conservative approach and block uploads
@@ -96,7 +72,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     
     // Clean up interval on unmount
     return () => clearInterval(intervalId);
-  }, [isUploading, uploadBlocked]);
+  }, [isUploading]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -159,7 +135,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         processingStats: {
           successCount: 0,
           errorCount: 0,
-          lastBatchDuration: 0,
           averageSpeed: 0
         }
       });
@@ -180,15 +155,10 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           processingStats: {
             successCount: progress.processingStats?.successCount || 0,
             errorCount: progress.processingStats?.errorCount || 0,
-            lastBatchDuration: progress.processingStats?.lastBatchDuration || 0,
             averageSpeed: progress.processingStats?.averageSpeed || 0
           }
         };
 
-        // Save progress in localStorage using our persistence module
-        saveUploadProgress(currentProgress);
-        
-        // Update UI with the current progress
         console.log('Progress update:', currentProgress);
         setUploadProgress(currentProgress);
       });
@@ -234,7 +204,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           processingStats: {
             successCount: 0,
             errorCount: 0,
-            lastBatchDuration: 0,
             averageSpeed: 0
           }
         });

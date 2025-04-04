@@ -1,61 +1,5 @@
-import { getUploadSessionId, clearUploadState } from '@/lib/upload-persistence';
-import { queryClient } from '@/lib/queryClient';
+import { apiRequest } from './queryClient';
 
-// Progress callback type
-export type ProgressCallback = (progress: any) => void;
-
-// Main API request function with support for query params
-export async function apiRequest<T = any>(
-  endpoint: string,
-  options: RequestInit = {},
-  queryParams: Record<string, string> = {}
-): Promise<T> {
-  try {
-    // Add query parameters if provided
-    if (Object.keys(queryParams).length > 0) {
-      const params = new URLSearchParams(queryParams);
-      endpoint = `${endpoint}${endpoint.includes('?') ? '&' : '?'}${params.toString()}`;
-    }
-
-    const response = await fetch(endpoint, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      // Try to parse error message from the response
-      try {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `API request failed with status ${response.status}`);
-      } catch (e) {
-        // If parsing fails, throw a generic error with the status
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-    }
-
-    // For 204 No Content, return empty object
-    if (response.status === 204) {
-      return {} as T;
-    }
-
-    // Check response content
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      return await response.json() as T;
-    } else {
-      // Return non-JSON responses as-is
-      return await response.text() as unknown as T;
-    }
-  } catch (error) {
-    console.error(`API request error for ${endpoint}:`, error);
-    throw error;
-  }
-}
-
-// Type Interfaces
 export interface SentimentPost {
   id: number;
   text: string;
@@ -64,333 +8,490 @@ export interface SentimentPost {
   language: string;
   sentiment: string;
   confidence: number;
-  disasterType?: string;
-  location?: string;
-  fileId?: number;
-  explanation?: string;
+  location: string | null;
+  disasterType: string | null;
+  fileId: number | null;
+  explanation?: string | null;
+  aiTrustMessage?: string | null; // Added for validation messages in data-table
 }
 
 export interface DisasterEvent {
   id: number;
   name: string;
+  description: string | null;
+  timestamp: string;
+  location: string | null;
   type: string;
-  location: string;
-  startDate: string;
-  endDate?: string;
-  affectedPeople?: number;
-  economicLoss?: number;
+  sentimentImpact: string | null;
+}
+
+interface EvaluationMetrics {
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1Score: number;
+  confusionMatrix: number[][];
 }
 
 export interface AnalyzedFile {
   id: number;
-  fileName: string;
   originalName: string;
-  fileSize: number;
+  storedName: string;
+  timestamp: string;
   recordCount: number;
-  uploadDate: string;
-  processingTime: number;
-  metrics?: {
-    accuracy?: number;
-    precision?: number;
-    recall?: number;
-    f1Score?: number;
+  evaluationMetrics: EvaluationMetrics | null;
+}
+
+export interface UploadProgress {
+  processed: number;
+  total?: number;
+  stage: string;
+  error?: string;
+  batchNumber?: number;
+  totalBatches?: number;
+  batchProgress?: number;
+  currentSpeed?: number;  // Records per second
+  timeRemaining?: number; // Seconds
+  processingStats?: {
+    successCount: number;
+    errorCount: number;
+    lastBatchDuration: number;
+    averageSpeed: number;
   };
 }
 
-// API Functions
-
-// Check for active upload sessions
-export async function checkForActiveSessions(): Promise<string | null> {
-  try {
-    console.log('Checking for active upload sessions...');
-    const response = await apiRequest<{sessionId: string | null}>('/api/active-upload-session');
-    console.log('Active upload session check complete:', response);
-    return response.sessionId;
-  } catch (error) {
-    console.error('Error checking for active upload sessions:', error);
-    return null;
-  }
-}
-
-// Get current upload session ID from localStorage
-export function getCurrentUploadSessionId(): string | null {
-  return getUploadSessionId();
-}
-
 // Sentiment Posts API
-export async function getSentimentPosts(): Promise<SentimentPost[]> {
-  return apiRequest<SentimentPost[]>('/api/sentiment-posts');
+export async function getSentimentPosts(filterUnknown: boolean = true): Promise<SentimentPost[]> {
+  const response = await apiRequest('GET', `/api/sentiment-posts?filterUnknown=${filterUnknown}`);
+  return response.json();
 }
 
-export async function getSentimentPostsByFileId(fileId: number): Promise<SentimentPost[]> {
-  return apiRequest<SentimentPost[]>(`/api/sentiment-posts/file/${fileId}`);
+export async function getSentimentPostsByFileId(fileId: number, filterUnknown: boolean = true): Promise<SentimentPost[]> {
+  const response = await apiRequest('GET', `/api/sentiment-posts/file/${fileId}?filterUnknown=${filterUnknown}`);
+  return response.json();
 }
 
 // Disaster Events API
-export async function getDisasterEvents(): Promise<DisasterEvent[]> {
-  return apiRequest<DisasterEvent[]>('/api/disaster-events');
+export async function getDisasterEvents(filterUnknown: boolean = true): Promise<DisasterEvent[]> {
+  const response = await apiRequest('GET', `/api/disaster-events?filterUnknown=${filterUnknown}`);
+  return response.json();
 }
 
 // Analyzed Files API
 export async function getAnalyzedFiles(): Promise<AnalyzedFile[]> {
-  return apiRequest<AnalyzedFile[]>('/api/analyzed-files');
+  const response = await apiRequest('GET', '/api/analyzed-files');
+  return response.json();
 }
 
 export async function getAnalyzedFile(id: number): Promise<AnalyzedFile> {
-  return apiRequest<AnalyzedFile>(`/api/analyzed-files/${id}`);
+  const response = await apiRequest('GET', `/api/analyzed-files/${id}`);
+  return response.json();
 }
 
-// Upload CSV with progress tracking
+// File Upload with enhanced progress tracking
+let currentUploadController: AbortController | null = null;
+let currentEventSource: EventSource | null = null;
+let currentUploadSessionId: string | null = null;
+
+// Cancel the current upload
+export async function cancelUpload(): Promise<{ success: boolean; message: string }> {
+  if (currentUploadSessionId) {
+    try {
+      // Close the event source
+      if (currentEventSource) {
+        currentEventSource.close();
+        currentEventSource = null;
+      }
+      
+      // Abort the fetch request
+      if (currentUploadController) {
+        currentUploadController.abort();
+        currentUploadController = null;
+      }
+      
+      // Call the server to cancel processing
+      const response = await apiRequest('POST', `/api/cancel-upload/${currentUploadSessionId}`);
+      const result = await response.json();
+      
+      // Reset the current session ID
+      currentUploadSessionId = null;
+      
+      // Clear localStorage
+      localStorage.removeItem('uploadSessionId');
+      
+      return result;
+    } catch (error) {
+      console.error('Error cancelling upload:', error);
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Failed to cancel upload' 
+      };
+    }
+  }
+  
+  return { success: false, message: 'No active upload to cancel' };
+}
+
+// Return the current upload session ID with database support
+export function getCurrentUploadSessionId(): string | null {
+  // First check the memory variable
+  if (currentUploadSessionId) {
+    return currentUploadSessionId;
+  }
+  
+  // If not in memory, check localStorage (legacy support)
+  const storedSessionId = localStorage.getItem('uploadSessionId');
+  if (storedSessionId) {
+    // Restore the session ID to memory
+    currentUploadSessionId = storedSessionId;
+    return storedSessionId;
+  }
+  
+  return null;
+}
+
+// Check if there are any active upload sessions in the database
+export async function checkForActiveSessions(): Promise<string | null> {
+  try {
+    // Use fetch directly to get more details about the error if any
+    const response = await fetch('/api/active-upload-session', {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      credentials: 'include'
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Check if this is a stale cleared session notification
+      if (data.staleSessionCleared) {
+        console.log('A stale upload session was automatically cleared by the server');
+        localStorage.removeItem('uploadSessionId');
+        currentUploadSessionId = null;
+        return null;
+      }
+      
+      // Server reported an error but recovered
+      if (data.error && data.recoverable) {
+        console.warn('Server reported recoverable error:', data.errorMessage);
+        // If there's no active session but we had an error, we take a conservative approach
+        return data.sessionId || null;
+      }
+      
+      if (data.sessionId) {
+        // Set the current session ID
+        currentUploadSessionId = data.sessionId;
+        // Update localStorage for compatibility
+        localStorage.setItem('uploadSessionId', data.sessionId);
+        
+        console.log(`Restored active upload session ${data.sessionId} from database`);
+        
+        // If we have progress data, use it immediately
+        if (data.progress) {
+          console.log('Server provided initial progress state:', data.progress);
+        }
+        
+        return data.sessionId;
+      }
+    } else {
+      // If response is not ok, we still need to check if there's content
+      try {
+        const errorData = await response.json();
+        console.error('Server error checking active sessions:', errorData);
+        // In case of error, take the safer approach of assuming an upload might be in progress
+        return errorData.sessionId || 'error'; // Return 'error' as a signal that we should block uploads
+      } catch (parseError) {
+        // If we can't parse the error response, assume something's very wrong
+        console.error('Failed to parse error response:', parseError);
+        return 'error';
+      }
+    }
+    
+    // No active session found
+    localStorage.removeItem('uploadSessionId');
+    currentUploadSessionId = null;
+    return null;
+  } catch (error) {
+    console.error('Network error checking for active sessions:', error);
+    // On error, we can't be sure if there's an active session, so return 'error'
+    // to signal that uploads should be blocked
+    return 'error';
+  }
+}
+
+// File Upload with enhanced progress tracking and cancellation
 export async function uploadCSV(
-  file: File, 
-  onProgress?: ProgressCallback
-): Promise<{ file: AnalyzedFile, posts: SentimentPost[] } | undefined> {
+  file: File,
+  onProgress?: (progress: UploadProgress) => void
+): Promise<{
+  file: AnalyzedFile;
+  posts: SentimentPost[];
+  metrics: {
+    accuracy: number;
+    precision: number;
+    recall: number;
+    f1Score: number;
+  } | null;
+}> {
+  // Clean up any existing uploads first
+  if (currentEventSource) {
+    currentEventSource.close();
+    currentEventSource = null;
+  }
+  
+  if (currentUploadController) {
+    currentUploadController.abort();
+    currentUploadController = null;
+  }
+  
+  // Create a new abort controller
+  currentUploadController = new AbortController();
+  const { signal } = currentUploadController;
+  
   const formData = new FormData();
   formData.append('file', file);
 
-  // Create and store session ID
-  // Server will generate a session ID and return it
+  // Generate a unique session ID
+  const sessionId = crypto.randomUUID();
+  currentUploadSessionId = sessionId;
   
+  // Store the session ID in both localStorage (legacy) and database
+  localStorage.setItem('uploadSessionId', sessionId);
+  
+  // If onProgress callback is provided, check for any active upload sessions 
+  // that might have been interrupted
+  if (onProgress) {
+    try {
+      // Attempt to restore any active session from previous runs
+      const activeSessionId = await checkForActiveSessions();
+      if (activeSessionId) {
+        console.log(`Detected active upload session: ${activeSessionId}. Using existing session.`);
+        // If there's an active session in the database, use that instead
+        currentUploadSessionId = activeSessionId;
+      }
+    } catch (error) {
+      console.error('Error checking for active sessions:', error);
+    }
+  }
+
+  // Set up event source for progress updates using the potentially updated sessionId
+  const eventSource = new EventSource(`/api/upload-progress/${currentUploadSessionId}`);
+  currentEventSource = eventSource;
+
+  eventSource.onmessage = (event) => {
+    try {
+      const progress = JSON.parse(event.data) as UploadProgress;
+      console.log('Progress event received:', progress);
+
+      if (onProgress) {
+        console.log('Progress being sent to UI:', progress);
+        onProgress(progress);
+      }
+    } catch (error) {
+      console.error('Error parsing progress data:', error);
+    }
+  };
+
   try {
     const response = await fetch('/api/upload-csv', {
       method: 'POST',
+      headers: {
+        'X-Session-ID': currentUploadSessionId  // Use the potentially updated sessionId
+      },
       body: formData,
+      credentials: 'include',
+      signal, // Add abort signal
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || `Upload failed with status ${response.status}`);
+      throw new Error(errorData.error || 'Failed to upload CSV');
     }
 
-    const data = await response.json();
-    
-    // If we have a sessionId in the response, use it for progress tracking
-    if (data.sessionId) {
-      // Set up SSE connection for progress updates
-      const eventSource = new EventSource(`/api/upload-progress/${data.sessionId}`);
-      
-      eventSource.onmessage = (event) => {
-        try {
-          const progress = JSON.parse(event.data);
-          
-          // Call the progress callback if provided
-          if (onProgress) {
-            onProgress(progress);
-          }
-          
-          // If the upload is complete, error, or cancelled, close connection
-          if (progress.stage && 
-              (progress.stage.toLowerCase().includes('complete') || 
-               progress.stage.toLowerCase().includes('error') ||
-               progress.stage.toLowerCase().includes('cancelled'))) {
-            
-            eventSource.close();
-            
-            // If there was an error, throw it to be caught by the caller
-            if (progress.stage.toLowerCase().includes('error')) {
-              throw new Error(progress.error || 'Upload failed');
-            }
-          }
-        } catch (error) {
-          console.error('Error processing progress event:', error);
-          eventSource.close();
-        }
-      };
-      
-      eventSource.onerror = () => {
-        console.log('SSE connection error or closed by server');
-        eventSource.close();
-      };
+    return response.json();
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error('Upload was cancelled');
     }
-    
-    return data;
-  } catch (error) {
-    console.error('Upload error:', error);
     throw error;
+  } finally {
+    // Don't immediately close the event source - keep it open for 5 seconds
+    // so it can receive final completion messages from the server
+    setTimeout(() => {
+      console.log('Closing EventSource connection after delay');
+      if (currentEventSource) {
+        currentEventSource.close();
+        currentEventSource = null;
+      }
+      // Only clear the session ID after we're sure all progress updates are received
+      currentUploadSessionId = null;
+      localStorage.removeItem('uploadSessionId');
+    }, 5000);
   }
 }
 
-// Cancel upload
-export async function cancelUpload(): Promise<{success: boolean, message: string}> {
+// Text Analysis
+export async function analyzeText(text: string): Promise<{
+  post: SentimentPost;
+}> {
+  const response = await apiRequest('POST', '/api/analyze-text', { text });
+  return response.json();
+}
+
+// Delete Specific Sentiment Post
+export async function deleteSentimentPost(id: number): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const response = await apiRequest('DELETE', `/api/sentiment-posts/${id}`);
+  return response.json();
+}
+
+// Delete Specific Analyzed File (CSV) and its posts
+export async function deleteAnalyzedFile(id: number): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const response = await apiRequest('DELETE', `/api/analyzed-files/${id}`);
+  return response.json();
+}
+
+// Delete All Data
+export async function deleteAllData(): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const response = await apiRequest('DELETE', '/api/delete-all-data');
+  return response.json();
+}
+
+// Interface for Python console messages
+export interface PythonConsoleMessage {
+  message: string;
+  timestamp: string;
+}
+
+// Get Python console messages
+export async function getPythonConsoleMessages(limit: number = 100): Promise<PythonConsoleMessage[]> {
+  const response = await apiRequest('GET', `/api/python-console-messages?limit=${limit}`);
+  return response.json();
+}
+
+// Interface for Sentiment Feedback
+export interface SentimentFeedback {
+  id: number;
+  originalText: string;
+  originalSentiment: string;
+  correctedSentiment: string;
+  correctedLocation?: string | null;
+  correctedDisasterType?: string | null;
+  trainedOn: boolean;
+  createdAt: string;
+  timestamp?: string; // For backwards compatibility
+  userId?: number | null;
+  originalPostId?: number | null;
+  possibleTrolling?: boolean;
+  aiTrustMessage?: string;
+  aiWarning?: string;
+  updateSkipped?: boolean;
+}
+
+// Submit sentiment feedback for model improvement
+export async function submitSentimentFeedback(
+  originalText: string,
+  originalSentiment: string,
+  correctedSentiment: string,
+  correctedLocation?: string,
+  correctedDisasterType?: string
+): Promise<SentimentFeedback & {
+  status?: string;
+  message?: string;
+  aiTrustMessage?: string;
+  performance?: {
+    previous_accuracy: number;
+    new_accuracy: number;
+    improvement: number;
+  };
+}> {
   try {
-    // Get current session ID
-    const sessionId = getUploadSessionId();
+    // Use fetch directly for better control of the response handling
+    const response = await fetch('/api/sentiment-feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        originalText,
+        originalSentiment,
+        correctedSentiment,
+        correctedLocation,
+        correctedDisasterType,
+        // Don't include trainedOn as it's not in the schema and is defaulted server-side
+        // Include originalPostId and userId as optional
+        originalPostId: null,
+        userId: null
+      }),
+      credentials: 'include',
+    });
     
-    if (!sessionId) {
-      return {
-        success: false,
-        message: 'No active upload session to cancel'
-      };
+    if (!response.ok) {
+      throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
     }
     
-    // Send cancel request to server
-    const response = await apiRequest<{success: boolean, message: string}>(
-      `/api/cancel-upload/${sessionId}`,
-      { method: 'POST' }
-    );
+    // Get response as text first
+    const textResponse = await response.text();
+    console.log('Raw response from server:', textResponse);
     
-    // Clear the upload state from localStorage
-    clearUploadState();
-    
-    // Invalidate queries to refresh UI data
-    queryClient.invalidateQueries({ queryKey: ['/api/sentiment-posts'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/analyzed-files'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/disaster-events'] });
-    
-    return response;
+    // Then try to parse as JSON
+    try {
+      const jsonResponse = JSON.parse(textResponse);
+      console.log('Successfully parsed sentiment feedback response:', jsonResponse);
+      return jsonResponse;
+    } catch (parseError) {
+      console.error("Failed to parse JSON response:", parseError, "Raw text:", textResponse);
+      throw new Error("Invalid JSON in response");
+    }
   } catch (error) {
-    console.error('Error cancelling upload:', error);
+    console.error("Error submitting sentiment feedback:", error);
+    // Return a basic object if the request or JSON parse fails
     return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Unknown error cancelling upload'
+      id: 0,
+      originalText,
+      originalSentiment,
+      correctedSentiment,
+      correctedLocation,
+      correctedDisasterType,
+      trainedOn: false,
+      createdAt: new Date().toISOString(),
+      timestamp: new Date().toISOString(), // Include for backwards compatibility
+      status: "error",
+      message: "Failed to submit feedback",
+      originalPostId: null,
+      userId: null,
+      possibleTrolling: false,
+      aiTrustMessage: "Error communicating with server"
     };
   }
 }
 
-// Analyze a single text
-export async function analyzeText(text: string): Promise<{
-  sentiment: string;
-  confidence: number;
-  explanation?: string;
-  disasterType?: string;
-  location?: string;
-}> {
-  return apiRequest<{
-    sentiment: string;
-    confidence: number;
-    explanation?: string;
-    disasterType?: string;
-    location?: string;
-  }>('/api/analyze-text', {
-    method: 'POST',
-    body: JSON.stringify({ text }),
-  });
+// Get all sentiment feedback
+export async function getSentimentFeedback(): Promise<SentimentFeedback[]> {
+  const response = await apiRequest('GET', '/api/sentiment-feedback');
+  return response.json();
 }
 
-// Delete all data
-export async function deleteAllData(): Promise<{success: boolean}> {
-  return apiRequest<{success: boolean}>('/api/delete-all-data', {
-    method: 'DELETE',
-  });
+// Get untrained feedback for model retraining
+export async function getUntrainedFeedback(): Promise<SentimentFeedback[]> {
+  const response = await apiRequest('GET', '/api/untrained-feedback');
+  return response.json();
 }
 
-// Delete a sentiment post
-export async function deleteSentimentPost(id: number): Promise<void> {
-  return apiRequest<void>(`/api/sentiment-posts/${id}`, {
-    method: 'DELETE',
-  });
-}
-
-// Delete an analyzed file
-export async function deleteAnalyzedFile(id: number): Promise<void> {
-  return apiRequest<void>(`/api/analyzed-files/${id}`, {
-    method: 'DELETE',
-  });
-}
-
-// Get usage stats
-export async function getUsageStats(): Promise<{
-  apiLimit: number;
-  apiUsed: number;
-  apiRemaining: number;
-  resetDate: string;
-}> {
-  return apiRequest<{
-    apiLimit: number;
-    apiUsed: number;
-    apiRemaining: number;
-    resetDate: string;
-  }>('/api/usage-stats');
-}
-
-// Get Python console messages
-export async function getPythonConsoleMessages(): Promise<{message: string, timestamp: string}[]> {
-  return apiRequest<{message: string, timestamp: string}[]>('/api/python-console-messages');
-}
-
-// Export data as CSV
-export async function exportDataAsCSV(): Promise<string> {
-  return apiRequest<string>('/api/export-csv');
-}
-
-// Submit sentiment feedback
-export async function submitSentimentFeedback(
-  text: string,
-  originalSentiment: string,
-  correctedSentiment: string,
-  postId?: number
-): Promise<{success: boolean, message: string}> {
-  return apiRequest<{success: boolean, message: string}>('/api/sentiment-feedback', {
-    method: 'POST',
-    body: JSON.stringify({
-      text,
-      originalSentiment,
-      correctedSentiment,
-      postId
-    }),
-  });
-}
-
-// Get sentiment feedback
-export async function getSentimentFeedback(): Promise<{
-  id: number;
-  text: string;
-  originalSentiment: string;
-  correctedSentiment: string;
-  postId?: number;
-  trained: boolean;
-  submittedAt: string;
-}[]> {
-  return apiRequest<{
-    id: number;
-    text: string;
-    originalSentiment: string;
-    correctedSentiment: string;
-    postId?: number;
-    trained: boolean;
-    submittedAt: string;
-  }[]>('/api/sentiment-feedback');
-}
-
-// Get untrained feedback
-export async function getUntrainedFeedback(): Promise<{
-  id: number;
-  text: string;
-  originalSentiment: string;
-  correctedSentiment: string;
-  postId?: number;
-  trained: boolean;
-  submittedAt: string;
-}[]> {
-  return apiRequest<{
-    id: number;
-    text: string;
-    originalSentiment: string;
-    correctedSentiment: string;
-    postId?: number;
-    trained: boolean;
-    submittedAt: string;
-  }[]>('/api/untrained-feedback');
-}
-
-// Mark feedback as trained
-export async function markFeedbackAsTrained(id: number): Promise<void> {
-  return apiRequest<void>(`/api/sentiment-feedback/${id}/trained`, {
-    method: 'PATCH',
-  });
-}
-
-// Get training examples
-export async function getTrainingExamples(): Promise<{
-  id: number;
-  text: string;
-  sentiment: string;
-  createdAt: string;
-}[]> {
-  return apiRequest<{
-    id: number;
-    text: string;
-    sentiment: string;
-    createdAt: string;
-  }[]>('/api/training-examples');
+// Mark sentiment feedback as trained
+export async function markFeedbackAsTrained(id: number): Promise<{message: string}> {
+  const response = await apiRequest('PATCH', `/api/sentiment-feedback/${id}/trained`);
+  return response.json();
 }

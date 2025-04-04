@@ -14,83 +14,20 @@ import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { cancelUpload } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  getUploadSessionId, 
-  getUploadProgress, 
-  isUploading as checkIsUploading,
-  clearUploadState
-} from "@/lib/upload-persistence";
 
 export function UploadProgressModal() {
-  const { isUploading, uploadProgress, setIsUploading, setUploadProgress } = useDisasterContext();
+  const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
   const [highestProcessed, setHighestProcessed] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isStalled, setIsStalled] = useState(false);
   const { toast } = useToast();
   
-  // Stall detection references
+  // Reference for retry mechanism
   const stalledRetryCount = useRef(0);
   const lastProcessedTime = useRef(Date.now());
   
-  // =======================================
-  // Special effect to restore upload state on page refresh/reload
-  // =======================================
-  useEffect(() => {
-    // Only try to restore if we're not already showing as uploading in the UI
-    if (!isUploading) {
-      try {
-        // Check if an upload was in progress according to localStorage
-        const wasUploading = checkIsUploading();
-        const storedProgress = getUploadProgress();
-        const sessionId = getUploadSessionId();
-        
-        if (wasUploading && storedProgress && sessionId) {
-          console.log('Restoring upload progress after page refresh', storedProgress);
-          
-          // Immediately register the current window with the server to receive updates
-          const connectToSSE = async () => {
-            try {
-              // Create EventSource for server-sent events to get progress updates
-              const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
-              
-              eventSource.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                console.log('Received SSE progress update for restored session', data);
-                setUploadProgress(data);
-              };
-              
-              eventSource.onerror = () => {
-                console.error('SSE connection error for restored session');
-                eventSource.close();
-              };
-              
-              // Set cleanup function
-              return () => {
-                console.log('Closing SSE connection for restored session');
-                eventSource.close();
-              };
-            } catch (err) {
-              console.error('Failed to connect to SSE for restored session', err);
-            }
-          };
-          
-          // Force the UI to show the upload modal with stored progress
-          setIsUploading(true);
-          setUploadProgress(storedProgress);
-          
-          // Establish SSE connection for live updates
-          connectToSSE();
-        }
-      } catch (error) {
-        console.error('Error recovering upload progress:', error);
-      }
-    }
-  }, []);
-  
-  // =======================================
-  // Effect to track the highest processed value (prevents jumpy progress)
-  // =======================================
+  // Effect to track the highest processed value
   useEffect(() => {
     if (uploadProgress.processed > 0 && uploadProgress.processed > highestProcessed) {
       setHighestProcessed(uploadProgress.processed);
@@ -99,9 +36,7 @@ export function UploadProgressModal() {
     }
   }, [uploadProgress.processed, highestProcessed]);
 
-  // =======================================
-  // Reset highest processed value when modal is closed 
-  // =======================================
+  // Reset highest processed value when modal is closed
   useEffect(() => {
     if (!isUploading) {
       const timer = setTimeout(() => {
@@ -111,9 +46,7 @@ export function UploadProgressModal() {
     }
   }, [isUploading]);
 
-  // =======================================
-  // Stalled detection with auto-recovery
-  // =======================================
+  // Add stalled detection with auto-recovery
   useEffect(() => {
     // If processing but no progress change for 30 seconds, consider it stalled
     let stalledTimer: NodeJS.Timeout;
@@ -156,38 +89,38 @@ export function UploadProgressModal() {
     processingStats = {
       successCount: 0,
       errorCount: 0,
-      lastBatchDuration: 0,
       averageSpeed: 0
     },
     currentSpeed = 0,
     timeRemaining = 0,
   } = uploadProgress;
   
-  // Special handling for initial display to show something immediately
+  // Simplified special handling for initial display
   const displayProcessed = Math.max(rawProcessed, stage.toLowerCase().includes('processing') && rawProcessed === 0 ? 1 : 0);
   
-  // Only use highest recorded value for transitions to prevent progress going backward
+  // Only use highest recorded value for transitions, not for actual counts
+  // This ensures progress never goes backward visually
   const processed = Math.max(displayProcessed, highestProcessed);
 
-  // Calculate completion percentage safely with protection against NaN and extreme values  
+  // Calculate completion percentage safely with protection against NaN and extreme values
   const percentComplete = total > 0 
     ? Math.min(100, Math.max(0, Math.round((processed / total) * 100)))
     : 0;
     
-  // Different stage indicators
+  // More sophisticated stage indication with better handling
   const isBatchPause = stage.toLowerCase().includes('pause between batches');
   const isLoading = stage.toLowerCase().includes('loading') || stage.toLowerCase().includes('preparing');
   const isProcessing = (stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record')) && !isBatchPause;
   const isPaused = isBatchPause;
   
-  // Completion detection
+  // Better completion detection with multiple triggers
   const isComplete = (
     stage.toLowerCase().includes('complete') || 
     stage.toLowerCase().includes('analysis complete') ||
     (processed >= total && total > 0)
   );
   
-  // Error detection
+  // Improved error detection
   const hasError = stage.toLowerCase().includes('error');
   
   // Handle cancel button click
@@ -201,15 +134,11 @@ export function UploadProgressModal() {
       const result = await cancelUpload();
       
       if (result.success) {
-        // Clear all upload state from localStorage
-        clearUploadState();
-        
+        // We'll let the server-side events close the modal
         toast({
           title: "Upload cancelled",
           description: "The upload has been cancelled successfully."
         });
-        
-        // Let the server-side events close the modal
       } else {
         setIsCancelling(false);
         toast({
@@ -403,145 +332,121 @@ export function UploadProgressModal() {
             </div>
           )}
           
-          {/* Processing statistics */}
-          {!hasError && !isComplete && (
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {/* Processing rate */}
-              <div className="bg-white/80 rounded-lg p-2 shadow-sm border border-blue-100">
-                <div className="flex items-center gap-1 text-blue-600 mb-1">
-                  <Clock className="h-3 w-3" />
-                  <span className="text-[10px] font-medium uppercase">Processing Rate</span>
-                </div>
-                <div className="text-sm font-medium text-gray-700">
-                  {processingStats.averageSpeed > 0 
-                    ? `${processingStats.averageSpeed.toFixed(1)}/sec` 
-                    : 'Calculating...'}
-                </div>
-              </div>
-              
-              {/* Batch info */}
-              <div className="bg-white/80 rounded-lg p-2 shadow-sm border border-blue-100">
-                <div className="flex items-center gap-1 text-blue-600 mb-1">
-                  <Database className="h-3 w-3" />
-                  <span className="text-[10px] font-medium uppercase">Success Rate</span>
-                </div>
-                <div className="text-sm font-medium text-gray-700">
-                  {processingStats.successCount > 0 || processingStats.errorCount > 0
-                    ? `${processingStats.successCount}/${processingStats.successCount + processingStats.errorCount}`
-                    : 'Processing...'}
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Stage information */}
-          <div className="mb-4 bg-white/90 rounded-lg p-3 shadow-sm border border-gray-100">
-            <div className="text-sm font-medium text-gray-700">Status:</div>
-            <div className={`text-sm ${hasError ? 'text-red-600 font-medium' : 'text-blue-700'}`}>
-              {stage}
-            </div>
-          </div>
-          
-          {/* Cancel button & confirmation dialog */}
+          {/* Cancel button */}
           {!isComplete && !hasError && (
-            <>
-              {/* Confirmation dialog */}
-              {showCancelDialog && (
-                <div className="mb-4">
-                  <div className="bg-red-50 border border-red-100 p-3 rounded-lg text-red-700 mb-3">
-                    <p className="text-sm font-medium">Are you sure you want to cancel?</p>
-                    <p className="text-xs mt-1">This will stop all processing. Any data already processed will remain.</p>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-1/2"
-                      onClick={() => setShowCancelDialog(false)}
-                    >
-                      No, Continue
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="w-1/2 bg-red-600"
-                      onClick={handleCancel}
-                      disabled={isCancelling}
-                    >
-                      {isCancelling ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          Cancelling...
-                        </>
-                      ) : (
-                        'Yes, Cancel'
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-              
-              {/* Main cancel button */}
-              {!showCancelDialog && (
-                <div className="text-center">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="gap-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-medium rounded-full px-5 py-2"
-                    onClick={() => setShowCancelDialog(true)}
-                    disabled={isCancelling}
-                  >
-                    {isCancelling ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Cancelling...</span>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="h-4 w-4" />
-                        <span>Cancel Upload</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-          
-          {/* Close button for completed or errored uploads */}
-          {(isComplete || hasError) && (
-            <div className="text-center">
+            <div className="mt-3 text-center">
               <Button
-                variant={isComplete ? "default" : "destructive"}
-                className={`gap-1 ${
-                  isComplete 
-                    ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700" 
-                    : "bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700"
-                } text-white font-medium rounded-full px-5 py-2`}
-                onClick={() => {
-                  // Clear all upload state from localStorage on close
-                  clearUploadState();
-                  
-                  // Close the modal
-                  setIsUploading(false);
-                  
-                  // Reset progress
-                  setUploadProgress({
-                    processed: 0,
-                    total: 0,
-                    stage: '',
-                  });
-                }}
+                variant="destructive"
+                size="sm"
+                className="gap-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-medium rounded-full px-5 py-2"
+                onClick={() => setShowCancelDialog(true)}
+                disabled={isCancelling}
               >
-                {isComplete 
-                  ? <CheckCircle className="h-4 w-4 mr-1" /> 
-                  : <XCircle className="h-4 w-4 mr-1" />}
-                {isComplete ? "Close" : "Dismiss"}
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Cancelling...</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4" />
+                    <span>Cancel Upload</span>
+                  </>
+                )}
               </Button>
             </div>
           )}
         </div>
+        
+        {/* Animated patterns */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/20 to-transparent rounded-full -mr-10 -mt-10"></div>
+          <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-purple-500/20 to-transparent rounded-full -ml-8 -mb-8"></div>
+        </div>
       </motion.div>
+      
+      {/* Prettier Cancel Confirmation Dialog */}
+      {showCancelDialog && createPortal(
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[10000]" onClick={() => setShowCancelDialog(false)}>
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white rounded-xl p-4 max-w-xs mx-4 shadow-xl border border-gray-200" 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-red-100 p-2 rounded-full">
+                <XCircle className="h-5 w-5 text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800">Cancel Upload?</h3>
+            </div>
+            <p className="text-gray-600 text-sm mb-4">
+              All progress will be lost and you'll need to start the upload again.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowCancelDialog(false)}
+                className="bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-gray-200 rounded-full px-4"
+              >
+                No, Continue
+              </Button>
+              <Button 
+                variant="destructive"
+                size="sm"
+                onClick={handleCancel}
+                className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white border-none rounded-full px-4"
+              >
+                Yes, Cancel
+              </Button>
+            </div>
+          </motion.div>
+        </div>,
+        document.body
+      )}
+      
+      {/* Animations */}
+      <style>
+        {`
+          @keyframes progress-flow {
+            0% {
+              background-position: 100% 0;
+            }
+            100% {
+              background-position: -100% 0;
+            }
+          }
+
+          @keyframes completion-pulse {
+            0% {
+              opacity: 0.8;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 1;
+              transform: scale(1.02);
+            }
+            100% {
+              opacity: 0.8;
+              transform: scale(1);
+            }
+          }
+          
+          @keyframes stalled-pulse {
+            0% {
+              opacity: 0.7;
+            }
+            50% {
+              opacity: 1;
+            }
+            100% {
+              opacity: 0.7;
+            }
+          }
+        `}
+      </style>
     </motion.div>,
     document.body
   );

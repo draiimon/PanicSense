@@ -11,7 +11,6 @@ import { pythonService, pythonConsoleMessages } from "./python-service";
 import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts, uploadSessions, type SentimentPost } from "@shared/schema";
 import { usageTracker } from "./utils/usage-tracker";
 import { EventEmitter } from 'events';
-import { nanoid } from 'nanoid';
 
 // Configure multer for file uploads with improved performance
 const upload = multer({ 
@@ -166,15 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Check if there's a stored session in the database
     let storedSession;
     try {
-      // Import the withRetry function for better database error handling
-      const { withRetry } = await import('./db');
-      
-      // Use withRetry to get upload session with 3 retries and increasing backoff
-      storedSession = await withRetry(
-        async () => await storage.getUploadSession(sessionId),
-        3,  // 3 retries
-        500 // 500ms initial delay with exponential backoff
-      );
+      storedSession = await storage.getUploadSession(sessionId);
       
       // If session is in the database but not in memory, restore it to memory
       if (storedSession && !uploadProgressMap.has(sessionId) && 
@@ -187,12 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Add timestamp for speed calculations
         progressData.timestamp = progressData.timestamp || Date.now();
         
-        // Store in memory map and add session ID to payload
         uploadProgressMap.set(sessionId, progressData);
-        
-        // Add the sessionId to the progressData for client persistence
-        progressData.sessionId = sessionId;
-        
         console.log(`Restored upload session ${sessionId} from database`);
       }
     } catch (error) {
@@ -705,20 +691,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import the withRetry function
       const { withRetry } = await import('./db');
       
-      // Log the attempt to check for active sessions
-      console.log('Checking for active upload sessions...');
-      
       // Use withRetry to handle potential database errors with auto-retry
-      // Increased to 5 retries with longer initial delay
       const sessions = await withRetry(async () => {
-        // Force a new connection to ensure we're not using a stale connection
-        await db.execute(sql`SELECT 1`);
-        
         return await db.select().from(uploadSessions)
           .where(eq(uploadSessions.status, 'active'))
           .orderBy(desc(uploadSessions.id))
           .limit(1);
-      }, 5, 1000); // 5 retries with 1000ms initial delay
+      }, 3, 500); // 3 retries with 500ms initial delay
       
       if (sessions.length > 0) {
         const activeSession = sessions[0];
@@ -731,7 +710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If the session is too old, mark it as stale
         if (createdAt && createdAt < thirtyMinutesAgo) {
           // Using debug level instead of log to reduce console spam
-          // Removed console log to prevent console spam
+          console.debug(`Found stale upload session ${activeSession.sessionId}, marking as completed`);
           
           // Update to completed status with retry
           await withRetry(async () => {
@@ -752,7 +731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (!isProcessRunning) {
           // Using debug level instead of log to reduce console spam
-          // Removed console log to prevent console spam
+          console.debug(`No active Python process for session ${activeSession.sessionId}, marking as completed`);
           
           // Update to completed status with retry
           await withRetry(async () => {
@@ -831,14 +810,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Enhanced file upload endpoint
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
-    // Generate a new session ID right at the start
-    const sessionId = nanoid();
-    
+    let sessionId = '';
     // Track the highest progress value to prevent jumping backward
     let highestProcessedValue = 0;
 
     // Log start of a new upload
-    console.log('Starting new CSV upload with session ID:', sessionId);
+    console.log('Starting new CSV upload, resetting progress tracking');
 
     let updateProgress = (
       processed: number, 
@@ -857,7 +834,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       },
       error?: string
     ) => {
-      // Session ID is guaranteed to exist now
       if (sessionId) {
         // Log the raw progress update from Python service
         console.log('Raw progress update:', { processed, stage, total });
@@ -984,12 +960,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      // We already generated a session ID at the start of this function,
-      // so this line is no longer needed.
-      // Using the header only as a fallback mechanism now
-      if (req.headers['x-session-id']) {
-        const headerSessionId = req.headers['x-session-id'] as string; 
-        console.log(`Client provided session ID in header: ${headerSessionId}, using server generated ID: ${sessionId} instead`);
+      sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID is required" });
       }
 
       const fileBuffer = req.file.buffer;
