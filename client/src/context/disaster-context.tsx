@@ -97,17 +97,17 @@ interface DisasterContextType {
 const DisasterContext = createContext<DisasterContextType | undefined>(undefined);
 
 const initialProgress: UploadProgress = {
-  processed: 1,  // Start with 1 to avoid showing 0/100 initially
-  total: 100,    // Default to 100 to avoid showing 0/0 initially
+  processed: 0,  // Start with 0 (will be updated by the server)
+  total: 0,      // Default to 0 (will be updated by the server)
   stage: 'Preparing upload...',
   timestamp: Date.now(),  // Add current timestamp for proper ordering
-  batchNumber: 1,
-  totalBatches: 1,
+  batchNumber: 0,
+  totalBatches: 0,
   batchProgress: 0,
   currentSpeed: 0,
   timeRemaining: 0,
   processingStats: {
-    successCount: 1,
+    successCount: 0,
     errorCount: 0,
     averageSpeed: 0
   }
