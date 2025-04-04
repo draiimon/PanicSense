@@ -78,6 +78,7 @@ export function UploadProgressModal() {
     },
     currentSpeed = 0,
     timeRemaining = 0,
+    error = ''
   } = uploadProgress;
   
   // Simplified special handling for initial display

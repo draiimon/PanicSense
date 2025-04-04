@@ -30,6 +30,7 @@ interface UploadProgress {
   currentSpeed?: number;
   timeRemaining?: number;
   processingStats?: ProcessingStats;
+  error?: string;
 }
 
 interface DisasterContextType {

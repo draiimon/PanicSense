@@ -7,8 +7,9 @@ import { eq, sql, desc } from "drizzle-orm";
 import path from "path";
 import multer from "multer";
 import fs from "fs";
+import { nanoid } from 'nanoid';
 import { pythonService, pythonConsoleMessages } from "./python-service";
-import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts, uploadSessions, type SentimentPost } from "@shared/schema";
+import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts, uploadSessions, analyzedFiles, type SentimentPost } from "@shared/schema";
 import { usageTracker } from "./utils/usage-tracker";
 import { EventEmitter } from 'events';
 
@@ -281,7 +282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  // Cancel Upload endpoint
+  // Cancel Upload endpoint - with data cleanup
   app.post('/api/cancel-upload/:sessionId', async (req: Request, res: Response) => {
     try {
       const sessionId = req.params.sessionId;
@@ -290,14 +291,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Session ID is required' });
       }
       
+      // Get the upload session to check for fileId
+      const existingSession = await storage.getUploadSession(sessionId);
+      let fileId = existingSession?.fileId;
+      
+      if (fileId) {
+        console.log(`Found fileId ${fileId} for session ${sessionId}, will delete all associated data`);
+        
+        // Delete all sentiment posts first (foreign key constraint)
+        await storage.deleteSentimentPostsByFileId(fileId);
+        
+        // Then delete the file record
+        await storage.deleteAnalyzedFile(fileId);
+        
+        console.log(`Successfully deleted all data for fileId ${fileId}`);
+      } else {
+        console.log(`No fileId found for session ${sessionId}, no data to delete`);
+      }
+      
       // Cancel the processing in the Python service
       const success = await pythonService.cancelProcessing(sessionId);
       
-      if (success) {
+      if (success || existingSession) {
         // Update progress to show cancellation
         if (uploadProgressMap.has(sessionId)) {
           const progress = uploadProgressMap.get(sessionId)!;
-          progress.stage = 'Upload cancelled by user';
+          progress.stage = 'Upload cancelled by user. All data deleted.';
           uploadProgressMap.set(sessionId, progress);
           
           // Broadcast the cancellation status
@@ -307,11 +326,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             progress
           });
           
+          // Also broadcast that data was cleared
+          broadcastUpdate({
+            type: 'data_cleared',
+            fileId: fileId
+          });
+          
           // Update the database record
           try {
-            // Check if the session exists in the database
-            const existingSession = await storage.getUploadSession(sessionId);
-            
             if (existingSession) {
               // Update existing session to canceled status
               await storage.updateUploadSession(sessionId, 'canceled', progress);
@@ -321,7 +343,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        res.json({ success: true, message: 'Upload cancelled successfully' });
+        res.json({ 
+          success: true, 
+          message: 'Upload cancelled successfully. All processed data has been removed.',
+          dataDeleted: fileId ? true : false
+        });
       } else {
         res.status(404).json({ success: false, message: 'No active upload found for this session ID' });
       }
@@ -787,14 +813,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Enhanced file upload endpoint
+  // Enhanced file upload endpoint with incremental data saving
   app.post('/api/upload-csv', upload.single('file'), async (req: Request, res: Response) => {
     let sessionId = '';
+    let analyzedFileId: number | null = null;
     // Track the highest progress value to prevent jumping backward
     let highestProcessedValue = 0;
+    
+    // This flag tracks if the batch saving process is currently active
+    let isBatchSavingActive = false;
+    // Track all successfully saved batch IDs
+    const savedBatchIds: number[] = [];
 
     // Log start of a new upload
-    console.log('Starting new CSV upload, resetting progress tracking');
+    console.log('New CSV upload request received');
 
     let updateProgress = (
       processed: number, 
@@ -974,60 +1006,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionId,
         progress: uploadProgressMap.get(sessionId)
       });
-
-
+      
+      // Create a session record
+      await storage.createUploadSession({
+        sessionId,
+        status: 'active',
+        progress: JSON.stringify(uploadProgressMap.get(sessionId))
+      });
+      
+      // Define batch completion handler for incremental saving
+      const handleBatchComplete = async (batchResults: any[], batchNumber: number, totalBatches: number) => {
+        if (isBatchSavingActive) {
+          console.log(`Skipping batch ${batchNumber} - already saving data`);
+          return;
+        }
+        
+        try {
+          console.log(`Processing batch ${batchNumber}/${totalBatches} with ${batchResults.length} records`);
+          isBatchSavingActive = true;
+          
+          // Filter out non-disaster content
+          const filteredResults = batchResults.filter(post => {
+            const isNonDisasterInput = post.text.length < 9 || 
+                                       !post.explanation || 
+                                       post.disasterType === "Not Specified" ||
+                                       !post.disasterType ||
+                                       post.text.match(/^[!?.,;:*\s]+$/);
+            return !isNonDisasterInput;
+          });
+          
+          if (filteredResults.length === 0) {
+            console.log(`Batch ${batchNumber} had no valid disaster content after filtering.`);
+            isBatchSavingActive = false;
+            return;
+          }
+          
+          // Create file record if this is the first batch
+          if (!analyzedFileId) {
+            const analyzedFile = await storage.createAnalyzedFile(
+              insertAnalyzedFileSchema.parse({
+                originalName: originalFilename,
+                storedName: `batch-${nanoid()}-${originalFilename}`,
+                recordCount: 0, // Will update later
+                evaluationMetrics: null // Will update later
+              })
+            );
+            
+            analyzedFileId = analyzedFile.id;
+            
+            // Update the session with the file ID for potential cancellation
+            const updatedSession = await storage.updateUploadSession(sessionId, 'active', uploadProgressMap.get(sessionId));
+            
+            // Separate database update to set the file ID
+            if (updatedSession) {
+              await db.update(uploadSessions)
+                .set({ fileId: analyzedFileId })
+                .where(eq(uploadSessions.sessionId, sessionId));
+            }
+            
+            console.log(`Created analyzed file record with ID ${analyzedFileId}`);
+          }
+          
+          // Save posts to the database
+          const savedPosts = await Promise.all(
+            filteredResults.map(post => 
+              storage.createSentimentPost(
+                insertSentimentPostSchema.parse({
+                  text: post.text,
+                  timestamp: new Date(post.timestamp),
+                  source: post.source,
+                  language: post.language,
+                  sentiment: post.sentiment,
+                  confidence: post.confidence,
+                  location: post.location || null,
+                  disasterType: post.disasterType || null,
+                  fileId: analyzedFileId
+                })
+              )
+            )
+          );
+          
+          // Generate disaster events for this batch
+          await generateDisasterEvents(savedPosts);
+          
+          // Add this batch to saved batches
+          savedBatchIds.push(batchNumber);
+          
+          // Broadcast data update
+          broadcastUpdate({
+            type: 'batch_saved',
+            data: {
+              batchNumber,
+              recordsSaved: savedPosts.length,
+              fileId: analyzedFileId
+            }
+          });
+          
+          console.log(`Successfully saved batch ${batchNumber} with ${savedPosts.length} records`);
+        } catch (error) {
+          console.error(`Error saving batch ${batchNumber}:`, error);
+        } finally {
+          isBatchSavingActive = false;
+        }
+      };
+      
+      // Process CSV with batch handling
       const { data, storedFilename, recordCount } = await pythonService.processCSV(
         fileBuffer,
         originalFilename,
         updateProgress,
-        sessionId
+        sessionId,
+        handleBatchComplete // Add the batch completion handler
       );
 
-      // Filter out non-disaster content using the same strict validation as real-time analysis
-      const filteredResults = data.results.filter(post => {
-        const isNonDisasterInput = post.text.length < 9 || 
-                                  !post.explanation || 
-                                  post.disasterType === "Not Specified" ||
-                                  !post.disasterType ||
-                                  post.text.match(/^[!?.,;:*\s]+$/);
-
-        return !isNonDisasterInput;
-      });
-
-      // Log the filtering results
-      console.log(`Filtered ${data.results.length - filteredResults.length} non-disaster posts out of ${data.results.length} total posts`, 'routes');
-
-      // Save the analyzed file record
-      const analyzedFile = await storage.createAnalyzedFile(
-        insertAnalyzedFileSchema.parse({
-          originalName: originalFilename,
-          storedName: storedFilename,
-          recordCount: filteredResults.length, 
-          evaluationMetrics: data.metrics
-        })
-      );
-
-      // Save only the filtered sentiment posts
-      const sentimentPosts = await Promise.all(
-        filteredResults.map(post => 
-          storage.createSentimentPost(
-            insertSentimentPostSchema.parse({
-              text: post.text,
-              timestamp: new Date(post.timestamp),
-              source: post.source,
-              language: post.language,
-              sentiment: post.sentiment,
-              confidence: post.confidence,
-              location: post.location || null,
-              disasterType: post.disasterType || null,
-              fileId: analyzedFile.id
-            })
-          )
-        )
-      );
-
-      // Generate disaster events from the sentiment posts
-      await generateDisasterEvents(sentimentPosts);
+      // No need to process and save the results again since we've handled it in batches
+      console.log(`All processing is complete. File ID: ${analyzedFileId}`);
+      
+      // Update file record with metrics
+      if (analyzedFileId && data.metrics) {
+        try {
+          // Update the file metrics now that we have the complete data
+          await storage.updateFileMetrics(analyzedFileId, data.metrics);
+          console.log(`Updated file ${analyzedFileId} with evaluation metrics`);
+          
+          // Get current records count to update the file record
+          const posts = await storage.getSentimentPostsByFileId(analyzedFileId);
+          
+          // Update record count
+          await db.update(analyzedFiles)
+            .set({ recordCount: posts.length })
+            .where(eq(analyzedFiles.id, analyzedFileId));
+            
+          console.log(`Updated file ${analyzedFileId} with final record count: ${posts.length}`);
+        } catch (error) {
+          console.error(`Error updating file ${analyzedFileId} with metrics:`, error);
+        }
+      } else {
+        console.log(`No file ID or metrics available to update.`);
+      }
 
       // Final progress update
       if (sessionId && updateProgress) {
@@ -1041,18 +1157,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // After successful processing, broadcast the new data
-      broadcastUpdate({
-        type: 'new_data',
-        data: {
-          posts: sentimentPosts,
-          file: analyzedFile
+      // After successful processing, we need to fetch all the posts and the file document
+      let fileInfo = null;
+      let allPosts: SentimentPost[] = [];
+      
+      if (analyzedFileId) {
+        try {
+          fileInfo = await storage.getAnalyzedFile(analyzedFileId);
+          allPosts = await storage.getSentimentPostsByFileId(analyzedFileId);
+          
+          // Broadcast complete data
+          broadcastUpdate({
+            type: 'new_data',
+            data: {
+              posts: allPosts,
+              file: fileInfo
+            }
+          });
+        } catch (error) {
+          console.error('Error fetching processed data:', error);
         }
-      });
+      }
 
       res.json({
-        file: analyzedFile,
-        posts: sentimentPosts,
+        file: fileInfo,
+        posts: allPosts,
         metrics: data.metrics,
         sessionId
       });

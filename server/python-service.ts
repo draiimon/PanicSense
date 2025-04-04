@@ -658,8 +658,9 @@ export class PythonService {
   public async processCSV(
     fileBuffer: Buffer, 
     originalFilename: string,
-    onProgress?: (processed: number, stage: string, total?: number) => void,
-    sessionId?: string
+    onProgress?: (processed: number, stage: string, total?: number, batchInfo?: any) => void,
+    sessionId?: string,
+    onBatchComplete?: (batchResults: ProcessCSVResult['results'], batchNumber: number, totalBatches: number) => Promise<void>
   ): Promise<{
     data: ProcessCSVResult,
     storedFilename: string,
@@ -670,6 +671,15 @@ export class PythonService {
     const tempFilePath = path.join(this.tempDir, storedFilename);
     // Use the provided sessionId or generate a new one
     const uploadSessionId = sessionId || nanoid();
+    
+    // Data collection for all batches
+    const allProcessedResults: ProcessCSVResult['results'] = [];
+    let allMetrics = {
+      accuracy: 0,
+      precision: 0,
+      recall: 0,
+      f1Score: 0
+    };
 
     try {
       const content = fileBuffer.toString('utf-8');
@@ -691,19 +701,26 @@ export class PythonService {
         throw new Error('Cannot process any more rows today. Daily limit reached.');
       }
       
-      // If we can't process all rows, create a truncated version of the file
+      // Determine how many rows to actually process
+      const effectiveTotalRecords = processableRowCount < totalRecords ? processableRowCount : totalRecords;
+      
+      // Notify about limit restriction if applicable
       if (processableRowCount < totalRecords) {
         log(`Daily limit restriction: Can only process ${processableRowCount} of ${totalRecords} rows.`, 'python-service');
-        // Include header row (line 0) plus processableRowCount number of data rows
-        const truncatedContent = lines.slice(0, processableRowCount + 1).join('\n');
-        fs.writeFileSync(tempFilePath, truncatedContent);
         
         if (onProgress) {
           onProgress(0, `PROGRESS:{"processed":0,"stage":"Daily limit restriction: Can only process ${processableRowCount} of ${totalRecords} rows.","total":processableRowCount}`, processableRowCount);
         }
-      } else {
-        fs.writeFileSync(tempFilePath, fileBuffer);
       }
+      
+      // Define batch size - process in chunks for large files
+      const BATCH_SIZE = 100; // Process 100 records at a time
+      const totalBatches = Math.ceil(effectiveTotalRecords / BATCH_SIZE);
+      
+      log(`Processing CSV in ${totalBatches} batches (batch size: ${BATCH_SIZE})`, 'python-service');
+      
+      // Create a temporary file for the full dataset - we'll process it in batches
+      fs.writeFileSync(tempFilePath, fileBuffer);
       
       log(`Processing CSV file: ${originalFilename}`, 'python-service');
 
@@ -806,6 +823,49 @@ export class PythonService {
 
         // No timeout as requested by user - Python process will run until completion
         
+        // Handle batch completion markers to save data incrementally
+        const completedBatches = new Set<number>();
+        const allBatchResults: ProcessCSVResult['results'][] = [];
+        
+        // Function to process batch completion messages
+        const processBatchComplete = async (dataStr: string) => {
+          if (onBatchComplete && dataStr.includes('BATCH_COMPLETE:')) {
+            try {
+              // Extract the batch data between BATCH_COMPLETE: and ::END_BATCH
+              const batchMatch = dataStr.match(/BATCH_COMPLETE:(.*?)::END_BATCH/);
+              if (batchMatch && batchMatch[1]) {
+                const batchData = JSON.parse(batchMatch[1]);
+                
+                // Only process this batch if we haven't already processed it
+                if (batchData.batchNumber && !completedBatches.has(batchData.batchNumber)) {
+                  completedBatches.add(batchData.batchNumber);
+                  
+                  log(`Detected batch completion: Batch ${batchData.batchNumber}/${batchData.totalBatches} with ${batchData.results.length} records`, 'python-service');
+                  
+                  // Save this batch's results
+                  allBatchResults[batchData.batchNumber - 1] = batchData.results;
+                  
+                  // Pass the batch to our handler
+                  await onBatchComplete(batchData.results, batchData.batchNumber, batchData.totalBatches);
+                }
+              }
+            } catch (e) {
+              log(`Batch completion parsing error: ${e}`, 'python-service');
+            }
+          }
+        };
+        
+        // Add batch processing to stdout handler
+        pythonProcess.stdout.on('data', async (data) => {
+          const dataStr = data.toString();
+          await processBatchComplete(dataStr);
+        });
+        
+        // Add batch processing to stderr handler (just in case)
+        pythonProcess.stderr.on('data', async (data) => {
+          const dataStr = data.toString();
+          await processBatchComplete(dataStr);
+        });
 
         pythonProcess.on('close', (code) => {
           // Clean up the process from our active processes map

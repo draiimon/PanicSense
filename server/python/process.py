@@ -1587,6 +1587,16 @@ class DisasterSentimentBackend:
                         failed_records.append((i, row))
                         time.sleep(1.0)  # Wait 1 second before continuing
 
+                # Create a batch results marker for incremental saving
+                batch_results = {
+                    "batchNumber": batch_num,
+                    "totalBatches": total_batches,
+                    "results": [result for result in results if int(total_records * (batch_start/len(indices_to_process))) <= results.index(result) < int(total_records * ((batch_start+len(batch_indices))/len(indices_to_process)))]
+                }
+                
+                # Send batch completion marker to be captured by the server
+                print(f"BATCH_COMPLETE:{json.dumps(batch_results)}::END_BATCH")
+                
                 # Add delay between batches to prevent API rate limits, but only for files > 20 rows
                 if batch_start + BATCH_SIZE < len(indices_to_process):
                     batch_number = batch_start // BATCH_SIZE + 1
