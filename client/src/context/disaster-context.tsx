@@ -325,6 +325,8 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
 
           // Extract progress info from Python service
           const pythonProgress = data.progress;
+          const sessionId = data.sessionId; // Get session ID from the broadcast
+          
           if (pythonProgress && typeof pythonProgress === 'object') {
             // Parse numbers from the progress message
             const matches = pythonProgress.stage?.match(/(\d+)\/(\d+)/);
@@ -336,12 +338,18 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
             
             // Store incoming progress in localStorage to recover in case of page refresh
             try {
+              // Store both the progress and the session ID
               localStorage.setItem('uploadProgress', JSON.stringify({
                 ...pythonProgress,
                 processed: processedCount,
                 total: totalRecords || pythonProgress.total,
                 stage: pythonProgress.stage
               }));
+              
+              // Store the session ID if it's present
+              if (sessionId) {
+                localStorage.setItem('uploadSessionId', sessionId);
+              }
             } catch (e) {
               console.warn('Could not save progress to localStorage', e);
             }

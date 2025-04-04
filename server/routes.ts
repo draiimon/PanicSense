@@ -64,6 +64,7 @@ function broadcastUpdate(data: any) {
       // Create enhanced progress object
       const enhancedProgress = {
         type: 'progress',
+        sessionId: data.sessionId || null, // Preserve the session ID in broadcasts
         progress: {
           processed: processedCount,
           total: totalRecords,
