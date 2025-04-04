@@ -25,13 +25,9 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
   useEffect(() => {
     const cleanupOnMount = async () => {
       try {
-        console.log("🧹 Auto-cleaning error sessions on component mount");
         const result = await cleanupErrorSessions();
         if (result.success) {
           setSessionCleanedCount(result.clearedCount);
-          if (result.clearedCount > 0) {
-            console.log(`✅ Auto-cleaned ${result.clearedCount} error/stale sessions on mount`);
-          }
         }
       } catch (error) {
         console.error("Error during auto-cleanup:", error);
@@ -54,9 +50,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         if (activeSessionId) {
           // Ensure the upload modal is displayed if we have an active session
           setIsUploading(true);
-          console.log('Active upload session detected:', `Session ${activeSessionId} active`);
-        } else {
-          console.log('Active upload session check complete: No active sessions');
         }
       } catch (error) {
         console.error('Error checking for active uploads:', error);
@@ -152,7 +145,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
     if (!files || files.length === 0) return;
 
     const file = files[0];
-    console.log('File selected:', file.name);
 
     // Check if we already have an active upload
     if (isUploading) {
@@ -206,8 +198,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       localStorage.setItem('uploadStartTime', Date.now().toString());
       localStorage.setItem('uploadProgress', JSON.stringify(initialProgress));
       
-      console.log('Starting CSV upload for file:', file.name);
-      
       const result = await uploadCSV(file, (progress) => {
         // Enhanced progress tracking with timestamp
         const currentProgress = {
@@ -228,8 +218,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           timestamp: Date.now(), // Add timestamp for ordered updates
           savedAt: Date.now()    // Add timestamp for freshness check
         };
-
-        console.log('Progress update received:', currentProgress);
         
         // Update the UI
         setUploadProgress(currentProgress);
@@ -242,8 +230,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         broadcastService.broadcastUploadProgress(currentProgress);
       });
 
-      console.log('Upload completed with result:', result);
-      
       if (result?.file && result?.posts) {
         toast({
           title: 'Upload Complete',
@@ -305,7 +291,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           sessionId: null
         });
         
-        console.log('Upload error, cleaned up localStorage');
       }, 5000); // longer delay to show the error message
     } finally {
       event.target.value = '';
@@ -346,7 +331,6 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
             sessionId: null
           });
           
-          console.log('Upload completed, cleared all localStorage items');
         }, 2000);
       }
     }

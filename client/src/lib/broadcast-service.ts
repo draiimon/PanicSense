@@ -68,12 +68,11 @@ class BroadcastService {
         };
 
         this.initialized = true;
-        console.log('✅ Broadcast channels initialized for cross-tab communication');
       } catch (error) {
         console.error('Failed to initialize broadcast channels:', error);
       }
     } else {
-      console.warn('BroadcastChannel API not supported in this browser. Cross-tab synchronization disabled.');
+      // BroadcastChannel API not supported, cross-tab sync will be disabled
     }
   }
 

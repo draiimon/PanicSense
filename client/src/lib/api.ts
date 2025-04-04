@@ -180,8 +180,7 @@ export async function checkForActiveSessions(): Promise<string | null> {
     // Mark that we're doing a database check
     localStorage.setItem(cacheKey, now.toString());
     
-    // ALWAYS ask the database (boss) for the truth!
-    console.log('📊 Asking database boss for active sessions');
+    // Silent database check for active sessions 
     const response = await apiRequest('GET', '/api/active-upload-session');
     
     if (!response.ok) {
@@ -190,17 +189,9 @@ export async function checkForActiveSessions(): Promise<string | null> {
     
     const data = await response.json();
     
-    // Handle server restart detection
-    if (data.serverRestartDetected) {
-      console.log('⚠️ Server restart detected! Must follow database rules');
-    }
-    
     // === HANDLE DATABASE RESPONSE ===
     if (data.sessionId) {
-      // === BOSS SAYS YES: ACTIVE SESSION EXISTS ===
-      console.log('👑 DATABASE BOSS CONFIRMS: Active session ' + data.sessionId);
-      
-      // Update everything according to database (the boss)
+      // Active session exists - update local state
       currentUploadSessionId = data.sessionId;
       localStorage.setItem('uploadSessionId', data.sessionId);
       localStorage.setItem('isUploading', 'true');
@@ -230,12 +221,7 @@ export async function checkForActiveSessions(): Promise<string | null> {
       
       return data.sessionId;
     } else {
-      // === BOSS SAYS NO: NO ACTIVE SESSION ===
-      console.log('👑 DATABASE BOSS SAYS: No active sessions exist');
-      
-      if (data.staleSessionCleared) {
-        console.log('🧹 Boss cleaned stale session on server');
-      }
+      // No active session - clean up
       
       // Clear localStorage to match database state
       localStorage.removeItem('isUploading');
@@ -254,7 +240,6 @@ export async function checkForActiveSessions(): Promise<string | null> {
           
           // Only keep very recent sessions to prevent stale UI
           if (savedAt >= fiveMinutesAgo) {
-            console.log('Recent localStorage session kept for UI stability:', localSession);
             return localSession;
           }
         } catch (e) {
@@ -262,7 +247,6 @@ export async function checkForActiveSessions(): Promise<string | null> {
         }
       }
       
-      console.log('Active upload session check complete: No active sessions');
       return null;
     }
   } catch (error) {
@@ -349,7 +333,6 @@ export async function uploadCSV(
   eventSource.onmessage = (event) => {
     try {
       const progress = JSON.parse(event.data) as UploadProgress;
-      console.log('Progress event received:', progress);
       
       // Add timestamp if not present to ensure proper ordering
       const progressWithTimestamp = {
@@ -371,7 +354,6 @@ export async function uploadCSV(
       }));
       
       if (onProgress) {
-        console.log('Progress being sent to UI:', progressWithTimestamp);
         onProgress(progressWithTimestamp);
       }
     } catch (error) {

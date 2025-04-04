@@ -45,12 +45,9 @@ export function UploadProgressModal() {
         // If we have ANY evidence of an active upload in localStorage, KEEP SHOWING the modal
         // regardless of what the database says - localStorage is the visibility boss!
         if (storedIsUploading === 'true' || storedSessionId) {
-          console.log('🔒 LOCAL STORAGE IS VISIBILITY BOSS - KEEPING MODAL VISIBLE', storedSessionId);
-          
           // Super aggressive persistence - force UI to match localStorage state
           // This is critical during server restarts or network issues
           if (!isUploading) {
-            console.log('🔄 Re-showing upload modal based on localStorage command');
             setIsUploading(true);
           }
           
@@ -70,7 +67,6 @@ export function UploadProgressModal() {
           // Only check with database for progress updates if our data isn't too old
           const MAX_AGE_MS = storageExpirationMinutes * 60 * 1000;
           if (dataAge < MAX_AGE_MS) {
-            console.log('📊 Checking database ONLY for progress updates (not for visibility control)');
             try {
               const response = await fetch('/api/active-upload-session');
               
@@ -78,8 +74,6 @@ export function UploadProgressModal() {
                 const data = await response.json();
                 
                 if (data.sessionId) {
-                  console.log('✅ DATABASE HAS PROGRESS DATA', data.sessionId);
-                  
                   // Store session ID but NEVER change isUploading to false!
                   // Just update the session ID if it's different
                   if (storedSessionId !== data.sessionId) {
@@ -106,13 +100,9 @@ export function UploadProgressModal() {
                                               (data.progress.processed > currentProgress.processed);
                       
                       if (shouldUseDatabase) {
-                        console.log('📈 Using database progress data for display');
-                        
                         // Don't update localStorage here - that's handled by the context
                         // Just ensure the modal stays visible during data updates
                         localStorage.setItem('isUploading', 'true');
-                      } else {
-                        console.log('🛡️ Local progress data is more recent, ignoring database update');
                       }
                     } catch (error) {
                       console.error('Error processing database progress:', error);
@@ -120,7 +110,6 @@ export function UploadProgressModal() {
                   }
                 } else if (data.serverRestartDetected) {
                   // Special handling for server restarts - super aggressive visibility persistence
-                  console.log('⚠️ SERVER RESTART DETECTED! Enabling super protection mode');
                   localStorage.setItem('serverRestartProtection', 'true');
                   localStorage.setItem('serverRestartTimestamp', Date.now().toString());
                 }
@@ -132,16 +121,12 @@ export function UploadProgressModal() {
             }
           } else {
             // Data is too old - time to clean up after the maximum retention period
-            console.log(`📊 Upload data is very old (>${storageExpirationMinutes}min), cleaning up`);
-            
             // Hard-close the modal after the extended retention period
             forceCloseModal();
           }
         } else {
           // No upload state in localStorage!
           // This is rare - maybe localStorage was cleared manually
-          console.log('❓ No upload state in localStorage, checking with database as fallback');
-          
           try {
             const response = await fetch('/api/active-upload-session');
             
@@ -150,8 +135,6 @@ export function UploadProgressModal() {
               
               // If database has active session but localStorage doesn't know about it
               if (data.sessionId) {
-                console.log('🔄 DATABASE HAS SESSION LOCALSTORAGE DOESN\'T KNOW ABOUT', data.sessionId);
-                
                 // Restore localStorage state from database
                 localStorage.setItem('uploadSessionId', data.sessionId);
                 localStorage.setItem('isUploading', 'true');
@@ -177,7 +160,6 @@ export function UploadProgressModal() {
                 // Both localStorage and database agree - no active uploads
                 // Only in this case should we close the modal
                 if (isUploading) {
-                  console.log('🔄 Both localStorage and database agree: no active uploads');
                   forceCloseModal();
                 }
               }
@@ -218,7 +200,6 @@ export function UploadProgressModal() {
         try {
           // Try to cancel through the API first (which will delete the session from the database)
           await cancelUpload();
-          console.log('Force close: Upload cancelled through API to ensure database cleanup');
           
           // Broadcast the cancellation to all tabs/windows
           broadcastService.broadcastUploadCommand({
@@ -227,15 +208,12 @@ export function UploadProgressModal() {
           });
         } catch (cancelError) {
           // If the cancel API fails, it probably means there was no actual upload
-          // This is not an error - just log it and continue with cleanup
-          console.log('Upload was already completed or no active upload found');
+          // This is not an error - just continue with cleanup
         }
       }
     } catch (error) {
       console.error('Error during force close:', error);
     } finally {
-      console.log('Upload completed, cleared all localStorage items');
-      
       // SUPER AGGRESSIVE CLEANUP: Always clean up ALL upload-related localStorage
       // This prevents any ghost modals from appearing
       localStorage.removeItem('isUploading');
@@ -291,23 +269,16 @@ export function UploadProgressModal() {
       
       // Broadcast cancellation to all tabs
       broadcastCancelUpload(sessionId || undefined);
-      console.log('🔊 Broadcasting cancel command to all tabs');
       
       // Attempt to cancel the upload via API
       try {
         const result = await cancelUpload();
         
-        if (result?.success) {
-          console.log('Upload successfully cancelled via API');
-        } else {
-          // Even if the server says it failed, we'll still close the modal
-          // The user wants to cancel, so we'll respect that regardless
-          console.log('Server reported cancel failure, but continuing with cleanup');
-        }
+        // Whether successful or not, we'll still continue with cleanup
+        // The user wants to cancel, so we'll respect that regardless
       } catch (cancelError) {
         // If the API call fails (network error, no session, etc.)
         // Still proceed with local cleanup - don't block the user
-        console.log('Cancel API error, proceeding with local cleanup only');
       }
       
       // Always force close the modal regardless of server response
