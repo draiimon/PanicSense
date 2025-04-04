@@ -555,37 +555,47 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
             variant: 'default',
           });
         }
-        // Handle progress updates for file processing
+        // Handle progress updates for file processing 
         else if (data.type === 'progress') {
+          // Only log once to avoid console spam
           console.log('WebSocket progress update:', data);
 
           // Extract progress info from Python service
           const pythonProgress = data.progress;
           if (pythonProgress && typeof pythonProgress === 'object') {
-            // Parse numbers from the progress message
-            const matches = pythonProgress.stage?.match(/(\d+)\/(\d+)/);
-            const currentRecord = matches ? parseInt(matches[1]) : 0;
-            const totalRecords = matches ? parseInt(matches[2]) : pythonProgress.total || 0;
+            // Check if this is a valid progress update with needed fields
+            if (pythonProgress.stage && pythonProgress.total) {
+              // Parse numbers from the progress message
+              const matches = pythonProgress.stage?.match(/(\d+)\/(\d+)/);
+              const currentRecord = matches ? parseInt(matches[1]) : 0;
+              const totalRecords = matches ? parseInt(matches[2]) : pythonProgress.total || 0;
 
-            // Calculate actual progress percentage
-            const processedCount = pythonProgress.processed || currentRecord;
+              // Calculate actual progress percentage
+              const processedCount = pythonProgress.processed;
 
-            setUploadProgress(prev => ({
-              ...prev,
-              processed: processedCount,
-              total: totalRecords || prev.total,
-              stage: pythonProgress.stage || prev.stage,
-              batchNumber: currentRecord,
-              totalBatches: totalRecords,
-              batchProgress: totalRecords > 0 ? Math.round((processedCount / totalRecords) * 100) : 0,
-              currentSpeed: pythonProgress.currentSpeed || prev.currentSpeed,
-              timeRemaining: pythonProgress.timeRemaining || prev.timeRemaining,
-              processingStats: {
-                successCount: processedCount,
-                errorCount: pythonProgress.processingStats?.errorCount || 0,
-                averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
-              }
-            }));
+              // Important: Only update if we have a valid processed count greater than previous
+              setUploadProgress(prev => {
+                // Avoid updating if the value isn't increasing - prevents UI flickering
+                if (processedCount < prev.processed) return prev;
+                
+                return {
+                  ...prev,
+                  processed: processedCount,
+                  total: totalRecords || prev.total,
+                  stage: pythonProgress.stage || prev.stage,
+                  batchNumber: pythonProgress.batchNumber || currentRecord,
+                  totalBatches: pythonProgress.totalBatches || totalRecords,
+                  batchProgress: totalRecords > 0 ? Math.round((processedCount / totalRecords) * 100) : 0,
+                  currentSpeed: pythonProgress.currentSpeed || prev.currentSpeed,
+                  timeRemaining: pythonProgress.timeRemaining || prev.timeRemaining,
+                  processingStats: {
+                    successCount: processedCount,
+                    errorCount: pythonProgress.processingStats?.errorCount || 0,
+                    averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
+                  }
+                };
+              });
+            }
           }
         }
       } catch (error) {
