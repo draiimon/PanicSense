@@ -8,6 +8,7 @@ import {
   SentimentPost,
   DisasterEvent,
   AnalyzedFile,
+  getCurrentUploadSessionId,
   checkForActiveSessions
 } from "@/lib/api";
 
@@ -202,7 +203,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
               setIsUploading(true);
               
               // Check if there's an active session ID from localStorage
-              const sessionId = localStorage.getItem('uploadSessionId');
+              const sessionId = getCurrentUploadSessionId();
               if (sessionId) {
                 console.log('Reconnecting to upload session from localStorage:', sessionId);
                 
@@ -218,19 +219,16 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                     if (progress.stage.toLowerCase().includes('complete') || 
                         progress.stage.toLowerCase().includes('error') ||
                         progress.stage.toLowerCase().includes('cancelled')) {
-                      console.log('Upload status detected:', progress.stage);
                       eventSource.close();
                       
                       // If it completed successfully, refresh data to show new records
                       if (progress.stage.toLowerCase().includes('complete')) {
-                        console.log('Refreshing data after completion');
                         refreshData();
                       }
                       
                       // If there's an error or the upload was cancelled, close the modal immediately
                       if (progress.stage.toLowerCase().includes('error') || 
                           progress.stage.toLowerCase().includes('cancelled')) {
-                        console.log('Closing upload modal immediately due to error or cancellation');
                         // Close immediately for errors and cancellations
                         setIsUploading(false);
                         // Clear the upload progress from localStorage
@@ -239,16 +237,13 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                         localStorage.removeItem('uploadSessionId');
                       } else {
                         // For successful completion, close after a short delay
-                        console.log('Scheduling modal close after successful completion');
-                        // Force a close after 2 seconds no matter what
                         setTimeout(() => {
-                          console.log('Closing upload modal after completion delay');
                           setIsUploading(false);
                           // Clear the upload progress from localStorage
                           localStorage.removeItem('isUploading');
                           localStorage.removeItem('uploadProgress');
                           localStorage.removeItem('uploadSessionId');
-                        }, 2000);
+                        }, 1000);
                       }
                     }
                   } catch (error) {
@@ -324,8 +319,6 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
 
           // Extract progress info from Python service
           const pythonProgress = data.progress;
-          const sessionId = data.sessionId; // Get session ID from the broadcast
-          
           if (pythonProgress && typeof pythonProgress === 'object') {
             // Parse numbers from the progress message
             const matches = pythonProgress.stage?.match(/(\d+)\/(\d+)/);
@@ -334,74 +327,23 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
 
             // Calculate actual progress percentage
             const processedCount = pythonProgress.processed || currentRecord;
-            
-            // Store incoming progress in localStorage to recover in case of page refresh
-            try {
-              // Store both the progress and the session ID
-              localStorage.setItem('uploadProgress', JSON.stringify({
-                ...pythonProgress,
-                processed: processedCount,
-                total: totalRecords || pythonProgress.total,
-                stage: pythonProgress.stage
-              }));
-              
-              // Store the session ID if it's present
-              if (sessionId) {
-                localStorage.setItem('uploadSessionId', sessionId);
-              }
-            } catch (e) {
-              console.warn('Could not save progress to localStorage', e);
-            }
 
-            // Check if we need to handle completion via WebSocket
-            const stageText = pythonProgress.stage?.toLowerCase() || '';
-            if (stageText.includes('complete') || stageText.includes('error') || stageText.includes('cancelled')) {
-              console.log('WebSocket progress indicates completion status:', stageText);
-              
-              // If the upload is complete, automatically reset after 2 seconds
-              if (stageText.includes('complete')) {
-                console.log('WebSocket detected complete status - will reset the upload state');
-                refreshData();
-                
-                // Set a timeout to close the modal
-                setTimeout(() => {
-                  console.log('Closing modal after completion via WebSocket');
-                  setIsUploading(false);
-                  localStorage.removeItem('isUploading');
-                  localStorage.removeItem('uploadProgress');
-                  localStorage.removeItem('uploadSessionId');
-                }, 2000);
-              } else if (stageText.includes('error') || stageText.includes('cancelled')) {
-                console.log('WebSocket detected error or cancellation - resetting upload state immediately');
-                setIsUploading(false);
-                localStorage.removeItem('isUploading');
-                localStorage.removeItem('uploadProgress');
-                localStorage.removeItem('uploadSessionId');
+            setUploadProgress(prev => ({
+              ...prev,
+              processed: processedCount,
+              total: totalRecords || prev.total,
+              stage: pythonProgress.stage || prev.stage,
+              batchNumber: currentRecord,
+              totalBatches: totalRecords,
+              batchProgress: totalRecords > 0 ? Math.round((processedCount / totalRecords) * 100) : 0,
+              currentSpeed: pythonProgress.currentSpeed || prev.currentSpeed,
+              timeRemaining: pythonProgress.timeRemaining || prev.timeRemaining,
+              processingStats: {
+                successCount: processedCount,
+                errorCount: pythonProgress.processingStats?.errorCount || 0,
+                averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
               }
-            }
-
-            setUploadProgress(prev => {
-              // Only update if the new progress is equal or greater than current,
-              // never go backwards to prevent progress indicators from jumping
-              const newProcessed = Math.max(processedCount, prev.processed);
-              
-              return {
-                ...prev,
-                processed: newProcessed,
-                total: totalRecords || prev.total,
-                stage: pythonProgress.stage || prev.stage,
-                batchNumber: currentRecord,
-                totalBatches: totalRecords,
-                batchProgress: totalRecords > 0 ? Math.round((newProcessed / totalRecords) * 100) : 0,
-                currentSpeed: pythonProgress.currentSpeed || prev.currentSpeed,
-                timeRemaining: pythonProgress.timeRemaining || prev.timeRemaining,
-                processingStats: {
-                  successCount: newProcessed,
-                  errorCount: pythonProgress.processingStats?.errorCount || 0,
-                  averageSpeed: pythonProgress.processingStats?.averageSpeed || 0
-                }
-              };
-            });
+            }));
           }
         }
       } catch (error) {

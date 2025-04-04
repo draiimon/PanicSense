@@ -118,122 +118,56 @@ export function UploadProgressModal() {
       {/* Gradient backdrop */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 via-indigo-400/20 to-purple-500/30 backdrop-blur-md"></div>
 
-      {/* Cancel Confirmation Dialog */}
-      {showCancelDialog && (
-        <div className="absolute z-20 inset-0 flex items-center justify-center bg-black/20">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-xl p-5 shadow-xl max-w-md mx-4"
-          >
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Cancel Upload?</h3>
-            <p className="text-gray-600 mb-4">
-              Are you sure you want to cancel this upload? The process will be stopped immediately.
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button 
-                variant="outline"
-                onClick={() => setShowCancelDialog(false)}
-                disabled={isCancelling}
-              >
-                Continue Upload
-              </Button>
-              <Button 
-                variant="destructive"
-                onClick={handleCancel}
-                disabled={isCancelling}
-              >
-                {isCancelling ? 'Cancelling...' : 'Cancel Upload'}
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Main Modal */}
-      <motion.div 
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 20, opacity: 0 }}
-        transition={{ delay: 0.1, duration: 0.3 }}
-        className="relative z-10 max-w-xl w-full mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden"
+      {/* Content */}
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        style={{
+          background: "rgba(255, 255, 255, 0.85)",
+          boxShadow: "0 8px 32px rgba(31, 38, 135, 0.15)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(255, 255, 255, 0.2)",
+        }}
+        className="relative rounded-xl overflow-hidden w-full max-w-sm mx-4"
       >
-        {/* Header with status indicator */}
-        <div className={`px-6 py-4 flex items-center justify-between border-b ${
-          hasError 
-            ? 'bg-red-50 border-red-100' 
-            : isComplete 
-              ? 'bg-green-50 border-green-100' 
-              : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100'
-        }`}>
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${
-              hasError 
-                ? 'bg-red-100 text-red-600' 
-                : isComplete 
-                  ? 'bg-green-100 text-green-600' 
-                  : 'bg-blue-100 text-blue-600'
-            }`}>
-              {hasError && <XCircle className="h-5 w-5" />}
-              {isComplete && <CheckCircle className="h-5 w-5" />}
-              {!hasError && !isComplete && (
-                <motion.div 
-                  className="p-0.5 flex items-center justify-center"
-                  animate={breathingOffset}
-                  transition={{ duration: 1.5, repeat: Infinity, repeatType: "reverse" }}
-                >
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                </motion.div>
-              )}
-            </div>
-            <div>
-              <h3 className={`font-semibold leading-none ${
-                hasError 
-                  ? 'text-red-700' 
-                  : isComplete 
-                    ? 'text-green-700' 
-                    : 'text-blue-700'
-              }`}>
-                {hasError 
-                  ? 'Upload Error' 
-                  : isComplete 
-                    ? 'Upload Complete' 
-                    : 'Uploading Data'
-                }
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                {stage}
-              </p>
-            </div>
-          </div>
+        {/* Gradient Header */}
+        <div className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 p-4 text-white">
+          <h3 className="text-xl font-bold text-center">
+            {isComplete ? 'Analysis Complete!' : hasError ? 'Upload Error' : `Processing Records`}
+          </h3>
           
-          {/* Cancel/Close Button with Conditional Rendering */}
-          {!isCancelling && ( 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => isComplete ? setIsUploading(false) : setShowCancelDialog(true)}
-              disabled={isCancelling}
-              className={`rounded-full h-8 w-8 ${
-                isComplete 
-                  ? 'hover:bg-green-100 hover:text-green-600' 
-                  : 'hover:bg-red-100 hover:text-red-600'
-              }`}
+          {/* Counter with larger size */}
+          <div className="flex items-center justify-center my-3">
+            <motion.div 
+              key={processed}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ 
+                opacity: 1, 
+                scale: isProcessing ? breathingOffset.scale : 1,
+                transition: { duration: 0.5 }
+              }}
+              className="flex flex-col items-center"
             >
-              <XCircle className={`h-5 w-5 ${isComplete ? 'text-green-500' : 'text-gray-400'}`} />
-            </Button>
-          )}
+              <div className="flex items-center">
+                <span className="text-5xl font-bold text-white">{processed}</span>
+                <span className="text-3xl mx-2 text-white/70">/</span>
+                <span className="text-4xl font-bold text-white/90">{total}</span>
+              </div>
+              <span className="text-sm text-white/80 mt-1">Records Processed</span>
+            </motion.div>
+          </div>
         </div>
-
-        {/* Body Content */}
-        <div className="p-6">
-          {/* Progress Display with Motion */}
-          <div className="mb-5">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium">
-                {processed} of {total} records processed
-              </span>
-              <span className="text-sm font-medium">
+        
+        <div className="p-5">
+          {/* Enhanced Progress Bar */}
+          <div className="mb-4">
+            <div className="flex justify-between text-sm font-medium mb-1">
+              <span className="text-gray-600">Overall Progress</span>
+              <span className={`font-medium
+                ${isComplete ? 'text-green-600' : hasError ? 'text-red-600' : 'text-blue-600'}
+              `}>
                 {percentComplete}%
               </span>
             </div>
@@ -322,66 +256,115 @@ export function UploadProgressModal() {
                     ? `Processing Records` 
                     : "Waiting to Process"}
               </span>
-              {isProcessing && !isComplete && (
-                <Loader2 className="h-4 w-4 ml-auto animate-spin text-blue-500" />
-              )}
+              {isProcessing && !isComplete && <Loader2 className="h-4 w-4 ml-auto animate-spin text-blue-500" />}
               {isComplete && <CheckCircle className="h-4 w-4 ml-auto text-green-500" />}
               {!isProcessing && !isComplete && <Clock className="h-4 w-4 ml-auto text-gray-400" />}
             </div>
           </div>
           
-          {/* Completion or Error Message */}
-          {isComplete && (
-            <div className="bg-green-50 border border-green-100 rounded-lg p-4 text-center mb-4">
-              <CheckCircle className="h-6 w-6 mx-auto text-green-500 mb-2" />
-              <h4 className="font-medium text-green-800">Processing Complete</h4>
-              <p className="text-sm text-gray-600 mt-1">
-                Your data has been processed successfully.
-              </p>
-            </div>
-          )}
-          
-          {hasError && (
-            <div className="bg-red-50 border border-red-100 rounded-lg p-4 text-center mb-4">
-              <XCircle className="h-6 w-6 mx-auto text-red-500 mb-2" />
-              <h4 className="font-medium text-red-800">Processing Error</h4>
-              <p className="text-sm text-gray-600 mt-1">
-                {uploadProgress?.error || "An error occurred during processing."}
-              </p>
-            </div>
-          )}
-          
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2">
-            {!hasError && !isComplete && !isCancelling && (
+          {/* Cancel button */}
+          {!isComplete && !hasError && (
+            <div className="mt-3 text-center">
               <Button
+                variant="destructive"
+                size="sm"
+                className="gap-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-medium rounded-full px-5 py-2"
                 onClick={() => setShowCancelDialog(true)}
-                className="bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-gray-200"
+                disabled={isCancelling}
               >
-                Cancel Upload
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Cancelling...</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4" />
+                    <span>Cancel Upload</span>
+                  </>
+                )}
               </Button>
-            )}
-            
-            {isComplete && (
-              <Button
-                onClick={() => setIsUploading(false)}
-                className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
-              >
-                Close
-              </Button>
-            )}
-            
-            {hasError && (
-              <Button
-                onClick={() => setIsUploading(false)}
-                className="bg-red-50 text-red-700 hover:bg-red-100 border-red-200"
-              >
-                Close
-              </Button>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Animated patterns */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/20 to-transparent rounded-full -mr-10 -mt-10"></div>
+          <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-purple-500/20 to-transparent rounded-full -ml-8 -mb-8"></div>
         </div>
       </motion.div>
+      
+      {/* Prettier Cancel Confirmation Dialog */}
+      {showCancelDialog && createPortal(
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[10000]" onClick={() => setShowCancelDialog(false)}>
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white rounded-xl p-4 max-w-xs mx-4 shadow-xl border border-gray-200" 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-red-100 p-2 rounded-full">
+                <XCircle className="h-5 w-5 text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800">Cancel Upload?</h3>
+            </div>
+            <p className="text-gray-600 text-sm mb-4">
+              All progress will be lost and you'll need to start the upload again.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowCancelDialog(false)}
+                className="bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-gray-200 rounded-full px-4"
+              >
+                No, Continue
+              </Button>
+              <Button 
+                variant="destructive"
+                size="sm"
+                onClick={handleCancel}
+                className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white border-none rounded-full px-4"
+              >
+                Yes, Cancel
+              </Button>
+            </div>
+          </motion.div>
+        </div>,
+        document.body
+      )}
+      
+      {/* Animations */}
+      <style>
+        {`
+          @keyframes progress-flow {
+            0% {
+              background-position: 100% 0;
+            }
+            100% {
+              background-position: -100% 0;
+            }
+          }
+
+          @keyframes completion-pulse {
+            0% {
+              opacity: 0.8;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 1;
+              transform: scale(1.02);
+            }
+            100% {
+              opacity: 0.8;
+              transform: scale(1);
+            }
+          }
+        `}
+      </style>
     </motion.div>,
     document.body
   );

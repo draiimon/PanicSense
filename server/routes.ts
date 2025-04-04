@@ -61,13 +61,9 @@ function broadcastUpdate(data: any) {
       const totalRecords = matches ? parseInt(matches[2]) : data.progress?.total || 0;
       const processedCount = data.progress?.processed || currentRecord;
 
-      // Log real sessionId for debugging
-      console.log(`broadcastUpdate received sessionId: ${data.sessionId}`);
-      
       // Create enhanced progress object
       const enhancedProgress = {
         type: 'progress',
-        sessionId: data.sessionId || '', // Use empty string instead of null to prevent "null" string
         progress: {
           processed: processedCount,
           total: totalRecords,
@@ -692,16 +688,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get active upload session with stale check
   app.get('/api/active-upload-session', async (req: Request, res: Response) => {
     try {
-      // Import the withRetry function
-      const { withRetry } = await import('./db');
-      
-      // Use withRetry to handle potential database errors with auto-retry
-      const sessions = await withRetry(async () => {
-        return await db.select().from(uploadSessions)
-          .where(eq(uploadSessions.status, 'active'))
-          .orderBy(desc(uploadSessions.id))
-          .limit(1);
-      }, 3, 500); // 3 retries with 500ms initial delay
+      // Query all sessions from the database
+      const sessions = await db.select().from(uploadSessions)
+        .where(eq(uploadSessions.status, 'active'))
+        .orderBy(desc(uploadSessions.id))
+        .limit(1);
       
       if (sessions.length > 0) {
         const activeSession = sessions[0];
@@ -713,18 +704,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // If the session is too old, mark it as stale
         if (createdAt && createdAt < thirtyMinutesAgo) {
-          // Using debug level instead of log to reduce console spam
-          console.debug(`Found stale upload session ${activeSession.sessionId}, marking as completed`);
+          console.log(`Found stale upload session ${activeSession.sessionId}, marking as completed`);
           
-          // Update to completed status with retry
-          await withRetry(async () => {
-            await db.update(uploadSessions)
-              .set({ 
-                status: 'completed',
-                updatedAt: new Date()
-              })
-              .where(eq(uploadSessions.sessionId, activeSession.sessionId));
-          });
+          // Update to completed status
+          await db.update(uploadSessions)
+            .set({ 
+              status: 'completed',
+              updatedAt: new Date()
+            })
+            .where(eq(uploadSessions.sessionId, activeSession.sessionId));
           
           // Return no active session
           return res.json({ sessionId: null, staleSessionCleared: true });
@@ -734,18 +722,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const isProcessRunning = pythonService.isProcessRunning(activeSession.sessionId);
         
         if (!isProcessRunning) {
-          // Using debug level instead of log to reduce console spam
-          console.debug(`No active Python process for session ${activeSession.sessionId}, marking as completed`);
+          console.log(`No active Python process for session ${activeSession.sessionId}, marking as completed`);
           
-          // Update to completed status with retry
-          await withRetry(async () => {
-            await db.update(uploadSessions)
-              .set({ 
-                status: 'completed',
-                updatedAt: new Date()
-              })
-              .where(eq(uploadSessions.sessionId, activeSession.sessionId));
-          });
+          // Update to completed status
+          await db.update(uploadSessions)
+            .set({ 
+              status: 'completed',
+              updatedAt: new Date()
+            })
+            .where(eq(uploadSessions.sessionId, activeSession.sessionId));
           
           // Return no active session
           return res.json({ sessionId: null, staleSessionCleared: true });
@@ -765,14 +750,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ sessionId: null });
     } catch (error) {
       console.error('Error retrieving active upload session:', error);
-      
-      // Return a graceful fallback response for the UI
-      // This prevents errors in the UI when the database is temporarily down
-      return res.json({ 
-        sessionId: null, 
-        error: true,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        recoverable: true
+      res.status(500).json({ 
+        error: 'Failed to retrieve active upload session',
+        details: error instanceof Error ? error.message : String(error)
       });
     }
   });
@@ -780,18 +760,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Reset all upload sessions (emergency endpoint)
   app.post('/api/reset-upload-sessions', async (req: Request, res: Response) => {
     try {
-      // Import the withRetry function
-      const { withRetry } = await import('./db');
-      
-      // Update all active sessions to completed with retry
-      await withRetry(async () => {
-        await db.update(uploadSessions)
-          .set({ 
-            status: 'completed',
-            updatedAt: new Date()
-          })
-          .where(eq(uploadSessions.status, 'active'));
-      });
+      // Update all active sessions to completed
+      await db.update(uploadSessions)
+        .set({ 
+          status: 'completed',
+          updatedAt: new Date()
+        })
+        .where(eq(uploadSessions.status, 'active'));
       
       // Cancel all running processes
       pythonService.cancelAllProcesses();
@@ -1032,24 +1007,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
 
-      // Save filtered sentiment posts using batch insert for better performance with large datasets
-      const parsedPosts = filteredResults.map(post => 
-        insertSentimentPostSchema.parse({
-          text: post.text,
-          timestamp: new Date(post.timestamp),
-          source: post.source,
-          language: post.language,
-          sentiment: post.sentiment,
-          confidence: post.confidence,
-          location: post.location || null,
-          disasterType: post.disasterType || null,
-          fileId: analyzedFile.id
-        })
+      // Save only the filtered sentiment posts
+      const sentimentPosts = await Promise.all(
+        filteredResults.map(post => 
+          storage.createSentimentPost(
+            insertSentimentPostSchema.parse({
+              text: post.text,
+              timestamp: new Date(post.timestamp),
+              source: post.source,
+              language: post.language,
+              sentiment: post.sentiment,
+              confidence: post.confidence,
+              location: post.location || null,
+              disasterType: post.disasterType || null,
+              fileId: analyzedFile.id
+            })
+          )
+        )
       );
-      
-      // Use createManySentimentPosts for batch insertion instead of individual inserts
-      console.log(`Inserting ${parsedPosts.length} sentiment posts in batch mode`);
-      const sentimentPosts = await storage.createManySentimentPosts(parsedPosts);
 
       // Generate disaster events from the sentiment posts
       await generateDisasterEvents(sentimentPosts);
@@ -1091,12 +1066,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         details: error instanceof Error ? error.message : String(error)
       });
     } finally {
-      // Keep progress map entries longer to ensure all clients can get the final state
-      // This helps prevent progress indicators from disappearing too early
       setTimeout(() => {
-        console.log(`Cleaning up upload progress map for session ${sessionId} after processing`);
         uploadProgressMap.delete(sessionId);
-      }, 30000); // Increased from 5s to 30s to give clients more time to get final state
+      }, 5000);
     }
   });
 

@@ -21,21 +21,12 @@ services:
       - key: PORT
         value: 10000
       - key: DATABASE_URL
-        value: postgresql://neondb_owner:npg_N5MsSKHuk1Qf@ep-silent-sun-a1u48xwz-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
-      - key: VALIDATION_API_KEY
-        value: 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
-      - key: GROQ_API_KEY_1
-        value: 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
-      - key: GROQ_API_KEY_2
-        value: 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
-      - key: GROQ_API_KEY_3
-        value: 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
-      - key: GROQ_API_KEY_4
-        value: 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
+        fromDatabase:
+          name: disaster-sentiment-db
+          property: connectionString
 
-# No longer using Render's database service, using Neon cloud database instead
-# databases:
-#   - name: disaster-sentiment-db
-#     databaseName: disaster_sentiment
-#     user: disaster_sentiment_user
-#     plan: free
+databases:
+  - name: disaster-sentiment-db
+    databaseName: disaster_sentiment
+    user: disaster_sentiment_user
+    plan: free
