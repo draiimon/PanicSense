@@ -1,5 +1,6 @@
 import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { 
   getSentimentPosts, 
@@ -161,8 +162,12 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     }
   }, [isUploading, uploadProgress]);
 
-  // Restore upload state on app load
+  // Get current location to detect route changes
+  const [location] = useLocation();
+  
+  // Restore upload state on app load and check on every page navigation
   useEffect(() => {
+    console.log('Checking for active uploads on route:', location);
     const checkAndReconnectToActiveUploads = async () => {
       try {
         // Check if there's an isUploading flag in localStorage first
@@ -574,7 +579,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
     };
     
     checkAndReconnectToActiveUploads();
-  }, []);
+  }, [location, refreshData]);
 
   // WebSocket setup for all non-upload messages (like feedback, post updates)
   // We'll keep this separate from the upload progress handling to avoid conflicts
