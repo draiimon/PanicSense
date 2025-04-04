@@ -70,32 +70,41 @@ export function UploadProgressModal() {
     error = ''
   } = uploadProgress;
   
-  // Use the actual processed value directly from the server
-  // Only for display consistency, don't artificially inflate initial value
-  const processed = rawProcessed;
-  
   // Min-height styling to prevent UI shrinking during transitions
   const modalContentStyle = {
     minHeight: '420px' // Set min-height to prevent modal shrinking
   };
 
+  // Move stage checks to computed values for cleaner code - do this first
+  const stageLower = stage.toLowerCase();
+  
+  // Stage flags - determine these before calculating processed count
+  const isBatchPause = stageLower.includes('pause between batches');
+  const isLoading = stageLower.includes('loading') || stageLower.includes('preparing');
+  const hasProcessingKeyword = (stageLower.includes('processing') || stageLower.includes('record')) && !isBatchPause;
+  const isPaused = isBatchPause;
+  const hasCompletionKeyword = stageLower.includes('complete') || stageLower.includes('analysis complete');
+  
+  // Processing and completion flags based only on stage keywords initially
+  let isProcessing = hasProcessingKeyword;
+  let isComplete = hasCompletionKeyword;
+  
+  // Use the actual processed value directly from the server and ensure we match progress
+  // Ensure the displayed value matches the processing stage
+  const processed = isProcessing || isComplete ? 
+    Math.max(1, rawProcessed) : // Never show 0 during processing
+    1; // Always show at least 1 when preparing
+
+  // Now we can update isComplete with count-based detection
+  isComplete = isComplete || (processed >= total && total > 0);
+  
   // Calculate completion percentage safely
   const percentComplete = total > 0 
     ? Math.min(100, Math.round((processed / total) * 100)) 
     : 0;
-
-  // More sophisticated stage indication with better handling
-  const isBatchPause = stage.toLowerCase().includes('pause between batches');
-  const isLoading = stage.toLowerCase().includes('loading') || stage.toLowerCase().includes('preparing');
-  const isProcessing = (stage.toLowerCase().includes('processing') || stage.toLowerCase().includes('record')) && !isBatchPause;
-  const isPaused = isBatchPause;
   
-  // Better completion detection with multiple triggers
-  const isComplete = (
-    stage.toLowerCase().includes('complete') || 
-    stage.toLowerCase().includes('analysis complete') ||
-    (processed >= total && total > 0)
-  );
+  // Check for cancellation
+  const isCancelled = stageLower.includes('cancel');
   
   // Improved error detection
   const hasError = stage.toLowerCase().includes('error');
