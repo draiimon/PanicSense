@@ -12,6 +12,15 @@ import {
   checkForActiveSessions
 } from "@/lib/api";
 
+// Declare the window extension for EventSource tracking
+declare global {
+  interface Window {
+    _activeEventSources?: {
+      [key: string]: EventSource;
+    };
+  }
+}
+
 // Define ProcessingStats interface
 interface ProcessingStats {
   successCount: number;
@@ -136,20 +145,29 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
           console.log('Active upload session found in database:', activeSessionId);
           setIsUploading(true);
           
-          // Set up EventSource for progress updates
-          // Use let instead of const so it can be reassigned during reconnection
-          let eventSource = new EventSource(`/api/upload-progress/${activeSessionId}`);
-          
-          eventSource.onmessage = (event) => {
+          // Set up a more robust EventSource for progress updates
+          // Keep a reference for cleanup and reconnection
+          // Create a message handler function that we can reuse
+          const handleMessage = (event: MessageEvent) => {
             try {
               const progress = JSON.parse(event.data);
               setUploadProgress(progress);
+              
+              // Store the latest progress in localStorage for reconnection
+              localStorage.setItem('uploadProgress', JSON.stringify(progress));
               
               // If the upload is complete or has an error, close the connection
               if (progress.stage.toLowerCase().includes('complete') || 
                   progress.stage.toLowerCase().includes('error') ||
                   progress.stage.toLowerCase().includes('cancelled')) {
-                eventSource.close();
+                
+                // Check if eventSource still exists before closing
+                if (window._activeEventSources?.[activeSessionId]) {
+                  window._activeEventSources[activeSessionId].close();
+                  if (window._activeEventSources) {
+                    delete window._activeEventSources[activeSessionId];
+                  }
+                }
                 
                 // If it completed successfully, refresh data to show new records
                 if (progress.stage.toLowerCase().includes('complete')) {
@@ -177,42 +195,88 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                 }
               }
             } catch (error) {
-              // Error silently handled - removed console.error
+              console.error('Error parsing progress data:', error);
             }
           };
           
-          // Handle connection closing
-          eventSource.onerror = (event) => {
+          // Create an error handler function that we can reuse
+          const handleError = (event: Event) => {
             console.log('EventSource error, attempting to reconnect...');
             
             // Don't immediately close and end the upload - give it a chance to recover
             // We'll use a timeout to check if we can reconnect
             setTimeout(() => {
+              // Make sure we have the global tracking object
+              if (!window._activeEventSources) {
+                window._activeEventSources = {};
+              }
+              
+              // Get the current EventSource
+              const currentSource = window._activeEventSources?.[activeSessionId];
+              if (!currentSource) {
+                // If we no longer have an EventSource, create a new one
+                createNewEventSource();
+                return;
+              }
+              
               // If the connection is in a CLOSED state, try to reopen it
-              if (eventSource.readyState === EventSource.CLOSED) {
+              if (currentSource.readyState === EventSource.CLOSED) {
                 console.log('EventSource connection closed, reconnecting...');
-                
-                // Create a new event source and directly assign it to the original variable
-                eventSource = new EventSource(`/api/upload-progress/${activeSessionId}`);
-                
-                // Move the handlers over to the new instance
-                const originalOnMessage = eventSource.onmessage;
-                const originalOnError = eventSource.onerror; 
-                
-                // Set up the event handlers
-                if (originalOnMessage) eventSource.onmessage = originalOnMessage;
-                if (originalOnError) eventSource.onerror = originalOnError;
-              } else if (eventSource.readyState === EventSource.OPEN) {
+                createNewEventSource();
+              } else if (currentSource.readyState === EventSource.OPEN) {
                 // If it's already reconnected, do nothing
                 console.log('EventSource connection recovered');
               } else {
-                // If we can't reconnect after the timeout, close the modal
-                console.log('EventSource failed to reconnect, closing upload modal');
-                eventSource.close();
-                setIsUploading(false);
+                // Try a final reconnect
+                createNewEventSource();
+                
+                // Set a timeout to check if the reconnection worked
+                setTimeout(() => {
+                  const source = window._activeEventSources?.[activeSessionId];
+                  if (!source || source.readyState !== EventSource.OPEN) {
+                    console.log('EventSource failed to reconnect, closing upload modal');
+                    if (source) source.close();
+                    if (window._activeEventSources) {
+                      delete window._activeEventSources[activeSessionId];
+                    }
+                    setIsUploading(false);
+                  }
+                }, 3000); // Give it 3 more seconds to connect
               }
-            }, 2000);  // Give it 2 seconds to reconnect
+            }, 2000);  // Give it 2 seconds before first reconnect attempt
           };
+          
+          // Function to create a new EventSource with proper setup
+          const createNewEventSource = () => {
+            // Close any existing source first
+            if (window._activeEventSources?.[activeSessionId]) {
+              try {
+                window._activeEventSources[activeSessionId].close();
+              } catch (e) {
+                // Ignore errors on close
+              }
+            }
+            
+            // Create the global tracking object if it doesn't exist
+            if (!window._activeEventSources) {
+              window._activeEventSources = {};
+            }
+            
+            // Create new EventSource
+            const newSource = new EventSource(`/api/upload-progress/${activeSessionId}`);
+            
+            // Set event handlers
+            newSource.onmessage = handleMessage;
+            newSource.onerror = handleError;
+            
+            // Store in the global registry
+            window._activeEventSources[activeSessionId] = newSource;
+            
+            return newSource;
+          };
+          
+          // Initialize the EventSource
+          createNewEventSource();
           
           return;
         }
@@ -235,20 +299,29 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
               if (sessionId) {
                 console.log('Reconnecting to upload session from localStorage:', sessionId);
                 
-                // Set up EventSource for progress updates
-                // Use let instead of const so it can be reassigned during reconnection
-                let eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
-                
-                eventSource.onmessage = (event) => {
+                // Set up a more robust EventSource for progress updates
+                // Keep a reference for cleanup and reconnection
+                // Create a message handler function that we can reuse
+                const handleMessage = (event: MessageEvent) => {
                   try {
                     const progress = JSON.parse(event.data);
                     setUploadProgress(progress);
+                    
+                    // Store the latest progress in localStorage for reconnection
+                    localStorage.setItem('uploadProgress', JSON.stringify(progress));
                     
                     // If the upload is complete or has an error, close the connection
                     if (progress.stage.toLowerCase().includes('complete') || 
                         progress.stage.toLowerCase().includes('error') ||
                         progress.stage.toLowerCase().includes('cancelled')) {
-                      eventSource.close();
+                      
+                      // Check if eventSource still exists before closing
+                      if (window._activeEventSources?.[sessionId]) {
+                        window._activeEventSources[sessionId].close();
+                        if (window._activeEventSources) {
+                          delete window._activeEventSources[sessionId];
+                        }
+                      }
                       
                       // If it completed successfully, refresh data to show new records
                       if (progress.stage.toLowerCase().includes('complete')) {
@@ -280,38 +353,84 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                   }
                 };
                 
-                // Handle connection errors with better recovery
-                eventSource.onerror = (event) => {
+                // Create an error handler function that we can reuse
+                const handleError = (event: Event) => {
                   console.log('EventSource error, attempting to reconnect...');
                   
                   // Don't immediately close and end the upload - give it a chance to recover
                   // We'll use a timeout to check if we can reconnect
                   setTimeout(() => {
+                    // Make sure we have the global tracking object
+                    if (!window._activeEventSources) {
+                      window._activeEventSources = {};
+                    }
+                    
+                    // Get the current EventSource
+                    const currentSource = window._activeEventSources?.[sessionId];
+                    if (!currentSource) {
+                      // If we no longer have an EventSource, create a new one
+                      createNewEventSource();
+                      return;
+                    }
+                    
                     // If the connection is in a CLOSED state, try to reopen it
-                    if (eventSource.readyState === EventSource.CLOSED) {
+                    if (currentSource.readyState === EventSource.CLOSED) {
                       console.log('EventSource connection closed, reconnecting...');
-                      
-                      // Create a new event source and directly assign it to the original variable
-                      eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
-                      
-                      // Move the handlers over to the new instance
-                      const originalOnMessage = eventSource.onmessage;
-                      const originalOnError = eventSource.onerror; 
-                      
-                      // Set up the event handlers
-                      if (originalOnMessage) eventSource.onmessage = originalOnMessage;
-                      if (originalOnError) eventSource.onerror = originalOnError;
-                    } else if (eventSource.readyState === EventSource.OPEN) {
+                      createNewEventSource();
+                    } else if (currentSource.readyState === EventSource.OPEN) {
                       // If it's already reconnected, do nothing
                       console.log('EventSource connection recovered');
                     } else {
-                      // If we can't reconnect after the timeout, close the modal
-                      console.log('EventSource failed to reconnect, closing upload modal');
-                      eventSource.close();
-                      setIsUploading(false);
+                      // Try a final reconnect
+                      createNewEventSource();
+                      
+                      // Set a timeout to check if the reconnection worked
+                      setTimeout(() => {
+                        const source = window._activeEventSources?.[sessionId];
+                        if (!source || source.readyState !== EventSource.OPEN) {
+                          console.log('EventSource failed to reconnect, closing upload modal');
+                          if (source) source.close();
+                          if (window._activeEventSources) {
+                            delete window._activeEventSources[sessionId];
+                          }
+                          setIsUploading(false);
+                        }
+                      }, 3000); // Give it 3 more seconds to connect
                     }
-                  }, 2000);  // Give it 2 seconds to reconnect
+                  }, 2000);  // Give it 2 seconds before first reconnect attempt
                 };
+                
+                // Function to create a new EventSource with proper setup
+                const createNewEventSource = () => {
+                  // Close any existing source first
+                  if (window._activeEventSources?.[sessionId]) {
+                    try {
+                      window._activeEventSources[sessionId].close();
+                    } catch (e) {
+                      // Ignore errors on close
+                    }
+                  }
+                  
+                  // Create the global tracking object if it doesn't exist
+                  if (!window._activeEventSources) {
+                    window._activeEventSources = {};
+                  }
+                  
+                  // Create new EventSource
+                  const newSource = new EventSource(`/api/upload-progress/${sessionId}`);
+                  
+                  // Set event handlers
+                  newSource.onmessage = handleMessage;
+                  newSource.onerror = handleError;
+                  
+                  // Store in the global registry
+                  window._activeEventSources[sessionId] = newSource;
+                  
+                  return newSource;
+                };
+                
+                // Initialize the EventSource
+                createNewEventSource();
               } else {
                 // No active session found, reset the upload state
                 setIsUploading(false);
