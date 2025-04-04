@@ -215,53 +215,89 @@ export function UploadProgressModal() {
             </div>
           )}
           
-          {/* Processing Steps */}
-          <div className="space-y-2 mb-4">
-            {/* Loading Stage */}
-            <div className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
-              isLoading 
-                ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100' 
-                : 'bg-gray-50 text-gray-500 border border-gray-100'
-            }`}>
-              <div className={`flex items-center justify-center w-6 h-6 rounded-full 
-                ${isLoading ? 'bg-blue-100' : 'bg-gray-200'}`
-              }>
-                <FileText className="h-3 w-3" />
+          {/* Error display section */}
+          {hasError && (
+            <div className="my-4 px-3">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="flex items-center gap-2 text-red-600 mb-2">
+                  <XCircle className="h-5 w-5" />
+                  <h4 className="font-medium">Upload Error</h4>
+                </div>
+                <p className="text-sm text-red-700">{error || 'There was an error processing your upload. Please try again.'}</p>
               </div>
-              <span className="text-sm font-medium">File Preparation</span>
-              {isLoading && <Loader2 className="h-4 w-4 ml-auto animate-spin text-blue-500" />}
-              {!isLoading && <CheckCircle className="h-4 w-4 ml-auto text-green-500" />}
+              <div className="mt-4 text-center">
+                <Button
+                  onClick={() => setIsUploading(false)}
+                  className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white"
+                >
+                  Close
+                </Button>
+              </div>
             </div>
-            
-            {/* Processing Stage */}
-            <div className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
-              isProcessing && !isComplete
-                ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100' 
-                : isComplete
-                  ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-100'
+          )}
+          
+          {/* Processing Steps - Only show when no error */}
+          {!hasError && (
+            <div className="space-y-2 mb-4">
+              {/* Loading Stage */}
+              <div className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
+                isLoading 
+                  ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100' 
                   : 'bg-gray-50 text-gray-500 border border-gray-100'
-            }`}>
-              <div className={`flex items-center justify-center w-6 h-6 rounded-full 
-                ${isProcessing && !isComplete 
-                  ? 'bg-blue-100' 
-                  : isComplete 
-                    ? 'bg-green-100' 
-                    : 'bg-gray-200'}`
-              }>
-                <Database className="h-3 w-3" />
+              }`}>
+                <div className={`flex items-center justify-center w-6 h-6 rounded-full 
+                  ${isLoading ? 'bg-blue-100' : 'bg-gray-200'}`
+                }>
+                  <FileText className="h-3 w-3" />
+                </div>
+                <span className="text-sm font-medium">File Preparation</span>
+                {isLoading && <Loader2 className="h-4 w-4 ml-auto animate-spin text-blue-500" />}
+                {!isLoading && <CheckCircle className="h-4 w-4 ml-auto text-green-500" />}
               </div>
-              <span className="text-sm font-medium">
-                {isComplete 
-                  ? "Processing Complete" 
-                  : isProcessing 
-                    ? `Processing Records` 
-                    : "Waiting to Process"}
-              </span>
-              {isProcessing && !isComplete && <Loader2 className="h-4 w-4 ml-auto animate-spin text-blue-500" />}
-              {isComplete && <CheckCircle className="h-4 w-4 ml-auto text-green-500" />}
-              {!isProcessing && !isComplete && <Clock className="h-4 w-4 ml-auto text-gray-400" />}
+              
+              {/* Processing Stage */}
+              <div className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
+                isProcessing && !isComplete
+                  ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100' 
+                  : isComplete
+                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-100'
+                    : 'bg-gray-50 text-gray-500 border border-gray-100'
+              }`}>
+                <div className={`flex items-center justify-center w-6 h-6 rounded-full 
+                  ${isProcessing && !isComplete 
+                    ? 'bg-blue-100' 
+                    : isComplete 
+                      ? 'bg-green-100' 
+                      : 'bg-gray-200'}`
+                }>
+                  <Database className="h-3 w-3" />
+                </div>
+                <span className="text-sm font-medium">
+                  {isComplete 
+                    ? "Processing Complete" 
+                    : isProcessing 
+                      ? `Processing Records` 
+                      : "Waiting to Process"}
+                </span>
+                {isProcessing && !isComplete && <Loader2 className="h-4 w-4 ml-auto animate-spin text-blue-500" />}
+                {isComplete && <CheckCircle className="h-4 w-4 ml-auto text-green-500" />}
+                {!isProcessing && !isComplete && <Clock className="h-4 w-4 ml-auto text-gray-400" />}
+              </div>
+              
+              {/* Batch Processing Info */}
+              {isProcessing && batchNumber && totalBatches && (
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 border border-purple-100">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-100">
+                    <Database className="h-3 w-3" />
+                  </div>
+                  <span className="text-sm font-medium">
+                    Saving Batch {batchNumber} of {totalBatches}
+                  </span>
+                  <Loader2 className="h-4 w-4 ml-auto animate-spin text-purple-500" />
+                </div>
+              )}
             </div>
-          </div>
+          )}
           
           {/* Cancel button */}
           {!isComplete && !hasError && (

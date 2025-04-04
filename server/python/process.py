@@ -1588,10 +1588,17 @@ class DisasterSentimentBackend:
                         time.sleep(1.0)  # Wait 1 second before continuing
 
                 # Create a batch results marker for incremental saving
+                current_results = []
+                if 'processed_results' in locals() and processed_results:
+                    # Get results for this batch based on index position
+                    start_idx = batch_start
+                    end_idx = min(batch_start + len(batch_indices), len(processed_results))
+                    current_results = processed_results[start_idx:end_idx]
+                    
                 batch_results = {
-                    "batchNumber": batch_num,
+                    "batchNumber": batch_num if 'batch_num' in locals() else batch_number,
                     "totalBatches": total_batches,
-                    "results": [result for result in results if int(total_records * (batch_start/len(indices_to_process))) <= results.index(result) < int(total_records * ((batch_start+len(batch_indices))/len(indices_to_process)))]
+                    "results": current_results
                 }
                 
                 # Send batch completion marker to be captured by the server

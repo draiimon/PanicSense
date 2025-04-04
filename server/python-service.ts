@@ -773,6 +773,28 @@ export class PythonService {
             } catch (e) {
               log(`Progress parsing error: ${e}`, 'python-service');
             }
+          } else if (onBatchComplete && dataStr.includes('BATCH_COMPLETE:')) {
+            try {
+              // Extract the batch completion data between BATCH_COMPLETE: and ::END_BATCH
+              const batchMatch = dataStr.match(/BATCH_COMPLETE:(.*?)::END_BATCH/);
+              if (batchMatch && batchMatch[1]) {
+                const batchData = JSON.parse(batchMatch[1]);
+                log(`Batch complete: Batch ${batchData.batchNumber}/${batchData.totalBatches} with ${batchData.results?.length || 0} results`, 'python-service');
+                
+                if (batchData.results && batchData.results.length > 0) {
+                  // Call the batch completion handler with the results
+                  onBatchComplete(
+                    batchData.results, 
+                    batchData.batchNumber, 
+                    batchData.totalBatches
+                  ).catch(err => {
+                    log(`Error in batch completion handler: ${err}`, 'python-service');
+                  });
+                }
+              }
+            } catch (e) {
+              log(`Batch completion parsing error: ${e}`, 'python-service');
+            }
           } else {
             output += dataStr;
           }
