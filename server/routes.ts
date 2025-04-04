@@ -723,13 +723,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (sessions.length > 0) {
         const activeSession = sessions[0];
         
-        // Check if the session might be stale (created more than 30 minutes ago)
+        // Check if the session might be stale (created more than 5 minutes ago with no updates)
         const createdAt = activeSession.createdAt;
+        const updatedAt = activeSession.updatedAt || activeSession.createdAt;
         const currentTime = new Date();
-        const thirtyMinutesAgo = new Date(currentTime.getTime() - 30 * 60 * 1000);
+        const fiveMinutesAgo = new Date(currentTime.getTime() - 5 * 60 * 1000);
         
-        // If the session is too old, mark it as stale
-        if (createdAt && createdAt < thirtyMinutesAgo) {
+        // If the session is too old and hasn't been updated recently, mark it as stale
+        if (updatedAt && updatedAt < fiveMinutesAgo) {
           console.log(`Found stale upload session ${activeSession.sessionId}, marking as completed`);
           
           // Update to completed status

@@ -137,7 +137,8 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
           setIsUploading(true);
           
           // Set up EventSource for progress updates
-          const eventSource = new EventSource(`/api/upload-progress/${activeSessionId}`);
+          // Use let instead of const so it can be reassigned during reconnection
+          let eventSource = new EventSource(`/api/upload-progress/${activeSessionId}`);
           
           eventSource.onmessage = (event) => {
             try {
@@ -181,10 +182,36 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
           };
           
           // Handle connection closing
-          eventSource.onerror = () => {
-            // Connection error silently handled - removed console.error
-            eventSource.close();
-            setIsUploading(false);
+          eventSource.onerror = (event) => {
+            console.log('EventSource error, attempting to reconnect...');
+            
+            // Don't immediately close and end the upload - give it a chance to recover
+            // We'll use a timeout to check if we can reconnect
+            setTimeout(() => {
+              // If the connection is in a CLOSED state, try to reopen it
+              if (eventSource.readyState === EventSource.CLOSED) {
+                console.log('EventSource connection closed, reconnecting...');
+                
+                // Create a new event source and directly assign it to the original variable
+                eventSource = new EventSource(`/api/upload-progress/${activeSessionId}`);
+                
+                // Move the handlers over to the new instance
+                const originalOnMessage = eventSource.onmessage;
+                const originalOnError = eventSource.onerror; 
+                
+                // Set up the event handlers
+                if (originalOnMessage) eventSource.onmessage = originalOnMessage;
+                if (originalOnError) eventSource.onerror = originalOnError;
+              } else if (eventSource.readyState === EventSource.OPEN) {
+                // If it's already reconnected, do nothing
+                console.log('EventSource connection recovered');
+              } else {
+                // If we can't reconnect after the timeout, close the modal
+                console.log('EventSource failed to reconnect, closing upload modal');
+                eventSource.close();
+                setIsUploading(false);
+              }
+            }, 2000);  // Give it 2 seconds to reconnect
           };
           
           return;
@@ -209,7 +236,8 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                 console.log('Reconnecting to upload session from localStorage:', sessionId);
                 
                 // Set up EventSource for progress updates
-                const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
+                // Use let instead of const so it can be reassigned during reconnection
+                let eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
                 
                 eventSource.onmessage = (event) => {
                   try {
@@ -252,10 +280,37 @@ export function DisasterContextProvider({ children }: { children: ReactNode }) {
                   }
                 };
                 
-                // Handle connection closing
-                eventSource.onerror = () => {
-                  eventSource.close();
-                  setIsUploading(false);
+                // Handle connection errors with better recovery
+                eventSource.onerror = (event) => {
+                  console.log('EventSource error, attempting to reconnect...');
+                  
+                  // Don't immediately close and end the upload - give it a chance to recover
+                  // We'll use a timeout to check if we can reconnect
+                  setTimeout(() => {
+                    // If the connection is in a CLOSED state, try to reopen it
+                    if (eventSource.readyState === EventSource.CLOSED) {
+                      console.log('EventSource connection closed, reconnecting...');
+                      
+                      // Create a new event source and directly assign it to the original variable
+                      eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
+                      
+                      // Move the handlers over to the new instance
+                      const originalOnMessage = eventSource.onmessage;
+                      const originalOnError = eventSource.onerror; 
+                      
+                      // Set up the event handlers
+                      if (originalOnMessage) eventSource.onmessage = originalOnMessage;
+                      if (originalOnError) eventSource.onerror = originalOnError;
+                    } else if (eventSource.readyState === EventSource.OPEN) {
+                      // If it's already reconnected, do nothing
+                      console.log('EventSource connection recovered');
+                    } else {
+                      // If we can't reconnect after the timeout, close the modal
+                      console.log('EventSource failed to reconnect, closing upload modal');
+                      eventSource.close();
+                      setIsUploading(false);
+                    }
+                  }, 2000);  // Give it 2 seconds to reconnect
                 };
               } else {
                 // No active session found, reset the upload state
