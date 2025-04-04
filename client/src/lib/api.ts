@@ -94,42 +94,101 @@ let currentEventSource: EventSource | null = null;
 let currentUploadSessionId: string | null = null;
 
 // Cancel the current upload
+/**
+ * Cancels an active upload and aggressively cleans up all resources
+ * 
+ * This function performs a thorough cleanup to ensure the UI returns to a clean state
+ * even if the server is unavailable or shuts down during the cancellation process.
+ * 
+ * @returns Promise with success status and message
+ */
 export async function cancelUpload(): Promise<{ success: boolean; message: string }> {
-  if (currentUploadSessionId) {
+  // Get the current session ID, if any
+  const sessionId = currentUploadSessionId || localStorage.getItem('uploadSessionId');
+  
+  if (sessionId) {
     try {
-      // Close the event source
-      if (currentEventSource) {
-        currentEventSource.close();
-        currentEventSource = null;
-      }
+      // Immediately perform client-side cleanup first
+      // This ensures UI goes back to normal even if server communication fails
+      cleanupAllUploadResources();
+            
+      // Then attempt to communicate with server (non-blocking)
+      // We use fetch directly instead of apiRequest for better control
+      const cancelPromise = fetch(`/api/cancel-upload/${sessionId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        // Short timeout to avoid hanging if server is down
+        signal: AbortSignal.timeout(5000)
+      })
+      .then(response => response.json())
+      .catch(error => {
+        console.warn('Server-side cancel failed, but client resources cleaned up:', error);
+        return { 
+          success: true, 
+          message: 'Upload resources cleared (server unreachable)' 
+        };
+      });
       
-      // Abort the fetch request
-      if (currentUploadController) {
-        currentUploadController.abort();
-        currentUploadController = null;
-      }
+      // Wait for server response (with timeout protection)
+      const result = await cancelPromise;
       
-      // Call the server to cancel processing
-      const response = await apiRequest('POST', `/api/cancel-upload/${currentUploadSessionId}`);
-      const result = await response.json();
-      
-      // Reset the current session ID
-      currentUploadSessionId = null;
-      
-      // Clear localStorage
-      localStorage.removeItem('uploadSessionId');
-      
-      return result;
+      return {
+        success: true,
+        message: result.message || 'Upload cancelled successfully'
+      };
     } catch (error) {
-      console.error('Error cancelling upload:', error);
+      console.error('Error during upload cancellation:', error);
+      
+      // Even if error occurred, client-side was already cleaned up
       return { 
-        success: false, 
-        message: error instanceof Error ? error.message : 'Failed to cancel upload' 
+        success: true, 
+        message: 'Upload stopped (client-side only)' 
       };
     }
   }
   
+  // No active session, but clean up anyway as a precaution
+  cleanupAllUploadResources();
   return { success: false, message: 'No active upload to cancel' };
+}
+
+/**
+ * Helper function to clean up all upload-related resources
+ * This ensures a consistent cleanup across all cancellation scenarios
+ */
+function cleanupAllUploadResources(): void {
+  console.log('🧹 Cleaning up all upload resources...');
+  
+  // Close event source connections
+  if (currentEventSource) {
+    console.log('Closing EventSource connection');
+    currentEventSource.close();
+    currentEventSource = null;
+  }
+  
+  // Abort any in-progress fetch requests
+  if (currentUploadController) {
+    console.log('Aborting in-progress fetch request');
+    currentUploadController.abort();
+    currentUploadController = null;
+  }
+  
+  // Clear localStorage data
+  localStorage.removeItem('uploadSessionId');
+  localStorage.removeItem('isUploading');
+  localStorage.removeItem('uploadProgress');
+  localStorage.removeItem('lastProgressTimestamp');
+  
+  // Clear sessionStorage data that tracks uploads
+  sessionStorage.removeItem('initialDatabaseCheckDone');
+  sessionStorage.removeItem('checkedActiveUploadsOnLoad');
+  
+  // Reset in-memory session ID
+  currentUploadSessionId = null;
+  
+  console.log('✅ Upload resources cleaned up successfully');
 }
 
 // Return the current upload session ID with database support
