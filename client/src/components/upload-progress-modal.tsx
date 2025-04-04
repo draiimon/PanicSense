@@ -83,22 +83,26 @@ export function UploadProgressModal() {
   const isLoading = stageLower.includes('loading') || stageLower.includes('preparing');
   const hasProcessingKeyword = (stageLower.includes('processing') || stageLower.includes('record')) && !isBatchPause;
   const isPaused = isBatchPause;
-  const hasCompletionKeyword = stageLower.includes('complete') || stageLower.includes('analysis complete');
+  
+  // ONLY consider an explicit "completed" or "analysis complete" message as completion
+  // This prevents premature "Analysis Complete!" from showing
+  const hasCompletionKeyword = stageLower.includes('completed') || stageLower.includes('analysis complete');
   
   // Processing and completion flags based only on stage keywords initially
-  let isProcessing = hasProcessingKeyword;
+  let isProcessing = hasProcessingKeyword || isBatchPause; // Consider pause as processing
   let isComplete = hasCompletionKeyword;
   
   // IMPORTANT: Always use the server value directly - no modification or logic
   // We're seeing that the server sends us the correct values, but our UI logic is manipulating it
   const processed = rawProcessed;
   
-  // Now we can update isComplete with count-based detection
-  isComplete = isComplete || (processed >= total && total > 0);
+  // Now we can update isComplete with count-based detection but only if we're very close to completion
+  // This prevents showing complete too early
+  isComplete = isComplete || (processed >= total && total > 0 && processed > 0.95 * total);
   
-  // Calculate completion percentage safely
+  // Calculate completion percentage safely - ensure it's always at least 1% when processing
   const percentComplete = total > 0 
-    ? Math.min(100, Math.round((processed / total) * 100)) 
+    ? Math.min(100, Math.max(isProcessing ? 1 : 0, Math.round((processed / total) * 100)))
     : 0;
   
   // Check for cancellation
