@@ -253,12 +253,52 @@ export function UploadProgressModal() {
     if (currentSpeed > 0 && total > processedCount) {
       // Calculate time remaining based on current speed and records left
       const recordsRemaining = total - processedCount;
-      calculatedTimeRemaining = recordsRemaining / currentSpeed;
+      
+      // Use 3 seconds per record as base processing time (as per user requirement)
+      const baseProcessingTime = recordsRemaining * 3;
+      
+      // Calculate batches remaining (30 records per batch, with 60 seconds pause per batch)
+      const BATCH_SIZE = 30;
+      const remainingBatches = Math.ceil(recordsRemaining / BATCH_SIZE);
+      const batchPauseTime = remainingBatches * 60; // 60 seconds pause per batch
+      
+      // Combine record processing time and batch pause time
+      calculatedTimeRemaining = baseProcessingTime + batchPauseTime;
     }
     
-    // Use the smaller of the two values to be more accurate
-    // This prevents stale timeRemaining values from server
-    const actualSeconds = Math.min(calculatedTimeRemaining, seconds);
+    // Apply minimum time thresholds based on total records
+    // This ensures larger datasets always show realistic processing times
+    let minimumTimeSeconds = 0;
+    
+    // For 1000+ records, minimum time of at least 1 hour
+    if (total > 1000) {
+      minimumTimeSeconds = 60 * 60; // 1 hour
+    }
+    
+    // For 3000+ records, minimum time of at least 3 hours
+    if (total > 3000) {
+      minimumTimeSeconds = 3 * 60 * 60; // 3 hours
+    }
+    
+    // Early in processing (less than 50% complete), enforce minimum time 
+    // to prevent unrealistically short estimates
+    if (processedCount < total * 0.5 && calculatedTimeRemaining < minimumTimeSeconds) {
+      calculatedTimeRemaining = minimumTimeSeconds;
+    }
+    
+    // Prevent sudden large drops in time estimate that would confuse users
+    // If we're already showing a large time remaining (e.g., 2hrs+), don't suddenly drop to minutes
+    // This prevents the "2.5hrs to 5mins" jump problem
+    if (timeRemaining > 60 * 60) { // If last estimate was over 1 hour
+      // Don't allow a drop of more than 15% at once
+      const minAllowedEstimate = timeRemaining * 0.85;
+      if (calculatedTimeRemaining < minAllowedEstimate) {
+        calculatedTimeRemaining = minAllowedEstimate;
+      }
+    }
+    
+    // Use our enhanced calculation, don't let it change too drastically from previous estimate
+    const actualSeconds = calculatedTimeRemaining;
     
     // Less than a minute
     if (actualSeconds < 60) return `${Math.ceil(actualSeconds)} sec`;

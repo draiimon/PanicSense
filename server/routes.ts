@@ -131,20 +131,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Create a test session ID
     const sessionId = `test-${Date.now()}`;
     
-    // Get the requested time in seconds from query parameter, default to 10 minutes
-    const durationSeconds = parseInt(req.query.seconds as string, 10) || 600;
+    // Get the requested total records from query parameter, default to 1000
+    const totalRecords = parseInt(req.query.records as string, 10) || 1000;
+    
+    // Set parameters exactly matching what we use in the real code
+    const RECORDS_PER_BATCH = 30;
+    const SECONDS_PER_RECORD = 3;
+    const PAUSE_SECONDS_PER_BATCH = 60;
+    
+    // Calculate all required values
+    const processingTime = totalRecords * SECONDS_PER_RECORD;
+    const batches = Math.ceil(totalRecords / RECORDS_PER_BATCH);
+    const pauseTime = batches * PAUSE_SECONDS_PER_BATCH;
+    
+    // Total time is processing + pause time
+    const durationSeconds = processingTime + pauseTime;
+    
+    // For large datasets (3000+ records), add additional processing time multiplier
+    let adjustedDuration = durationSeconds;
+    if (totalRecords > 3000) {
+      // Add 50% more time for large datasets (matching the logic in processing endpoint)
+      const processingAdjustment = processingTime * 0.5;
+      adjustedDuration += processingAdjustment;
+    }
+    
+    // Calculate a realistic time remaining value based on our algorithm
+    console.log(`\n✅ Test time calculation for ${totalRecords} records:`);
+    console.log(`- Processing time (${SECONDS_PER_RECORD}s per record): ${processingTime} seconds`);
+    console.log(`- Pause time (${batches} batches × ${PAUSE_SECONDS_PER_BATCH}s): ${pauseTime} seconds`);
+    console.log(`- Base time: ${durationSeconds} seconds`);
+    
+    if (totalRecords > 3000) {
+      console.log(`- Large dataset adjustment (+50%): ${adjustedDuration - durationSeconds} seconds`);
+    }
+    
+    console.log(`- Final estimated time: ${adjustedDuration} seconds (${Math.floor(adjustedDuration/60)} minutes)`);
+    console.log(`- Hours: ${Math.floor(adjustedDuration/3600)}, Days: ${Math.floor(adjustedDuration/86400)}\n`);
     
     // Add a test session to the progress map
     uploadProgressMap.set(sessionId, {
       processed: 10,
-      total: 1000,
+      total: totalRecords,
       stage: 'Test time estimation',
       timestamp: Date.now(),
       batchNumber: 1,
-      totalBatches: 100,
+      totalBatches: batches,
       batchProgress: 0.1,
       currentSpeed: 0.5,
-      timeRemaining: durationSeconds, // Set explicitly from parameter
+      timeRemaining: adjustedDuration, // Set calculated realistic value
       processingStats: {
         successCount: 10,
         errorCount: 0,
@@ -153,15 +187,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
     
-    // Return the session ID and duration
+    // Return the session ID and duration with the calculated values
     res.json({
       sessionId,
-      durationSeconds,
+      totalRecords,
+      durationSeconds: adjustedDuration,
       durationFormatted: {
-        seconds: durationSeconds,
-        minutes: Math.floor(durationSeconds / 60),
-        hours: Math.floor(durationSeconds / 3600),
-        days: Math.floor(durationSeconds / 86400)
+        seconds: adjustedDuration,
+        minutes: Math.floor(adjustedDuration / 60),
+        hours: Math.floor(adjustedDuration / 3600),
+        days: Math.floor(adjustedDuration / 86400)
+      },
+      calculation: {
+        processingTime,
+        batches,
+        pauseTime,
+        processingAdjustment: totalRecords > 3000 ? processingTime * 0.5 : 0,
+        totalTime: adjustedDuration,
+        recordsPerBatch: RECORDS_PER_BATCH,
+        secondsPerRecord: SECONDS_PER_RECORD,
+        pauseSecondsPerBatch: PAUSE_SECONDS_PER_BATCH
       }
     });
   });
@@ -319,14 +364,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Calculate current speed based on processed records
             // Limit to reasonable value to prevent division by small numbers creating huge speeds
             const rawSpeed = progress.processed / elapsed;
-            progress.currentSpeed = Math.min(rawSpeed, 10); // Cap at 10 records/second
+            
+            // Set speed cap based on total records for more realistic simulation
+            // For large datasets, processing tends to be slower per record
+            let speedCap = 10; // Default cap at 10 records/second
+            
+            // For large datasets, gradually reduce the speed cap
+            if (progress.total > 1000) {
+              speedCap = Math.max(2, 10 - (progress.total / 1000)); // Gradually reduce to minimum of 2 records/sec
+            }
+            
+            // For very large datasets (3000+), further reduce speed 
+            if (progress.total > 3000) {
+              speedCap = Math.max(1, speedCap - 1);
+            }
+            
+            progress.currentSpeed = Math.min(rawSpeed, speedCap);
             
             // Calculate time remaining with enhanced batch logic and improved accuracy:
             if (progress.currentSpeed > 0) {
               const remainingRecords = Math.max(0, progress.total - progress.processed);
-              const recordsPerBatch = 30; // Standard batch size
-              const processTimePerBatch = 30; // 30s processing time per batch
-              const pauseTimePerBatch = 60; // 60s pause between batches
+              
+              // Adjusting parameters for more realistic time estimates for larger datasets
+              // Set exact parameters as requested by user
+              const recordsPerBatch = 30; // Fixed batch size of 30 records per batch
+              let processTimePerBatch = 30 * 3; // 3 seconds per record * 30 records = 90 seconds
+              const pauseTimePerBatch = 60; // 60 seconds pause between batches
+              
+              // For larger datasets (3000+ records), add additional processing time 
+              // to account for system overhead with larger datasets
+              if (progress.total > 3000) {
+                processTimePerBatch = processTimePerBatch * 1.5; // 50% longer for large datasets
+              }
+              
               const batchTimeSeconds = processTimePerBatch + pauseTimePerBatch; // total per batch
               
               // More accurate calculation of remaining batches - accounts for partial batches
@@ -343,6 +413,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Don't increase the time, but allow it to decrease slightly each update
                 // This ensures time counts down even if processing slows
                 estimatedTimeRemaining = Math.max(0, progress.timeRemaining - 2);
+              }
+              
+              // For larger datasets, ensure we never drop our estimate too quickly
+              // This prevents the 2.5hr to 5min jump problem the user mentioned
+              if (progress.timeRemaining > 60 * 60) { // If previous estimate was over 1 hour
+                const minAllowedEstimate = progress.timeRemaining * 0.85; // Only allow 15% drop max
+                if (estimatedTimeRemaining < minAllowedEstimate) {
+                  estimatedTimeRemaining = minAllowedEstimate;
+                }
               }
               
               // Special handling for pause states - extract exact remaining pause time
