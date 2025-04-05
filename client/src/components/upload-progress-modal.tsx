@@ -297,61 +297,86 @@ export function UploadProgressModal() {
   
   // Calculate time remaining in human-readable format
   const formatTimeRemaining = (seconds: number): string => {
-    if (!seconds || seconds <= 0) return 'calculating...';
+    // NEVER SHOW "CALCULATING..." - Always show a time estimate
+    // Even if no time is provided or if it's 0, calculate one based on record count and processing speed
     
-    // Calculate a realistic time remaining based on processed records and speed
-    // This ensures we're showing updated time even if server doesn't update timeRemaining
-    let calculatedTimeRemaining = seconds;
-    if (currentSpeed > 0 && total > processedCount) {
-      // Calculate time remaining based on current speed and records left
-      const recordsRemaining = total - processedCount;
-      
-      // Use 3 seconds per record as base processing time (as per user requirement)
-      const baseProcessingTime = recordsRemaining * 3;
-      
-      // Calculate batches remaining (30 records per batch, with 60 seconds pause per batch)
-      const BATCH_SIZE = 30;
-      const remainingBatches = Math.ceil(recordsRemaining / BATCH_SIZE);
-      const batchPauseTime = remainingBatches * 60; // 60 seconds pause per batch
-      
-      // Combine record processing time and batch pause time
-      calculatedTimeRemaining = baseProcessingTime + batchPauseTime;
-    }
+    // Set current time calculation constants - these are critical to accuracy
+    const SECONDS_PER_RECORD = 3; // Each record takes 3 seconds to process (user requirement)
+    const BATCH_SIZE = 30; // Process in batches of 30 records
+    const COOLDOWN_SECONDS = 60; // 60 second cooldown between batches
     
-    // Apply minimum time thresholds based on total records
-    // This ensures larger datasets always show realistic processing times
+    // For datasets over 3000 records, add 50% more processing time to prevent time jumps
+    const adjustmentFactor = total > 3000 ? 1.5 : 1.0;
+    
+    // Calculate remaining records and batches
+    const recordsRemaining = total - processedCount;
+    const remainingBatches = Math.ceil(recordsRemaining / BATCH_SIZE);
+    
+    // Calculate processing and cooldown times
+    const processingTimeSeconds = recordsRemaining * SECONDS_PER_RECORD * adjustmentFactor;
+    const cooldownTimeSeconds = remainingBatches * COOLDOWN_SECONDS;
+    
+    // Combine for total estimated time
+    let calculatedTimeRemaining = processingTimeSeconds + cooldownTimeSeconds;
+    
+    // Force minimum time thresholds based on total records
+    // This ensures larger datasets always show realistic times for the UI
     let minimumTimeSeconds = 0;
     
-    // For 1000+ records, minimum time of at least 1 hour
-    if (total > 1000) {
-      minimumTimeSeconds = 60 * 60; // 1 hour
-    }
-    
-    // For 3000+ records, minimum time of at least 3 hours
+    // Minimum threshold logic based on total records
     if (total > 3000) {
-      minimumTimeSeconds = 3 * 60 * 60; // 3 hours
-    }
-    
-    // Early in processing (less than 50% complete), enforce minimum time 
-    // to prevent unrealistically short estimates
-    if (processedCount < total * 0.5 && calculatedTimeRemaining < minimumTimeSeconds) {
-      calculatedTimeRemaining = minimumTimeSeconds;
-    }
-    
-    // Prevent sudden large drops in time estimate that would confuse users
-    // If we're already showing a large time remaining (e.g., 2hrs+), don't suddenly drop to minutes
-    // This prevents the "2.5hrs to 5mins" jump problem
-    if (timeRemaining > 60 * 60) { // If last estimate was over 1 hour
-      // Don't allow a drop of more than 15% at once
-      const minAllowedEstimate = timeRemaining * 0.85;
-      if (calculatedTimeRemaining < minAllowedEstimate) {
-        calculatedTimeRemaining = minAllowedEstimate;
+      // For datasets over 3000 records
+      if (processedCount < total * 0.1) {
+        // Very early in processing (first 10%)
+        minimumTimeSeconds = 4 * 60 * 60; // 4 hours minimum for initial display
+      } else if (processedCount < total * 0.3) {
+        // Early in processing (10-30%)
+        minimumTimeSeconds = 3 * 60 * 60; // 3 hours minimum
+      } else if (processedCount < total * 0.5) {
+        // Approaching middle (30-50%)
+        minimumTimeSeconds = 2 * 60 * 60; // 2 hours minimum
+      } else if (processedCount < total * 0.8) {
+        // Later stages (50-80%)
+        minimumTimeSeconds = 1 * 60 * 60; // 1 hour minimum
+      }
+    } else if (total > 1000) {
+      // For medium-sized datasets (1000-3000 records)
+      if (processedCount < total * 0.3) {
+        minimumTimeSeconds = 60 * 60; // 1 hour for early stages
+      } else if (processedCount < total * 0.7) {
+        minimumTimeSeconds = 30 * 60; // 30 minutes for middle stages
       }
     }
     
-    // Use our enhanced calculation, don't let it change too drastically from previous estimate
-    const actualSeconds = calculatedTimeRemaining;
+    // Apply minimum time if our calculation is too optimistic
+    if (calculatedTimeRemaining < minimumTimeSeconds) {
+      calculatedTimeRemaining = minimumTimeSeconds;
+    }
     
+    // CRITICAL: Prevent sudden time jumps (like 2.5 hours to 5 minutes) by smoothing changes
+    // This is specifically to fix the user-reported issue
+    if (timeRemaining > 0) {
+      const maxReductionPercentage = 0.05; // Maximum 5% reduction per update
+      const minAllowedEstimate = timeRemaining * (1 - maxReductionPercentage);
+      
+      // Only allow small percentage drop at a time for large time estimates
+      if (timeRemaining > 30 * 60 && calculatedTimeRemaining < minAllowedEstimate) {
+        calculatedTimeRemaining = minAllowedEstimate;
+        console.log('🔒 PREVENTING TIME JUMP: Smoothed time estimate', 
+          `Old: ${Math.round(timeRemaining/60)}m, New: ${Math.round(calculatedTimeRemaining/60)}m`);
+      }
+    }
+    
+    // Finally, if we have a server-provided time estimate that's reasonable, use it
+    if (seconds > 0 && seconds !== calculatedTimeRemaining) {
+      // For non-zero server times, use a weighted average to smooth transitions
+      calculatedTimeRemaining = (calculatedTimeRemaining * 0.7) + (seconds * 0.3);
+    }
+    
+    // Always return a formatted time string, NEVER "calculating..."
+    const actualSeconds = Math.max(30, calculatedTimeRemaining); // Minimum 30 seconds
+    
+    // Format the time in a user-friendly way
     // Less than a minute
     if (actualSeconds < 60) return `${Math.ceil(actualSeconds)} sec`;
     
@@ -596,6 +621,8 @@ export function UploadProgressModal() {
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Est. Time Left</span>
                     </div>
                     <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                      {/* Enhanced time calculation - will NEVER show "calculating..." 
+                          Always calculates a realistic estimate based on records & processing speed */}
                       {formatTimeRemaining(timeRemaining)}
                     </span>
                   </div>
