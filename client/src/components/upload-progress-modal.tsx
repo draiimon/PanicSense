@@ -65,7 +65,7 @@ export function UploadProgressModal() {
                 localStorage.setItem('uploadSessionId', data.sessionId);
               }
               
-              // Check if database has progress data that's ahead of local storage
+              // ALWAYS FORCE DATABASE VALUES - Critical for multi-tab consistency
               if (data.progress) {
                 try {
                   // Parse database progress
@@ -73,26 +73,44 @@ export function UploadProgressModal() {
                     ? JSON.parse(data.progress) 
                     : data.progress;
                   
-                  // Parse local progress  
+                  // Parse local progress for debugging only  
                   const localProgress = storedUploadProgress 
                     ? JSON.parse(storedUploadProgress)
                     : null;
-                    
-                  // Compare processed counts - if database is ahead, update localStorage
-                  if (localProgress && dbProgress.processed > localProgress.processed) {
+                  
+                  // STRONG CONSISTENCY: Always use database value regardless of count
+                  // This is critical for multi-tab consistency - every tab must show exactly
+                  // the same information. Overwrite local values EVERY time.
+                  
+                  // Add timestamps and mark as official database data
+                  const officialData = {
+                    ...dbProgress,
+                    timestamp: Date.now(),
+                    savedAt: Date.now(),
+                    officialDbUpdate: true,
+                    tabSyncTimestamp: Date.now(), // Used for tab synchronization
+                    coolingDown: dbProgress.stage && dbProgress.stage.includes('pause between batches') // Track cooldown state
+                  };
+                  
+                  // Log for debugging purposes only
+                  if (localProgress && dbProgress.processed !== localProgress.processed) {
                     console.log('DATABASE COUNT AHEAD OF LOCAL - Syncing to database', 
                       `DB: ${dbProgress.processed}, Local: ${localProgress.processed}`);
-                    
-                    // Add timestamps and mark as official database data
-                    const officialData = {
-                      ...dbProgress,
+                  }
+                  
+                  // ALWAYS save to localStorage to ensure CONSISTENT display across tabs
+                  localStorage.setItem('uploadProgress', JSON.stringify(officialData));
+                  
+                  // Create special event for cross-tab communication
+                  try {
+                    // Use localStorage event for cross-tab communication
+                    localStorage.setItem('lastTabSync', JSON.stringify({
                       timestamp: Date.now(),
-                      savedAt: Date.now(),
-                      officialDbUpdate: true 
-                    };
-                    
-                    // Save to localStorage for fast access - database wakes up localStorage
-                    localStorage.setItem('uploadProgress', JSON.stringify(officialData));
+                      processed: dbProgress.processed,
+                      stage: dbProgress.stage
+                    }));
+                  } catch (e) {
+                    // Ignore errors in cross-tab communication
                   }
                 } catch (e) {
                   console.error('Error comparing progress data:', e);

@@ -258,38 +258,65 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
               officialDbUpdate: true // Mark this as coming from the database
             };
             
-            // Check if local storage counts are behind database counts
-            // This implements the "wake up" feature where database count takes precedence
-            const storedProgress = localStorage.getItem('uploadProgress');
-            if (storedProgress) {
-              try {
-                const localProgress = JSON.parse(storedProgress);
-                // If database is ahead OR local is not marked as official, use database
-                if (!localProgress.officialDbUpdate || dbProgress.processed > localProgress.processed) {
-                  console.log('DATABASE COUNT AHEAD OF LOCAL - Syncing to database count', 
-                    `DB: ${dbProgress.processed}, Local: ${localProgress.processed}`);
-                  // Update UI with the official data
-                  setUploadProgress(officialProgress);
+            // ALWAYS USE DATABASE PROGRESS - This is now the single source of truth
+            // This makes multi-tab experience consistent by having all tabs follow database
+            try {
+              // STRONG SYNCHRONIZATION: Database values ALWAYS overwrite local values
+              // This is critical for consistent display across tabs
+              
+              // Add timestamps and mark as official database data
+              const officialSyncedProgress = {
+                ...dbProgress,
+                timestamp: Date.now(),
+                savedAt: Date.now(),
+                officialDbUpdate: true, // Mark as official database-sourced update
+                tabSyncTimestamp: Date.now(), // Used for tab synchronization
+                coolingDown: dbProgress.stage.includes('pause between batches') // Track cooldown state
+              };
+              
+              // FOR MULTI-TAB: Check localStorage but ALWAYS use database values
+              // This guarantees all tabs show the same information
+              const storedProgress = localStorage.getItem('uploadProgress');
+              let localCount = 0;
+              
+              if (storedProgress) {
+                try {
+                  const localProgress = JSON.parse(storedProgress);
+                  localCount = localProgress.processed || 0;
                   
-                  // Update localStorage with the official data - the database is "waking up" localStorage
-                  localStorage.setItem('uploadProgress', JSON.stringify(officialProgress));
-                  console.log('Official database progress saved to localStorage:', officialProgress);
-                } else {
-                  // Local is ahead, keep local count but note in logs
-                  console.log('LOCAL COUNT AHEAD OF DATABASE - Keeping local progress', 
-                    `DB: ${dbProgress.processed}, Local: ${localProgress.processed}`);
+                  // Log the sync event for debugging
+                  if (dbProgress.processed !== localCount) {
+                    console.log('DATABASE COUNT SYNC - Ensuring all tabs show the same data', 
+                      `DB: ${dbProgress.processed}, Local: ${localCount}`);
+                  }
+                } catch (e) {
+                  // Parse error, continue with database values
+                  console.error('Error parsing stored progress, using database values');
                 }
-              } catch (e) {
-                // Error parsing local progress, use database
-                setUploadProgress(officialProgress);
-                localStorage.setItem('uploadProgress', JSON.stringify(officialProgress));
-                console.log('Error parsing local progress, using database:', officialProgress);
               }
-            } else {
-              // No local progress, use database
+              
+              // 1. ALWAYS update UI with database data for consistency
+              setUploadProgress(officialSyncedProgress);
+              
+              // 2. ALWAYS update localStorage with database values for multi-tab consistency
+              localStorage.setItem('uploadProgress', JSON.stringify(officialSyncedProgress));
+              console.log('Official database progress saved to localStorage:', officialSyncedProgress);
+              
+              // 3. Store the DB-local diff for debugging
+              if (dbProgress.processed !== localCount) {
+                localStorage.setItem('lastSyncDiff', JSON.stringify({
+                  db: dbProgress.processed,
+                  local: localCount,
+                  syncTime: new Date().toISOString()
+                }));
+              }
+            } catch (e) {
+              // Error in synchronization 
+              console.error('Error synchronizing with database:', e);
+              
+              // Fallback to database values anyway
               setUploadProgress(officialProgress);
               localStorage.setItem('uploadProgress', JSON.stringify(officialProgress));
-              console.log('Official database progress saved to localStorage:', officialProgress);
             }
           }
         } else {
