@@ -41,6 +41,7 @@ interface UploadProgress {
   timeRemaining?: number;
   processingStats?: ProcessingStats;
   error?: string;
+  coolingDown?: boolean;  // Flag to indicate if currently in cooldown between batches
 }
 
 interface DisasterContextType {
@@ -586,9 +587,25 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
             if (currentTimestamp >= lastTimestamp) {
               // Store the latest progress in localStorage immediately
               // This ensures we don't lose data even if UI updates are debounced
+              
+              // Check if we're in a cooldown state from the stage message
+              const stageLower = progress.stage.toLowerCase();
+              const isCoolingDown = stageLower.includes('pause between batches') || 
+                                   stageLower.includes('cooldown');
+              
+              // Add cooldown flag for the UI to detect
+              if (isCoolingDown) {
+                localStorage.setItem('cooldownActive', 'true');
+                localStorage.setItem('cooldownStartedAt', Date.now().toString());
+              } else {
+                localStorage.removeItem('cooldownActive');
+                localStorage.removeItem('cooldownStartedAt');
+              }
+              
               localStorage.setItem('uploadProgress', JSON.stringify({
                 ...progress,
-                savedAt: now
+                savedAt: now,
+                coolingDown: isCoolingDown
               }));
               localStorage.setItem('lastProgressTimestamp', currentTimestamp.toString());
               
@@ -861,9 +878,25 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
                 if (currentTimestamp >= lastTimestamp) {
                   // Store the latest progress in localStorage immediately
                   // This ensures we don't lose data even if UI updates are debounced
+                  
+                  // Check if we're in a cooldown state from the stage message
+                  const stageLower = progress.stage.toLowerCase();
+                  const isCoolingDown = stageLower.includes('pause between batches') || 
+                                     stageLower.includes('cooldown');
+                  
+                  // Add cooldown flag for the UI to detect
+                  if (isCoolingDown) {
+                    localStorage.setItem('cooldownActive', 'true');
+                    localStorage.setItem('cooldownStartedAt', Date.now().toString());
+                  } else {
+                    localStorage.removeItem('cooldownActive');
+                    localStorage.removeItem('cooldownStartedAt');
+                  }
+                  
                   localStorage.setItem('uploadProgress', JSON.stringify({
                     ...progress,
-                    savedAt: now
+                    savedAt: now,
+                    coolingDown: isCoolingDown
                   }));
                   localStorage.setItem('lastProgressTimestamp', currentTimestamp.toString());
                   

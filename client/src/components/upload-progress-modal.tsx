@@ -18,13 +18,48 @@ import { Button } from "@/components/ui/button";
 import { cancelUpload } from "@/lib/api";
 
 export function UploadProgressModal() {
-  const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
+  const { isUploading, uploadProgress, setIsUploading, setUploadProgress } = useDisasterContext();
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   // Check for server restart protection flag
   const serverRestartProtection = localStorage.getItem('serverRestartProtection') === 'true';
   const serverRestartTime = localStorage.getItem('serverRestartTimestamp');
+  
+  // CRITICAL: On component mount, check if we have state in localStorage that needs to be restored
+  // This ensures the modal and its state persists through page refreshes
+  useEffect(() => {
+    // Always first check localStorage on component mount
+    const storedSessionId = localStorage.getItem('uploadSessionId');
+    const storedIsUploading = localStorage.getItem('isUploading');
+    const storedProgress = localStorage.getItem('uploadProgress');
+    
+    // If we have stored upload state, restore it to ensure persistence
+    if (storedSessionId && storedIsUploading === 'true' && storedProgress) {
+      try {
+        // Force modal to be visible
+        if (!isUploading) {
+          console.log('🚨 RESTORING UPLOAD STATE FROM LOCAL STORAGE AFTER REFRESH');
+          setIsUploading(true);
+          
+          // Also restore the progress data
+          const parsedProgress = JSON.parse(storedProgress);
+          
+          // Add special flag to indicate this was restored from localStorage after refresh
+          parsedProgress.restoredFromLocalStorage = true;
+          
+          // Put the progress into context so it's visible
+          setUploadProgress(parsedProgress);
+          
+          // Mark localStorage with a timestamp to avoid confusion with old data
+          parsedProgress.restoredAt = Date.now();
+          localStorage.setItem('uploadProgress', JSON.stringify(parsedProgress));
+        }
+      } catch (e) {
+        console.error('Error restoring upload state from localStorage:', e);
+      }
+    }
+  }, []);
   
   // Regular check with database boss - if boss says no active sessions but we're showing
   // a modal, boss is right and we should close the modal
@@ -267,8 +302,21 @@ export function UploadProgressModal() {
   // Keep original server values for display
   const processedCount = rawProcessed;
   
-  // Basic state detection - clear, explicit flags
-  const isPaused = stageLower.includes('pause between batches');
+  // IMPROVED COOLDOWN DETECTION: Check for "pause between batches" with enhanced detection
+  // This ensures we properly display the cooldown state especially after page refresh
+  const isPaused = stageLower.includes('pause between batches') || 
+                  stageLower.includes('cooldown') || 
+                  (uploadProgress.coolingDown === true);
+                  
+  // Add a localStorage entry to improve persistence of cooldown state
+  if (isPaused && !localStorage.getItem('cooldownActive')) {
+    localStorage.setItem('cooldownActive', 'true');
+    localStorage.setItem('cooldownStartedAt', Date.now().toString());
+  } else if (!isPaused && localStorage.getItem('cooldownActive')) {
+    localStorage.removeItem('cooldownActive');
+    localStorage.removeItem('cooldownStartedAt');
+  }
+  
   const isLoading = stageLower.includes('loading') || stageLower.includes('preparing');
   const isProcessingRecord = stageLower.includes('processing record') || stageLower.includes('completed record');
   
