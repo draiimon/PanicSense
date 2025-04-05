@@ -163,17 +163,32 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       setIsConnected(true);
     });
 
-    // Listen for messages
+    // Enhanced WebSocket message handler with improved synchronization (2025 version)
     ws.addEventListener('message', (event) => {
       try {
         const data = JSON.parse(event.data);
         
+        // Check for the enhanced broadcast properties (added in server/routes.ts)
+        const broadcastTimestamp = data.timestamp;
+        const broadcastId = data.broadcastId;
+        
+        // Log broadcast receipt for debugging
+        if (broadcastId) {
+          console.log(`📡 Received broadcast ${broadcastId.substring(0, 6)}... from server`);
+        }
+        
         // If this is a progress update message, ensure localStorage is synchronized
-        if (data && data.type === 'progress' && data.sessionId && data.progress) {
+        if (data && data.type === 'progress' && data.progress) {
           const storedSessionId = localStorage.getItem('uploadSessionId');
+          const activeSession = data.sessionId || (data.progress.sessionId);
           
-          // If this progress update is for our active upload session, update localStorage
-          if (storedSessionId === data.sessionId) {
+          // Enhanced progressive update with cooldown detection
+          const isCoolingDown = data.progress.coolingDown;
+          
+          // Check if this update is for the active session
+          const isForActiveSession = storedSessionId === activeSession || !storedSessionId;
+          
+          if (isForActiveSession) {
             try {
               // Parse existing progress if available
               const storedProgress = localStorage.getItem('uploadProgress');
@@ -181,33 +196,81 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
                 const localProgress = JSON.parse(storedProgress);
                 const newProgress = data.progress;
                 
-                // Only update if server has newer/greater count than local
-                if (newProgress.processed > localProgress.processed) {
-                  // Add timestamp and mark as WebSocket update
+                // Enhanced count and timestamp comparison logic
+                const isNewerUpdate = broadcastTimestamp > (localProgress.timestamp || 0);
+                const hasMoreProgress = newProgress.processed > localProgress.processed;
+                const isFromDatabase = data.fromDatabase || data.progress.officialDbUpdate;
+                
+                // Decide whether to update based on multiple factors
+                const shouldUpdate = isNewerUpdate || hasMoreProgress || isFromDatabase;
+                
+                if (shouldUpdate) {
+                  // Create an enhanced progress object with all necessary synchronization flags
                   const syncedProgress = {
                     ...newProgress,
-                    timestamp: Date.now(),
+                    timestamp: broadcastTimestamp || Date.now(),
+                    broadcastId: broadcastId,
                     savedAt: Date.now(),
-                    websocketUpdate: true
+                    websocketUpdate: true,
+                    coolingDown: isCoolingDown, // Explicit cooldown flag
+                    tabSyncTimestamp: Date.now() // Enable cross-tab syncing
                   };
                   
-                  // Update localStorage with newer progress from WebSocket
+                  // Log the update decision reason for debugging
+                  if (hasMoreProgress) {
+                    console.log('📡 WebSocket progress ahead of local - updating localStorage', 
+                      `WS: ${newProgress.processed}, Local: ${localProgress.processed}`);
+                  } else if (isNewerUpdate) {
+                    console.log('📡 WebSocket has newer timestamp - updating localStorage');
+                  } else if (isFromDatabase) {
+                    console.log('📡 Update is from database (official source) - updating localStorage');
+                  }
+                  
+                  // Update localStorage with synchronized data
                   localStorage.setItem('uploadProgress', JSON.stringify(syncedProgress));
-                  console.log('WebSocket progress ahead of local - updating localStorage', 
-                    `WS: ${newProgress.processed}, Local: ${localProgress.processed}`);
+                  
+                  // Broadcast to other tabs that we've updated
+                  localStorage.setItem('lastTabSync', JSON.stringify({
+                    timestamp: Date.now(),
+                    broadcastId: broadcastId,
+                    processed: newProgress.processed,
+                    source: 'websocket'
+                  }));
+                } else {
+                  console.log('📡 Ignoring WebSocket update (not newer or higher count)');
                 }
+              } else {
+                // No existing progress, just store the new progress
+                const syncedProgress = {
+                  ...data.progress,
+                  timestamp: broadcastTimestamp || Date.now(),
+                  savedAt: Date.now(),
+                  websocketUpdate: true,
+                  coolingDown: isCoolingDown,
+                  tabSyncTimestamp: Date.now()
+                };
+                localStorage.setItem('uploadProgress', JSON.stringify(syncedProgress));
+                console.log('📡 No existing localStorage progress - initializing from WebSocket');
               }
             } catch (e) {
-              // Error handling localStorage, just continue
-              console.error('Error handling WebSocket progress in localStorage', e);
+              // Error handling localStorage, log and continue
+              console.error('❌ Error handling WebSocket progress in localStorage', e);
             }
           }
         }
         
-        // Set the last message received for context consumers
-        setLastMessage(data);
+        // Add to pending updates with deduplication
+        const updateKey = `${data.type}_${broadcastId || Date.now()}`;
+        pendingUpdatesRef.current[updateKey] = data;
+        
+        // Debounce the updates to prevent UI flickering
+        if (debounceTimerRef.current === null) {
+          debounceTimerRef.current = window.setTimeout(() => {
+            processPendingUpdates();
+          }, 50); // 50ms debounce to smooth updates
+        }
       } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
+        console.error('❌ Failed to parse WebSocket message:', error);
       }
     });
 

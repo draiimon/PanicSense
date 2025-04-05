@@ -56,62 +56,126 @@ const uploadProgressMap = new Map<string, {
 // Track connected WebSocket clients
 const connectedClients = new Set<WebSocket>();
 
-// Improved broadcastUpdate function with timestamp-based consistency
+// SUPER ENHANCED BROADCAST FUNCTION (2025 VERSION)
+// Reliable broadcasting to all connected clients with verification, cooldown detection and logging
 function broadcastUpdate(data: any) {
-  // Add timestamp to all messages for client-side ordering and deduplication
-  // This is critical for solving the counter flickering issues when multiple progress
-  // sources (WebSocket, EventSource) send competing updates
-  data.timestamp = Date.now();
+  // Add consistent timestamp to all messages for client-side ordering and deduplication
+  const broadcastTimestamp = Date.now();
+  const broadcastId = Math.random().toString(36).substring(2, 15); // Unique ID for this broadcast
+  
+  // Validate broadcast data
+  if (!data || typeof data !== 'object') {
+    console.error('❌ Invalid broadcast data:', data);
+    return 0;
+  }
+  
+  // Add timestamps to base data
+  data.timestamp = broadcastTimestamp;
+  data.broadcastId = broadcastId;
   
   if (data.type === 'progress') {
     try {
-      // Add timestamp to the progress data as well
+      // Add timestamp to the progress data as well for synchronization
       if (data.progress && typeof data.progress === 'object') {
-        data.progress.timestamp = data.timestamp;
+        data.progress.timestamp = broadcastTimestamp;
+        data.progress.broadcastId = broadcastId;
       }
       
-      // Handle Python service progress messages
+      // Handle Python service progress messages with enhanced detection
       const progressStr = data.progress?.stage || '';
+      const isCoolingDown = progressStr.includes('Cooling down') || progressStr.includes('Waiting');
       const matches = progressStr.match(/(\d+)\/(\d+)/);
       const currentRecord = matches ? parseInt(matches[1]) : 0;
       const totalRecords = matches ? parseInt(matches[2]) : data.progress?.total || 0;
       const processedCount = data.progress?.processed || currentRecord;
 
-      // Create enhanced progress object with timestamp
+      // Calculate batch-based metrics for better time estimations
+      const RECORDS_PER_BATCH = 30;
+      const currentBatch = Math.ceil(processedCount / RECORDS_PER_BATCH);
+      const totalBatches = Math.ceil(totalRecords / RECORDS_PER_BATCH);
+      
+      // Create enhanced progress object with consistent timestamps and cooldown flag
       const enhancedProgress = {
         type: 'progress',
-        timestamp: Date.now(), // Add timestamp at message level
+        timestamp: broadcastTimestamp,
+        broadcastId: broadcastId,
         progress: {
           processed: processedCount,
           total: totalRecords,
           stage: data.progress?.stage || 'Processing...',
-          batchNumber: currentRecord,
-          totalBatches: totalRecords,
+          batchNumber: currentBatch, 
+          totalBatches: totalBatches,
           batchProgress: totalRecords > 0 ? Math.round((processedCount / totalRecords) * 100) : 0,
           currentSpeed: data.progress?.currentSpeed || 0,
           timeRemaining: data.progress?.timeRemaining || 0,
           processingStats: {
             successCount: processedCount,
             errorCount: data.progress?.processingStats?.errorCount || 0,
+            lastBatchDuration: data.progress?.processingStats?.lastBatchDuration || 0,
             averageSpeed: data.progress?.processingStats?.averageSpeed || 0
           },
-          timestamp: Date.now() // Add timestamp inside progress object for client deduplication
+          coolingDown: isCoolingDown, // Explicit cooldown flag for UI feedback
+          timestamp: broadcastTimestamp, // Consistent timestamp for all levels
+          broadcastId: broadcastId // Tracking ID for debugging
         }
       };
 
-      // Send to all connected clients
+      // Track successful broadcasts for reliability monitoring
+      let successCount = 0;
+      const totalClients = connectedClients.size;
+
+      // Send to all connected clients with enhanced reliability
       const message = JSON.stringify(enhancedProgress);
+      
+      // Log the broadcast intention (helpful for debugging sync issues)
+      console.log(`🔄 Broadcasting progress update to ${totalClients} clients:`, 
+        `Record ${processedCount}/${totalRecords}, ${isCoolingDown ? 'COOLDOWN' : 'ACTIVE'}`);
+      
       connectedClients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
           try {
             client.send(message);
+            successCount++;
           } catch (error) {
-            console.error('Failed to send WebSocket message:', error);
+            console.error('❌ Failed to send WebSocket message:', error);
           }
         }
       });
+      
+      // Log broadcast results for debugging
+      if (successCount > 0) {
+        console.log(`✅ Broadcast complete: ${successCount}/${totalClients} clients updated`);
+      } else if (totalClients > 0) {
+        console.warn(`⚠️ No clients received the broadcast despite ${totalClients} connected`);
+      }
+      
+      return successCount;
     } catch (error) {
-      console.error('Error processing progress update:', error);
+      console.error('❌ Error processing progress update:', error);
+      return 0;
+    }
+  } else {
+    // For non-progress messages
+    try {
+      const message = JSON.stringify(data);
+      let successCount = 0;
+      const totalClients = connectedClients.size;
+      
+      connectedClients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          try {
+            client.send(message);
+            successCount++;
+          } catch (error) {
+            console.error('❌ Failed to send WebSocket message:', error);
+          }
+        }
+      });
+      
+      return successCount;
+    } catch (error) {
+      console.error('❌ Error broadcasting non-progress message:', error);
+      return 0;
     }
   }
 }
