@@ -9,14 +9,14 @@ pip3 install -r python-requirements.txt
 mkdir -p /usr/share/nltk_data
 python3 -m nltk.downloader -d /usr/share/nltk_data punkt vader_lexicon stopwords wordnet
 
-# Ensure uploads directory exists
-mkdir -p uploads
-touch uploads/.gitkeep
+# Create necessary directories
+mkdir -p uploads/temp
+mkdir -p attached_assets
 
-# Run database migrations
-pnpm run db:push
+# Run database migrations and initialization
+node migrations/run-migrations.js
 
 # Build the application
-pnpm run build
+npm run build
 
 echo "Render setup completed successfully!"

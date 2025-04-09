@@ -132,6 +132,38 @@ export async function cancelUpload(): Promise<{ success: boolean; message: strin
   return { success: false, message: 'No active upload to cancel' };
 }
 
+// Reset all upload sessions (emergency function)
+export async function resetAllUploadSessions(): Promise<{success: boolean, message: string}> {
+  try {
+    // Call the server to reset all upload sessions
+    const response = await apiRequest('POST', '/api/reset-upload-sessions');
+    const result = await response.json();
+    
+    // Reset the current session ID
+    currentUploadSessionId = null;
+    
+    // Clear localStorage
+    localStorage.removeItem('isUploading');
+    localStorage.removeItem('uploadProgress');
+    localStorage.removeItem('uploadSessionId');
+    localStorage.removeItem('lastProgressTimestamp');
+    localStorage.removeItem('lastDatabaseCheck');
+    localStorage.removeItem('serverRestartProtection');
+    localStorage.removeItem('serverRestartTimestamp');
+    localStorage.removeItem('cooldownActive');
+    localStorage.removeItem('cooldownStartedAt');
+    localStorage.removeItem('lastTabSync');
+    
+    return result;
+  } catch (error) {
+    console.error('Error resetting upload sessions:', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to reset upload sessions' 
+    };
+  }
+}
+
 // Return the current upload session ID with database support
 export function getCurrentUploadSessionId(): string | null {
   // First check the memory variable
