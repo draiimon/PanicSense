@@ -799,8 +799,7 @@ class DisasterSentimentBackend:
                     Respond ONLY in JSON format: {"sentiment": "category", "confidence": score, "explanation": "explanation", "disasterType": "type", "location": "location"}"""
 
                 data = {
-                    "model":
-                    "gemma2-9b-it",
+                    "model": "llama3-70b-8192",
                     "messages": [{
                         "role": "system",
                         "content": system_message
