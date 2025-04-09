@@ -14,11 +14,47 @@ export async function simpleDbFix() {
     // Create a connection
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false
+      }
     });
     
-    // Just create tables with all columns included
+    // Create user table first - needed for foreign keys
     await pool.query(`
-    -- sentiment_posts table with all columns
+    -- Create users table if it doesn't exist
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username TEXT NOT NULL UNIQUE,
+      password TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      full_name TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      role TEXT DEFAULT 'user' NOT NULL
+    );
+    
+    -- Create analyzed_files table if it doesn't exist
+    CREATE TABLE IF NOT EXISTS analyzed_files (
+      id SERIAL PRIMARY KEY,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL,
+      timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+      record_count INTEGER NOT NULL,
+      evaluation_metrics JSONB,
+      uploaded_by INTEGER
+    );
+
+    -- Now we can create other tables with their foreign key references
+    
+    -- Create sessions table if it doesn't exist
+    CREATE TABLE IF NOT EXISTS sessions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      expires_at TIMESTAMP NOT NULL
+    );
+    
+    -- Create sentiment_posts table with all columns
     CREATE TABLE IF NOT EXISTS sentiment_posts (
       id SERIAL PRIMARY KEY,
       text TEXT NOT NULL,
@@ -34,8 +70,30 @@ export async function simpleDbFix() {
       processed_by INTEGER,
       ai_trust_message TEXT
     );
+    
+    -- Create disaster_events table if it doesn't exist
+    CREATE TABLE IF NOT EXISTS disaster_events (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+      location TEXT,
+      type TEXT NOT NULL,
+      sentiment_impact TEXT,
+      created_by INTEGER
+    );
+    
+    -- Create profile_images table if it doesn't exist
+    CREATE TABLE IF NOT EXISTS profile_images (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      image_url TEXT NOT NULL,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
 
-    -- training_examples table
+    -- Create training_examples table
     CREATE TABLE IF NOT EXISTS training_examples (
       id SERIAL PRIMARY KEY,
       text TEXT NOT NULL,
@@ -49,10 +107,10 @@ export async function simpleDbFix() {
       CONSTRAINT training_examples_text_key_unique UNIQUE(text_key)
     );
     
-    -- sentiment_feedback table with all needed columns
+    -- Create sentiment_feedback table with all needed columns
     CREATE TABLE IF NOT EXISTS sentiment_feedback (
       id SERIAL PRIMARY KEY,
-      original_post_id INTEGER REFERENCES sentiment_posts(id) ON DELETE CASCADE,
+      original_post_id INTEGER,
       original_text TEXT NOT NULL,
       original_sentiment TEXT NOT NULL,
       corrected_sentiment TEXT DEFAULT '',
@@ -60,29 +118,33 @@ export async function simpleDbFix() {
       corrected_disaster_type TEXT,
       trained_on BOOLEAN DEFAULT false,
       created_at TIMESTAMP DEFAULT NOW(),
-      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      user_id INTEGER,
       ai_trust_message TEXT,
       possible_trolling BOOLEAN DEFAULT false
     );
     
-    -- upload_sessions table for tracking file uploads
+    -- Create upload_sessions table for tracking file uploads
     CREATE TABLE IF NOT EXISTS upload_sessions (
       id SERIAL PRIMARY KEY,
       session_id TEXT NOT NULL UNIQUE,
       status TEXT NOT NULL DEFAULT 'active',
-      file_id INTEGER REFERENCES analyzed_files(id) ON DELETE SET NULL,
-      progress JSON,
+      file_id INTEGER,
+      progress JSONB,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+      user_id INTEGER,
+      server_start_timestamp TEXT
     );
     `);
     
-    // Verify
+    // Verify the tables were created
     const result = await pool.query(`
       SELECT 
-        EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'sentiment_posts' AND column_name = 'ai_trust_message') as col_exists,
-        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'training_examples') as table_exists,
+        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') as users_exists,
+        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'analyzed_files') as analyzed_files_exists,
+        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'sentiment_posts') as sentiment_posts_exists,
+        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'disaster_events') as disaster_events_exists,
+        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'training_examples') as training_examples_exists,
         EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'sentiment_feedback') as feedback_exists,
         EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'upload_sessions') as upload_sessions_exists
     `);
