@@ -18,88 +18,13 @@ import { Button } from "@/components/ui/button";
 import { cancelUpload } from "@/lib/api";
 
 export function UploadProgressModal() {
-  const { isUploading, uploadProgress, setIsUploading, setUploadProgress } = useDisasterContext();
+  const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   // Check for server restart protection flag
   const serverRestartProtection = localStorage.getItem('serverRestartProtection') === 'true';
   const serverRestartTime = localStorage.getItem('serverRestartTimestamp');
-  
-  // CRITICAL: On component mount, check if we have state in localStorage that needs to be restored
-  // This ensures the modal and its state persists through page refreshes
-  useEffect(() => {
-    // Always first check localStorage on component mount
-    const storedSessionId = localStorage.getItem('uploadSessionId');
-    const storedIsUploading = localStorage.getItem('isUploading');
-    const storedProgress = localStorage.getItem('uploadProgress');
-    
-    // If we have stored upload state, restore it to ensure persistence
-    if (storedSessionId && storedIsUploading === 'true' && storedProgress) {
-      try {
-        // Parse stored progress
-        const parsedProgress = JSON.parse(storedProgress);
-        
-        // Check for error state in the stage property
-        const hasError = parsedProgress.stage?.toLowerCase().includes('error');
-        
-        if (hasError) {
-          console.log('🚨 DETECTED ERROR STATE IN STORED PROGRESS - CLEANING UP');
-          
-          // Emergency cleanup on error detection
-          localStorage.removeItem('isUploading');
-          localStorage.removeItem('uploadProgress');
-          localStorage.removeItem('uploadSessionId');
-          localStorage.removeItem('uploadStartTime');
-          localStorage.removeItem('lastProgressTimestamp');
-          localStorage.removeItem('lastDatabaseCheck');
-          localStorage.removeItem('serverRestartProtection');
-          localStorage.removeItem('serverRestartTimestamp');
-          localStorage.removeItem('cooldownActive'); 
-          localStorage.removeItem('cooldownStartedAt');
-          localStorage.removeItem('lastTabSync');
-          
-          // Set UI to non-uploading state
-          setIsUploading(false);
-          return;
-        }
-        
-        // For non-error states, restore modal visibility
-        if (!isUploading) {
-          console.log('🚨 RESTORING UPLOAD STATE FROM LOCAL STORAGE AFTER REFRESH');
-          setIsUploading(true);
-          
-          // Add special flag to indicate this was restored from localStorage after refresh
-          parsedProgress.restoredFromLocalStorage = true;
-          
-          // Put the progress into context so it's visible
-          setUploadProgress(parsedProgress);
-          
-          // Mark localStorage with a timestamp to avoid confusion with old data
-          parsedProgress.restoredAt = Date.now();
-          localStorage.setItem('uploadProgress', JSON.stringify(parsedProgress));
-        }
-      } catch (e) {
-        console.error('Error restoring upload state from localStorage:', e);
-        
-        // On any error, clean up ALL localStorage to prevent stuck states
-        localStorage.removeItem('isUploading');
-        localStorage.removeItem('uploadProgress');
-        localStorage.removeItem('uploadSessionId');
-        localStorage.removeItem('uploadStartTime');
-        localStorage.removeItem('lastProgressTimestamp');
-        localStorage.removeItem('lastDatabaseCheck');
-        localStorage.removeItem('serverRestartProtection');
-        localStorage.removeItem('serverRestartTimestamp');
-        localStorage.removeItem('cooldownActive'); 
-        localStorage.removeItem('cooldownStartedAt');
-        localStorage.removeItem('lastTabSync');
-        
-        // Set UI to non-uploading state
-        setIsUploading(false);
-      }
-    }
-  }, []);
   
   // Regular check with database boss - if boss says no active sessions but we're showing
   // a modal, boss is right and we should close the modal
@@ -138,58 +63,6 @@ export function UploadProgressModal() {
               // If we already have sessionId in localStorage, update it if different
               if (storedSessionId !== data.sessionId) {
                 localStorage.setItem('uploadSessionId', data.sessionId);
-              }
-              
-              // ALWAYS FORCE DATABASE VALUES - Critical for multi-tab consistency
-              if (data.progress) {
-                try {
-                  // Parse database progress
-                  const dbProgress = typeof data.progress === 'string' 
-                    ? JSON.parse(data.progress) 
-                    : data.progress;
-                  
-                  // Parse local progress for debugging only  
-                  const localProgress = storedUploadProgress 
-                    ? JSON.parse(storedUploadProgress)
-                    : null;
-                  
-                  // STRONG CONSISTENCY: Always use database value regardless of count
-                  // This is critical for multi-tab consistency - every tab must show exactly
-                  // the same information. Overwrite local values EVERY time.
-                  
-                  // Add timestamps and mark as official database data
-                  const officialData = {
-                    ...dbProgress,
-                    timestamp: Date.now(),
-                    savedAt: Date.now(),
-                    officialDbUpdate: true,
-                    tabSyncTimestamp: Date.now(), // Used for tab synchronization
-                    coolingDown: dbProgress.stage && dbProgress.stage.includes('pause between batches') // Track cooldown state
-                  };
-                  
-                  // Log for debugging purposes only
-                  if (localProgress && dbProgress.processed !== localProgress.processed) {
-                    console.log('DATABASE COUNT AHEAD OF LOCAL - Syncing to database', 
-                      `DB: ${dbProgress.processed}, Local: ${localProgress.processed}`);
-                  }
-                  
-                  // ALWAYS save to localStorage to ensure CONSISTENT display across tabs
-                  localStorage.setItem('uploadProgress', JSON.stringify(officialData));
-                  
-                  // Create special event for cross-tab communication
-                  try {
-                    // Use localStorage event for cross-tab communication
-                    localStorage.setItem('lastTabSync', JSON.stringify({
-                      timestamp: Date.now(),
-                      processed: dbProgress.processed,
-                      stage: dbProgress.stage
-                    }));
-                  } catch (e) {
-                    // Ignore errors in cross-tab communication
-                  }
-                } catch (e) {
-                  console.error('Error comparing progress data:', e);
-                }
               }
             }
           }
@@ -342,21 +215,8 @@ export function UploadProgressModal() {
   // Keep original server values for display
   const processedCount = rawProcessed;
   
-  // IMPROVED COOLDOWN DETECTION: Check for "pause between batches" with enhanced detection
-  // This ensures we properly display the cooldown state especially after page refresh
-  const isPaused = stageLower.includes('pause between batches') || 
-                  stageLower.includes('cooldown') || 
-                  (uploadProgress.coolingDown === true);
-                  
-  // Add a localStorage entry to improve persistence of cooldown state
-  if (isPaused && !localStorage.getItem('cooldownActive')) {
-    localStorage.setItem('cooldownActive', 'true');
-    localStorage.setItem('cooldownStartedAt', Date.now().toString());
-  } else if (!isPaused && localStorage.getItem('cooldownActive')) {
-    localStorage.removeItem('cooldownActive');
-    localStorage.removeItem('cooldownStartedAt');
-  }
-  
+  // Basic state detection - clear, explicit flags
+  const isPaused = stageLower.includes('pause between batches');
   const isLoading = stageLower.includes('loading') || stageLower.includes('preparing');
   const isProcessingRecord = stageLower.includes('processing record') || stageLower.includes('completed record');
   
@@ -380,193 +240,26 @@ export function UploadProgressModal() {
   // Check for cancellation
   const isCancelled = stageLower.includes('cancel');
   
-  // Improved error detection with auto-close
+  // Improved error detection
   const hasError = stageLower.includes('error');
   
-  // Auto-close on error or completion after a delay
-  useEffect(() => {
-    if (hasError || isComplete || isCancelled) {
-      // Start a more reliable auto-close timer after 5 seconds
-      const autoCloseTimer = setTimeout(() => {
-        console.log(`🔄 Auto-closing upload modal: Error=${hasError}, Complete=${isComplete}, Cancelled=${isCancelled}`);
-        
-        // ENHANCED CLEANUP: Clear ALL localStorage state
-        localStorage.removeItem('isUploading');
-        localStorage.removeItem('uploadProgress');
-        localStorage.removeItem('uploadSessionId');
-        localStorage.removeItem('uploadStartTime');
-        localStorage.removeItem('lastProgressTimestamp');
-        localStorage.removeItem('lastDatabaseCheck');
-        localStorage.removeItem('serverRestartProtection');
-        localStorage.removeItem('serverRestartTimestamp');
-        localStorage.removeItem('cooldownActive');
-        localStorage.removeItem('cooldownStartedAt');
-        localStorage.removeItem('lastTabSync');
-        
-        // Notify other tabs about the shutdown
-        try {
-          localStorage.setItem('modalClosed', JSON.stringify({
-            timestamp: Date.now(),
-            reason: hasError ? 'error' : (isComplete ? 'complete' : 'cancelled')
-          }));
-        } catch (e) {
-          // Ignore errors in cross-tab communication
-        }
-        
-        // Force server cleanup after auto-close
-        fetch('/api/reset-upload-sessions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        }).catch(() => {});
-        localStorage.removeItem('lastTabSync');
-        
-        // Clean up any existing EventSource connections
-        if (window._activeEventSources) {
-          Object.values(window._activeEventSources).forEach(source => {
-            try {
-              source.close();
-            } catch (e) {
-              // Ignore errors on close
-            }
-          });
-          // Reset the collection
-          window._activeEventSources = {};
-        }
-        
-        // Update context state to close the modal
-        setIsUploading(false);
-      }, 5000); // 5 second delay for user to see the final status
-      
-      // Cleanup timer on unmount
-      return () => clearTimeout(autoCloseTimer);
-    }
-  }, [hasError, isComplete, isCancelled, setIsUploading]);
-  
-  // SUPER ENHANCED 2025 VERSION: Calculate time remaining in human-readable format
-  // with critical improvements to prevent time jumps and ensure consistent estimates
+  // Calculate time remaining in human-readable format
   const formatTimeRemaining = (seconds: number): string => {
-    // NEVER SHOW "CALCULATING..." - Always show a time estimate
-    // Even if no time is provided or if it's 0, calculate one based on record count and processing speed
-
-    // Detect cooldown state from stage text or coolingDown flag
-    const isCoolingDown = stageLower.includes('pause between batches') || 
-                          stageLower.includes('cooling down') || 
-                          uploadProgress.coolingDown === true;
+    if (!seconds || seconds <= 0) return 'calculating...';
     
-    // Constants specified by user requirements for consistency across all calculations
-    const SECONDS_PER_RECORD = 3; // Each record takes exactly 3 seconds to process (user requirement)
-    const BATCH_SIZE = 30; // Process in batches of 30 records (user requirement)
-    const COOLDOWN_SECONDS = 60; // Exactly 60 second cooldown between batches (user requirement)
-    
-    // For datasets over 3000 records, add 50% more processing time to prevent sudden time jumps
-    // This adjustment should be applied consistently at all calculation points
-    const adjustmentFactor = total > 3000 ? 1.5 : 1.0;
-    
-    // Calculate remaining records and batches with enhanced precision
-    const recordsRemaining = Math.max(0, total - processedCount);
-    const currentBatch = Math.ceil(processedCount / BATCH_SIZE);
-    const totalBatches = Math.ceil(total / BATCH_SIZE);
-    const remainingBatches = Math.max(0, totalBatches - currentBatch);
-    
-    // Enhanced calculation of processing and cooldown times
-    const processingTimeSeconds = recordsRemaining * SECONDS_PER_RECORD * adjustmentFactor;
-    const cooldownTimeSeconds = remainingBatches * COOLDOWN_SECONDS;
-    
-    // If we're currently in a cooldown period, extract the remaining cooldown time
-    let currentCooldownRemaining = 0;
-    if (isCoolingDown) {
-      // Extract remaining seconds from stage text (e.g., "60-second pause between batches: 42 seconds remaining")
-      const cooldownMatch = stageLower.match(/(\d+)\s*seconds? remaining/i);
-      if (cooldownMatch && cooldownMatch[1]) {
-        currentCooldownRemaining = parseInt(cooldownMatch[1], 10);
-        console.log(`📊 Cooldown detected: ${currentCooldownRemaining} seconds remaining`);
-      }
+    // Calculate a realistic time remaining based on processed records and speed
+    // This ensures we're showing updated time even if server doesn't update timeRemaining
+    let calculatedTimeRemaining = seconds;
+    if (currentSpeed > 0 && total > processedCount) {
+      // Calculate time remaining based on current speed and records left
+      const recordsRemaining = total - processedCount;
+      calculatedTimeRemaining = recordsRemaining / currentSpeed;
     }
     
-    // Combine for total estimated time (current cooldown + remaining processing + remaining cooldowns)
-    let calculatedTimeRemaining = currentCooldownRemaining + processingTimeSeconds + cooldownTimeSeconds;
+    // Use the smaller of the two values to be more accurate
+    // This prevents stale timeRemaining values from server
+    const actualSeconds = Math.min(calculatedTimeRemaining, seconds);
     
-    // Force minimum time thresholds based on total records and current progress
-    // This ensures larger datasets always show realistic times for the UI
-    let minimumTimeSeconds = 0;
-    
-    // Enhanced minimum threshold logic with more granular stages for larger datasets
-    if (total > 3000) {
-      // For datasets over 3000 records (enhanced thresholds to prevent time jumps)
-      if (processedCount < total * 0.05) {
-        // Very beginning of processing (first 5%)
-        minimumTimeSeconds = 5 * 60 * 60; // 5 hours minimum for initial display
-      } else if (processedCount < total * 0.1) {
-        // Early in processing (5-10%)
-        minimumTimeSeconds = 4 * 60 * 60; // 4 hours minimum
-      } else if (processedCount < total * 0.25) {
-        // First quarter (10-25%)
-        minimumTimeSeconds = 3 * 60 * 60; // 3 hours minimum
-      } else if (processedCount < total * 0.5) {
-        // Approaching middle (25-50%)
-        minimumTimeSeconds = 2 * 60 * 60; // 2 hours minimum
-      } else if (processedCount < total * 0.75) {
-        // Third quarter (50-75%)
-        minimumTimeSeconds = 1 * 60 * 60; // 1 hour minimum
-      } else if (processedCount < total * 0.9) {
-        // Final stretch (75-90%)
-        minimumTimeSeconds = 30 * 60; // 30 minutes minimum
-      } else {
-        // Almost done (90-100%)
-        minimumTimeSeconds = 15 * 60; // 15 minutes minimum
-      }
-    } else if (total > 1000) {
-      // For medium-sized datasets (1000-3000 records)
-      if (processedCount < total * 0.25) {
-        minimumTimeSeconds = 90 * 60; // 1.5 hour for early stages
-      } else if (processedCount < total * 0.5) {
-        minimumTimeSeconds = 60 * 60; // 1 hour for middle stages
-      } else if (processedCount < total * 0.75) {
-        minimumTimeSeconds = 30 * 60; // 30 minutes for later stages
-      }
-    }
-    
-    // Apply minimum time if our calculation is too optimistic
-    if (calculatedTimeRemaining < minimumTimeSeconds) {
-      calculatedTimeRemaining = minimumTimeSeconds;
-    }
-    
-    // CRITICAL: Prevent sudden time jumps (like 2.5 hours to 5 minutes) by smoothing changes
-    // This is specifically to fix the user-reported issue with larger datasets
-    if (timeRemaining > 0) {
-      // For larger time estimates, use more aggressive smoothing to prevent drastic drops
-      // Adjust the max reduction percentage based on current progress
-      let maxReductionPercentage = 0.05; // Default: Maximum 5% reduction per update
-      
-      // Apply more conservative smoothing for larger datasets and longer timeframes
-      if (total > 3000 && timeRemaining > 60 * 60) {
-        maxReductionPercentage = 0.03; // Only 3% reduction for very large datasets with hours remaining
-      } else if (timeRemaining > 30 * 60) {
-        maxReductionPercentage = 0.04; // 4% for medium timeframes
-      }
-      
-      const minAllowedEstimate = timeRemaining * (1 - maxReductionPercentage);
-      
-      // Only allow small percentage drop at a time for large time estimates
-      if (timeRemaining > 15 * 60 && calculatedTimeRemaining < minAllowedEstimate) {
-        calculatedTimeRemaining = minAllowedEstimate;
-        console.log('🔒 PREVENTING TIME JUMP: Smoothed time estimate', 
-          `Old: ${Math.round(timeRemaining/60)}m, New: ${Math.round(calculatedTimeRemaining/60)}m`);
-      }
-    }
-    
-    // Finally, if we have a server-provided time estimate that's reasonable, use weighted average
-    if (seconds > 0 && seconds !== calculatedTimeRemaining) {
-      // For non-zero server times, use a weighted average to smooth transitions
-      // Give more weight to our calculated time to ensure consistency
-      calculatedTimeRemaining = (calculatedTimeRemaining * 0.75) + (seconds * 0.25);
-    }
-    
-    // Always return a formatted time string, NEVER "calculating..."
-    // Set absolute minimum to 30 seconds to avoid showing unrealistically short times
-    const actualSeconds = Math.max(30, calculatedTimeRemaining);
-    
-    // Format the time in a user-friendly way
     // Less than a minute
     if (actualSeconds < 60) return `${Math.ceil(actualSeconds)} sec`;
     
@@ -811,8 +504,6 @@ export function UploadProgressModal() {
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Est. Time Left</span>
                     </div>
                     <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                      {/* Enhanced time calculation - will NEVER show "calculating..." 
-                          Always calculates a realistic estimate based on records & processing speed */}
                       {formatTimeRemaining(timeRemaining)}
                     </span>
                   </div>

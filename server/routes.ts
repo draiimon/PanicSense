@@ -56,126 +56,62 @@ const uploadProgressMap = new Map<string, {
 // Track connected WebSocket clients
 const connectedClients = new Set<WebSocket>();
 
-// SUPER ENHANCED BROADCAST FUNCTION (2025 VERSION)
-// Reliable broadcasting to all connected clients with verification, cooldown detection and logging
+// Improved broadcastUpdate function with timestamp-based consistency
 function broadcastUpdate(data: any) {
-  // Add consistent timestamp to all messages for client-side ordering and deduplication
-  const broadcastTimestamp = Date.now();
-  const broadcastId = Math.random().toString(36).substring(2, 15); // Unique ID for this broadcast
-  
-  // Validate broadcast data
-  if (!data || typeof data !== 'object') {
-    console.error('❌ Invalid broadcast data:', data);
-    return 0;
-  }
-  
-  // Add timestamps to base data
-  data.timestamp = broadcastTimestamp;
-  data.broadcastId = broadcastId;
+  // Add timestamp to all messages for client-side ordering and deduplication
+  // This is critical for solving the counter flickering issues when multiple progress
+  // sources (WebSocket, EventSource) send competing updates
+  data.timestamp = Date.now();
   
   if (data.type === 'progress') {
     try {
-      // Add timestamp to the progress data as well for synchronization
+      // Add timestamp to the progress data as well
       if (data.progress && typeof data.progress === 'object') {
-        data.progress.timestamp = broadcastTimestamp;
-        data.progress.broadcastId = broadcastId;
+        data.progress.timestamp = data.timestamp;
       }
       
-      // Handle Python service progress messages with enhanced detection
+      // Handle Python service progress messages
       const progressStr = data.progress?.stage || '';
-      const isCoolingDown = progressStr.includes('Cooling down') || progressStr.includes('Waiting');
       const matches = progressStr.match(/(\d+)\/(\d+)/);
       const currentRecord = matches ? parseInt(matches[1]) : 0;
       const totalRecords = matches ? parseInt(matches[2]) : data.progress?.total || 0;
       const processedCount = data.progress?.processed || currentRecord;
 
-      // Calculate batch-based metrics for better time estimations
-      const RECORDS_PER_BATCH = 30;
-      const currentBatch = Math.ceil(processedCount / RECORDS_PER_BATCH);
-      const totalBatches = Math.ceil(totalRecords / RECORDS_PER_BATCH);
-      
-      // Create enhanced progress object with consistent timestamps and cooldown flag
+      // Create enhanced progress object with timestamp
       const enhancedProgress = {
         type: 'progress',
-        timestamp: broadcastTimestamp,
-        broadcastId: broadcastId,
+        timestamp: Date.now(), // Add timestamp at message level
         progress: {
           processed: processedCount,
           total: totalRecords,
           stage: data.progress?.stage || 'Processing...',
-          batchNumber: currentBatch, 
-          totalBatches: totalBatches,
+          batchNumber: currentRecord,
+          totalBatches: totalRecords,
           batchProgress: totalRecords > 0 ? Math.round((processedCount / totalRecords) * 100) : 0,
           currentSpeed: data.progress?.currentSpeed || 0,
           timeRemaining: data.progress?.timeRemaining || 0,
           processingStats: {
             successCount: processedCount,
             errorCount: data.progress?.processingStats?.errorCount || 0,
-            lastBatchDuration: data.progress?.processingStats?.lastBatchDuration || 0,
             averageSpeed: data.progress?.processingStats?.averageSpeed || 0
           },
-          coolingDown: isCoolingDown, // Explicit cooldown flag for UI feedback
-          timestamp: broadcastTimestamp, // Consistent timestamp for all levels
-          broadcastId: broadcastId // Tracking ID for debugging
+          timestamp: Date.now() // Add timestamp inside progress object for client deduplication
         }
       };
 
-      // Track successful broadcasts for reliability monitoring
-      let successCount = 0;
-      const totalClients = connectedClients.size;
-
-      // Send to all connected clients with enhanced reliability
+      // Send to all connected clients
       const message = JSON.stringify(enhancedProgress);
-      
-      // Log the broadcast intention (helpful for debugging sync issues)
-      console.log(`🔄 Broadcasting progress update to ${totalClients} clients:`, 
-        `Record ${processedCount}/${totalRecords}, ${isCoolingDown ? 'COOLDOWN' : 'ACTIVE'}`);
-      
       connectedClients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
           try {
             client.send(message);
-            successCount++;
           } catch (error) {
-            console.error('❌ Failed to send WebSocket message:', error);
+            console.error('Failed to send WebSocket message:', error);
           }
         }
       });
-      
-      // Log broadcast results for debugging
-      if (successCount > 0) {
-        console.log(`✅ Broadcast complete: ${successCount}/${totalClients} clients updated`);
-      } else if (totalClients > 0) {
-        console.warn(`⚠️ No clients received the broadcast despite ${totalClients} connected`);
-      }
-      
-      return successCount;
     } catch (error) {
-      console.error('❌ Error processing progress update:', error);
-      return 0;
-    }
-  } else {
-    // For non-progress messages
-    try {
-      const message = JSON.stringify(data);
-      let successCount = 0;
-      const totalClients = connectedClients.size;
-      
-      connectedClients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-          try {
-            client.send(message);
-            successCount++;
-          } catch (error) {
-            console.error('❌ Failed to send WebSocket message:', error);
-          }
-        }
-      });
-      
-      return successCount;
-    } catch (error) {
-      console.error('❌ Error broadcasting non-progress message:', error);
-      return 0;
+      console.error('Error processing progress update:', error);
     }
   }
 }
@@ -195,54 +131,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Create a test session ID
     const sessionId = `test-${Date.now()}`;
     
-    // Get the requested total records from query parameter, default to 1000
-    const totalRecords = parseInt(req.query.records as string, 10) || 1000;
-    
-    // Set parameters exactly matching what we use in the real code
-    const RECORDS_PER_BATCH = 30;
-    const SECONDS_PER_RECORD = 3;
-    const PAUSE_SECONDS_PER_BATCH = 60;
-    
-    // Calculate all required values
-    const processingTime = totalRecords * SECONDS_PER_RECORD;
-    const batches = Math.ceil(totalRecords / RECORDS_PER_BATCH);
-    const pauseTime = batches * PAUSE_SECONDS_PER_BATCH;
-    
-    // Total time is processing + pause time
-    const durationSeconds = processingTime + pauseTime;
-    
-    // For large datasets (3000+ records), add additional processing time multiplier
-    let adjustedDuration = durationSeconds;
-    if (totalRecords > 3000) {
-      // Add 50% more time for large datasets (matching the logic in processing endpoint)
-      const processingAdjustment = processingTime * 0.5;
-      adjustedDuration += processingAdjustment;
-    }
-    
-    // Calculate a realistic time remaining value based on our algorithm
-    console.log(`\n✅ Test time calculation for ${totalRecords} records:`);
-    console.log(`- Processing time (${SECONDS_PER_RECORD}s per record): ${processingTime} seconds`);
-    console.log(`- Pause time (${batches} batches × ${PAUSE_SECONDS_PER_BATCH}s): ${pauseTime} seconds`);
-    console.log(`- Base time: ${durationSeconds} seconds`);
-    
-    if (totalRecords > 3000) {
-      console.log(`- Large dataset adjustment (+50%): ${adjustedDuration - durationSeconds} seconds`);
-    }
-    
-    console.log(`- Final estimated time: ${adjustedDuration} seconds (${Math.floor(adjustedDuration/60)} minutes)`);
-    console.log(`- Hours: ${Math.floor(adjustedDuration/3600)}, Days: ${Math.floor(adjustedDuration/86400)}\n`);
+    // Get the requested time in seconds from query parameter, default to 10 minutes
+    const durationSeconds = parseInt(req.query.seconds as string, 10) || 600;
     
     // Add a test session to the progress map
     uploadProgressMap.set(sessionId, {
       processed: 10,
-      total: totalRecords,
+      total: 1000,
       stage: 'Test time estimation',
       timestamp: Date.now(),
       batchNumber: 1,
-      totalBatches: batches,
+      totalBatches: 100,
       batchProgress: 0.1,
       currentSpeed: 0.5,
-      timeRemaining: adjustedDuration, // Set calculated realistic value
+      timeRemaining: durationSeconds, // Set explicitly from parameter
       processingStats: {
         successCount: 10,
         errorCount: 0,
@@ -251,26 +153,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
     
-    // Return the session ID and duration with the calculated values
+    // Return the session ID and duration
     res.json({
       sessionId,
-      totalRecords,
-      durationSeconds: adjustedDuration,
+      durationSeconds,
       durationFormatted: {
-        seconds: adjustedDuration,
-        minutes: Math.floor(adjustedDuration / 60),
-        hours: Math.floor(adjustedDuration / 3600),
-        days: Math.floor(adjustedDuration / 86400)
-      },
-      calculation: {
-        processingTime,
-        batches,
-        pauseTime,
-        processingAdjustment: totalRecords > 3000 ? processingTime * 0.5 : 0,
-        totalTime: adjustedDuration,
-        recordsPerBatch: RECORDS_PER_BATCH,
-        secondsPerRecord: SECONDS_PER_RECORD,
-        pauseSecondsPerBatch: PAUSE_SECONDS_PER_BATCH
+        seconds: durationSeconds,
+        minutes: Math.floor(durationSeconds / 60),
+        hours: Math.floor(durationSeconds / 3600),
+        days: Math.floor(durationSeconds / 86400)
       }
     });
   });
@@ -428,39 +319,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Calculate current speed based on processed records
             // Limit to reasonable value to prevent division by small numbers creating huge speeds
             const rawSpeed = progress.processed / elapsed;
-            
-            // Set speed cap based on total records for more realistic simulation
-            // For large datasets, processing tends to be slower per record
-            let speedCap = 10; // Default cap at 10 records/second
-            
-            // For large datasets, gradually reduce the speed cap
-            if (progress.total > 1000) {
-              speedCap = Math.max(2, 10 - (progress.total / 1000)); // Gradually reduce to minimum of 2 records/sec
-            }
-            
-            // For very large datasets (3000+), further reduce speed 
-            if (progress.total > 3000) {
-              speedCap = Math.max(1, speedCap - 1);
-            }
-            
-            progress.currentSpeed = Math.min(rawSpeed, speedCap);
+            progress.currentSpeed = Math.min(rawSpeed, 10); // Cap at 10 records/second
             
             // Calculate time remaining with enhanced batch logic and improved accuracy:
             if (progress.currentSpeed > 0) {
               const remainingRecords = Math.max(0, progress.total - progress.processed);
-              
-              // Adjusting parameters for more realistic time estimates for larger datasets
-              // Set exact parameters as requested by user
-              const recordsPerBatch = 30; // Fixed batch size of 30 records per batch
-              let processTimePerBatch = 30 * 3; // 3 seconds per record * 30 records = 90 seconds
-              const pauseTimePerBatch = 60; // 60 seconds pause between batches
-              
-              // For larger datasets (3000+ records), add additional processing time 
-              // to account for system overhead with larger datasets
-              if (progress.total > 3000) {
-                processTimePerBatch = processTimePerBatch * 1.5; // 50% longer for large datasets
-              }
-              
+              const recordsPerBatch = 30; // Standard batch size
+              const processTimePerBatch = 30; // 30s processing time per batch
+              const pauseTimePerBatch = 60; // 60s pause between batches
               const batchTimeSeconds = processTimePerBatch + pauseTimePerBatch; // total per batch
               
               // More accurate calculation of remaining batches - accounts for partial batches
@@ -477,15 +343,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Don't increase the time, but allow it to decrease slightly each update
                 // This ensures time counts down even if processing slows
                 estimatedTimeRemaining = Math.max(0, progress.timeRemaining - 2);
-              }
-              
-              // For larger datasets, ensure we never drop our estimate too quickly
-              // This prevents the 2.5hr to 5min jump problem the user mentioned
-              if (progress.timeRemaining > 60 * 60) { // If previous estimate was over 1 hour
-                const minAllowedEstimate = progress.timeRemaining * 0.85; // Only allow 15% drop max
-                if (estimatedTimeRemaining < minAllowedEstimate) {
-                  estimatedTimeRemaining = minAllowedEstimate;
-                }
               }
               
               // Special handling for pause states - extract exact remaining pause time
@@ -1091,190 +948,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get active upload session with stale check and server restart detection
-  // MEMORY-ONLY FALLBACK ENDPOINT - NO DATABASE USAGE
-  app.get('/api/active-upload-session-memory', async (req: Request, res: Response) => {
-    try {
-      // Add cache control headers to reduce polling frequency
-      res.set('Cache-Control', 'private, max-age=1');
-      
-      // Check if there's an active Python process
-      const activePythonSessions = pythonService.getActiveProcessSessions();
-      if (activePythonSessions.length > 0) {
-        const sessionId = activePythonSessions[0];
-        const progress = uploadProgressMap.get(sessionId);
-        
-        console.log(`⭐ MEMORY-ONLY: Found active Python session: ${sessionId}`);
-        return res.json({
-          sessionId,
-          status: 'active',
-          progress: progress || {},
-          source: 'memory_only'
-        });
-      }
-      
-      // No active Python processes, check the memory map for recent activity
-      const memoryActiveSessions = Array.from(uploadProgressMap.entries())
-        .filter(([sessionId, progress]) => 
-          progress && typeof progress === 'object' && 
-          // Only consider recent entries (less than 5 minutes old)
-          progress.timestamp && 
-          (Date.now() - progress.timestamp) < 5 * 60 * 1000
-        )
-        .sort((a, b) => 
-          (b[1].timestamp || 0) - (a[1].timestamp || 0)
-        );
-      
-      if (memoryActiveSessions.length > 0) {
-        // Use the most recent session from memory
-        const [sessionId, progress] = memoryActiveSessions[0];
-        console.log(`⭐ MEMORY-ONLY: Found recent memory session: ${sessionId}`);
-        
-        return res.json({
-          sessionId,
-          status: 'active',
-          progress,
-          source: 'memory_only'
-        });
-      }
-      
-      // No active sessions found
-      return res.json({ 
-        sessionId: null, 
-        source: 'memory_only' 
-      });
-    } catch (error) {
-      console.error('Error in memory-only endpoint:', error);
-      return res.json({ 
-        sessionId: null,
-        error: 'Memory-only fallback error',
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  // NEW NEONDB ENDPOINT - Uses direct serverless connection
-  app.get('/api/active-upload-session-neon', async (req: Request, res: Response) => {
-    try {
-      // Add cache control headers to reduce polling frequency
-      res.set('Cache-Control', 'private, max-age=1');
-      
-      // Only log 5% of the time to reduce console spam
-      const shouldLog = Math.random() < 0.05;
-      if (shouldLog) {
-        console.log("⭐ NEON: Checking for active upload sessions...");
-      }
-      
-      // Import the SERVER_START_TIMESTAMP and neonConnection
-      const { SERVER_START_TIMESTAMP } = await import('./index');
-      const { neonConnection } = await import('./db');
-      
-      // Before checking the database, check if there's an active Python process
-      const activePythonSessions = pythonService.getActiveProcessSessions();
-      if (activePythonSessions.length > 0) {
-        console.log(`⭐ NEON: Found ${activePythonSessions.length} active Python sessions:`, activePythonSessions);
-        
-        // Get the first active session
-        const activeSessionId = activePythonSessions[0];
-        
-        try {
-          // Check if this session exists in the database using Neon serverless
-          const sessionRows = await neonConnection`
-            SELECT * FROM upload_session 
-            WHERE session_id = ${activeSessionId}
-          `;
-          
-          if (sessionRows.length > 0) {
-            // Session exists in database
-            const session = sessionRows[0];
-            
-            // Get the progress from the upload progress map
-            const progress = uploadProgressMap.get(activeSessionId);
-            
-            // Update the session using Neon serverless
-            await neonConnection`
-              UPDATE upload_session 
-              SET status = 'active', 
-                  updated_at = ${new Date()}, 
-                  server_start_timestamp = ${SERVER_START_TIMESTAMP.toString()}
-              WHERE session_id = ${activeSessionId}
-            `;
-            
-            console.log(`⭐ NEON: Returning active session ${activeSessionId} with progress`);
-            
-            // Return the session with progress
-            return res.json({ 
-              sessionId: activeSessionId,
-              status: 'active',
-              progress: progress || JSON.parse(session.progress || '{}'),
-              source: 'neon'
-            });
-          } else {
-            // Session doesn't exist in database but Python process is running
-            console.log(`⭐ NEON: Active Python process ${activeSessionId} has no database record, using memory only`);
-            
-            // Get progress from memory
-            const progress = uploadProgressMap.get(activeSessionId);
-            
-            // Return the session
-            return res.json({ 
-              sessionId: activeSessionId,
-              status: 'active',
-              progress: progress || {},
-              source: 'neon_memory'
-            });
-          }
-        } catch (dbError) {
-          console.error('NEON DB Error:', dbError);
-          // Fall back to memory only
-          const progress = uploadProgressMap.get(activeSessionId);
-          return res.json({ 
-            sessionId: activeSessionId,
-            status: 'active',
-            progress: progress || {},
-            source: 'neon_memory_fallback',
-            error: 'Database error, using memory data'
-          });
-        }
-      }
-      
-      // No active Python processes found
-      return res.json({ 
-        sessionId: null,
-        source: 'neon'
-      });
-    } catch (error) {
-      console.error('Error in Neon endpoint:', error);
-      
-      // IMPROVED ERROR HANDLING: Always return 200 with error info
-      // Check if there are any active Python processes we can use as fallback
-      const activePythonSessions = pythonService.getActiveProcessSessions();
-      if (activePythonSessions.length > 0) {
-        const sessionId = activePythonSessions[0];
-        const progress = uploadProgressMap.get(sessionId);
-        
-        console.log(`⭐ NEON ERROR RECOVERY: Returning memory data for ${sessionId}`);
-        return res.json({
-          sessionId,
-          status: 'active',
-          progress: progress || {},
-          source: 'neon_error_fallback',
-          error: 'Neon endpoint error, using memory data',
-          fallback: true
-        });
-      }
-      
-      // Return 200 with error info, not 500
-      return res.json({ 
-        sessionId: null,
-        error: 'Neon endpoint error',
-        details: error instanceof Error ? error.message : String(error),
-        fallback: true,
-        source: 'neon_error'
-      });
-    }
-  });
-  
-  // SIMPLIFIED ERROR-RESILIENT ENDPOINT
   app.get('/api/active-upload-session', async (req: Request, res: Response) => {
     try {
       // Add cache control headers to reduce polling frequency
@@ -1440,34 +1113,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ sessionId: null });
     } catch (error) {
       console.error('Error retrieving active upload session:', error);
-      
-      // IMPROVED ERROR HANDLING: Return 200 with error info instead of 500
-      // This allows clients to handle database errors gracefully by falling back to localStorage
-      
-      // Check if there are any active Python processes we can use as fallback
-      const activePythonSessions = pythonService.getActiveProcessSessions();
-      if (activePythonSessions.length > 0) {
-        const sessionId = activePythonSessions[0];
-        const progress = uploadProgressMap.get(sessionId);
-        
-        console.log(`⭐ DATABASE ERROR RECOVERY: Returning memory data for ${sessionId}`);
-        return res.json({
-          sessionId,
-          status: 'active',
-          progress: progress || {},
-          source: 'memory_fallback',
-          error: 'Database unavailable, using memory data',
-          fallback: true
-        });
-      }
-      
-      // Return 200 with error info, not 500
-      // This keeps the client running with localStorage tracking
-      return res.json({ 
-        sessionId: null,
-        error: 'Database temporarily unavailable',
-        details: error instanceof Error ? error.message : String(error),
-        fallback: true
+      res.status(500).json({ 
+        error: 'Failed to retrieve active upload session',
+        details: error instanceof Error ? error.message : String(error)
       });
     }
   });
@@ -3168,55 +2816,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting training examples:", error);
       return res.status(500).json({ error: "Failed to get training examples" });
-    }
-  });
-  
-  // NEW MEMORY-ONLY ENDPOINT - No database dependency
-  app.get('/api/active-upload-session-memory', async (req: Request, res: Response) => {
-    try {
-      // Add cache control headers to reduce polling frequency
-      res.set('Cache-Control', 'private, max-age=1');
-
-      // Check for active Python process - the most reliable indicator of an active upload
-      const activePythonSessions = pythonService.getActiveProcessSessions();
-      if (activePythonSessions.length > 0) {
-        console.log(`⭐ MEMORY ENDPOINT: Found ${activePythonSessions.length} active Python sessions`);
-        
-        // Get the first active session
-        const activeSessionId = activePythonSessions[0];
-        const progress = uploadProgressMap.get(activeSessionId);
-        
-        console.log(`⭐ MEMORY ENDPOINT: Returning active session ${activeSessionId}`);
-        
-        // Return the session with progress
-        return res.json({ 
-          sessionId: activeSessionId,
-          status: 'active',
-          progress: progress || {
-            processed: 0,
-            total: 100,
-            stage: "Processing data...",
-            timestamp: Date.now(),
-            source: 'memory_endpoint'
-          },
-          source: 'memory'
-        });
-      }
-      
-      // No active session found
-      console.log("⭐ MEMORY ENDPOINT: No active sessions found");
-      return res.json({ 
-        sessionId: null,
-        source: 'memory'
-      });
-    } catch (error) {
-      console.error('Error in memory endpoint:', error);
-      return res.json({ 
-        sessionId: null,
-        error: 'Memory endpoint error',
-        details: error instanceof Error ? error.message : String(error),
-        source: 'memory'
-      });
     }
   });
 

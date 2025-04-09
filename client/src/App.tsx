@@ -14,7 +14,6 @@ import About from "@/pages/about";
 import { DisasterContextProvider } from "@/context/disaster-context";
 import { MainLayout } from "@/components/layout/main-layout";
 import { UploadProgressModal } from "@/components/upload-progress-modal";
-import { EmergencyResetButton } from "@/components/emergency-reset-button";
 
 function Router() {
   return (
@@ -41,7 +40,6 @@ function App() {
       <DisasterContextProvider>
         {/* Global upload progress modal to ensure it stays visible across all pages */}
         <UploadProgressModal />
-        {/* Hidden emergency reset feature is available but not shown in UI */}
         <MainLayout>
           <Router />
         </MainLayout>

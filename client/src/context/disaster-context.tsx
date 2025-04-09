@@ -41,7 +41,6 @@ interface UploadProgress {
   timeRemaining?: number;
   processingStats?: ProcessingStats;
   error?: string;
-  coolingDown?: boolean;  // Flag to indicate if currently in cooldown between batches
 }
 
 interface DisasterContextType {
@@ -165,7 +164,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
     // Define the database verification function - DATABASE IS BOSS!
     const verifyWithDatabase = async () => {
       try {
-        // No need to log this on every poll
+        console.log('📊 LOCAL is boss for visibility, database for data updates!');
         
         // STABILITY FIRST: Always ensure UI state from localStorage is shown immediately
         // This ensures we never have a flicker or lost initializing state
@@ -213,127 +212,12 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
         
         // Check with the boss (database) for the real status
         console.log('Asking database for the real upload status...');
-        let data: any = null;
-        try {
-          const response = await fetch('/api/active-upload-session');
-          
-          // Even if response is not OK, we'll still try to parse the JSON
-          // This is because we modified the server to return JSON with error info
-          // instead of a true 500 status code when database is down
-          data = await response.json();
-          
-          // If the server returned an error but we have localStorage data, use that
-          if (!response.ok || data.error || data.fallback) {
-            console.error('Error checking with database boss:', data.error || 'Database unavailable');
-            
-            // If we have local storage data, use that as source of truth
-            const storedSessionId = localStorage.getItem('uploadSessionId');
-            const storedUploadingStatus = localStorage.getItem('isUploading');
-            const storedProgress = localStorage.getItem('uploadProgress');
-            
-            if (storedSessionId && storedUploadingStatus === 'true' && storedProgress) {
-              console.log('Using localStorage as source of truth due to database error');
-              try {
-                const localProgress = JSON.parse(storedProgress);
-                setIsUploading(true);
-                setUploadProgress(localProgress);
-                return; // Skip the rest of the function
-              } catch (parseError) {
-                console.error('Failed to parse localStorage progress during database error fallback');
-              }
-            }
-            
-            // If we have Python sessions running, trust those even if database is down
-            if (data.sessionId && data.progress) {
-              console.log('Emergency fallback: Using Python process data despite database error');
-              setIsUploading(true);
-              setUploadProgress(data.progress);
-              return; // Skip the rest of the function
-            }
-            
-            // If we reached here, we have no reliable data
-            setIsUploading(false);
-            return; // Skip the rest of the function
-          }
-          
-          // Continue with normal processing as response was ok
-        } catch (networkError) {
-          console.error('Network error when checking database status:', networkError);
-          
-          // If we have localStorage data, use that during network errors
-          const storedSessionId = localStorage.getItem('uploadSessionId');
-          const storedUploadingStatus = localStorage.getItem('isUploading');
-          const storedProgress = localStorage.getItem('uploadProgress');
-          
-          if (storedSessionId && storedUploadingStatus === 'true' && storedProgress) {
-            console.log('Using localStorage as source of truth due to network error');
-            try {
-              const localProgress = JSON.parse(storedProgress);
-              setIsUploading(true);
-              setUploadProgress(localProgress);
-            } catch (parseError) {
-              console.error('Failed to parse localStorage progress during network error fallback');
-              setIsUploading(false);
-            }
-          } else {
-            setIsUploading(false);
-          }
-          
-          return; // Skip the rest of the function
-        }
+        const response = await fetch('/api/active-upload-session');
+        if (!response.ok) throw new Error('Failed to check for active uploads');
         
-        // If we got here, we successfully got a database response, but need to check if it contains error info
+        const data = await response.json();
         
-        // First check if database reported an error but is still returning valid JSON
-        if (data && data.error && data.fallback) {
-          console.log('DATABASE ERROR BUT RETURNED FALLBACK DATA:', data.error);
-          
-          // On database error, check localStorage - it's the source of truth for UI visibility
-          const sessionId = localStorage.getItem('uploadSessionId');
-          const isLocalUpload = localStorage.getItem('isUploading') === 'true';
-          
-          if (sessionId && isLocalUpload) {
-            console.log('LOCAL UPLOAD STATE SAYS YES - KEEPING MODAL VISIBLE');
-            setIsUploading(true);
-            
-            // Try memory-only endpoint as fallback
-            try {
-              const memoryResponse = await fetch('/api/active-upload-session-memory');
-              const memoryData = await memoryResponse.json();
-              
-              if (memoryData && memoryData.sessionId) {
-                console.log('MEMORY ENDPOINT CONFIRMED SESSION:', memoryData.sessionId);
-                localStorage.setItem('uploadSessionId', memoryData.sessionId);
-                
-                // Use memory progress data
-                if (memoryData.progress) {
-                  const memoryProgress = typeof memoryData.progress === 'string'
-                    ? JSON.parse(memoryData.progress)
-                    : memoryData.progress;
-                    
-                  setUploadProgress(memoryProgress);
-                  
-                  // Cache in localStorage with timestamp
-                  const progressWithTimestamp = {
-                    ...memoryProgress,
-                    timestamp: Date.now(),
-                    savedAt: Date.now(),
-                    source: 'memory_endpoint'
-                  };
-                  
-                  localStorage.setItem('uploadProgress', JSON.stringify(progressWithTimestamp));
-                }
-              }
-            } catch (memoryError) {
-              console.error('Failed to get data from memory endpoint:', memoryError);
-            }
-            
-            return; // Exit and keep UI showing upload in progress
-          }
-        }
-        
-        // Normal data processing when database is working
-        if (data && data.sessionId) {
+        if (data.sessionId) {
           // DATABASE HAS ACTIVE SESSION - BOSS SAYS YES
           console.log('DATABASE BOSS SAYS: Yes, there is an active upload', data.sessionId);
           
@@ -374,66 +258,12 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
               officialDbUpdate: true // Mark this as coming from the database
             };
             
-            // ALWAYS USE DATABASE PROGRESS - This is now the single source of truth
-            // This makes multi-tab experience consistent by having all tabs follow database
-            try {
-              // STRONG SYNCHRONIZATION: Database values ALWAYS overwrite local values
-              // This is critical for consistent display across tabs
-              
-              // Add timestamps and mark as official database data
-              const officialSyncedProgress = {
-                ...dbProgress,
-                timestamp: Date.now(),
-                savedAt: Date.now(),
-                officialDbUpdate: true, // Mark as official database-sourced update
-                tabSyncTimestamp: Date.now(), // Used for tab synchronization
-                coolingDown: dbProgress.stage.includes('pause between batches') // Track cooldown state
-              };
-              
-              // FOR MULTI-TAB: Check localStorage but ALWAYS use database values
-              // This guarantees all tabs show the same information
-              const storedProgress = localStorage.getItem('uploadProgress');
-              let localCount = 0;
-              
-              if (storedProgress) {
-                try {
-                  const localProgress = JSON.parse(storedProgress);
-                  localCount = localProgress.processed || 0;
-                  
-                  // Log the sync event for debugging
-                  if (dbProgress.processed !== localCount) {
-                    console.log('DATABASE COUNT SYNC - Ensuring all tabs show the same data', 
-                      `DB: ${dbProgress.processed}, Local: ${localCount}`);
-                  }
-                } catch (e) {
-                  // Parse error, continue with database values
-                  console.error('Error parsing stored progress, using database values');
-                }
-              }
-              
-              // 1. ALWAYS update UI with database data for consistency
-              setUploadProgress(officialSyncedProgress);
-              
-              // 2. ALWAYS update localStorage with database values for multi-tab consistency
-              localStorage.setItem('uploadProgress', JSON.stringify(officialSyncedProgress));
-              console.log('Official database progress saved to localStorage:', officialSyncedProgress);
-              
-              // 3. Store the DB-local diff for debugging
-              if (dbProgress.processed !== localCount) {
-                localStorage.setItem('lastSyncDiff', JSON.stringify({
-                  db: dbProgress.processed,
-                  local: localCount,
-                  syncTime: new Date().toISOString()
-                }));
-              }
-            } catch (e) {
-              // Error in synchronization 
-              console.error('Error synchronizing with database:', e);
-              
-              // Fallback to database values anyway
-              setUploadProgress(officialProgress);
-              localStorage.setItem('uploadProgress', JSON.stringify(officialProgress));
-            }
+            // Update UI with the official data
+            setUploadProgress(officialProgress);
+            
+            // Update localStorage with the official data
+            localStorage.setItem('uploadProgress', JSON.stringify(officialProgress));
+            console.log('Official database progress saved to localStorage:', officialProgress);
           }
         } else {
           // DATABASE SAYS NO ACTIVE UPLOADS - BUT LOCAL IS THE REAL BOSS!
@@ -702,25 +532,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
             if (currentTimestamp >= lastTimestamp) {
               // Store the latest progress in localStorage immediately
               // This ensures we don't lose data even if UI updates are debounced
-              
-              // Check if we're in a cooldown state from the stage message
-              const stageLower = progress.stage.toLowerCase();
-              const isCoolingDown = stageLower.includes('pause between batches') || 
-                                   stageLower.includes('cooldown');
-              
-              // Add cooldown flag for the UI to detect
-              if (isCoolingDown) {
-                localStorage.setItem('cooldownActive', 'true');
-                localStorage.setItem('cooldownStartedAt', Date.now().toString());
-              } else {
-                localStorage.removeItem('cooldownActive');
-                localStorage.removeItem('cooldownStartedAt');
-              }
-              
               localStorage.setItem('uploadProgress', JSON.stringify({
                 ...progress,
-                savedAt: now,
-                coolingDown: isCoolingDown
+                savedAt: now
               }));
               localStorage.setItem('lastProgressTimestamp', currentTimestamp.toString());
               
@@ -993,25 +807,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
                 if (currentTimestamp >= lastTimestamp) {
                   // Store the latest progress in localStorage immediately
                   // This ensures we don't lose data even if UI updates are debounced
-                  
-                  // Check if we're in a cooldown state from the stage message
-                  const stageLower = progress.stage.toLowerCase();
-                  const isCoolingDown = stageLower.includes('pause between batches') || 
-                                     stageLower.includes('cooldown');
-                  
-                  // Add cooldown flag for the UI to detect
-                  if (isCoolingDown) {
-                    localStorage.setItem('cooldownActive', 'true');
-                    localStorage.setItem('cooldownStartedAt', Date.now().toString());
-                  } else {
-                    localStorage.removeItem('cooldownActive');
-                    localStorage.removeItem('cooldownStartedAt');
-                  }
-                  
                   localStorage.setItem('uploadProgress', JSON.stringify({
                     ...progress,
-                    savedAt: now,
-                    coolingDown: isCoolingDown
+                    savedAt: now
                   }));
                   localStorage.setItem('lastProgressTimestamp', currentTimestamp.toString());
                   

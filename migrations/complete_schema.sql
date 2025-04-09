@@ -100,19 +100,6 @@ CREATE TABLE IF NOT EXISTS training_examples (
   CONSTRAINT training_examples_text_key_unique UNIQUE(text_key)
 );
 
--- Create upload_sessions table if it doesn't exist
-CREATE TABLE IF NOT EXISTS upload_sessions (
-  id SERIAL PRIMARY KEY,
-  session_id TEXT NOT NULL UNIQUE,
-  status TEXT NOT NULL DEFAULT 'active',
-  file_id INTEGER REFERENCES analyzed_files(id) ON DELETE CASCADE,
-  progress JSONB,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW(),
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-  server_start_timestamp TEXT
-);
-
 -- Now make sure all foreign keys are properly set up (if needed)
 -- Note: Some foreign keys might fail if the referenced rows don't exist yet, but that's OK
 
