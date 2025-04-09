@@ -517,6 +517,30 @@ export async function uploadCSV(
 
     return response.json();
   } catch (error: any) {
+    // SUPER ERROR HANDLING - prevent white page on upload errors
+    try {
+      // Properly close the EventSource connection first
+      eventSource.close();
+      currentEventSource = null;
+      currentUploadSessionId = null;
+      
+      // Emergency cleanup of ALL localStorage state
+      localStorage.removeItem('isUploading');
+      localStorage.removeItem('uploadProgress');
+      localStorage.removeItem('uploadSessionId');
+      localStorage.removeItem('lastProgressTimestamp');
+      localStorage.removeItem('lastDatabaseCheck');
+      localStorage.removeItem('serverRestartProtection');
+      localStorage.removeItem('serverRestartTimestamp');
+      localStorage.removeItem('cooldownActive');
+      localStorage.removeItem('cooldownStartedAt');
+      localStorage.removeItem('lastTabSync');
+    } catch (cleanupError) {
+      // Ignore cleanup errors - prevention of white screen is most important
+      console.error('Error during emergency cleanup:', cleanupError);
+    }
+
+    // Now handle the original error
     if (error?.name === 'AbortError') {
       throw new Error('Upload was cancelled');
     }

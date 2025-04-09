@@ -37,13 +37,37 @@ export function UploadProgressModal() {
     // If we have stored upload state, restore it to ensure persistence
     if (storedSessionId && storedIsUploading === 'true' && storedProgress) {
       try {
-        // Force modal to be visible
+        // Parse stored progress
+        const parsedProgress = JSON.parse(storedProgress);
+        
+        // Check for error state in the stage property
+        const hasError = parsedProgress.stage?.toLowerCase().includes('error');
+        
+        if (hasError) {
+          console.log('🚨 DETECTED ERROR STATE IN STORED PROGRESS - CLEANING UP');
+          
+          // Emergency cleanup on error detection
+          localStorage.removeItem('isUploading');
+          localStorage.removeItem('uploadProgress');
+          localStorage.removeItem('uploadSessionId');
+          localStorage.removeItem('uploadStartTime');
+          localStorage.removeItem('lastProgressTimestamp');
+          localStorage.removeItem('lastDatabaseCheck');
+          localStorage.removeItem('serverRestartProtection');
+          localStorage.removeItem('serverRestartTimestamp');
+          localStorage.removeItem('cooldownActive'); 
+          localStorage.removeItem('cooldownStartedAt');
+          localStorage.removeItem('lastTabSync');
+          
+          // Set UI to non-uploading state
+          setIsUploading(false);
+          return;
+        }
+        
+        // For non-error states, restore modal visibility
         if (!isUploading) {
           console.log('🚨 RESTORING UPLOAD STATE FROM LOCAL STORAGE AFTER REFRESH');
           setIsUploading(true);
-          
-          // Also restore the progress data
-          const parsedProgress = JSON.parse(storedProgress);
           
           // Add special flag to indicate this was restored from localStorage after refresh
           parsedProgress.restoredFromLocalStorage = true;
@@ -57,6 +81,22 @@ export function UploadProgressModal() {
         }
       } catch (e) {
         console.error('Error restoring upload state from localStorage:', e);
+        
+        // On any error, clean up ALL localStorage to prevent stuck states
+        localStorage.removeItem('isUploading');
+        localStorage.removeItem('uploadProgress');
+        localStorage.removeItem('uploadSessionId');
+        localStorage.removeItem('uploadStartTime');
+        localStorage.removeItem('lastProgressTimestamp');
+        localStorage.removeItem('lastDatabaseCheck');
+        localStorage.removeItem('serverRestartProtection');
+        localStorage.removeItem('serverRestartTimestamp');
+        localStorage.removeItem('cooldownActive'); 
+        localStorage.removeItem('cooldownStartedAt');
+        localStorage.removeItem('lastTabSync');
+        
+        // Set UI to non-uploading state
+        setIsUploading(false);
       }
     }
   }, []);
@@ -346,20 +386,38 @@ export function UploadProgressModal() {
   // Auto-close on error or completion after a delay
   useEffect(() => {
     if (hasError || isComplete || isCancelled) {
-      // Start a timer to auto-close after 5 seconds
+      // Start a more reliable auto-close timer after 5 seconds
       const autoCloseTimer = setTimeout(() => {
         console.log(`🔄 Auto-closing upload modal: Error=${hasError}, Complete=${isComplete}, Cancelled=${isCancelled}`);
         
-        // Clear all localStorage state
+        // ENHANCED CLEANUP: Clear ALL localStorage state
         localStorage.removeItem('isUploading');
         localStorage.removeItem('uploadProgress');
         localStorage.removeItem('uploadSessionId');
+        localStorage.removeItem('uploadStartTime');
         localStorage.removeItem('lastProgressTimestamp');
         localStorage.removeItem('lastDatabaseCheck');
         localStorage.removeItem('serverRestartProtection');
         localStorage.removeItem('serverRestartTimestamp');
         localStorage.removeItem('cooldownActive');
         localStorage.removeItem('cooldownStartedAt');
+        localStorage.removeItem('lastTabSync');
+        
+        // Notify other tabs about the shutdown
+        try {
+          localStorage.setItem('modalClosed', JSON.stringify({
+            timestamp: Date.now(),
+            reason: hasError ? 'error' : (isComplete ? 'complete' : 'cancelled')
+          }));
+        } catch (e) {
+          // Ignore errors in cross-tab communication
+        }
+        
+        // Force server cleanup after auto-close
+        fetch('/api/reset-upload-sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }).catch(() => {});
         localStorage.removeItem('lastTabSync');
         
         // Clean up any existing EventSource connections

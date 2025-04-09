@@ -64,6 +64,37 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
           const syncInfo = JSON.parse(event.newValue);
           console.log(`📱 Tab sync broadcast received! Count: ${syncInfo.processed}`);
           
+          // Check for error or completion status from other tabs
+          if (syncInfo.hasError || syncInfo.isComplete) {
+            console.log(`📱 Tab sync indicates upload is ${syncInfo.hasError ? 'ERROR' : 'COMPLETE'}`);
+            
+            // Clean up local storage if another tab indicates completion or error
+            if (syncInfo.hasError) {
+              // Extra safety clean all localStorage on error signal
+              localStorage.removeItem('isUploading');
+              localStorage.removeItem('uploadProgress');
+              localStorage.removeItem('uploadSessionId');
+              localStorage.removeItem('uploadStartTime');
+              localStorage.removeItem('lastProgressTimestamp');
+              localStorage.removeItem('lastDatabaseCheck');
+              localStorage.removeItem('serverRestartProtection');
+              localStorage.removeItem('serverRestartTimestamp');
+              localStorage.removeItem('cooldownActive'); 
+              localStorage.removeItem('cooldownStartedAt');
+              
+              // Don't remove lastTabSync as that would cause a loop
+              
+              // Update UI state to reflect error
+              setLastMessage({
+                type: 'error',
+                message: 'Upload failed in another tab',
+                timestamp: Date.now()
+              });
+              
+              return; // Skip database check on error
+            }
+          }
+          
           // Force a resync with database to ensure consistent display
           // This is especially important for mobile where connection might be unstable
           fetch('/api/active-upload-session')
@@ -229,13 +260,24 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
                   // Update localStorage with synchronized data
                   localStorage.setItem('uploadProgress', JSON.stringify(syncedProgress));
                   
-                  // Broadcast to other tabs that we've updated
-                  localStorage.setItem('lastTabSync', JSON.stringify({
-                    timestamp: Date.now(),
-                    broadcastId: broadcastId,
-                    processed: newProgress.processed,
-                    source: 'websocket'
-                  }));
+                  // ENHANCED BROADCAST - More reliable cross-tab sync with error protection
+                  try {
+                    localStorage.setItem('lastTabSync', JSON.stringify({
+                      timestamp: Date.now(),
+                      broadcastId: broadcastId,
+                      processed: newProgress.processed,
+                      total: newProgress.total,
+                      stage: newProgress.stage,
+                      source: 'websocket',
+                      // Add error status to help all tabs close properly on errors
+                      hasError: newProgress.stage?.toLowerCase().includes('error') || false,
+                      isComplete: newProgress.stage?.toLowerCase().includes('complete') || 
+                                 (newProgress.processed >= newProgress.total && newProgress.total > 0)
+                    }));
+                  } catch (syncError) {
+                    // Ignore sync errors to prevent breaking the main functionality
+                    console.error('Error during tab sync:', syncError);
+                  }
                 } else {
                   console.log('📡 Ignoring WebSocket update (not newer or higher count)');
                 }

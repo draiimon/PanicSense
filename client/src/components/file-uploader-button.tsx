@@ -251,12 +251,24 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         variant: 'destructive',
       });
       
-      // Make sure to clean up localStorage on error
+      // ENHANCED ERROR HANDLING - Clean up ALL localStorage state
       localStorage.removeItem('isUploading');
       localStorage.removeItem('uploadProgress');
       localStorage.removeItem('uploadSessionId');
       localStorage.removeItem('uploadStartTime');
       localStorage.removeItem('lastProgressTimestamp');
+      localStorage.removeItem('lastDatabaseCheck');
+      localStorage.removeItem('serverRestartProtection');
+      localStorage.removeItem('serverRestartTimestamp');
+      localStorage.removeItem('cooldownActive');
+      localStorage.removeItem('cooldownStartedAt');
+      localStorage.removeItem('lastTabSync');
+      
+      // Force server cleanup on error
+      fetch('/api/reset-upload-sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(() => { /* ignore */ });
     } finally {
       event.target.value = '';
 
@@ -279,12 +291,18 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           }
         });
         
-        // Properly clear all localStorage items related to upload
+        // Properly clear ALL localStorage items related to upload
         localStorage.removeItem('isUploading');
         localStorage.removeItem('uploadProgress');
         localStorage.removeItem('uploadSessionId');
         localStorage.removeItem('uploadStartTime');
         localStorage.removeItem('lastProgressTimestamp');
+        localStorage.removeItem('lastDatabaseCheck');
+        localStorage.removeItem('serverRestartProtection');
+        localStorage.removeItem('serverRestartTimestamp');
+        localStorage.removeItem('cooldownActive');
+        localStorage.removeItem('cooldownStartedAt');
+        localStorage.removeItem('lastTabSync');
         
         console.log('Upload completed, cleared all localStorage items');
       }, 2000);
