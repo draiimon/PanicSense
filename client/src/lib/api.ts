@@ -177,89 +177,207 @@ export async function checkForActiveSessions(): Promise<string | null> {
     // Mark that we're doing a database check
     localStorage.setItem(cacheKey, now.toString());
     
+    console.log('📊 LOCAL is boss for visibility, database for data updates!');
+    
+    // FIRST TRY MEMORY-ONLY ENDPOINT
+    // This is faster and works even if the database is down
+    try {
+      console.log('📊 Checking database for progress updates...');
+      const memoryResponse = await fetch('/api/active-upload-session-memory');
+      
+      if (memoryResponse.ok) {
+        const memoryData = await memoryResponse.json();
+        
+        if (memoryData.sessionId) {
+          console.log('✅ MEMORY ENDPOINT: Found active session:', memoryData.sessionId);
+          
+          // Update localStorage with memory data
+          currentUploadSessionId = memoryData.sessionId;
+          localStorage.setItem('uploadSessionId', memoryData.sessionId);
+          localStorage.setItem('isUploading', 'true');
+          
+          // Handle progress data if available
+          if (memoryData.progress) {
+            try {
+              const memoryProgress = typeof memoryData.progress === 'string'
+                ? JSON.parse(memoryData.progress)
+                : memoryData.progress;
+                
+              // Add timestamps and save to localStorage
+              const progressData = {
+                ...memoryProgress,
+                timestamp: Date.now(),
+                savedAt: Date.now(),
+                source: 'memory'
+              };
+              
+              localStorage.setItem('uploadProgress', JSON.stringify(progressData));
+              console.log('Using memory progress data:', progressData);
+            } catch (e) {
+              console.error('Error handling memory progress data:', e);
+            }
+          }
+          
+          return memoryData.sessionId;
+        }
+      }
+    } catch (memoryError) {
+      console.log('Memory endpoint check failed, trying Neon:', memoryError);
+    }
+    
+    // NEXT TRY NEON SERVERLESS ENDPOINT
+    // This is direct to Neon and bypasses pg Pool connection issues
+    try {
+      console.log('Asking database for the real upload status...');
+      const neonResponse = await fetch('/api/active-upload-session-neon');
+      
+      if (neonResponse.ok) {
+        const neonData = await neonResponse.json();
+        
+        if (neonData.sessionId) {
+          console.log('✅ NEON ENDPOINT: Found active session:', neonData.sessionId);
+          
+          // Update localStorage with Neon data
+          currentUploadSessionId = neonData.sessionId;
+          localStorage.setItem('uploadSessionId', neonData.sessionId);
+          localStorage.setItem('isUploading', 'true');
+          
+          // Handle progress data if available
+          if (neonData.progress) {
+            try {
+              const neonProgress = typeof neonData.progress === 'string'
+                ? JSON.parse(neonData.progress)
+                : neonData.progress;
+                
+              // Add timestamps and save to localStorage
+              const progressData = {
+                ...neonProgress,
+                timestamp: Date.now(),
+                savedAt: Date.now(),
+                source: 'neon'
+              };
+              
+              localStorage.setItem('uploadProgress', JSON.stringify(progressData));
+              console.log('Using Neon progress data:', progressData);
+            } catch (e) {
+              console.error('Error handling Neon progress data:', e);
+            }
+          }
+          
+          return neonData.sessionId;
+        }
+      }
+    } catch (neonError) {
+      console.log('Neon endpoint check failed, trying regular database:', neonError);
+    }
+    
+    // THEN TRY REGULAR DATABASE (last resort)
     // ALWAYS ask the database (boss) for the truth!
     console.log('📊 Asking database boss for active sessions');
-    const response = await apiRequest('GET', '/api/active-upload-session');
-    
-    if (!response.ok) {
-      throw new Error('Database check failed');
-    }
-    
-    const data = await response.json();
-    
-    // Handle server restart detection
-    if (data.serverRestartDetected) {
-      console.log('⚠️ Server restart detected! Must follow database rules');
-    }
-    
-    // === HANDLE DATABASE RESPONSE ===
-    if (data.sessionId) {
-      // === BOSS SAYS YES: ACTIVE SESSION EXISTS ===
-      console.log('👑 DATABASE BOSS CONFIRMS: Active session ' + data.sessionId);
+    try {
+      const response = await apiRequest('GET', '/api/active-upload-session');
       
-      // Update everything according to database (the boss)
-      currentUploadSessionId = data.sessionId;
-      localStorage.setItem('uploadSessionId', data.sessionId);
-      localStorage.setItem('isUploading', 'true');
+      if (!response.ok) {
+        throw new Error('Database check failed');
+      }
       
-      // Handle progress data if available
-      if (data.progress) {
-        try {
-          // Parse progress if it's a string
-          let bossProgress = typeof data.progress === 'string' 
-            ? JSON.parse(data.progress)
-            : data.progress;
+      const data = await response.json();
+      
+      // Handle server restart detection
+      if (data.serverRestartDetected) {
+        console.log('⚠️ Server restart detected! Must follow database rules');
+      }
+      
+      // === HANDLE DATABASE RESPONSE ===
+      if (data.sessionId) {
+        // === BOSS SAYS YES: ACTIVE SESSION EXISTS ===
+        console.log('👑 DATABASE BOSS CONFIRMS: Active session ' + data.sessionId);
+        
+        // Update everything according to database (the boss)
+        currentUploadSessionId = data.sessionId;
+        localStorage.setItem('uploadSessionId', data.sessionId);
+        localStorage.setItem('isUploading', 'true');
+        
+        // Handle progress data if available
+        if (data.progress) {
+          try {
+            // Parse progress if it's a string
+            let bossProgress = typeof data.progress === 'string' 
+              ? JSON.parse(data.progress)
+              : data.progress;
+              
+            // Add timestamps and mark as official database data
+            const officialData = {
+              ...bossProgress,
+              timestamp: Date.now(),
+              savedAt: Date.now(),
+              bossData: true // Flag from database
+            };
             
-          // Add timestamps and mark as official database data
-          const officialData = {
-            ...bossProgress,
-            timestamp: Date.now(),
-            savedAt: Date.now(),
-            bossData: true // Flag from database
-          };
-          
-          // Save to localStorage for fast access
-          localStorage.setItem('uploadProgress', JSON.stringify(officialData));
-        } catch (e) {
-          console.error('Error handling database progress data:', e);
-        }
-      }
-      
-      return data.sessionId;
-    } else {
-      // === BOSS SAYS NO: NO ACTIVE SESSION ===
-      console.log('👑 DATABASE BOSS SAYS: No active sessions exist');
-      
-      if (data.staleSessionCleared) {
-        console.log('🧹 Boss cleaned stale session on server');
-      }
-      
-      // Clear localStorage to match database state
-      localStorage.removeItem('isUploading');
-      localStorage.removeItem('uploadProgress');
-      localStorage.removeItem('uploadSessionId');
-      localStorage.removeItem('lastProgressTimestamp');
-      localStorage.removeItem('lastUIUpdateTimestamp');
-      
-      // Check if localStorage needs to retain session for UI stability
-      const localSession = localStorage.getItem('uploadSessionId');
-      if (localSession && localStorage.getItem('uploadProgress')) {
-        try {
-          const progress = JSON.parse(localStorage.getItem('uploadProgress') || '{}');
-          const savedAt = progress.savedAt || 0;
-          const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-          
-          // Only keep very recent sessions to prevent stale UI
-          if (savedAt >= fiveMinutesAgo) {
-            console.log('Recent localStorage session kept for UI stability:', localSession);
-            return localSession;
+            // Save to localStorage for fast access
+            localStorage.setItem('uploadProgress', JSON.stringify(officialData));
+          } catch (e) {
+            console.error('Error handling database progress data:', e);
           }
-        } catch (e) {
-          // Ignore parse errors
         }
+        
+        return data.sessionId;
+      } else {
+        // === BOSS SAYS NO: NO ACTIVE SESSION ===
+        console.log('👑 DATABASE BOSS SAYS: No active sessions exist');
+        
+        if (data.staleSessionCleared) {
+          console.log('🧹 Boss cleaned stale session on server');
+        }
+        
+        // If there's an error but localStorage shows an upload, trust localStorage
+        if (data.error && data.fallback && cachedSessionId && isUploadingCache) {
+          console.log('⚠️ DATABASE ERROR, but localStorage indicates active upload:', cachedSessionId);
+          console.log('🔒 LOCAL STORAGE HAS UPLOAD STATE - KEEPING MODAL VISIBLE', cachedSessionId);
+          return cachedSessionId;
+        }
+        
+        // Clear localStorage to match database state
+        localStorage.removeItem('isUploading');
+        localStorage.removeItem('uploadProgress');
+        localStorage.removeItem('uploadSessionId');
+        localStorage.removeItem('lastProgressTimestamp');
+        localStorage.removeItem('lastUIUpdateTimestamp');
+        
+        // Check if localStorage needs to retain session for UI stability
+        const localSession = localStorage.getItem('uploadSessionId');
+        if (localSession && localStorage.getItem('uploadProgress')) {
+          try {
+            const progress = JSON.parse(localStorage.getItem('uploadProgress') || '{}');
+            const savedAt = progress.savedAt || 0;
+            const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+            
+            // Only keep very recent sessions to prevent stale UI
+            if (savedAt >= fiveMinutesAgo) {
+              console.log('Recent localStorage session kept for UI stability:', localSession);
+              return localSession;
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+        
+        console.log('Active upload session check complete: No active sessions');
+        return null;
+      }
+    } catch (dbError) {
+      console.error('Error checking with database boss:', dbError);
+      
+      // ON DATABASE ERROR, THE CLIENT IS THE BOSS
+      console.log('📊 LOCAL is boss for visibility, database for data updates!');
+      
+      // Check localStorage for active session
+      if (cachedSessionId && isUploadingCache) {
+        console.log('🔒 LOCAL STORAGE HAS UPLOAD STATE - KEEPING MODAL VISIBLE', cachedSessionId);
+        return cachedSessionId;
       }
       
-      console.log('Active upload session check complete: No active sessions');
+      // No active session in localStorage
       return null;
     }
   } catch (error) {
@@ -268,6 +386,7 @@ export async function checkForActiveSessions(): Promise<string | null> {
     // On error, fall back to localStorage for UI stability
     const localSessionId = localStorage.getItem('uploadSessionId');
     if (localSessionId && localStorage.getItem('isUploading') === 'true') {
+      console.log('🔒 LOCAL STORAGE HAS UPLOAD STATE - KEEPING MODAL VISIBLE', localSessionId);
       return localSessionId;
     }
     

@@ -1091,6 +1091,190 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get active upload session with stale check and server restart detection
+  // MEMORY-ONLY FALLBACK ENDPOINT - NO DATABASE USAGE
+  app.get('/api/active-upload-session-memory', async (req: Request, res: Response) => {
+    try {
+      // Add cache control headers to reduce polling frequency
+      res.set('Cache-Control', 'private, max-age=1');
+      
+      // Check if there's an active Python process
+      const activePythonSessions = pythonService.getActiveProcessSessions();
+      if (activePythonSessions.length > 0) {
+        const sessionId = activePythonSessions[0];
+        const progress = uploadProgressMap.get(sessionId);
+        
+        console.log(`⭐ MEMORY-ONLY: Found active Python session: ${sessionId}`);
+        return res.json({
+          sessionId,
+          status: 'active',
+          progress: progress || {},
+          source: 'memory_only'
+        });
+      }
+      
+      // No active Python processes, check the memory map for recent activity
+      const memoryActiveSessions = Array.from(uploadProgressMap.entries())
+        .filter(([sessionId, progress]) => 
+          progress && typeof progress === 'object' && 
+          // Only consider recent entries (less than 5 minutes old)
+          progress.timestamp && 
+          (Date.now() - progress.timestamp) < 5 * 60 * 1000
+        )
+        .sort((a, b) => 
+          (b[1].timestamp || 0) - (a[1].timestamp || 0)
+        );
+      
+      if (memoryActiveSessions.length > 0) {
+        // Use the most recent session from memory
+        const [sessionId, progress] = memoryActiveSessions[0];
+        console.log(`⭐ MEMORY-ONLY: Found recent memory session: ${sessionId}`);
+        
+        return res.json({
+          sessionId,
+          status: 'active',
+          progress,
+          source: 'memory_only'
+        });
+      }
+      
+      // No active sessions found
+      return res.json({ 
+        sessionId: null, 
+        source: 'memory_only' 
+      });
+    } catch (error) {
+      console.error('Error in memory-only endpoint:', error);
+      return res.json({ 
+        sessionId: null,
+        error: 'Memory-only fallback error',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // NEW NEONDB ENDPOINT - Uses direct serverless connection
+  app.get('/api/active-upload-session-neon', async (req: Request, res: Response) => {
+    try {
+      // Add cache control headers to reduce polling frequency
+      res.set('Cache-Control', 'private, max-age=1');
+      
+      // Only log 5% of the time to reduce console spam
+      const shouldLog = Math.random() < 0.05;
+      if (shouldLog) {
+        console.log("⭐ NEON: Checking for active upload sessions...");
+      }
+      
+      // Import the SERVER_START_TIMESTAMP and neonConnection
+      const { SERVER_START_TIMESTAMP } = await import('./index');
+      const { neonConnection } = await import('./db');
+      
+      // Before checking the database, check if there's an active Python process
+      const activePythonSessions = pythonService.getActiveProcessSessions();
+      if (activePythonSessions.length > 0) {
+        console.log(`⭐ NEON: Found ${activePythonSessions.length} active Python sessions:`, activePythonSessions);
+        
+        // Get the first active session
+        const activeSessionId = activePythonSessions[0];
+        
+        try {
+          // Check if this session exists in the database using Neon serverless
+          const sessionRows = await neonConnection`
+            SELECT * FROM upload_session 
+            WHERE session_id = ${activeSessionId}
+          `;
+          
+          if (sessionRows.length > 0) {
+            // Session exists in database
+            const session = sessionRows[0];
+            
+            // Get the progress from the upload progress map
+            const progress = uploadProgressMap.get(activeSessionId);
+            
+            // Update the session using Neon serverless
+            await neonConnection`
+              UPDATE upload_session 
+              SET status = 'active', 
+                  updated_at = ${new Date()}, 
+                  server_start_timestamp = ${SERVER_START_TIMESTAMP.toString()}
+              WHERE session_id = ${activeSessionId}
+            `;
+            
+            console.log(`⭐ NEON: Returning active session ${activeSessionId} with progress`);
+            
+            // Return the session with progress
+            return res.json({ 
+              sessionId: activeSessionId,
+              status: 'active',
+              progress: progress || JSON.parse(session.progress || '{}'),
+              source: 'neon'
+            });
+          } else {
+            // Session doesn't exist in database but Python process is running
+            console.log(`⭐ NEON: Active Python process ${activeSessionId} has no database record, using memory only`);
+            
+            // Get progress from memory
+            const progress = uploadProgressMap.get(activeSessionId);
+            
+            // Return the session
+            return res.json({ 
+              sessionId: activeSessionId,
+              status: 'active',
+              progress: progress || {},
+              source: 'neon_memory'
+            });
+          }
+        } catch (dbError) {
+          console.error('NEON DB Error:', dbError);
+          // Fall back to memory only
+          const progress = uploadProgressMap.get(activeSessionId);
+          return res.json({ 
+            sessionId: activeSessionId,
+            status: 'active',
+            progress: progress || {},
+            source: 'neon_memory_fallback',
+            error: 'Database error, using memory data'
+          });
+        }
+      }
+      
+      // No active Python processes found
+      return res.json({ 
+        sessionId: null,
+        source: 'neon'
+      });
+    } catch (error) {
+      console.error('Error in Neon endpoint:', error);
+      
+      // IMPROVED ERROR HANDLING: Always return 200 with error info
+      // Check if there are any active Python processes we can use as fallback
+      const activePythonSessions = pythonService.getActiveProcessSessions();
+      if (activePythonSessions.length > 0) {
+        const sessionId = activePythonSessions[0];
+        const progress = uploadProgressMap.get(sessionId);
+        
+        console.log(`⭐ NEON ERROR RECOVERY: Returning memory data for ${sessionId}`);
+        return res.json({
+          sessionId,
+          status: 'active',
+          progress: progress || {},
+          source: 'neon_error_fallback',
+          error: 'Neon endpoint error, using memory data',
+          fallback: true
+        });
+      }
+      
+      // Return 200 with error info, not 500
+      return res.json({ 
+        sessionId: null,
+        error: 'Neon endpoint error',
+        details: error instanceof Error ? error.message : String(error),
+        fallback: true,
+        source: 'neon_error'
+      });
+    }
+  });
+  
+  // SIMPLIFIED ERROR-RESILIENT ENDPOINT
   app.get('/api/active-upload-session', async (req: Request, res: Response) => {
     try {
       // Add cache control headers to reduce polling frequency
@@ -2984,6 +3168,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting training examples:", error);
       return res.status(500).json({ error: "Failed to get training examples" });
+    }
+  });
+  
+  // NEW MEMORY-ONLY ENDPOINT - No database dependency
+  app.get('/api/active-upload-session-memory', async (req: Request, res: Response) => {
+    try {
+      // Add cache control headers to reduce polling frequency
+      res.set('Cache-Control', 'private, max-age=1');
+
+      // Check for active Python process - the most reliable indicator of an active upload
+      const activePythonSessions = pythonService.getActiveProcessSessions();
+      if (activePythonSessions.length > 0) {
+        console.log(`⭐ MEMORY ENDPOINT: Found ${activePythonSessions.length} active Python sessions`);
+        
+        // Get the first active session
+        const activeSessionId = activePythonSessions[0];
+        const progress = uploadProgressMap.get(activeSessionId);
+        
+        console.log(`⭐ MEMORY ENDPOINT: Returning active session ${activeSessionId}`);
+        
+        // Return the session with progress
+        return res.json({ 
+          sessionId: activeSessionId,
+          status: 'active',
+          progress: progress || {
+            processed: 0,
+            total: 100,
+            stage: "Processing data...",
+            timestamp: Date.now(),
+            source: 'memory_endpoint'
+          },
+          source: 'memory'
+        });
+      }
+      
+      // No active session found
+      console.log("⭐ MEMORY ENDPOINT: No active sessions found");
+      return res.json({ 
+        sessionId: null,
+        source: 'memory'
+      });
+    } catch (error) {
+      console.error('Error in memory endpoint:', error);
+      return res.json({ 
+        sessionId: null,
+        error: 'Memory endpoint error',
+        details: error instanceof Error ? error.message : String(error),
+        source: 'memory'
+      });
     }
   });
 

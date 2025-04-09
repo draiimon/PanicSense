@@ -213,13 +213,14 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
         
         // Check with the boss (database) for the real status
         console.log('Asking database for the real upload status...');
+        let data: any = null;
         try {
           const response = await fetch('/api/active-upload-session');
           
           // Even if response is not OK, we'll still try to parse the JSON
           // This is because we modified the server to return JSON with error info
           // instead of a true 500 status code when database is down
-          const data = await response.json();
+          data = await response.json();
           
           // If the server returned an error but we have localStorage data, use that
           if (!response.ok || data.error || data.fallback) {
@@ -281,11 +282,58 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
           return; // Skip the rest of the function
         }
         
-        // If we got here, we successfully got data from the server response
-        // Note: We already have the data from the response earlier in the try block
-        // No need to fetch it again
+        // If we got here, we successfully got a database response, but need to check if it contains error info
         
-        if (data.sessionId) {
+        // First check if database reported an error but is still returning valid JSON
+        if (data && data.error && data.fallback) {
+          console.log('DATABASE ERROR BUT RETURNED FALLBACK DATA:', data.error);
+          
+          // On database error, check localStorage - it's the source of truth for UI visibility
+          const sessionId = localStorage.getItem('uploadSessionId');
+          const isLocalUpload = localStorage.getItem('isUploading') === 'true';
+          
+          if (sessionId && isLocalUpload) {
+            console.log('LOCAL UPLOAD STATE SAYS YES - KEEPING MODAL VISIBLE');
+            setIsUploading(true);
+            
+            // Try memory-only endpoint as fallback
+            try {
+              const memoryResponse = await fetch('/api/active-upload-session-memory');
+              const memoryData = await memoryResponse.json();
+              
+              if (memoryData && memoryData.sessionId) {
+                console.log('MEMORY ENDPOINT CONFIRMED SESSION:', memoryData.sessionId);
+                localStorage.setItem('uploadSessionId', memoryData.sessionId);
+                
+                // Use memory progress data
+                if (memoryData.progress) {
+                  const memoryProgress = typeof memoryData.progress === 'string'
+                    ? JSON.parse(memoryData.progress)
+                    : memoryData.progress;
+                    
+                  setUploadProgress(memoryProgress);
+                  
+                  // Cache in localStorage with timestamp
+                  const progressWithTimestamp = {
+                    ...memoryProgress,
+                    timestamp: Date.now(),
+                    savedAt: Date.now(),
+                    source: 'memory_endpoint'
+                  };
+                  
+                  localStorage.setItem('uploadProgress', JSON.stringify(progressWithTimestamp));
+                }
+              }
+            } catch (memoryError) {
+              console.error('Failed to get data from memory endpoint:', memoryError);
+            }
+            
+            return; // Exit and keep UI showing upload in progress
+          }
+        }
+        
+        // Normal data processing when database is working
+        if (data && data.sessionId) {
           // DATABASE HAS ACTIVE SESSION - BOSS SAYS YES
           console.log('DATABASE BOSS SAYS: Yes, there is an active upload', data.sessionId);
           
