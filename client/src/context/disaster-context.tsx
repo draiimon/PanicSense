@@ -213,10 +213,77 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
         
         // Check with the boss (database) for the real status
         console.log('Asking database for the real upload status...');
-        const response = await fetch('/api/active-upload-session');
-        if (!response.ok) throw new Error('Failed to check for active uploads');
+        try {
+          const response = await fetch('/api/active-upload-session');
+          
+          // Even if response is not OK, we'll still try to parse the JSON
+          // This is because we modified the server to return JSON with error info
+          // instead of a true 500 status code when database is down
+          const data = await response.json();
+          
+          // If the server returned an error but we have localStorage data, use that
+          if (!response.ok || data.error || data.fallback) {
+            console.error('Error checking with database boss:', data.error || 'Database unavailable');
+            
+            // If we have local storage data, use that as source of truth
+            const storedSessionId = localStorage.getItem('uploadSessionId');
+            const storedUploadingStatus = localStorage.getItem('isUploading');
+            const storedProgress = localStorage.getItem('uploadProgress');
+            
+            if (storedSessionId && storedUploadingStatus === 'true' && storedProgress) {
+              console.log('Using localStorage as source of truth due to database error');
+              try {
+                const localProgress = JSON.parse(storedProgress);
+                setIsUploading(true);
+                setUploadProgress(localProgress);
+                return; // Skip the rest of the function
+              } catch (parseError) {
+                console.error('Failed to parse localStorage progress during database error fallback');
+              }
+            }
+            
+            // If we have Python sessions running, trust those even if database is down
+            if (data.sessionId && data.progress) {
+              console.log('Emergency fallback: Using Python process data despite database error');
+              setIsUploading(true);
+              setUploadProgress(data.progress);
+              return; // Skip the rest of the function
+            }
+            
+            // If we reached here, we have no reliable data
+            setIsUploading(false);
+            return; // Skip the rest of the function
+          }
+          
+          // Continue with normal processing as response was ok
+        } catch (networkError) {
+          console.error('Network error when checking database status:', networkError);
+          
+          // If we have localStorage data, use that during network errors
+          const storedSessionId = localStorage.getItem('uploadSessionId');
+          const storedUploadingStatus = localStorage.getItem('isUploading');
+          const storedProgress = localStorage.getItem('uploadProgress');
+          
+          if (storedSessionId && storedUploadingStatus === 'true' && storedProgress) {
+            console.log('Using localStorage as source of truth due to network error');
+            try {
+              const localProgress = JSON.parse(storedProgress);
+              setIsUploading(true);
+              setUploadProgress(localProgress);
+            } catch (parseError) {
+              console.error('Failed to parse localStorage progress during network error fallback');
+              setIsUploading(false);
+            }
+          } else {
+            setIsUploading(false);
+          }
+          
+          return; // Skip the rest of the function
+        }
         
-        const data = await response.json();
+        // If we got here, we successfully got data from the server response
+        // Note: We already have the data from the response earlier in the try block
+        // No need to fetch it again
         
         if (data.sessionId) {
           // DATABASE HAS ACTIVE SESSION - BOSS SAYS YES

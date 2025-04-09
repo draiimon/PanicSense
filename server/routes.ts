@@ -1256,9 +1256,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ sessionId: null });
     } catch (error) {
       console.error('Error retrieving active upload session:', error);
-      res.status(500).json({ 
-        error: 'Failed to retrieve active upload session',
-        details: error instanceof Error ? error.message : String(error)
+      
+      // IMPROVED ERROR HANDLING: Return 200 with error info instead of 500
+      // This allows clients to handle database errors gracefully by falling back to localStorage
+      
+      // Check if there are any active Python processes we can use as fallback
+      const activePythonSessions = pythonService.getActiveProcessSessions();
+      if (activePythonSessions.length > 0) {
+        const sessionId = activePythonSessions[0];
+        const progress = uploadProgressMap.get(sessionId);
+        
+        console.log(`⭐ DATABASE ERROR RECOVERY: Returning memory data for ${sessionId}`);
+        return res.json({
+          sessionId,
+          status: 'active',
+          progress: progress || {},
+          source: 'memory_fallback',
+          error: 'Database unavailable, using memory data',
+          fallback: true
+        });
+      }
+      
+      // Return 200 with error info, not 500
+      // This keeps the client running with localStorage tracking
+      return res.json({ 
+        sessionId: null,
+        error: 'Database temporarily unavailable',
+        details: error instanceof Error ? error.message : String(error),
+        fallback: true
       });
     }
   });
