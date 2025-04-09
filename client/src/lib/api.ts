@@ -522,11 +522,40 @@ export async function uploadCSV(
     }
     throw error;
   } finally {
+    // SUPER SIMPLE CLEANUP SEQUENCE - FIX ALL MODAL ISSUES
+    
+    // 1. Close EventSource first
     eventSource.close();
     currentEventSource = null;
     currentUploadSessionId = null;
-    // Clear the session ID from localStorage
+
+    // 2. Clear ALL localStorage state for maximum stability
+    localStorage.removeItem('isUploading');
+    localStorage.removeItem('uploadProgress');
     localStorage.removeItem('uploadSessionId');
+    localStorage.removeItem('lastProgressTimestamp');
+    localStorage.removeItem('lastDatabaseCheck');
+    localStorage.removeItem('serverRestartProtection');
+    localStorage.removeItem('serverRestartTimestamp');
+    localStorage.removeItem('cooldownActive');
+    localStorage.removeItem('cooldownStartedAt');
+    localStorage.removeItem('lastTabSync');
+
+    // 3. Clean up ALL EventSource connections
+    if (window._activeEventSources) {
+      Object.values(window._activeEventSources).forEach(source => {
+        try { source.close(); } catch (e) { /* ignore */ }
+      });
+      window._activeEventSources = {};
+    }
+
+    // 4. Simple server cleanup with minimal error handling
+    setTimeout(() => {
+      fetch('/api/reset-upload-sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(() => {});
+    }, 500);
   }
 }
 
@@ -578,11 +607,17 @@ export async function resetUploadSessions(): Promise<{
     body: JSON.stringify({ all: true })
   });
   
-  // Clean up localStorage
+  // Full cleanup of ALL localStorage upload state
   localStorage.removeItem('isUploading');
   localStorage.removeItem('uploadProgress');
   localStorage.removeItem('uploadSessionId');
   localStorage.removeItem('lastProgressTimestamp');
+  localStorage.removeItem('lastDatabaseCheck');
+  localStorage.removeItem('serverRestartProtection');
+  localStorage.removeItem('serverRestartTimestamp');
+  localStorage.removeItem('cooldownActive');
+  localStorage.removeItem('cooldownStartedAt');
+  localStorage.removeItem('lastTabSync');
   
   return response.json();
 }

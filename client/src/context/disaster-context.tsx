@@ -165,7 +165,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
     // Define the database verification function - DATABASE IS BOSS!
     const verifyWithDatabase = async () => {
       try {
-        console.log('📊 LOCAL is boss for visibility, database for data updates!');
+        // No need to log this on every poll
         
         // STABILITY FIRST: Always ensure UI state from localStorage is shown immediately
         // This ensures we never have a flicker or lost initializing state

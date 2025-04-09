@@ -340,8 +340,49 @@ export function UploadProgressModal() {
   // Check for cancellation
   const isCancelled = stageLower.includes('cancel');
   
-  // Improved error detection
+  // Improved error detection with auto-close
   const hasError = stageLower.includes('error');
+  
+  // Auto-close on error or completion after a delay
+  useEffect(() => {
+    if (hasError || isComplete || isCancelled) {
+      // Start a timer to auto-close after 5 seconds
+      const autoCloseTimer = setTimeout(() => {
+        console.log(`🔄 Auto-closing upload modal: Error=${hasError}, Complete=${isComplete}, Cancelled=${isCancelled}`);
+        
+        // Clear all localStorage state
+        localStorage.removeItem('isUploading');
+        localStorage.removeItem('uploadProgress');
+        localStorage.removeItem('uploadSessionId');
+        localStorage.removeItem('lastProgressTimestamp');
+        localStorage.removeItem('lastDatabaseCheck');
+        localStorage.removeItem('serverRestartProtection');
+        localStorage.removeItem('serverRestartTimestamp');
+        localStorage.removeItem('cooldownActive');
+        localStorage.removeItem('cooldownStartedAt');
+        localStorage.removeItem('lastTabSync');
+        
+        // Clean up any existing EventSource connections
+        if (window._activeEventSources) {
+          Object.values(window._activeEventSources).forEach(source => {
+            try {
+              source.close();
+            } catch (e) {
+              // Ignore errors on close
+            }
+          });
+          // Reset the collection
+          window._activeEventSources = {};
+        }
+        
+        // Update context state to close the modal
+        setIsUploading(false);
+      }, 5000); // 5 second delay for user to see the final status
+      
+      // Cleanup timer on unmount
+      return () => clearTimeout(autoCloseTimer);
+    }
+  }, [hasError, isComplete, isCancelled, setIsUploading]);
   
   // SUPER ENHANCED 2025 VERSION: Calculate time remaining in human-readable format
   // with critical improvements to prevent time jumps and ensure consistent estimates

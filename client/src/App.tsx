@@ -41,8 +41,7 @@ function App() {
       <DisasterContextProvider>
         {/* Global upload progress modal to ensure it stays visible across all pages */}
         <UploadProgressModal />
-        {/* Emergency reset button for stuck modals - activate with 5 quick Shift key presses */}
-        <EmergencyResetButton />
+        {/* Hidden emergency reset feature is available but not shown in UI */}
         <MainLayout>
           <Router />
         </MainLayout>
