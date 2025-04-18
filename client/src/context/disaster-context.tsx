@@ -121,11 +121,38 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
   const storedProgress = localStorage.getItem('uploadProgress');
   const storedSessionId = localStorage.getItem('uploadSessionId');
   
-  // Initialize with localStorage data for immediate UI response
-  // SUPER AGGRESSIVE LOADING OF INITIALIZING STATE - NEVER LOSE THE INITIALIZING MODAL!
-  // If there's ANY evidence of an upload, show it (progress || isUploading flag)
-  let initialUploadState = storedIsUploading || !!storedProgress || !!storedSessionId;
+  // NUCLEAR OPTION: ALWAYS START WITH MODAL HIDDEN
+  // Never auto-show the uploading modal on page load to prevent stuck state
+  let initialUploadState = false; // Force clean slate every time
   let initialProgressState = initialProgress;
+  
+  // FORCED CLEANUP: Immediately clear any localStorage related to uploads
+  useEffect(() => {
+    console.log('🧨 DISASTER CONTEXT: NUCLEAR CLEANUP ACTIVATED');
+    // Clear ALL localStorage items on component mount
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.includes('upload') || 
+        key.includes('isUploading') || 
+        key.includes('session') ||
+        key.includes('progress') ||
+        key.includes('restart')
+      )) {
+        localStorage.removeItem(key);
+        console.log(`🗑️ Deleted stale localStorage item: ${key}`);
+      }
+    }
+    
+    // Force server cleanup too
+    fetch('/api/cleanup-error-sessions', { method: 'POST' })
+      .catch(e => console.error('Error during nuclear cleanup:', e));
+    
+    // Also force session reset
+    fetch('/api/reset-upload-sessions', { method: 'POST' })
+      .catch(e => console.error('Error during session reset:', e));
+      
+  }, []);
   
   // If we have stored progress, parse it for immediate UI display
   if (storedProgress) {

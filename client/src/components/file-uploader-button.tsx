@@ -253,12 +253,53 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         variant: 'destructive',
       });
       
-      // Make sure to clean up localStorage on error
-      localStorage.removeItem('isUploading');
-      localStorage.removeItem('uploadProgress');
-      localStorage.removeItem('uploadSessionId');
-      localStorage.removeItem('uploadStartTime');
-      localStorage.removeItem('lastProgressTimestamp');
+      try {
+        // Update the progress with error state to ensure it shows properly
+        const errorProgress = {
+          processed: 0,
+          total: 10,
+          stage: 'Upload Error',
+          error: error instanceof Error ? error.message : 'Failed to upload file',
+          timestamp: Date.now(),
+          savedAt: Date.now(),
+          autoCloseDelay: 5000, // Auto-close after 5 seconds
+          processingStats: {
+            successCount: 0,
+            errorCount: 0,
+            averageSpeed: 0
+          }
+        };
+        
+        // Update the UI with error state that will auto-close
+        setUploadProgress(errorProgress);
+        
+        // Also save the error state to localStorage (will be auto-cleaned)
+        localStorage.setItem('uploadProgress', JSON.stringify(errorProgress));
+        
+        // Force cleanup after 1 second to handle any UI race conditions
+        setTimeout(() => {
+          // NUCLEAR CLEANUP: Remove all upload-related data
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (
+              key.includes('upload') || 
+              key.includes('isUploading') || 
+              key.includes('session') ||
+              key.includes('progress') ||
+              key.includes('restart')
+            )) {
+              localStorage.removeItem(key);
+            }
+          }
+          
+          // Also call the API to ensure server is cleaned up
+          cleanupErrorSessions().catch(e => console.error('Error in post-error cleanup:', e));
+          
+          console.log('🧹 POST-ERROR FORCED CLEANUP COMPLETE');
+        }, 1000);
+      } catch (cleanupError) {
+        console.error('Error during error cleanup:', cleanupError);
+      }
     } finally {
       event.target.value = '';
       
