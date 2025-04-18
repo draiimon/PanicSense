@@ -36,7 +36,7 @@ export class PythonService {
   private scriptPath: string;
   private confidenceCache: Map<string, number>;  // Cache for confidence scores
   private similarityCache: Map<string, boolean>; // Cache for text similarity checks
-  private activeProcesses: Map<string, { process: any, tempFilePath: string }>;  // Track active Python processes
+  private activeProcesses: Map<string, { process: any, tempFilePath: string, startTime: Date }>;  // Track active Python processes with start times
 
   constructor() {
     // Use the virtual environment python in production, otherwise use system python
@@ -106,7 +106,7 @@ export class PythonService {
     this.activeProcesses.forEach((process, sessionId) => {
       result.push({
         sessionId,
-        startTime: new Date() // We don't have actual start time in the current implementation
+        startTime: process.startTime || new Date() // Use the stored start time
       });
     });
     
@@ -757,7 +757,8 @@ export class PythonService {
       // Store the process in our active processes map so we can cancel it if needed
       this.activeProcesses.set(uploadSessionId, { 
         process: pythonProcess, 
-        tempFilePath 
+        tempFilePath,
+        startTime: new Date() // Add the start time for tracking
       });
       
       log(`Added process to active processes map with session ID: ${uploadSessionId}`, 'python-service');
@@ -1138,7 +1139,8 @@ export class PythonService {
       // Store in active processes (for status monitoring only)
       this.activeProcesses.set(analysisSessionId, { 
         process: pythonProcess, 
-        tempFilePath: '' // No temp file for text analysis
+        tempFilePath: '', // No temp file for text analysis
+        startTime: new Date() // Add start time for tracking
       });
 
       const result = await new Promise<string>((resolve, reject) => {
