@@ -23,7 +23,9 @@ export function UploadProgressModal() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   // Check for server restart protection flag
-  const serverRestartProtection = localStorage.getItem('serverRestartProtection') === 'true';
+  // Only consider server restart protection if explicitly set AND not during normal batch processing
+  const serverRestartDetected = localStorage.getItem('serverRestartProtection') === 'true';
+  // Will initialize stageLower further down in the code when we have the stage value
   const serverRestartTime = localStorage.getItem('serverRestartTimestamp');
   
   // Regular check with database boss - if boss says no active sessions but we're showing
@@ -220,6 +222,15 @@ export function UploadProgressModal() {
   const isLoading = stageLower.includes('loading') || stageLower.includes('preparing');
   const isProcessingRecord = stageLower.includes('processing record') || stageLower.includes('completed record');
   
+  // Extract cooldown time if present in stage (e.g., '60-second pause between batches: 42 seconds remaining')
+  let cooldownTime = null;
+  if (isPaused && stageLower.includes('seconds remaining')) {
+    const match = stageLower.match(/(\d+)\s+seconds?\s+remaining/);
+    if (match && match[1]) {
+      cooldownTime = parseInt(match[1], 10);
+    }
+  }
+  
   // Consider any active work state as "processing"
   const isProcessing = isProcessingRecord || isPaused || stageLower.includes('processing');
   
@@ -241,8 +252,11 @@ export function UploadProgressModal() {
                  (error && error.length > 0)) &&
                  !stageLower.includes('complete'); // Skip error if it's part of 'complete'
                  
-  // Final completion state - explicitly check if it's not an error state first
-  const isComplete = isReallyComplete && !hasError;
+  // Final completion state - explicitly check if it's not an error state first AND we've processed all (or nearly all) records
+  // Only show "Analysis Complete!" when we've processed at least 99% of records
+  const isComplete = isReallyComplete && !hasError && 
+                    (total > 0 && processedCount >= total * 0.99) &&
+                    !serverRestartProtection;
   
   // Calculate completion percentage safely - ensure it's visible when processing
   const percentComplete = total > 0 
