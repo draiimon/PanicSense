@@ -231,6 +231,14 @@ export function UploadProgressModal() {
                         stageLower === 'complete' ||
                         (rawProcessed >= total * 0.99 && total > 0);
   
+  // Improved error detection that doesn't trigger on partial matches
+  // Only mark as error if the stage explicitly starts with 'error' or contains 'error:' or 'failed'
+  const hasError = stageLower === 'error' || 
+                 stageLower.includes('error:') || 
+                 stageLower.includes('failed') || 
+                 stageLower.includes('critical error') ||
+                 (error && error.length > 0);
+                 
   // Final completion state - explicitly check if it's not an error state first
   const isComplete = isReallyComplete && !hasError;
   
@@ -241,14 +249,6 @@ export function UploadProgressModal() {
   
   // Check for cancellation
   const isCancelled = stageLower.includes('cancel');
-  
-  // Improved error detection that doesn't trigger on partial matches
-  // Only mark as error if the stage explicitly starts with 'error' or contains 'error:' or 'failed'
-  const hasError = stageLower === 'error' || 
-                 stageLower.includes('error:') || 
-                 stageLower.includes('failed') || 
-                 stageLower.includes('critical error') ||
-                 (error && error.length > 0);
   
   // Calculate time remaining in human-readable format
   const formatTimeRemaining = (seconds: number): string => {
