@@ -252,21 +252,16 @@ export function UploadProgressModal() {
                         stageLower === 'complete' ||
                         (rawProcessed >= total * 0.99 && total > 0);
   
-  // Improved error detection that doesn't trigger on partial matches
-  // Only mark as error if the stage explicitly starts with 'error' or contains 'error:' or 'failed'
-  // Avoid false positive errors during normal processing
-  // IMPORTANT: Don't mark as error when we're actually complete or when we're just in a batch cooldown
-  const hasError = (stageLower === 'error' || 
-                 stageLower.includes('error:') || 
-                 stageLower.includes('failed') || 
-                 stageLower.includes('critical error') ||
-                 // Don't consider it an error if the stage includes "analysis complete" or "complete"
-                 (error && error.length > 0 && 
-                  !error.toLowerCase().includes('complete') && 
-                  !stageLower.includes('analysis complete'))) &&
-                 !stageLower.includes('complete') && // Skip error if it's part of 'complete'
-                 !isPaused && // Don't show error during batch pauses
-                 !isReallyComplete; // If we've processed everything successfully, it's not an error
+  // FIXED VERSION - SIMPLER LOGIC:
+  // 1. If stage includes "complete" or "analysis complete", it's NEVER an error
+  // 2. If stage is explicitly "error" or contains "failed", it IS an error
+  // 3. If we have an error message but our progress is complete, DON'T show error
+  
+  const isCompletionState = stageLower.includes('complete') || stageLower.includes('analysis complete');
+  const isErrorStage = stageLower === 'error' || stageLower.includes('failed') || stageLower.includes('critical error');
+  
+  // Simplified error detection
+  const hasError = isErrorStage && !isCompletionState && !isReallyComplete;
                  
   // Final completion state - explicitly check if it's not an error state first AND we've processed all (or nearly all) records
   // Only show "Analysis Complete!" when we've processed at least 99% of records
@@ -641,13 +636,30 @@ export function UploadProgressModal() {
                   </div>
                 </div>
                 
-                <div className="mt-3 text-center">
+                <div className="mt-3 text-center flex gap-2 justify-center">
                   <Button
-                    onClick={() => forceCloseModal()}
+                    onClick={() => {
+                      // First cancel the upload via the API
+                      if (uploadSessionId) {
+                        cancelUpload(uploadSessionId)
+                          .then(() => {
+                            console.log(`Upload ${uploadSessionId} cancelled via API`);
+                            forceCloseModal();
+                          })
+                          .catch(err => {
+                            console.error('Error cancelling upload:', err);
+                            // Force close anyway
+                            forceCloseModal();
+                          });
+                      } else {
+                        // No sessionId, just close
+                        forceCloseModal();
+                      }
+                    }}
                     variant="destructive"
                     className="bg-red-600 hover:bg-red-700 text-white px-4"
                   >
-                    Close
+                    Close & Cancel
                   </Button>
                 </div>
               </div>

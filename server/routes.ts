@@ -1710,11 +1710,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Final progress update
       if (sessionId && updateProgress) {
-        updateProgress(totalRecords, 'Analysis complete', totalRecords);
+        // Use a clear analysis complete message that won't trigger error detection
+        updateProgress(totalRecords, 'Analysis complete', totalRecords, undefined, undefined);
         
         // Update session status to completed
         try {
-          await storage.updateUploadSession(sessionId, 'completed', uploadProgressMap.get(sessionId));
+          // Make sure the uploadProgressMap has the latest status
+          const currentProgress = uploadProgressMap.get(sessionId) || {
+            processed: 0,
+            total: 0,
+            stage: 'Initializing...',
+            timestamp: Date.now(),
+            batchNumber: 0,
+            totalBatches: 0,
+            batchProgress: 0,
+            currentSpeed: 0,
+            timeRemaining: 0,
+            processingStats: {
+              successCount: 0,
+              errorCount: 0,
+              averageSpeed: 0
+            }
+          };
+          
+          const finalProgress = {
+            ...currentProgress,
+            processed: totalRecords,
+            total: totalRecords,
+            stage: 'Analysis complete',
+            timestamp: Date.now(),
+            error: undefined // Explicitly clear any error
+          };
+          
+          uploadProgressMap.set(sessionId, finalProgress);
+          await storage.updateUploadSession(sessionId, 'completed', finalProgress);
+          
+          // Broadcast final completion state to all listeners
+          broadcastUpdate({
+            type: 'progress',
+            sessionId,
+            progress: finalProgress
+          });
+          
+          console.log('Final completion state broadcast to clients');
         } catch (err) {
           console.error('Error updating session status:', err);
         }
@@ -1751,13 +1789,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing CSV:", error);
 
-      // Update progress with error message
-      updateProgress(0, 'Error', undefined, undefined, error instanceof Error ? error.message : String(error));
+      // Update progress with error message - mark it clearly as 'Error' not just any message
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.log('Setting error state with message:', errorMessage);
       
-      // Update session status to 'error' instead of leaving it as 'active'
+      // Create a proper error state object
+      const errorProgress = {
+        processed: 0,
+        total: 10, // Just a placeholder, the UI will show 0/10
+        stage: 'Upload Error', // Be explicit that this is an upload error
+        batchNumber: 0,
+        totalBatches: 0,
+        batchProgress: 0,
+        currentSpeed: 0,
+        timeRemaining: 0,
+        error: errorMessage, // Set the error message
+        timestamp: Date.now(), // Ensure fresh timestamp
+        processingStats: {   // Add required processing stats
+          successCount: 0,
+          errorCount: 1,
+          averageSpeed: 0
+        }
+      };
+      
+      // Update the progress map
       if (sessionId) {
+        uploadProgressMap.set(sessionId, errorProgress);
+        
+        // First update via the direct progress callback
+        updateProgress(0, 'Upload Error', 10, undefined, errorMessage);
+        
+        // Also broadcast to ensure all clients get the update
+        broadcastUpdate({
+          type: 'progress',
+          sessionId,
+          progress: errorProgress
+        });
+        
+        // Update session status to 'error' instead of leaving it as 'active'
         try {
-          await storage.updateUploadSession(sessionId, 'error', uploadProgressMap.get(sessionId));
+          await storage.updateUploadSession(sessionId, 'error', errorProgress);
+          console.log('Updated session status to error in database');
         } catch (err) {
           console.error('Error updating session status to error:', err);
         }
