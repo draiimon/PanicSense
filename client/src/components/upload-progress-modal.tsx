@@ -22,8 +22,50 @@ import { ToastAction } from "@/components/ui/toast";
 const uploadBroadcastChannel = typeof window !== 'undefined' ? new BroadcastChannel('upload_status') : null;
 import { cancelUpload, getCurrentUploadSessionId } from "@/lib/api";
 
-// Create a hook to listen for broadcast messages from other tabs
-function useBroadcastMessages(setUploadProgress: any) {
+export function UploadProgressModal() {
+  const { isUploading, uploadProgress, setIsUploading, setUploadProgress } = useDisasterContext();
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const { toast } = useToast(); // Initialize toast hook
+  
+  // Define a clean-up function that will be used for both direct modal closing and broadcast handling
+  const cleanupAndClose = React.useCallback(() => {
+    console.log('🧹 Cleanup and close function triggered');
+    
+    // Clear all localStorage items
+    localStorage.removeItem('isUploading');
+    localStorage.removeItem('uploadProgress');
+    localStorage.removeItem('uploadSessionId');
+    localStorage.removeItem('lastProgressTimestamp');
+    localStorage.removeItem('lastDatabaseCheck');
+    localStorage.removeItem('serverRestartProtection');
+    localStorage.removeItem('serverRestartTimestamp');
+    localStorage.removeItem('uploadCompleteBroadcasted');
+    localStorage.removeItem('lastUIUpdateTimestamp');
+    localStorage.removeItem('uploadStartTime');
+    localStorage.removeItem('batchStats');
+    
+    // Clean up any existing EventSource connections
+    if (window._activeEventSources) {
+      Object.values(window._activeEventSources).forEach(source => {
+        try {
+          source.close();
+        } catch (e) {
+          // Ignore errors on close
+        }
+      });
+      // Reset the collection
+      window._activeEventSources = {};
+    }
+    
+    // Update context state
+    setIsUploading(false);
+    setIsCancelling(false);
+    
+    console.log('🧹 MODAL CLOSED - ALL LOCALSTORAGE CLEARED');
+  }, [setIsUploading, setIsCancelling]);
+  
+  // Set up broadcast channel listener to handle messages from other tabs
   useEffect(() => {
     if (!uploadBroadcastChannel) return;
     
@@ -31,23 +73,38 @@ function useBroadcastMessages(setUploadProgress: any) {
       console.log('📻 Upload modal received broadcast:', event.data.type);
       
       // Handle completion messages from other tabs
-      if (event.data.type === 'upload_complete' && event.data.progress) {
+      if (event.data.type === 'upload_complete') {
         console.log('📊 Received completion message from another tab');
         
-        // Update our state to completion
+        // First set stage to Analysis Complete
         if (event.data.progress) {
-          // Set to Analysis Complete
+          console.log('📊 Setting progress to Analysis Complete from broadcast');
           setUploadProgress({
             ...event.data.progress,
-            stage: 'Analysis complete'
+            stage: 'Analysis complete',
+            processed: event.data.progress.total, // Make sure processed equals total
+            currentSpeed: 0, // Reset speed
+            timeRemaining: 0 // No time remaining
           });
+          
+          // Set a timer to auto-close like the original tab does
+          const completionDelay = 3000; // 3 seconds
+          console.log(`📊 Will auto-close after ${completionDelay}ms due to broadcast`);
+          
+          // Add a mark in localStorage to indicate we've shown the completion state
+          localStorage.setItem('uploadCompleteBroadcasted', 'true');
+          
+          setTimeout(() => {
+            console.log('⏰ AUTO-CLOSE TRIGGERED BY BROADCAST MESSAGE');
+            cleanupAndClose();
+          }, completionDelay);
         }
       }
       
       // Handle force cancel messages from other tabs
       if (event.data.type === 'upload_force_cancelled') {
-        console.log('🔥 FORCE CANCEL MODE ACTIVATED');
-        // Will be handled by the parent context
+        console.log('🔥 FORCE CANCEL MODE ACTIVATED FROM BROADCAST');
+        cleanupAndClose();
       }
     };
     
@@ -56,17 +113,7 @@ function useBroadcastMessages(setUploadProgress: any) {
     return () => {
       uploadBroadcastChannel.removeEventListener('message', handleBroadcastMessage);
     };
-  }, [setUploadProgress]);
-}
-
-export function UploadProgressModal() {
-  const { isUploading, uploadProgress, setIsUploading, setUploadProgress } = useDisasterContext();
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const { toast } = useToast(); // Initialize toast hook
-  
-  // Use the broadcast messages hook to listen for messages from other tabs
-  useBroadcastMessages(setUploadProgress);
+  }, [setUploadProgress, cleanupAndClose]);
   
   // Check for server restart protection flag
   // Only consider server restart protection if explicitly set
@@ -169,7 +216,7 @@ export function UploadProgressModal() {
       
       if (result.success) {
         // Force close the modal instead of waiting for events
-        forceCloseModalMemo();
+        cleanupAndClose();
       } else {
         // If normal cancel failed, show option for force cancel
         if (!forceCancel) {
@@ -188,7 +235,7 @@ export function UploadProgressModal() {
           });
         } else {
           // Even if server force cancel failed, still close UI
-          forceCloseModalMemo();
+          cleanupAndClose();
           toast({
             title: 'Force Canceled',
             description: 'The upload has been forcefully canceled in this browser tab.',
@@ -202,7 +249,7 @@ export function UploadProgressModal() {
       
       // On force cancel, always close the modal even if there was an error
       if (forceCancel) {
-        forceCloseModalMemo();
+        cleanupAndClose();
         toast({
           title: 'Force Canceled',
           description: 'The upload has been forcefully canceled in this browser tab.',
