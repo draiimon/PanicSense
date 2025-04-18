@@ -303,6 +303,88 @@ export function UploadProgressModal() {
     return () => clearInterval(intervalId);
   }, [isUploading, setIsUploading]);
   
+  // Poll the specialized API endpoint for completion status
+  useEffect(() => {
+    if (!isUploading) return; // No need to check if not uploading
+    
+    const checkCompletionStatus = async () => {
+      try {
+        const response = await fetch('/api/upload-complete-check');
+        if (response.ok) {
+          const data = await response.json();
+          
+          // If the server says upload is complete, force completion state for ALL tabs
+          if (data.uploadComplete && data.sessionId) {
+            console.log('🌟 COMPLETION CHECK API SAYS UPLOAD IS COMPLETE!', data.sessionId);
+            
+            // Update our state first
+            setUploadProgress({
+              ...uploadProgress,
+              stage: 'Analysis complete',
+              processed: uploadProgress.total || 100,
+              total: uploadProgress.total || 100,
+              currentSpeed: 0,
+              timeRemaining: 0
+            });
+            
+            // Save to localStorage for other tabs
+            localStorage.setItem('uploadCompleted', 'true');
+            localStorage.setItem('uploadCompletedTimestamp', Date.now().toString());
+            
+            // Also broadcast to all tabs
+            try {
+              // Use both broadcast channels for notification
+              if (uploadBroadcastChannel) {
+                uploadBroadcastChannel.postMessage({
+                  type: 'upload_complete',
+                  progress: {
+                    ...uploadProgress,
+                    stage: 'Analysis complete',
+                    processed: uploadProgress.total || 100,
+                    total: uploadProgress.total || 100,
+                    currentSpeed: 0,
+                    timeRemaining: 0
+                  },
+                  timestamp: Date.now()
+                });
+              }
+              
+              // Use dedicated completion channel
+              const completionChannel = new BroadcastChannel('upload_completion');
+              completionChannel.postMessage({
+                type: 'analysis_complete',
+                timestamp: Date.now()
+              });
+              setTimeout(() => {
+                try { completionChannel.close(); } catch (e) { /* ignore */ }
+              }, 1000);
+              
+            } catch (e) {
+              console.error('Error broadcasting via completion check:', e);
+            }
+            
+            // Set a timer to auto-close this tab too
+            setTimeout(() => {
+              console.log('⏰ AUTO-CLOSE TRIGGERED BY COMPLETION CHECK API');
+              cleanupAndClose();
+            }, 3000);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking upload completion status:', error);
+      }
+    };
+    
+    // Check immediately on mount
+    checkCompletionStatus();
+    
+    // Check every 1 second - this is specifically designed to catch completion
+    // events and has a high frequency because completion needs immediate response
+    const intervalId = setInterval(checkCompletionStatus, 1000);
+    
+    return () => clearInterval(intervalId);
+  }, [isUploading, uploadProgress, setUploadProgress, cleanupAndClose]);
+
   // No local forceCloseModal function anymore - we use the memoized version forceCloseModalMemo
   
   // Handle cancel button click with force option
