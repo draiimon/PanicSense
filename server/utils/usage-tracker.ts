@@ -36,8 +36,9 @@ class UsageTracker {
   }
   
   private getCurrentDate(): string {
+    // Use UTC time to avoid timezone issues
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
   }
   
   private getUsageData(): UsageData {
@@ -113,17 +114,27 @@ class UsageTracker {
     
     // Reset the counter if it's a new day
     if (currentData.date !== currentDate) {
+      console.log(`Resetting usage stats for new day: ${currentDate} (was ${currentData.date})`);
       currentData.date = currentDate;
       currentData.rowCount = 0;
       currentData.lastReset = new Date().toISOString();
       this.saveUsageData(currentData);
     }
     
+    // Calculate the next reset time - midnight UTC
+    const now = new Date();
+    const tomorrow = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 1, // Next day
+      0, 0, 0, 0 // Midnight
+    ));
+    
     return {
       used: currentData.rowCount,
       limit: this.dailyLimit,
       remaining: Math.max(0, this.dailyLimit - currentData.rowCount),
-      resetAt: currentData.lastReset
+      resetAt: tomorrow.toISOString() // Use tomorrow at midnight as the reset time
     };
   }
   
@@ -132,6 +143,12 @@ class UsageTracker {
    * @param count The number of rows processed
    */
   public incrementRowCount(count: number) {
+    // Always ensure count is a positive number
+    if (count <= 0) {
+      console.warn('Warning: Attempted to increment usage counter with invalid count:', count);
+      return; // Don't increment if count is invalid
+    }
+    
     const currentData = this.getUsageData();
     const currentDate = this.getCurrentDate();
     
@@ -140,10 +157,14 @@ class UsageTracker {
       currentData.date = currentDate;
       currentData.rowCount = count;
       currentData.lastReset = new Date().toISOString();
+      console.log(`Usage counter reset for new day (${currentDate}). Starting with count:`, count);
     } else {
+      const previousCount = currentData.rowCount;
       currentData.rowCount += count;
+      console.log(`Incrementing usage counter by ${count} rows. Previous: ${previousCount}, New: ${currentData.rowCount}`);
     }
     
+    // Ensure we properly save the updated count
     this.saveUsageData(currentData);
   }
 }
