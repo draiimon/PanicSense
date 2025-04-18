@@ -2079,6 +2079,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch usage statistics" });
     }
   });
+  
+  // EMERGENCY RESET ENDPOINT - Clears all hanging sessions and processes
+  app.post('/api/emergency-reset', async (req: Request, res: Response) => {
+    try {
+      console.log('⚠️ EMERGENCY RESET ACTIVATED BY USER ⚠️');
+      
+      // 1. Cancel all Python processes
+      pythonService.cancelAllProcesses();
+      
+      // 2. Mark all sessions as complete or error in database
+      await pool.query("UPDATE upload_sessions SET status = 'error' WHERE status = 'active'");
+      
+      // 3. Clear all progress maps and in-memory state
+      uploadProgressMap.clear();
+      
+      // 4. Close all SSE connections
+      [...sseClients.keys()].forEach(clientId => {
+        const client = sseClients.get(clientId);
+        if (client) {
+          try {
+            client.write('event: close\ndata: {"reason":"Emergency reset activated"}\n\n');
+            client.end();
+          } catch (e) {
+            console.error('Error closing SSE client:', e);
+          }
+        }
+        sseClients.delete(clientId);
+      });
+      
+      // Wait a bit to ensure all connections are properly closed
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return res.json({
+        success: true,
+        message: 'Emergency reset successful. All uploads have been cancelled and sessions cleared.'
+      });
+    } catch (error) {
+      console.error('Error during emergency reset:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error during emergency reset',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   app.get('/api/python-console-messages', async (req: Request, res: Response) => {
     try {
