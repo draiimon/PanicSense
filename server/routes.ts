@@ -3100,6 +3100,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to get training examples" });
     }
   });
+  
+  // Special dedicated endpoint for checking upload completion status
+  // This endpoint is specifically designed to be polled frequently for consistent state across tabs
+  app.get('/api/upload-complete-check', async (req: Request, res: Response) => {
+    try {
+      // Get active Python sessions directly from pythonService
+      const activePythonSessions = pythonService.getActiveProcessSessions();
+      
+      // Check for any recently completed uploads that are in progress map but not active Python
+      const recentlyCompleted = Array.from(uploadProgressMap.entries())
+        .filter(([sessionId, progress]) => {
+          // Look for sessions that are marked complete but not an active Python process
+          return progress && 
+            (progress.stage === 'Analysis complete' || 
+             (typeof progress.stage === 'string' && 
+              progress.stage.toLowerCase().includes('complete'))) &&
+            !activePythonSessions.includes(sessionId);
+        });
+      
+      // If we have completed sessions, notify all clients
+      if (recentlyCompleted.length > 0) {
+        const [sessionId, progress] = recentlyCompleted[0];
+        
+        console.log(`🚨 COMPLETION CHECK API FOUND COMPLETED SESSION: ${sessionId} - SENDING CENTRAL COMPLETION SIGNAL`);
+        
+        // Send the completion notice to everyone
+        res.json({
+          uploadComplete: true,
+          sessionId,
+          progress: {
+            ...progress,
+            stage: 'Analysis complete',
+            processed: progress.total,
+            total: progress.total,
+            isComplete: true
+          },
+          timestamp: Date.now()
+        });
+        
+        // Also broadcast to all WebSocket clients
+        const completionData = {
+          type: 'UPLOAD_COMPLETE', 
+          sessionId,
+          progress: {
+            ...progress,
+            stage: 'Analysis complete',
+            isComplete: true,
+          },
+          timestamp: Date.now()
+        };
+        
+        // Send to all WebSocket clients
+        connectedClients.forEach(client => {
+          try {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify(completionData));
+            }
+          } catch (e) {
+            console.error('Error broadcasting completion to WebSocket:', e);
+          }
+        });
+        
+        return;
+      }
+      
+      // If we have active sessions but not completed, just return the status
+      if (activePythonSessions.length > 0) {
+        const sessionId = activePythonSessions[0];
+        const progress = uploadProgressMap.get(sessionId) || null;
+        
+        res.json({
+          uploadComplete: false,
+          sessionId,
+          progress,
+          timestamp: Date.now()
+        });
+        return;
+      }
+      
+      // No active or completed sessions
+      res.json({
+        uploadComplete: false,
+        sessionId: null,
+        progress: null,
+        timestamp: Date.now()
+      });
+    } catch (error) {
+      console.error('Error checking upload completion status:', error);
+      res.status(500).json({
+        uploadComplete: false,
+        error: 'Failed to check upload status',
+        timestamp: Date.now()
+      });
+    }
+  });
 
   return httpServer;
 }

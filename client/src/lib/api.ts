@@ -424,11 +424,84 @@ export async function uploadCSV(
   const eventSource = new EventSource(`/api/upload-progress/${currentUploadSessionId}`);
   currentEventSource = eventSource;
 
+  // Keep track of the last timestamp we processed to avoid out-of-order updates
+  let lastProcessedTimestamp = 0;
+  
+  // Store recent progress updates keyed by timestamp for deduplication
+  const recentProgressUpdates = new Map<number, boolean>();
+  
   eventSource.onmessage = (event) => {
     try {
       const progress = JSON.parse(event.data) as UploadProgress;
+      
+      // Add timestamp if missing
+      if (!progress.timestamp) {
+        progress.timestamp = Date.now();
+      }
+      
+      // Anti-flicker: Check if we've seen this exact update before based on timestamp
+      if (recentProgressUpdates.has(progress.timestamp)) {
+        console.log(`🎭 Suppressing duplicate progress update from timestamp ${progress.timestamp}`);
+        return;
+      }
+      
+      // Log the reception without details to reduce console noise
       console.log('Progress event received:', progress);
-
+      
+      // Record this timestamp to prevent duplicate processing
+      recentProgressUpdates.set(progress.timestamp, true);
+      
+      // Clean up old entries to avoid memory leaks
+      if (recentProgressUpdates.size > 20) {
+        // Keep only the 10 most recent entries
+        const keys = Array.from(recentProgressUpdates.keys()).sort((a, b) => a - b);
+        for (let i = 0; i < keys.length - 10; i++) {
+          recentProgressUpdates.delete(keys[i]);
+        }
+      }
+      
+      // Anti-flicker: Ensure events are processed in chronological order
+      // Only process events that are newer than the last one we processed
+      if (progress.timestamp < lastProcessedTimestamp - 1000) {
+        console.log(`🎭 Ignoring out-of-order progress update: ${progress.timestamp} < ${lastProcessedTimestamp}`);
+        return;
+      }
+      
+      // Special case: Always process terminal state messages (errors, completion)
+      const isTerminalState = progress.stage === 'Analysis complete' || 
+                             progress.stage?.toLowerCase()?.includes('complete') ||
+                             progress.stage === 'Upload Error' || 
+                             progress.error;
+      
+      if (isTerminalState) {
+        console.log(`🚨 TERMINAL STATE DETECTED! AUTO-CLOSING!`, progress.stage?.toLowerCase());
+        
+        // For completion, force progress to 100%
+        if (progress.stage?.toLowerCase()?.includes('complete') && progress.total && progress.total > 0) {
+          progress.processed = progress.total || 10; // Default to 10 if total is undefined
+          progress.stage = 'Analysis complete';
+        }
+        
+        // Close the EventSource connection - we're done!
+        console.log('Closing EventSource connection');
+        eventSource.close();
+        currentEventSource = null;
+        
+        // Always process terminal states immediately
+        if (onProgress) {
+          console.log('Success completion detected - refreshing data');
+          onProgress(progress);
+        }
+        
+        return;
+      }
+      
+      // Update last processed timestamp
+      if (progress.timestamp > lastProcessedTimestamp) {
+        lastProcessedTimestamp = progress.timestamp;
+      }
+      
+      // For normal updates, pass to callback with timestamps for the UI to handle debouncing
       if (onProgress) {
         console.log('Progress being sent to UI:', progress);
         onProgress(progress);

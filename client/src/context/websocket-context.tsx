@@ -37,53 +37,98 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       setIsConnected(true);
     });
 
-    // Listen for messages
+    // Listen for messages with priority handling for completion events
     ws.addEventListener('message', (event) => {
       try {
         const data = JSON.parse(event.data);
         console.log('📡 WebSocket message received:', data.type);
         
-        // Special handling for upload complete messages
+        // ⭐ Special handling for upload complete messages - highest priority message type
         if (data.type === 'UPLOAD_COMPLETE') {
-          console.log('🌟 UPLOAD_COMPLETE WebSocket message received!');
+          console.log('🌟 UPLOAD_COMPLETE WebSocket message received - HIGHEST PRIORITY!');
           
-          // Save completion state to localStorage for all tabs
-          localStorage.setItem('uploadCompleted', 'true');
-          localStorage.setItem('uploadCompletedTimestamp', Date.now().toString());
+          // Protect against race conditions by checking if we've handled this completion recently
+          const lastCompletionTime = parseInt(localStorage.getItem('uploadCompletedTimestamp') || '0');
+          const now = Date.now();
+          const completionTimeThreshold = 10000; // 10 seconds
           
-          // Force a broadcast to all tabs via the BroadcastChannel API
-          try {
-            const bc = new BroadcastChannel('upload_status');
-            bc.postMessage({
-              type: 'upload_complete',
-              progress: data.progress,
-              timestamp: Date.now()
-            });
+          // Only process if we haven't seen a completion event recently
+          if (now - lastCompletionTime > completionTimeThreshold) {
+            console.log('💥 Processing new completion event from WebSocket');
             
-            // Also use the dedicated completion channel
-            const cc = new BroadcastChannel('upload_completion');
-            cc.postMessage({
-              type: 'analysis_complete',
-              timestamp: Date.now()
-            });
+            // Save completion state to localStorage for all tabs with current timestamp
+            localStorage.setItem('uploadCompleted', 'true');
+            localStorage.setItem('uploadCompletedTimestamp', now.toString());
             
-            // Close the channels after sending
+            // ⭐⭐⭐ TRIPLE REDUNDANCY APPROACH ⭐⭐⭐
+            // 1. Use the regular upload status channel 
+            // 2. Use the dedicated completion channel
+            // 3. Set the direct localStorage flags
+            
+            // Force a broadcast to all tabs via the BroadcastChannel API (method 1)
+            try {
+              const bc = new BroadcastChannel('upload_status');
+              bc.postMessage({
+                type: 'upload_complete',
+                progress: {
+                  ...data.progress,
+                  processed: data.progress?.total || 10, // Force to 100%
+                  stage: 'Analysis complete',           // Force standard completion stage
+                  isComplete: true,                    // Add explicit flag
+                  source: 'websocket'                 // Track the source
+                },
+                timestamp: now,
+                source: 'websocket'
+              });
+              
+              // Also use the dedicated completion channel (method 2)
+              const cc = new BroadcastChannel('upload_completion');
+              cc.postMessage({
+                type: 'analysis_complete',
+                timestamp: now,
+                source: 'websocket'
+              });
+              
+              // Close the channels after sending
+              setTimeout(() => {
+                try { bc.close(); } catch (e) { /* ignore */ }
+                try { cc.close(); } catch (e) { /* ignore */ }
+              }, 500);
+            } catch (e) {
+              console.error('Error broadcasting completion via BroadcastChannel:', e);
+            }
+            
+            // Clear any upload state after a delay (but not too soon)
             setTimeout(() => {
-              try { bc.close(); } catch (e) { /* ignore */ }
-              try { cc.close(); } catch (e) { /* ignore */ }
-            }, 1000);
-          } catch (e) {
-            console.error('Error broadcasting completion via BroadcastChannel:', e);
+              // Force an additional broadcast just before we clean up
+              try {
+                const bc = new BroadcastChannel('upload_status');
+                bc.postMessage({
+                  type: 'upload_finished', 
+                  timestamp: Date.now(),
+                  source: 'websocket_cleanup'
+                });
+                setTimeout(() => {
+                  try { bc.close(); } catch (e) { /* ignore */ }
+                }, 200);
+              } catch (e) { /* ignore */ }
+              
+              // Only clear if we're still the most recent completion event
+              // This prevents a race condition where a newer completion
+              // is interrupted by an older timeout
+              const currentCompletionTime = parseInt(localStorage.getItem('uploadCompletedTimestamp') || '0');
+              if (currentCompletionTime === now) {
+                localStorage.removeItem('isUploading');
+                localStorage.removeItem('uploadProgress');
+                localStorage.removeItem('uploadSessionId');
+              }
+            }, 3000);
+          } else {
+            console.log('🔄 Ignoring duplicate completion event - already handled within the last 10s');
           }
-          
-          // Clear any upload state after a delay
-          setTimeout(() => {
-            localStorage.removeItem('isUploading');
-            localStorage.removeItem('uploadProgress');
-            localStorage.removeItem('uploadSessionId');
-          }, 3000);
         }
         
+        // Still update the context state for other components
         setLastMessage(data);
       } catch (error) {
         console.error('Failed to parse WebSocket message:', error);
