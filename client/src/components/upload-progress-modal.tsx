@@ -45,6 +45,23 @@ export function UploadProgressModal() {
     localStorage.removeItem('uploadStartTime');
     localStorage.removeItem('batchStats');
     
+    // Clear the new upload completion markers
+    localStorage.removeItem('uploadCompleted');
+    localStorage.removeItem('uploadCompletedTimestamp');
+    
+    // Broadcast cleanup to other tabs
+    try {
+      if (uploadBroadcastChannel) {
+        console.log('📢 Broadcasting cleanup to all tabs');
+        uploadBroadcastChannel.postMessage({
+          type: 'upload_cleanup',
+          timestamp: Date.now()
+        });
+      }
+    } catch (e) {
+      console.error('Error broadcasting cleanup:', e);
+    }
+    
     // Clean up any existing EventSource connections
     if (window._activeEventSources) {
       Object.values(window._activeEventSources).forEach(source => {
@@ -69,6 +86,52 @@ export function UploadProgressModal() {
   useEffect(() => {
     if (!uploadBroadcastChannel) return;
     
+    // Before setting up listeners, check if another tab already marked completion
+    const alreadyCompleted = localStorage.getItem('uploadCompleted') === 'true';
+    if (alreadyCompleted && isUploading) {
+      console.log('🔄 Another tab already completed the upload, closing this modal');
+      // Use a short delay to allow UI to update first
+      setTimeout(() => {
+        cleanupAndClose();
+      }, 500);
+    }
+    
+    // Create completion-specific channel 
+    let completionChannel: BroadcastChannel | null = null;
+    try {
+      completionChannel = new BroadcastChannel('upload_completion');
+    } catch (e) {
+      console.error('Failed to create completion channel:', e);
+    }
+    
+    const handleCompletionMessage = (event: MessageEvent) => {
+      console.log('🏁 Received dedicated completion message:', event.data.type);
+      
+      if (event.data.type === 'analysis_complete') {
+        console.log('🏁 Received DEDICATED completion message - highest priority!');
+        
+        // Mark as complete in localStorage
+        localStorage.setItem('uploadCompleted', 'true');
+        localStorage.setItem('uploadCompletedTimestamp', Date.now().toString());
+        
+        // Force showing the completion state
+        setUploadProgress({
+          ...uploadProgress,
+          stage: 'Analysis complete',
+          processed: uploadProgress.total || 10,
+          total: uploadProgress.total || 10,
+          currentSpeed: 0,
+          timeRemaining: 0
+        });
+        
+        // Auto-close after a delay
+        setTimeout(() => {
+          console.log('⏰ AUTO-CLOSE TRIGGERED BY DEDICATED COMPLETION CHANNEL');
+          cleanupAndClose();
+        }, 3000);
+      }
+    };
+    
     const handleBroadcastMessage = (event: MessageEvent) => {
       console.log('📻 Upload modal received broadcast:', event.data.type);
       
@@ -76,23 +139,43 @@ export function UploadProgressModal() {
       if (event.data.type === 'upload_complete') {
         console.log('📊 Received completion message from another tab');
         
+        // Force this tab to show the upload modal if we're not already showing it
+        if (!isUploading) {
+          console.log('🔄 This tab was not showing the upload modal, forcing it to show');
+          setIsUploading(true);
+        }
+        
         // First set stage to Analysis Complete
         if (event.data.progress) {
           console.log('📊 Setting progress to Analysis Complete from broadcast');
-          setUploadProgress({
+          
+          const updatedProgress = {
             ...event.data.progress,
             stage: 'Analysis complete',
-            processed: event.data.progress.total, // Make sure processed equals total
+            processed: event.data.progress.total || 10, // Make sure processed equals total
             currentSpeed: 0, // Reset speed
             timeRemaining: 0 // No time remaining
-          });
+          };
+          
+          // Update our state
+          setUploadProgress(updatedProgress);
+          
+          // Also update localStorage with the new state
+          localStorage.setItem('uploadProgress', JSON.stringify({
+            ...updatedProgress,
+            savedAt: Date.now()
+          }));
+          
+          // Mark as complete in localStorage for all tabs
+          localStorage.setItem('uploadCompleted', 'true');
+          localStorage.setItem('uploadCompletedTimestamp', Date.now().toString());
+          
+          // Add a mark in localStorage to indicate we've shown the completion state
+          localStorage.setItem('uploadCompleteBroadcasted', 'true');
           
           // Set a timer to auto-close like the original tab does
           const completionDelay = 3000; // 3 seconds
           console.log(`📊 Will auto-close after ${completionDelay}ms due to broadcast`);
-          
-          // Add a mark in localStorage to indicate we've shown the completion state
-          localStorage.setItem('uploadCompleteBroadcasted', 'true');
           
           setTimeout(() => {
             console.log('⏰ AUTO-CLOSE TRIGGERED BY BROADCAST MESSAGE');
@@ -106,14 +189,31 @@ export function UploadProgressModal() {
         console.log('🔥 FORCE CANCEL MODE ACTIVATED FROM BROADCAST');
         cleanupAndClose();
       }
+      
+      // Handle cleanup messages from other tabs
+      if (event.data.type === 'upload_cleanup') {
+        console.log('🧹 CLEANUP MESSAGE RECEIVED FROM ANOTHER TAB');
+        if (isUploading) {
+          console.log('Closing this modal due to cleanup message from another tab');
+          cleanupAndClose();
+        }
+      }
     };
     
+    // Add listeners to both channels
     uploadBroadcastChannel.addEventListener('message', handleBroadcastMessage);
+    if (completionChannel) {
+      completionChannel.addEventListener('message', handleCompletionMessage);
+    }
     
     return () => {
       uploadBroadcastChannel.removeEventListener('message', handleBroadcastMessage);
+      if (completionChannel) {
+        completionChannel.removeEventListener('message', handleCompletionMessage);
+        completionChannel.close();
+      }
     };
-  }, [setUploadProgress, cleanupAndClose]);
+  }, [setUploadProgress, cleanupAndClose, isUploading, setIsUploading, uploadProgress]);
   
   // Check for server restart protection flag
   // Only consider server restart protection if explicitly set
@@ -361,12 +461,28 @@ export function UploadProgressModal() {
       setIsCancelling(false);
       
       // Also broadcast the cancellation to all tabs
-      if (uploadBroadcastChannel) {
-        console.log('📢 Broadcasting upload cancelled to all tabs');
-        uploadBroadcastChannel.postMessage({
-          type: 'upload_force_cancelled',
-          timestamp: Date.now()
-        });
+      try {
+        if (uploadBroadcastChannel) {
+          console.log('📢 Broadcasting upload cancelled to all tabs');
+          uploadBroadcastChannel.postMessage({
+            type: 'upload_force_cancelled',
+            timestamp: Date.now()
+          });
+          
+          // Use a second channel object to ensure delivery in case the first is closed
+          const backupChannel = new BroadcastChannel('upload_status');
+          backupChannel.postMessage({
+            type: 'upload_force_cancelled',
+            timestamp: Date.now()
+          });
+          
+          // Close the backup channel after a delay
+          setTimeout(() => {
+            try { backupChannel.close(); } catch (e) { /* ignore */ }
+          }, 1000);
+        }
+      } catch (e) {
+        console.error('Error broadcasting cancellation:', e);
       }
       
       console.log('🧹 MODAL FORCED CLOSED - ALL LOCALSTORAGE CLEARED');
@@ -400,14 +516,63 @@ export function UploadProgressModal() {
         const completionDelay = autoCloseDelay || 3000; // Default to 3 seconds
         console.log(`🎯 Analysis complete - will auto-close after ${completionDelay}ms`);
         
+        // Mark as complete in localStorage - this is critical for cross-tab sync
+        localStorage.setItem('uploadCompleted', 'true');
+        localStorage.setItem('uploadCompletedTimestamp', Date.now().toString());
+        
+        // Update localStorage with current state
+        localStorage.setItem('uploadProgress', JSON.stringify({
+          ...uploadProgress,
+          stage: 'Analysis complete',
+          processed: total, // Make sure processed == total
+          savedAt: Date.now()
+        }));
+        
         // Broadcast the completion status to all tabs immediately
-        if (uploadBroadcastChannel) {
-          console.log('📢 Broadcasting analysis complete to all tabs');
-          uploadBroadcastChannel.postMessage({
-            type: 'upload_complete',
-            progress: uploadProgress,
-            timestamp: Date.now()
-          });
+        try {
+          if (uploadBroadcastChannel) {
+            console.log('📢 Broadcasting analysis complete to all tabs');
+            uploadBroadcastChannel.postMessage({
+              type: 'upload_complete',
+              progress: {
+                ...uploadProgress,
+                stage: 'Analysis complete',
+                processed: total // Make sure processed equals total for consistency
+              },
+              timestamp: Date.now()
+            });
+            
+            // Use a second channel object to ensure delivery in case the first is closed
+            const backupChannel = new BroadcastChannel('upload_status');
+            backupChannel.postMessage({
+              type: 'upload_complete',
+              progress: {
+                ...uploadProgress,
+                stage: 'Analysis complete',
+                processed: total
+              },
+              timestamp: Date.now()
+            });
+            
+            // Close the backup channel after a delay
+            setTimeout(() => {
+              try { backupChannel.close(); } catch (e) { /* ignore */ }
+            }, 1000);
+            
+            // As an extra safeguard, also use a completion-specific channel
+            const completionChannel = new BroadcastChannel('upload_completion');
+            completionChannel.postMessage({
+              type: 'analysis_complete',
+              timestamp: Date.now()
+            });
+            
+            // Close the completion channel after a delay
+            setTimeout(() => {
+              try { completionChannel.close(); } catch (e) { /* ignore */ }
+            }, 1000);
+          }
+        } catch (e) {
+          console.error('Error broadcasting completion:', e);
         }
         
         // Add a mark in localStorage to indicate we've shown the completion state
@@ -415,7 +580,7 @@ export function UploadProgressModal() {
         
         const closeTimerId = setTimeout(() => {
           console.log(`⏰ COMPLETION AUTO-CLOSE TRIGGERED AFTER ${completionDelay}ms`);
-          forceCloseModalMemo(); // Close the modal automatically
+          cleanupAndClose(); // Close the modal automatically using our unified cleanup function
         }, completionDelay);
         
         return () => {
