@@ -223,32 +223,42 @@ export function UploadProgressModal() {
   
   // Add auto-close timer for both "Analysis complete" and error states
   useEffect(() => {
-    // Auto-close for completed analysis or persistent error states
-    if (isUploading && (stage === 'Analysis complete' || stage === 'Upload Error')) {
-      const delay = autoCloseDelay || (stage === 'Upload Error' ? 5000 : 3000); // Longer delay for errors
-      console.log(`🎯 Auto-close state detected (${stage}) - will auto-close after ${delay}ms (server provided: ${autoCloseDelay ? 'yes' : 'no'})`);
-      
-      // Set a timeout to auto-close after the specified delay
-      const closeTimerId = setTimeout(() => {
-        console.log(`⏰ AUTO-CLOSE TIMER TRIGGERED AFTER ${delay}ms for ${stage}`);
+    // INSTANT CLOSE FOR ERRORS, brief delay for completion
+    if (isUploading) {
+      if (stage === 'Upload Error') {
+        // INSTANT CLEANUP FOR ERRORS - close immediately with tiny delay
+        console.log(`🚨 ERROR DETECTED - CLOSING IMMEDIATELY`);
         
-        // For error states, ensure a more aggressive cleanup
-        if (stage === 'Upload Error') {
-          // Clear ALL localStorage before closing
+        // Use minimal delay (50ms) just to ensure state can be seen
+        const closeTimerId = setTimeout(() => {
+          console.log(`⏰ ERROR AUTO-CLOSE TRIGGERED IMMEDIATELY`);
+          
+          // Ultra-aggressive cleanup for error states
           for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && key.includes('upload')) localStorage.removeItem(key);
+            if (key) localStorage.removeItem(key); // Clear EVERYTHING
           }
-        }
+          
+          forceCloseModal(); // Close the modal automatically
+        }, 50); // Super short delay
         
-        forceCloseModal(); // Close the modal automatically
-      }, delay);
-      
-      // Clean up timer on unmount or stage change
-      return () => {
-        console.log('Cleaning up auto-close timer');
-        clearTimeout(closeTimerId);
-      };
+        return () => clearTimeout(closeTimerId);
+      }
+      else if (stage === 'Analysis complete') {
+        // For completion, show success briefly (3 seconds)
+        const completionDelay = autoCloseDelay || 3000; // Default to 3 seconds
+        console.log(`🎯 Analysis complete - will auto-close after ${completionDelay}ms`);
+        
+        const closeTimerId = setTimeout(() => {
+          console.log(`⏰ COMPLETION AUTO-CLOSE TRIGGERED AFTER ${completionDelay}ms`);
+          forceCloseModal(); // Close the modal automatically
+        }, completionDelay);
+        
+        return () => {
+          console.log('Cleaning up completion timer');
+          clearTimeout(closeTimerId);
+        };
+      }
     }
   }, [isUploading, stage, forceCloseModal, autoCloseDelay]);
   

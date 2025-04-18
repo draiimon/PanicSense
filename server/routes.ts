@@ -1870,9 +1870,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Update the progress map with error state
+      if (sessionId) {
+        try {
+          // Set a progress entry with error state
+          uploadProgressMap.set(sessionId, {
+            processed: 0,
+            total: 10,
+            stage: "Upload Error",
+            error: error instanceof Error ? error.message : String(error),
+            autoCloseDelay: 0, // Force instant close of error modal
+            timestamp: Date.now()
+          });
+          
+          // Update database with error state
+          try {
+            await storage.updateUploadSession(sessionId, "error", {
+              processed: 0,
+              total: 10,
+              stage: "Upload Error",
+              error: error instanceof Error ? error.message : String(error),
+              autoCloseDelay: 0, // Force instant close of error modal 
+              timestamp: Date.now()
+            });
+            console.log("Updated session status to error in database");
+          } catch (dbError) {
+            console.error("Error updating session status:", dbError);
+          }
+        } catch (progressError) {
+          console.error("Error setting error progress:", progressError);
+        }
+      }
+      
+      // Send error response to client
       res.status(500).json({ 
         error: "Failed to process CSV file",
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error.message : String(error),
+        autoCloseDelay: 0 // INSTANT CLOSE for errors
       });
     } finally {
       setTimeout(() => {

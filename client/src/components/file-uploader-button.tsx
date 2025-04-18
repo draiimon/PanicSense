@@ -262,7 +262,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           error: error instanceof Error ? error.message : 'Failed to upload file',
           timestamp: Date.now(),
           savedAt: Date.now(),
-          autoCloseDelay: 5000, // Auto-close after 5 seconds
+          autoCloseDelay: 0, // INSTANT CLOSE on error (let the component handle the minimal delay)
           processingStats: {
             successCount: 0,
             errorCount: 0,
