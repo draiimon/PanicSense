@@ -1918,6 +1918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             batchProgress: 100,
             currentSpeed: 0,
             timeRemaining: 0,
+            errorRecovered: true, // Flag this as an error recovery scenario
             processingStats: {
               successCount: 10,
               errorCount: 0,

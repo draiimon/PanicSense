@@ -290,6 +290,7 @@ export async function uploadCSV(
     recall: number;
     f1Score: number;
   } | null;
+  errorRecovered?: boolean; // Add flag for error recovery
 }> {
   // Clean up any existing uploads first
   if (currentEventSource) {
