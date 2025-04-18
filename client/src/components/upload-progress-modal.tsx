@@ -234,9 +234,12 @@ export function UploadProgressModal() {
   }
   
   // Now that we have stageLower, determine if we should show server restart protection
-  // Don't show server restart mode during normal batch pauses
+  // Don't show server restart mode during normal batch pauses or when processing is complete
   const serverRestartProtection = serverRestartDetected && 
-                                 !(isPaused || stageLower.includes('batch') && stageLower.includes('seconds remaining'));
+                                 !(isPaused || stageLower.includes('batch') || 
+                                   stageLower.includes('seconds remaining') || 
+                                   stageLower.includes('complete') || 
+                                   stageLower.includes('analysis complete'));
   
   // Consider any active work state as "processing"
   const isProcessing = isProcessingRecord || isPaused || stageLower.includes('processing');
@@ -252,12 +255,15 @@ export function UploadProgressModal() {
   // Improved error detection that doesn't trigger on partial matches
   // Only mark as error if the stage explicitly starts with 'error' or contains 'error:' or 'failed'
   // Avoid false positive errors during normal processing
+  // IMPORTANT: Don't mark as error when we're actually complete or when we're just in a batch cooldown
   const hasError = (stageLower === 'error' || 
                  stageLower.includes('error:') || 
                  stageLower.includes('failed') || 
                  stageLower.includes('critical error') ||
-                 (error && error.length > 0)) &&
-                 !stageLower.includes('complete'); // Skip error if it's part of 'complete'
+                 (error && error.length > 0 && !error.toLowerCase().includes('complete'))) &&
+                 !stageLower.includes('complete') && // Skip error if it's part of 'complete'
+                 !isPaused && // Don't show error during batch pauses
+                 !isReallyComplete; // If we've processed everything successfully, it's not an error
                  
   // Final completion state - explicitly check if it's not an error state first AND we've processed all (or nearly all) records
   // Only show "Analysis Complete!" when we've processed at least 99% of records
@@ -472,7 +478,9 @@ export function UploadProgressModal() {
                   </p>
                   {isPaused && !serverRestartProtection && (
                     <p className="text-xs text-amber-600 mt-1 font-medium">
-                      System is paused between batches to prevent overloading
+                      {cooldownTime !== null 
+                        ? `Cooldown pause: ${cooldownTime} seconds remaining`
+                        : "System is paused between batches to prevent overloading"}
                     </p>
                   )}
                   {serverRestartProtection && (
