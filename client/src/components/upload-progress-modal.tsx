@@ -15,7 +15,7 @@ import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { cancelUpload } from "@/lib/api";
+import { cancelUpload, getCurrentUploadSessionId } from "@/lib/api";
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
@@ -178,9 +178,7 @@ export function UploadProgressModal() {
     }
   };
 
-  // Don't render the modal if not uploading
-  if (!isUploading) return null;
-
+  // Extract values from uploadProgress
   const { 
     stage = 'Processing...', 
     processed: rawProcessed = 0, 
@@ -199,7 +197,7 @@ export function UploadProgressModal() {
     autoCloseDelay = 3000 // Default to 3 seconds for auto-close
   } = uploadProgress;
   
-  // Add auto-close timer for "Analysis complete" state - now that we have all variables
+  // Add auto-close timer for "Analysis complete" state
   useEffect(() => {
     // Only auto-close when analysis is complete
     if (isUploading && stage === 'Analysis complete') {
@@ -219,6 +217,9 @@ export function UploadProgressModal() {
       };
     }
   }, [isUploading, stage, forceCloseModal, autoCloseDelay]);
+  
+  // Don't render the modal if not uploading
+  if (!isUploading) return null;
   
   // ENHANCED STAGE DETECTION LOGIC
   // Convert stage to lowercase once for all checks
@@ -664,10 +665,11 @@ export function UploadProgressModal() {
                   <Button
                     onClick={() => {
                       // First cancel the upload via the API
-                      if (uploadSessionId) {
-                        cancelUpload(uploadSessionId)
+                      const sessionId = getCurrentUploadSessionId();
+                      if (sessionId) {
+                        cancelUpload()
                           .then(() => {
-                            console.log(`Upload ${uploadSessionId} cancelled via API`);
+                            console.log(`Upload ${sessionId} cancelled via API`);
                             forceCloseModal();
                           })
                           .catch(err => {
