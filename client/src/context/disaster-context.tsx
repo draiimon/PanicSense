@@ -14,6 +14,9 @@ import {
   checkForActiveSessions
 } from "@/lib/api";
 
+// Add BroadcastChannel for cross-tab communication
+const uploadBroadcastChannel = typeof window !== 'undefined' ? new BroadcastChannel('upload_status') : null;
+
 // Declare the window extension for EventSource tracking
 declare global {
   interface Window {
@@ -151,7 +154,14 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
     // Also force session reset
     fetch('/api/reset-upload-sessions', { method: 'POST' })
       .catch(e => console.error('Error during session reset:', e));
-      
+    
+    // Clean up BroadcastChannel on unmount
+    return () => {
+      if (uploadBroadcastChannel) {
+        uploadBroadcastChannel.close();
+        console.log('🧹 Closed BroadcastChannel on component cleanup');
+      }
+    };
   }, []);
   
   // If we have stored progress, parse it for immediate UI display
@@ -376,6 +386,7 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
   }, []);
   
   // Persistence for upload state - save to localStorage when state changes
+  // and broadcast to other tabs
   useEffect(() => {
     if (isUploading) {
       try {
@@ -392,8 +403,18 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
           localStorage.setItem('isUploading', 'true');
           localStorage.setItem('uploadProgress', JSON.stringify(dataToStore));
           
+          // Broadcast to other tabs using BroadcastChannel
+          if (uploadBroadcastChannel) {
+            uploadBroadcastChannel.postMessage({
+              type: 'upload_progress_update',
+              isUploading: true,
+              progress: dataToStore,
+              sessionId: localStorage.getItem('uploadSessionId')
+            });
+          }
+          
           // Log persistence for debugging
-          console.log('Saved upload progress to localStorage:', dataToStore);
+          console.log('Saved upload progress to localStorage and broadcast to other tabs:', dataToStore);
         }
       } catch (error) {
         // Handle storage errors gracefully
@@ -405,6 +426,14 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
       localStorage.removeItem('uploadProgress');
       localStorage.removeItem('uploadSessionId');
       localStorage.removeItem('lastProgressTimestamp');
+      
+      // Broadcast finish to other tabs
+      if (uploadBroadcastChannel) {
+        uploadBroadcastChannel.postMessage({
+          type: 'upload_finished',
+          isUploading: false
+        });
+      }
     }
   }, [isUploading, uploadProgress]);
 
@@ -1089,6 +1118,47 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
       clearInterval(pollIntervalId);
     };
   }, [location, isUploading]);
+
+  // Listen for BroadcastChannel messages to sync upload state between tabs
+  useEffect(() => {
+    if (!uploadBroadcastChannel) return;
+    
+    const handleBroadcastMessage = (event: MessageEvent) => {
+      const { type, isUploading: newIsUploading, progress, sessionId } = event.data;
+      
+      console.log('📡 Received broadcast from another tab:', event.data);
+      
+      if (type === 'upload_progress_update' && newIsUploading) {
+        // Update UI state to match other tab
+        setIsUploading(true);
+        
+        // Update progress if we have it
+        if (progress) {
+          setUploadProgress(progress);
+        }
+        
+        // Update sessionId in localStorage if provided
+        if (sessionId) {
+          localStorage.setItem('uploadSessionId', sessionId);
+        }
+        
+        console.log('📡 Synchronized upload state from another tab');
+      } else if (type === 'upload_finished' && !newIsUploading) {
+        // Only update if we currently show as uploading
+        if (isUploading) {
+          setIsUploading(false);
+          setUploadProgress(initialProgress);
+          console.log('📡 Upload finished notification from another tab');
+        }
+      }
+    };
+    
+    uploadBroadcastChannel.addEventListener('message', handleBroadcastMessage);
+    
+    return () => {
+      uploadBroadcastChannel?.removeEventListener('message', handleBroadcastMessage);
+    };
+  }, [isUploading, setIsUploading, setUploadProgress]);
 
   // WebSocket setup for all non-upload messages (like feedback, post updates)
   // We'll keep this separate from the upload progress handling to avoid conflicts
