@@ -15,12 +15,15 @@ import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { cancelUpload, getCurrentUploadSessionId } from "@/lib/api";
 
 export function UploadProgressModal() {
   const { isUploading, uploadProgress, setIsUploading } = useDisasterContext();
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const { toast } = useToast(); // Initialize toast hook
   
   // Check for server restart protection flag
   // Only consider server restart protection if explicitly set
@@ -819,7 +822,8 @@ export function UploadProgressModal() {
             
             {/* Action buttons */}
             {!isComplete && !hasError && (
-              <div className="mt-3 flex justify-center">
+              <div className="mt-3 flex flex-col sm:flex-row gap-2 justify-center">
+                {/* Regular Cancel Button */}
                 <Button
                   variant="destructive"
                   size="sm"
@@ -836,6 +840,27 @@ export function UploadProgressModal() {
                     <>
                       <XCircle className="h-4 w-4" />
                       <span>Cancel Upload</span>
+                    </>
+                  )}
+                </Button>
+                
+                {/* Force Cancel Button - For stuck uploads */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 border border-red-300 text-red-600 hover:bg-red-50 rounded-full px-5"
+                  onClick={() => handleCancel(true)}
+                  disabled={isCancelling}
+                >
+                  {isCancelling ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Force Cancelling...</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="h-4 w-4" />
+                      <span>Force Cancel</span>
                     </>
                   )}
                 </Button>
@@ -894,7 +919,7 @@ export function UploadProgressModal() {
               <Button 
                 variant="destructive"
                 size="sm"
-                onClick={handleCancel}
+                onClick={() => handleCancel(false)} 
                 className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white border-none rounded-full px-4"
               >
                 Yes, Cancel
