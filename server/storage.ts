@@ -566,7 +566,8 @@ export class DatabaseStorage implements IStorage {
         progress: session.progress,
         createdAt: new Date(),
         updatedAt: new Date(),
-        userId: session.userId || null   // Ensure userId is null if undefined
+        userId: session.userId || null,   // Ensure userId is null if undefined
+        serverStartTimestamp: session.serverStartTimestamp || null  // Add this to match expected type
       };
     }
   }

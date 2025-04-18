@@ -224,13 +224,15 @@ export function UploadProgressModal() {
   const isProcessing = isProcessingRecord || isPaused || stageLower.includes('processing');
   
   // Only set complete when explicitly mentioned OR when we've processed everything
-  // Require 99% completion to avoid premature "Analysis Complete!"
+  // Improved completion detection with more specific matches
   const isReallyComplete = stageLower.includes('completed all') || 
                         stageLower.includes('analysis complete') || 
-                        (rawProcessed >= total * 0.99 && total > 100);
+                        stageLower.includes('complete') ||
+                        stageLower === 'complete' ||
+                        (rawProcessed >= total * 0.99 && total > 0);
   
-  // Final completion state
-  const isComplete = isReallyComplete;
+  // Final completion state - explicitly check if it's not an error state first
+  const isComplete = isReallyComplete && !hasError;
   
   // Calculate completion percentage safely - ensure it's visible when processing
   const percentComplete = total > 0 
@@ -240,8 +242,13 @@ export function UploadProgressModal() {
   // Check for cancellation
   const isCancelled = stageLower.includes('cancel');
   
-  // Improved error detection
-  const hasError = stageLower.includes('error');
+  // Improved error detection that doesn't trigger on partial matches
+  // Only mark as error if the stage explicitly starts with 'error' or contains 'error:' or 'failed'
+  const hasError = stageLower === 'error' || 
+                 stageLower.includes('error:') || 
+                 stageLower.includes('failed') || 
+                 stageLower.includes('critical error') ||
+                 (error && error.length > 0);
   
   // Calculate time remaining in human-readable format
   const formatTimeRemaining = (seconds: number): string => {
