@@ -233,11 +233,13 @@ export function UploadProgressModal() {
   
   // Improved error detection that doesn't trigger on partial matches
   // Only mark as error if the stage explicitly starts with 'error' or contains 'error:' or 'failed'
-  const hasError = stageLower === 'error' || 
+  // Avoid false positive errors during normal processing
+  const hasError = (stageLower === 'error' || 
                  stageLower.includes('error:') || 
                  stageLower.includes('failed') || 
                  stageLower.includes('critical error') ||
-                 (error && error.length > 0);
+                 (error && error.length > 0)) &&
+                 !stageLower.includes('complete'); // Skip error if it's part of 'complete'
                  
   // Final completion state - explicitly check if it's not an error state first
   const isComplete = isReallyComplete && !hasError;
