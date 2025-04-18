@@ -1762,8 +1762,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           console.log('Final completion state broadcast to clients');
           
-          // IMPORTANT: Delete the session from the database after a short delay
+          // IMPORTANT: Delete the session from the database after a SHORT delay
           // This ensures the client has time to receive the final state
+          // Show "Analysis complete" for exactly 3 seconds, then close automatically
           setTimeout(async () => {
             try {
               console.log(`🧹 Auto-deleting completed session: ${sessionId}`);
@@ -1775,11 +1776,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await db.delete(uploadSessions)
                 .where(eq(uploadSessions.sessionId, sessionId));
                 
-              console.log(`✅ Successfully deleted completed session: ${sessionId}`);
+              console.log(`✅ Successfully deleted completed session: ${sessionId} after 3 seconds`);
             } catch (deleteError) {
               console.error(`Error auto-deleting session ${sessionId}:`, deleteError);
             }
-          }, 5000); // 5 second delay to ensure clients receive the completion state
+          }, 3000); // EXACTLY 3 seconds to show "Analysis complete" message then auto-close
         } catch (err) {
           console.error('Error updating session status:', err);
         }
