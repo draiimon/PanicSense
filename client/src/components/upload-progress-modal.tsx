@@ -260,7 +260,10 @@ export function UploadProgressModal() {
                  stageLower.includes('error:') || 
                  stageLower.includes('failed') || 
                  stageLower.includes('critical error') ||
-                 (error && error.length > 0 && !error.toLowerCase().includes('complete'))) &&
+                 // Don't consider it an error if the stage includes "analysis complete" or "complete"
+                 (error && error.length > 0 && 
+                  !error.toLowerCase().includes('complete') && 
+                  !stageLower.includes('analysis complete'))) &&
                  !stageLower.includes('complete') && // Skip error if it's part of 'complete'
                  !isPaused && // Don't show error during batch pauses
                  !isReallyComplete; // If we've processed everything successfully, it's not an error
