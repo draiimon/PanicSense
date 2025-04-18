@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { cancelUpload, getCurrentUploadSessionId } from "@/lib/api";
 
@@ -110,9 +110,52 @@ export function UploadProgressModal() {
     return () => clearInterval(intervalId);
   }, [isUploading, setIsUploading]);
   
-  // Manually close the modal and clean up both localStorage and database
-  // This improved version handles race conditions and prevents UI flicker
-  const forceCloseModal = async () => {
+  // No local forceCloseModal function anymore - we use the memoized version forceCloseModalMemo
+  
+  // Handle cancel button click
+  const handleCancel = async () => {
+    if (isCancelling) return;
+    
+    setShowCancelDialog(false);
+    setIsCancelling(true);
+    try {
+      const result = await cancelUpload();
+      
+      if (result.success) {
+        // Force close the modal instead of waiting for events
+        forceCloseModalMemo();
+      } else {
+        setIsCancelling(false);
+      }
+    } catch (error) {
+      console.error('Error cancelling upload:', error);
+      // Even on error, force close the modal
+      forceCloseModalMemo();
+    }
+  };
+
+  // Extract values from uploadProgress
+  const { 
+    stage = 'Processing...', 
+    processed: rawProcessed = 0, 
+    total = 100,
+    processingStats = {
+      successCount: 0,
+      errorCount: 0,
+      averageSpeed: 0
+    },
+    batchNumber = 0,
+    totalBatches = 0,
+    batchProgress = 0,
+    currentSpeed = 0,
+    timeRemaining = 0,
+    error = '',
+    autoCloseDelay = 3000 // Default to 3 seconds for auto-close
+  } = uploadProgress;
+  
+  // Add auto-close timer for both "Analysis complete" and error states
+  // Memoize forceCloseModal to prevent unnecessary re-renders
+  const forceCloseModalMemo = React.useCallback(async () => {
     // Set local cancelling state immediately to prevent multiple calls
     setIsCancelling(true);
     
@@ -178,50 +221,8 @@ export function UploadProgressModal() {
       
       console.log('🧹 MODAL FORCED CLOSED - ALL LOCALSTORAGE CLEARED');
     }
-  };
-  
-  // Handle cancel button click
-  const handleCancel = async () => {
-    if (isCancelling) return;
-    
-    setShowCancelDialog(false);
-    setIsCancelling(true);
-    try {
-      const result = await cancelUpload();
-      
-      if (result.success) {
-        // Force close the modal instead of waiting for events
-        forceCloseModal();
-      } else {
-        setIsCancelling(false);
-      }
-    } catch (error) {
-      console.error('Error cancelling upload:', error);
-      // Even on error, force close the modal
-      forceCloseModal();
-    }
-  };
+  }, [setIsUploading, setIsCancelling]);
 
-  // Extract values from uploadProgress
-  const { 
-    stage = 'Processing...', 
-    processed: rawProcessed = 0, 
-    total = 100,
-    processingStats = {
-      successCount: 0,
-      errorCount: 0,
-      averageSpeed: 0
-    },
-    batchNumber = 0,
-    totalBatches = 0,
-    batchProgress = 0,
-    currentSpeed = 0,
-    timeRemaining = 0,
-    error = '',
-    autoCloseDelay = 3000 // Default to 3 seconds for auto-close
-  } = uploadProgress;
-  
-  // Add auto-close timer for both "Analysis complete" and error states
   useEffect(() => {
     // INSTANT CLOSE FOR ERRORS, brief delay for completion
     if (isUploading) {
@@ -239,7 +240,7 @@ export function UploadProgressModal() {
             if (key) localStorage.removeItem(key); // Clear EVERYTHING
           }
           
-          forceCloseModal(); // Close the modal automatically
+          forceCloseModalMemo(); // Close the modal automatically
         }, 50); // Super short delay
         
         return () => clearTimeout(closeTimerId);
@@ -251,7 +252,7 @@ export function UploadProgressModal() {
         
         const closeTimerId = setTimeout(() => {
           console.log(`⏰ COMPLETION AUTO-CLOSE TRIGGERED AFTER ${completionDelay}ms`);
-          forceCloseModal(); // Close the modal automatically
+          forceCloseModalMemo(); // Close the modal automatically
         }, completionDelay);
         
         return () => {
@@ -260,7 +261,7 @@ export function UploadProgressModal() {
         };
       }
     }
-  }, [isUploading, stage, forceCloseModal, autoCloseDelay]);
+  }, [isUploading, stage, forceCloseModalMemo, autoCloseDelay]);
   
   // Don't render the modal if not uploading
   if (!isUploading) return null;
