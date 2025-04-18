@@ -41,6 +41,49 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     ws.addEventListener('message', (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log('📡 WebSocket message received:', data.type);
+        
+        // Special handling for upload complete messages
+        if (data.type === 'UPLOAD_COMPLETE') {
+          console.log('🌟 UPLOAD_COMPLETE WebSocket message received!');
+          
+          // Save completion state to localStorage for all tabs
+          localStorage.setItem('uploadCompleted', 'true');
+          localStorage.setItem('uploadCompletedTimestamp', Date.now().toString());
+          
+          // Force a broadcast to all tabs via the BroadcastChannel API
+          try {
+            const bc = new BroadcastChannel('upload_status');
+            bc.postMessage({
+              type: 'upload_complete',
+              progress: data.progress,
+              timestamp: Date.now()
+            });
+            
+            // Also use the dedicated completion channel
+            const cc = new BroadcastChannel('upload_completion');
+            cc.postMessage({
+              type: 'analysis_complete',
+              timestamp: Date.now()
+            });
+            
+            // Close the channels after sending
+            setTimeout(() => {
+              try { bc.close(); } catch (e) { /* ignore */ }
+              try { cc.close(); } catch (e) { /* ignore */ }
+            }, 1000);
+          } catch (e) {
+            console.error('Error broadcasting completion via BroadcastChannel:', e);
+          }
+          
+          // Clear any upload state after a delay
+          setTimeout(() => {
+            localStorage.removeItem('isUploading');
+            localStorage.removeItem('uploadProgress');
+            localStorage.removeItem('uploadSessionId');
+          }, 3000);
+        }
+        
         setLastMessage(data);
       } catch (error) {
         console.error('Failed to parse WebSocket message:', error);

@@ -63,6 +63,34 @@ function broadcastUpdate(data: any) {
   // sources (WebSocket, EventSource) send competing updates
   data.timestamp = Date.now();
   
+  // Handle completion messages specially - send through WebSockets too
+  if (data.type === 'progress' && data.progress?.stage?.toLowerCase()?.includes('complete')) {
+    const completionData = {
+      type: 'UPLOAD_COMPLETE', 
+      progress: {
+        ...data.progress,
+        stage: 'Analysis complete',
+        isComplete: true,
+      },
+      sessionId: data.sessionId || '',
+      timestamp: data.timestamp
+    };
+    
+    // Log that this is happening
+    console.log('🚨 COMPLETION DETECTED - BROADCASTING TO ALL CLIENTS VIA WEBSOCKETS');
+    
+    // Broadcast to all WebSocket clients
+    connectedClients.forEach(client => {
+      try {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(completionData));
+        }
+      } catch (e) {
+        console.error('Error broadcasting completion to WebSocket client:', e);
+      }
+    });
+  }
+  
   if (data.type === 'progress') {
     try {
       // Add timestamp to the progress data as well
