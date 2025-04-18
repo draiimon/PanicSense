@@ -42,6 +42,7 @@ interface UploadProgress {
   timeRemaining?: number;
   processingStats?: ProcessingStats;
   error?: string;
+  autoCloseDelay?: number; // Time in ms to auto-close "Analysis complete" state
 }
 
 interface DisasterContextType {
