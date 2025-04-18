@@ -52,6 +52,8 @@ export interface UploadProgress {
   batchProgress?: number;
   currentSpeed?: number;  // Records per second
   timeRemaining?: number; // Seconds
+  autoCloseDelay?: number; // Time in ms to auto-close "Analysis complete" state
+  timestamp?: number;      // Timestamp for ordering updates
   processingStats?: {
     successCount: number;
     errorCount: number;

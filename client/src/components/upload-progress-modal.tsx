@@ -203,16 +203,20 @@ export function UploadProgressModal() {
   useEffect(() => {
     // Only auto-close when analysis is complete
     if (isUploading && stage === 'Analysis complete') {
-      console.log('🎯 Analysis complete detected - will auto-close after EXACTLY 3 seconds');
+      const delay = autoCloseDelay || 3000; // Use server provided delay or default to 3 seconds
+      console.log(`🎯 Analysis complete detected - will auto-close after ${delay}ms (server provided: ${autoCloseDelay ? 'yes' : 'no'})`);
       
-      // Set a timeout to auto-close after exactly 3 seconds
+      // Set a timeout to auto-close after the specified delay
       const closeTimerId = setTimeout(() => {
-        console.log('⏰ AUTO-CLOSE TIMER TRIGGERED - 3 SECONDS COMPLETE');
+        console.log(`⏰ AUTO-CLOSE TIMER TRIGGERED AFTER ${delay}ms`);
         forceCloseModal(); // Close the modal automatically
-      }, autoCloseDelay); // Use delay from server or default to 3000ms (3 seconds)
+      }, delay);
       
       // Clean up timer on unmount or stage change
-      return () => clearTimeout(closeTimerId);
+      return () => {
+        console.log('Cleaning up auto-close timer');
+        clearTimeout(closeTimerId);
+      };
     }
   }, [isUploading, stage, forceCloseModal, autoCloseDelay]);
   

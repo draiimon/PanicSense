@@ -208,6 +208,8 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
           batchProgress: progress.batchProgress || 0,
           currentSpeed: progress.currentSpeed || 0,
           timeRemaining: progress.timeRemaining || 0,
+          error: progress.error, // Preserve any error message from server
+          autoCloseDelay: progress.autoCloseDelay, // Preserve autoCloseDelay from server
           processingStats: {
             successCount: progress.processingStats?.successCount || 0,
             errorCount: progress.processingStats?.errorCount || 0,
@@ -259,35 +261,11 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
       localStorage.removeItem('lastProgressTimestamp');
     } finally {
       event.target.value = '';
-
-      // Show completion for a moment before closing
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadProgress({ 
-          processed: 0, 
-          total: 0, 
-          stage: '',
-          currentSpeed: 0,
-          timeRemaining: 0,
-          batchNumber: 0,
-          totalBatches: 0,
-          batchProgress: 0,
-          processingStats: {
-            successCount: 0,
-            errorCount: 0,
-            averageSpeed: 0
-          }
-        });
-        
-        // Properly clear all localStorage items related to upload
-        localStorage.removeItem('isUploading');
-        localStorage.removeItem('uploadProgress');
-        localStorage.removeItem('uploadSessionId');
-        localStorage.removeItem('uploadStartTime');
-        localStorage.removeItem('lastProgressTimestamp');
-        
-        console.log('Upload completed, cleared all localStorage items');
-      }, 2000);
+      
+      // Don't automatically close the upload modal here
+      // The UploadProgressModal component will handle auto-closing based on the autoCloseDelay parameter
+      // This prevents double-closing which might be causing the white screen
+      console.log('Upload operation completed, the modal will auto-close based on server instructions');
     }
   };
 
