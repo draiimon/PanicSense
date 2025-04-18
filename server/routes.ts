@@ -1746,7 +1746,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing CSV:", error);
 
+      // Update progress with error message
       updateProgress(0, 'Error', undefined, undefined, error instanceof Error ? error.message : String(error));
+      
+      // Update session status to 'error' instead of leaving it as 'active'
+      if (sessionId) {
+        try {
+          await storage.updateUploadSession(sessionId, 'error', uploadProgressMap.get(sessionId));
+        } catch (err) {
+          console.error('Error updating session status to error:', err);
+        }
+      }
 
       res.status(500).json({ 
         error: "Failed to process CSV file",
