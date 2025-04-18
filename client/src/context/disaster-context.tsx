@@ -115,45 +115,129 @@ const initialProgress: UploadProgress = {
 };
 
 export function DisasterContextProvider({ children }: { children: ReactNode }): JSX.Element {
-  // Create a ref to track if initial session check has been performed
+  // Create refs to track state and provide force cancel functionality
   const sessionCheckPerformedRef = useRef(false);
   const databaseCheckCompletedRef = useRef(false);
+  const forceCloseRef = useRef(false);
   
   // Load from localStorage for immediate response (but database will be authoritative)
   const storedIsUploading = localStorage.getItem('isUploading') === 'true';
-  const storedProgress = localStorage.getItem('uploadProgress');
   const storedSessionId = localStorage.getItem('uploadSessionId');
+  let storedProgress = localStorage.getItem('uploadProgress');
   
-  // NUCLEAR OPTION: ALWAYS START WITH MODAL HIDDEN
-  // Never auto-show the uploading modal on page load to prevent stuck state
-  let initialUploadState = false; // Force clean slate every time
+  // Initialize with localStorage state to improve cross-tab experience
+  // But only if not in a force close state
+  let initialUploadState = !forceCloseRef.current && storedIsUploading && storedSessionId ? true : false;
   let initialProgressState = initialProgress;
   
-  // FORCED CLEANUP: Immediately clear any localStorage related to uploads
-  useEffect(() => {
-    console.log('🧨 DISASTER CONTEXT: NUCLEAR CLEANUP ACTIVATED');
-    // Clear ALL localStorage items on component mount
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (
-        key.includes('upload') || 
-        key.includes('isUploading') || 
-        key.includes('session') ||
-        key.includes('progress') ||
-        key.includes('restart')
-      )) {
-        localStorage.removeItem(key);
-        console.log(`🗑️ Deleted stale localStorage item: ${key}`);
+  // Parse stored progress if available
+  if (storedProgress && initialUploadState) {
+    try {
+      const parsedProgress = JSON.parse(storedProgress);
+      // Check if it's recent data (within last 15 minutes)
+      const fifteenMinutesAgo = Date.now() - (15 * 60 * 1000);
+      if (parsedProgress.savedAt && parsedProgress.savedAt > fifteenMinutesAgo) {
+        initialProgressState = parsedProgress;
+        console.log('✅ Starting with active upload from localStorage');
       }
+    } catch (error) {
+      console.error('Failed to parse stored progress during init:', error);
     }
+  }
+  
+  // SELECTIVE CLEANUP: Only clear stale upload data, retain active uploads
+  useEffect(() => {
+    console.log('🧨 DISASTER CONTEXT: SELECTIVE CLEANUP ACTIVATED');
     
-    // Force server cleanup too
-    fetch('/api/cleanup-error-sessions', { method: 'POST' })
-      .catch(e => console.error('Error during nuclear cleanup:', e));
+    // Check for active uploads in database first before cleaning
+    const checkForActiveUploadsBeforeCleaning = async () => {
+      try {
+        const response = await fetch('/api/active-upload-session');
+        const data = await response.json();
+        
+        // If we have an active upload in database, don't clean localStorage
+        if (data && data.sessionId) {
+          console.log('⚠️ Active upload detected in database, skipping localStorage cleanup');
+          
+          // Set the session ID in localStorage
+          localStorage.setItem('uploadSessionId', data.sessionId);
+          localStorage.setItem('isUploading', 'true');
+          
+          // If we have progress data from the database, update localStorage
+          if (data.progress) {
+            localStorage.setItem('uploadProgress', 
+              typeof data.progress === 'string' ? data.progress : JSON.stringify(data.progress));
+            console.log('Stored database upload progress in localStorage');
+          }
+          
+          // Broadcast the active upload to other tabs
+          if (uploadBroadcastChannel) {
+            uploadBroadcastChannel.postMessage({
+              type: 'upload_progress_update',
+              isUploading: true,
+              progress: typeof data.progress === 'string' ? JSON.parse(data.progress) : data.progress,
+              sessionId: data.sessionId
+            });
+            console.log('📡 Broadcast active upload to other tabs');
+          }
+          
+          return true; // Active upload exists, don't clean
+        }
+        
+        return false; // No active upload, can clean
+      } catch (error) {
+        console.error('Error checking for active uploads:', error);
+        return false; // On error, proceed with cleanup
+      }
+    };
     
-    // Also force session reset
-    fetch('/api/reset-upload-sessions', { method: 'POST' })
-      .catch(e => console.error('Error during session reset:', e));
+    // Only clean stale uploads (older than 5 minutes)
+    const cleanStaleUploads = () => {
+      console.log('Cleaning only stale upload data...');
+      
+      // Check if upload is stale (older than 5 minutes)
+      const progressData = localStorage.getItem('uploadProgress');
+      if (progressData) {
+        try {
+          const parsedProgress = JSON.parse(progressData);
+          const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+          
+          // If data is recent, don't clean it
+          if (parsedProgress.savedAt && parsedProgress.savedAt > fiveMinutesAgo) {
+            console.log('Recent upload progress detected, preserving it');
+            return;
+          }
+        } catch (e) {
+          // If we can't parse the data, it's probably stale/corrupted
+        }
+      }
+      
+      // Clean stale items
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.includes('upload') || 
+          key.includes('isUploading') || 
+          key.includes('session') ||
+          key.includes('progress') ||
+          key.includes('restart')
+        )) {
+          localStorage.removeItem(key);
+          console.log(`🗑️ Deleted stale localStorage item: ${key}`);
+        }
+      }
+      
+      // Force server cleanup of error sessions only (NOT active ones)
+      fetch('/api/cleanup-error-sessions', { method: 'POST' })
+        .catch(e => console.error('Error during stale session cleanup:', e));
+    };
+    
+    // Run the active check, then conditionally clean
+    checkForActiveUploadsBeforeCleaning().then(hasActiveUpload => {
+      if (!hasActiveUpload) {
+        cleanStaleUploads();
+      }
+    });
     
     // Clean up BroadcastChannel on unmount
     return () => {

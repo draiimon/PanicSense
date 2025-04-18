@@ -95,9 +95,63 @@ let currentUploadController: AbortController | null = null;
 let currentEventSource: EventSource | null = null;
 let currentUploadSessionId: string | null = null;
 
-// Cancel the current upload
-export async function cancelUpload(): Promise<{ success: boolean; message: string }> {
-  if (currentUploadSessionId) {
+// Cancel the current upload with force option
+export async function cancelUpload(forceCancel = false): Promise<{ success: boolean; message: string; forceCloseCalled?: boolean }> {
+  const sessionId = currentUploadSessionId || localStorage.getItem('uploadSessionId');
+  
+  // If force cancel is true, we'll clean up the client side even if server cancellation fails
+  if (forceCancel) {
+    console.log('🔥 FORCE CANCEL MODE ACTIVATED');
+    
+    // Close the event source
+    if (currentEventSource) {
+      currentEventSource.close();
+      currentEventSource = null;
+    }
+    
+    // Abort the fetch request
+    if (currentUploadController) {
+      currentUploadController.abort();
+      currentUploadController = null;
+    }
+    
+    // Reset variables
+    currentUploadSessionId = null;
+    
+    // Clean up localStorage
+    localStorage.removeItem('uploadSessionId');
+    localStorage.removeItem('isUploading');
+    localStorage.removeItem('uploadProgress');
+    localStorage.removeItem('lastProgressTimestamp');
+    localStorage.removeItem('lastUIUpdateTimestamp');
+    localStorage.removeItem('serverRestartProtection');
+    localStorage.removeItem('serverRestartTimestamp');
+    
+    // Try to notify other tabs about the force cancel
+    try {
+      if (window.BroadcastChannel) {
+        const bc = new BroadcastChannel('upload_status');
+        bc.postMessage({
+          type: 'upload_force_cancelled',
+          timestamp: Date.now()
+        });
+        bc.close();
+      }
+    } catch (e) {
+      console.error('Error broadcasting force cancel:', e);
+    }
+    
+    // Even if we don't have a session ID, we'll still return success
+    if (!sessionId) {
+      return { 
+        success: true, 
+        message: 'Force canceled. Client state cleared.',
+        forceCloseCalled: true
+      };
+    }
+  }
+  
+  if (sessionId) {
     try {
       // Close the event source
       if (currentEventSource) {
@@ -112,23 +166,56 @@ export async function cancelUpload(): Promise<{ success: boolean; message: strin
       }
       
       // Call the server to cancel processing
-      const response = await apiRequest('POST', `/api/cancel-upload/${currentUploadSessionId}`);
+      const response = await apiRequest('POST', `/api/cancel-upload/${sessionId}`);
       const result = await response.json();
       
       // Reset the current session ID
       currentUploadSessionId = null;
       
-      // Clear localStorage
-      localStorage.removeItem('uploadSessionId');
+      // Clear localStorage (but only if not force cancel mode, which already did this)
+      if (!forceCancel) {
+        localStorage.removeItem('uploadSessionId');
+      }
       
-      return result;
+      // If server cancellation failed but we're in force mode, still return success
+      if (!result.success && forceCancel) {
+        return { 
+          success: true, 
+          message: 'Force canceled. Client state cleared but server failed to cancel.',
+          forceCloseCalled: true
+        };
+      }
+      
+      return {
+        ...result,
+        forceCloseCalled: forceCancel
+      };
     } catch (error) {
       console.error('Error cancelling upload:', error);
+      
+      // If force cancel is true, still return success
+      if (forceCancel) {
+        return { 
+          success: true, 
+          message: 'Force canceled. Client state cleared but error occurred with server.',
+          forceCloseCalled: true
+        };
+      }
+      
       return { 
         success: false, 
         message: error instanceof Error ? error.message : 'Failed to cancel upload' 
       };
     }
+  }
+  
+  // If we get here with force cancel, still return success
+  if (forceCancel) {
+    return { 
+      success: true, 
+      message: 'Force canceled. No active upload found but client state cleared.',
+      forceCloseCalled: true
+    };
   }
   
   return { success: false, message: 'No active upload to cancel' };

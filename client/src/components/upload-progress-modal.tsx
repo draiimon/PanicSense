@@ -112,25 +112,73 @@ export function UploadProgressModal() {
   
   // No local forceCloseModal function anymore - we use the memoized version forceCloseModalMemo
   
-  // Handle cancel button click
-  const handleCancel = async () => {
+  // Handle cancel button click with force option
+  const handleCancel = async (forceCancel = false) => {
     if (isCancelling) return;
     
     setShowCancelDialog(false);
     setIsCancelling(true);
     try {
-      const result = await cancelUpload();
+      const result = await cancelUpload(forceCancel);
       
       if (result.success) {
         // Force close the modal instead of waiting for events
         forceCloseModalMemo();
       } else {
+        // If normal cancel failed, show option for force cancel
+        if (!forceCancel) {
+          toast({
+            title: 'Cancel Failed',
+            description: 'Server could not cancel the upload. Try Force Cancel instead.',
+            variant: 'destructive',
+            action: (
+              <ToastAction 
+                altText="Force Cancel" 
+                onClick={() => handleCancel(true)}
+              >
+                Force Cancel
+              </ToastAction>
+            ),
+          });
+        } else {
+          // Even if server force cancel failed, still close UI
+          forceCloseModalMemo();
+          toast({
+            title: 'Force Canceled',
+            description: 'The upload has been forcefully canceled in this browser tab.',
+            variant: 'destructive',
+          });
+        }
         setIsCancelling(false);
       }
     } catch (error) {
       console.error('Error cancelling upload:', error);
-      // Even on error, force close the modal
-      forceCloseModalMemo();
+      
+      // On force cancel, always close the modal even if there was an error
+      if (forceCancel) {
+        forceCloseModalMemo();
+        toast({
+          title: 'Force Canceled',
+          description: 'The upload has been forcefully canceled in this browser tab.',
+          variant: 'destructive',
+        });
+      } else {
+        // For regular cancel errors, offer force cancel option
+        toast({
+          title: 'Error',
+          description: 'Failed to cancel. Try Force Cancel instead.',
+          variant: 'destructive',
+          action: (
+            <ToastAction 
+              altText="Force Cancel" 
+              onClick={() => handleCancel(true)}
+            >
+              Force Cancel
+            </ToastAction>
+          ),
+        });
+        setIsCancelling(false);
+      }
     }
   };
 
