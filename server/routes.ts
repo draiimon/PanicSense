@@ -1749,7 +1749,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             stage: 'Analysis complete', // Exact wording for client detection
             timestamp: Date.now(),
             autoCloseDelay: 3000, // Signal to client that this will auto-close
-            error: undefined // Explicitly clear any error
+            error: undefined, // Explicitly clear any error
+            errorRecovered: false // Flag that this is a normal completion, not error recovery
           };
           
           // Set the progress in the map

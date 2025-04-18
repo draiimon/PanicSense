@@ -229,14 +229,21 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
         localStorage.setItem('lastProgressTimestamp', Date.now().toString());
       });
 
+      // Only show success toast and refresh data if we have real results
       if (result?.file && result?.posts) {
-        toast({
-          title: 'Upload Complete',
-          description: `Successfully analyzed ${result.posts.length} posts`,
-          duration: 5000,
-        });
+        // Only show toast if there are actual posts and not an error-recovery scenario
+        if (result.posts.length > 0 && !result.errorRecovered) {
+          // Show toast for successful completion
+          toast({
+            title: 'Upload Complete',
+            description: `Successfully analyzed ${result.posts.length} posts`,
+            duration: 5000,
+          });
+        } else {
+          console.log('Skipping upload completion toast - no posts or error recovery mode');
+        }
 
-        // Refresh data
+        // Refresh data quietly in background
         queryClient.invalidateQueries({ queryKey: ['/api/sentiment-posts'] });
         queryClient.invalidateQueries({ queryKey: ['/api/analyzed-files'] });
         queryClient.invalidateQueries({ queryKey: ['/api/disaster-events'] });
