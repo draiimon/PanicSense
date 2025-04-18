@@ -1,0 +1,332 @@
+/**
+ * Cross-Tab Synchronization Manager
+ * 
+ * This module provides robust coordination between browser tabs for events like upload status updates
+ * and completion notifications, preventing race conditions and flickering UIs.
+ */
+
+// Track current instance ID to prevent echoing our own messages
+const INSTANCE_ID = Math.random().toString(36).substring(2, 15);
+
+// Storage/message keys
+const KEYS = {
+  // Active instance tracking
+  LEADER_ID: 'sync_leader_id',
+  LEADER_TIMESTAMP: 'sync_leader_timestamp',
+  HEARTBEAT_TIMESTAMP: 'sync_leader_heartbeat',
+  
+  // Upload status coordination
+  UPLOAD_ACTIVE: 'upload_active',
+  UPLOAD_SESSION_ID: 'upload_session_id',
+  UPLOAD_PROGRESS: 'upload_progress',
+  UPLOAD_COMPLETED: 'upload_completed',
+  UPLOAD_COMPLETED_TIMESTAMP: 'upload_completed_timestamp',
+  UPLOAD_FORCE_CLOSED: 'upload_force_closed',
+  
+  // Throttling and debounce controls
+  LAST_BROADCAST_TIME: 'last_upload_broadcast_time',
+  LAST_POLL_TIME: 'last_completion_poll_time',
+};
+
+// Timeouts and debounce periods
+const TIMEOUTS = {
+  LEADER_STALE_MS: 10000, // 10 seconds without heartbeat = leader is stale
+  BROADCAST_THROTTLE_MS: 1000, // Minimum time between broadcasts
+  POLL_THROTTLE_MS: 5000, // Minimum time between API polls
+  COMPLETION_DEBOUNCE_MS: 5000, // Minimum time between completion broadcasts
+};
+
+// Channels for cross-tab coordination
+let uploadBroadcastChannel: BroadcastChannel | null = null;
+let completionChannel: BroadcastChannel | null = null;
+
+// Try to initialize channels safely
+try {
+  if (typeof window !== 'undefined') {
+    uploadBroadcastChannel = new BroadcastChannel('upload_status');
+    completionChannel = new BroadcastChannel('upload_completion');
+  }
+} catch (e) {
+  console.error('Failed to initialize broadcast channels:', e);
+}
+
+/**
+ * Determine if this tab instance is the designated "leader"
+ * The leader handles coordination across tabs
+ */
+function amILeader(): boolean {
+  const leaderId = localStorage.getItem(KEYS.LEADER_ID);
+  const leaderTimestamp = parseInt(localStorage.getItem(KEYS.LEADER_TIMESTAMP) || '0');
+  const now = Date.now();
+  
+  // No leader or stale leader
+  if (!leaderId || (now - leaderTimestamp > TIMEOUTS.LEADER_STALE_MS)) {
+    // Claim leadership
+    localStorage.setItem(KEYS.LEADER_ID, INSTANCE_ID);
+    localStorage.setItem(KEYS.LEADER_TIMESTAMP, now.toString());
+    localStorage.setItem(KEYS.HEARTBEAT_TIMESTAMP, now.toString());
+    return true;
+  }
+  
+  // I'm already the leader
+  return leaderId === INSTANCE_ID;
+}
+
+/**
+ * Update the leader heartbeat to maintain leadership
+ */
+function updateLeaderHeartbeat(): void {
+  if (amILeader()) {
+    localStorage.setItem(KEYS.HEARTBEAT_TIMESTAMP, Date.now().toString());
+  }
+}
+
+/**
+ * Send a message to other tabs
+ */
+export function broadcastMessage(type: string, payload?: any): void {
+  try {
+    const now = Date.now();
+    const lastBroadcastTime = parseInt(localStorage.getItem(KEYS.LAST_BROADCAST_TIME) || '0');
+    
+    // Throttle broadcasts to prevent flooding
+    if (now - lastBroadcastTime < TIMEOUTS.BROADCAST_THROTTLE_MS) {
+      console.log(`🛑 Throttling broadcast: ${type} (too soon after last broadcast)`);
+      return;
+    }
+    
+    // Update broadcast timestamp
+    localStorage.setItem(KEYS.LAST_BROADCAST_TIME, now.toString());
+    
+    const message = {
+      type,
+      payload,
+      timestamp: now,
+      instanceId: INSTANCE_ID
+    };
+    
+    // Send on main channel
+    if (uploadBroadcastChannel) {
+      uploadBroadcastChannel.postMessage(message);
+    }
+    
+    // Special handling for completion messages
+    if (type === 'upload_complete' && completionChannel) {
+      completionChannel.postMessage({
+        type: 'analysis_complete',
+        timestamp: now,
+        instanceId: INSTANCE_ID
+      });
+    }
+    
+    console.log(`📣 Broadcasting: ${type}`);
+  } catch (e) {
+    console.error(`Error broadcasting message ${type}:`, e);
+  }
+}
+
+/**
+ * Mark upload as completed in a coordinated way
+ */
+export function markUploadCompleted(progress: any): void {
+  try {
+    const now = Date.now();
+    
+    // Check if completion was already processed recently
+    const completedTimestamp = parseInt(localStorage.getItem(KEYS.UPLOAD_COMPLETED_TIMESTAMP) || '0');
+    if (now - completedTimestamp < TIMEOUTS.COMPLETION_DEBOUNCE_MS) {
+      console.log('🔄 Upload completion recently processed, skipping duplicate');
+      return;
+    }
+    
+    // Update localStorage with completion status
+    localStorage.setItem(KEYS.UPLOAD_COMPLETED, 'true');
+    localStorage.setItem(KEYS.UPLOAD_COMPLETED_TIMESTAMP, now.toString());
+    
+    // Store final progress state
+    const finalProgress = {
+      ...progress,
+      stage: 'Analysis complete',
+      processed: progress.total || 100,
+      total: progress.total || 100,
+      currentSpeed: 0,
+      timeRemaining: 0
+    };
+    
+    localStorage.setItem(KEYS.UPLOAD_PROGRESS, JSON.stringify(finalProgress));
+    
+    // Broadcast to other tabs
+    broadcastMessage('upload_complete', { progress: finalProgress });
+    
+    console.log('🏁 Upload marked as completed and broadcast to all tabs');
+  } catch (e) {
+    console.error('Error marking upload as completed:', e);
+  }
+}
+
+/**
+ * Check if upload completion state is present
+ */
+export function isUploadCompleted(): boolean {
+  return localStorage.getItem(KEYS.UPLOAD_COMPLETED) === 'true';
+}
+
+/**
+ * Clean up all upload-related state
+ */
+export function cleanupUploadState(): void {
+  try {
+    // Clean up all upload-related localStorage items
+    localStorage.removeItem(KEYS.UPLOAD_ACTIVE);
+    localStorage.removeItem(KEYS.UPLOAD_SESSION_ID);
+    localStorage.removeItem(KEYS.UPLOAD_PROGRESS);
+    localStorage.removeItem(KEYS.UPLOAD_COMPLETED);
+    localStorage.removeItem(KEYS.UPLOAD_COMPLETED_TIMESTAMP);
+    localStorage.removeItem(KEYS.UPLOAD_FORCE_CLOSED);
+    
+    // Also clean up older keys for backward compatibility
+    localStorage.removeItem('isUploading');
+    localStorage.removeItem('uploadProgress');
+    localStorage.removeItem('uploadSessionId');
+    localStorage.removeItem('lastProgressTimestamp');
+    localStorage.removeItem('lastDatabaseCheck');
+    localStorage.removeItem('serverRestartProtection');
+    localStorage.removeItem('serverRestartTimestamp');
+    localStorage.removeItem('uploadCompleteBroadcasted');
+    localStorage.removeItem('lastUIUpdateTimestamp');
+    localStorage.removeItem('uploadStartTime');
+    localStorage.removeItem('batchStats');
+    localStorage.removeItem('uploadCompleted');
+    localStorage.removeItem('uploadCompletedTimestamp');
+    
+    // Broadcast cleanup to other tabs
+    broadcastMessage('upload_cleanup');
+    
+    console.log('🧹 All upload state cleaned up');
+  } catch (e) {
+    console.error('Error cleaning up upload state:', e);
+  }
+}
+
+/**
+ * Handler for broadcast messages
+ */
+export function createBroadcastListener(handlers: {
+  onUploadProgress?: (progress: any) => void;
+  onUploadComplete?: (progress: any) => void;
+  onUploadCleanup?: () => void;
+  onUploadCancelled?: () => void;
+}): () => void {
+  
+  // Skip if no channels available
+  if (!uploadBroadcastChannel && !completionChannel) {
+    return () => {};
+  }
+  
+  const handleMessage = (event: MessageEvent) => {
+    const { type, payload, instanceId } = event.data;
+    
+    // Ignore our own messages
+    if (instanceId === INSTANCE_ID) {
+      return;
+    }
+    
+    console.log(`📡 Received broadcast: ${type}`);
+    
+    switch (type) {
+      case 'upload_progress':
+        if (handlers.onUploadProgress && payload.progress) {
+          handlers.onUploadProgress(payload.progress);
+        }
+        break;
+        
+      case 'upload_complete':
+        if (handlers.onUploadComplete && payload && payload.progress) {
+          // Update local storage with completion state
+          localStorage.setItem(KEYS.UPLOAD_COMPLETED, 'true');
+          localStorage.setItem(KEYS.UPLOAD_COMPLETED_TIMESTAMP, Date.now().toString());
+          
+          handlers.onUploadComplete(payload.progress);
+        }
+        break;
+        
+      case 'upload_cleanup':
+        if (handlers.onUploadCleanup) {
+          handlers.onUploadCleanup();
+        }
+        break;
+        
+      case 'upload_cancelled':
+        if (handlers.onUploadCancelled) {
+          handlers.onUploadCancelled();
+        }
+        break;
+    }
+  };
+  
+  const handleCompletionMessage = (event: MessageEvent) => {
+    const { type, instanceId } = event.data;
+    
+    // Ignore our own messages
+    if (instanceId === INSTANCE_ID) {
+      return;
+    }
+    
+    if (type === 'analysis_complete' && handlers.onUploadComplete) {
+      console.log('🏁 Received dedicated completion message');
+      
+      // Use a standard completion object
+      const completionProgress = {
+        stage: 'Analysis complete',
+        processed: 100,
+        total: 100,
+        currentSpeed: 0,
+        timeRemaining: 0
+      };
+      
+      // Mark as complete in localStorage
+      localStorage.setItem(KEYS.UPLOAD_COMPLETED, 'true');
+      localStorage.setItem(KEYS.UPLOAD_COMPLETED_TIMESTAMP, Date.now().toString());
+      
+      handlers.onUploadComplete(completionProgress);
+    }
+  };
+  
+  // Add listeners
+  if (uploadBroadcastChannel) {
+    uploadBroadcastChannel.addEventListener('message', handleMessage);
+  }
+  
+  if (completionChannel) {
+    completionChannel.addEventListener('message', handleCompletionMessage);
+  }
+  
+  // Return cleanup function
+  return () => {
+    if (uploadBroadcastChannel) {
+      uploadBroadcastChannel.removeEventListener('message', handleMessage);
+    }
+    
+    if (completionChannel) {
+      completionChannel.removeEventListener('message', handleCompletionMessage);
+    }
+  };
+}
+
+// Set up regular heartbeat for leader
+if (typeof window !== 'undefined') {
+  setInterval(updateLeaderHeartbeat, 2000);
+  
+  // Initialize leadership on load
+  amILeader();
+}
+
+// Default export
+export default {
+  broadcastMessage,
+  markUploadCompleted,
+  isUploadCompleted,
+  cleanupUploadState,
+  createBroadcastListener,
+  amILeader
+};
