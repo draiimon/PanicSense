@@ -217,8 +217,17 @@ export function UploadProgressModal() {
   
   // Check for server restart protection flag
   // Only consider server restart protection if explicitly set
+  // Check for both server restart AND completion status - never show server restart mode for completed uploads
   const serverRestartDetected = localStorage.getItem('serverRestartProtection') === 'true';
   const serverRestartTime = localStorage.getItem('serverRestartTimestamp');
+  const uploadCompleted = localStorage.getItem('uploadCompleted') === 'true';
+  
+  // If upload is completed, ignore server restart protection completely
+  if (uploadCompleted && serverRestartDetected) {
+    console.log('🏁 Upload completed flag detected - ignoring server restart protection');
+    localStorage.removeItem('serverRestartProtection');
+    localStorage.removeItem('serverRestartTimestamp');
+  }
   
   // We'll determine if we should show server restart mode after we know what stage we're in
   // This will be set after we have the stage value

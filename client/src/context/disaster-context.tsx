@@ -403,11 +403,21 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
             if (progressData) {
               try {
                 const parsedProgress = JSON.parse(progressData);
-                const twoMinutesAgo = Date.now() - (2 * 60 * 1000); // SUPER GENEROUS time window
+                const thirtySecondsAgo = Date.now() - (30 * 1000); // Reduced from 2 minutes to 30 seconds
+                const lastCompletedTime = localStorage.getItem('uploadCompletedTimestamp');
+                const hasUploadCompleted = localStorage.getItem('uploadCompleted') === 'true';
                 
-                // If localStorage has very recent data (last 2 minutes), server might have restarted
-                if (parsedProgress.savedAt && parsedProgress.savedAt > twoMinutesAgo) {
-                  console.log('⚠️ IMPORTANT: Recent localStorage activity detected!');
+                // Only trigger server restart protection if:
+                // 1. We have recent localStorage activity (last 30 seconds) AND
+                // 2. There's no "upload completed" flag set AND
+                // 3. The progress doesn't show 100% completion
+                if (parsedProgress.savedAt && 
+                    parsedProgress.savedAt > thirtySecondsAgo &&
+                    !hasUploadCompleted &&
+                    (!parsedProgress.processed || !parsedProgress.total || 
+                     parsedProgress.processed < parsedProgress.total)) {
+                  
+                  console.log('⚠️ IMPORTANT: Recent localStorage activity detected for ACTIVE UPLOAD!');
                   console.log('💪 Ignoring database "no sessions" - possible SERVER RESTART detected');
                   console.log('💪 Keeping upload modal visible to prevent data loss');
                   
@@ -419,6 +429,28 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
                   localStorage.setItem('serverRestartTimestamp', Date.now().toString());
                   
                   return; // Exit early WITHOUT clearing anything
+                } else {
+                  // Check if this was a completed upload (progress at 100%)
+                  if (parsedProgress.processed && parsedProgress.total &&
+                      parsedProgress.processed >= parsedProgress.total) {
+                    console.log('⚠️ Found completed upload in localStorage - no server restart protection needed');
+                    console.log('🧹 Finished upload detected - cleaning up localStorage');
+                    
+                    // This was a completed upload, so we should clean up
+                    localStorage.removeItem('isUploading');
+                    localStorage.removeItem('uploadProgress');
+                    localStorage.removeItem('uploadSessionId');
+                    localStorage.removeItem('lastProgressTimestamp');
+                    localStorage.removeItem('lastUIUpdateTimestamp');
+                    localStorage.removeItem('serverRestartProtection');
+                    localStorage.removeItem('serverRestartTimestamp');
+                    
+                    // Also clear the uploadCompleted flags
+                    localStorage.removeItem('uploadCompleted');
+                    localStorage.removeItem('uploadCompletedTimestamp');
+                    
+                    return;
+                  }
                 }
               } catch (e) {
                 // Parse error, proceed with normal cleanup
@@ -426,9 +458,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
               }
             }
             
-            // Old data - local storage now over 2 minutes
+            // Old data - local storage now over 30 seconds with no upload in progress
             // Only in this case we follow database and clean up
-            console.log('✂️ Clearing upload state only because LOCAL DATA is old (>2 min)');
+            console.log('✂️ Clearing upload state only because LOCAL DATA is old (>30s) or completed');
             
             // Clear localStorage completely (only for old data)
             localStorage.removeItem('isUploading');
@@ -438,6 +470,10 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
             localStorage.removeItem('lastUIUpdateTimestamp');
             localStorage.removeItem('serverRestartProtection');
             localStorage.removeItem('serverRestartTimestamp');
+            
+            // Also clear the uploadCompleted flags
+            localStorage.removeItem('uploadCompleted');
+            localStorage.removeItem('uploadCompletedTimestamp');
             
             // Update UI state to match database (the boss)
             setIsUploading(false);
