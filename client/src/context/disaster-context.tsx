@@ -1243,18 +1243,30 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
   useEffect(() => {
     if (!uploadBroadcastChannel) return;
     
+    // Track the last time we processed a broadcast message to prevent flickering
+    let lastProcessedTimestamp = 0;
+    const DEBOUNCE_TIME = 1000; // 1 second debounce
+    
     const handleBroadcastMessage = (event: MessageEvent) => {
-      const { type, isUploading: newIsUploading, progress, sessionId } = event.data;
+      const { type, isUploading: newIsUploading, progress, sessionId, timestamp } = event.data;
+      const now = Date.now();
       
-      console.log('📡 Received broadcast from another tab:', event.data);
+      // Prevent processing too many events in quick succession
+      if (timestamp && now - lastProcessedTimestamp < DEBOUNCE_TIME) {
+        console.log('🛑 Skipping broadcast - too soon after last one:', now - lastProcessedTimestamp, 'ms');
+        return;
+      }
+      
+      console.log('📡 Received broadcast from another tab:', type);
       
       if (type === 'upload_progress_update' && newIsUploading) {
         // Update UI state to match other tab
         setIsUploading(true);
         
-        // Update progress if we have it
-        if (progress) {
+        // Update progress if we have it and it has a newer timestamp than our current one
+        if (progress && (!uploadProgress.timestamp || progress.timestamp > uploadProgress.timestamp)) {
           setUploadProgress(progress);
+          lastProcessedTimestamp = now;
         }
         
         // Update sessionId in localStorage if provided
@@ -1266,9 +1278,14 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
       } else if (type === 'upload_finished' && !newIsUploading) {
         // Only update if we currently show as uploading
         if (isUploading) {
-          setIsUploading(false);
-          setUploadProgress(initialProgress);
-          console.log('📡 Upload finished notification from another tab');
+          // Add a small delay to avoid flickering
+          setTimeout(() => {
+            setIsUploading(false);
+            setUploadProgress(initialProgress);
+            console.log('📡 Upload finished notification from another tab - applying after delay');
+          }, 500);
+          
+          lastProcessedTimestamp = now;
         }
       }
     };

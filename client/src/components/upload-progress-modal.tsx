@@ -316,7 +316,20 @@ export function UploadProgressModal() {
   useEffect(() => {
     if (!isUploading) return; // No need to check if not uploading
     
+    // Track if we've already processed a completion event to prevent duplicate processing
+    let completionProcessed = false;
+    
+    // Keep track of the last time we've processed a completion event to prevent flooding
+    let lastCompletionTime = 0;
+    const COMPLETION_DEBOUNCE = 5000; // 5 seconds
+    
     const checkCompletionStatus = async () => {
+      // Don't check if we've already processed a completion recently
+      const now = Date.now();
+      if (completionProcessed || (now - lastCompletionTime < COMPLETION_DEBOUNCE)) {
+        return;
+      }
+      
       try {
         const response = await fetch('/api/upload-complete-check');
         if (response.ok) {
@@ -326,7 +339,11 @@ export function UploadProgressModal() {
           if (data.uploadComplete && data.sessionId) {
             console.log('🌟 COMPLETION CHECK API SAYS UPLOAD IS COMPLETE!', data.sessionId);
             
-            // Update our state first
+            // Set our flags to prevent reprocessing
+            completionProcessed = true;
+            lastCompletionTime = now;
+            
+            // Update our state first with the correct data from the server
             setUploadProgress({
               ...uploadProgress,
               stage: 'Analysis complete',
@@ -336,43 +353,42 @@ export function UploadProgressModal() {
               timeRemaining: 0
             });
             
-            // Save to localStorage for other tabs
+            // Save to localStorage for other tabs - with a timestamp to track freshness
             localStorage.setItem('uploadCompleted', 'true');
-            localStorage.setItem('uploadCompletedTimestamp', Date.now().toString());
+            localStorage.setItem('uploadCompletedTimestamp', now.toString());
             
-            // Also broadcast to all tabs
+            // Use a single broadcast approach with debounce protection
             try {
-              // Use both broadcast channels for notification
-              if (uploadBroadcastChannel) {
-                uploadBroadcastChannel.postMessage({
-                  type: 'upload_complete',
-                  progress: {
-                    ...uploadProgress,
-                    stage: 'Analysis complete',
-                    processed: uploadProgress.total || 100,
-                    total: uploadProgress.total || 100,
-                    currentSpeed: 0,
-                    timeRemaining: 0
-                  },
-                  timestamp: Date.now()
-                });
+              // Check if we've broadcast completion recently
+              const lastBroadcastTime = parseInt(localStorage.getItem('lastCompletionBroadcast') || '0');
+              if (now - lastBroadcastTime > COMPLETION_DEBOUNCE) {
+                // Update the broadcast time
+                localStorage.setItem('lastCompletionBroadcast', now.toString());
+                
+                if (uploadBroadcastChannel) {
+                  // Use a single, consistent message type
+                  uploadBroadcastChannel.postMessage({
+                    type: 'upload_complete',
+                    progress: {
+                      ...uploadProgress,
+                      stage: 'Analysis complete',
+                      processed: uploadProgress.total || 100,
+                      total: uploadProgress.total || 100,
+                      currentSpeed: 0,
+                      timeRemaining: 0,
+                      timestamp: now // Include timestamp for ordering
+                    },
+                    timestamp: now
+                  });
+                }
+              } else {
+                console.log('🛑 Skipping completion broadcast - too soon after last one');
               }
-              
-              // Use dedicated completion channel
-              const completionChannel = new BroadcastChannel('upload_completion');
-              completionChannel.postMessage({
-                type: 'analysis_complete',
-                timestamp: Date.now()
-              });
-              setTimeout(() => {
-                try { completionChannel.close(); } catch (e) { /* ignore */ }
-              }, 1000);
-              
             } catch (e) {
               console.error('Error broadcasting via completion check:', e);
             }
             
-            // Set a timer to auto-close this tab too
+            // Set a timer to auto-close this tab too, but only once
             setTimeout(() => {
               console.log('⏰ AUTO-CLOSE TRIGGERED BY COMPLETION CHECK API');
               cleanupAndClose();
@@ -387,9 +403,8 @@ export function UploadProgressModal() {
     // Check immediately on mount
     checkCompletionStatus();
     
-    // Check every 1 second - this is specifically designed to catch completion
-    // events and has a high frequency because completion needs immediate response
-    const intervalId = setInterval(checkCompletionStatus, 1000);
+    // Check at a reasonable interval - high frequency creates race conditions
+    const intervalId = setInterval(checkCompletionStatus, 2000);
     
     return () => clearInterval(intervalId);
   }, [isUploading, uploadProgress, setUploadProgress, cleanupAndClose]);
