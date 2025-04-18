@@ -23,10 +23,12 @@ export function UploadProgressModal() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   // Check for server restart protection flag
-  // Only consider server restart protection if explicitly set AND not during normal batch processing
+  // Only consider server restart protection if explicitly set
   const serverRestartDetected = localStorage.getItem('serverRestartProtection') === 'true';
-  // Will initialize stageLower further down in the code when we have the stage value
   const serverRestartTime = localStorage.getItem('serverRestartTimestamp');
+  
+  // We'll determine if we should show server restart mode after we know what stage we're in
+  // This will be set after we have the stage value
   
   // Regular check with database boss - if boss says no active sessions but we're showing
   // a modal, boss is right and we should close the modal
@@ -230,6 +232,11 @@ export function UploadProgressModal() {
       cooldownTime = parseInt(match[1], 10);
     }
   }
+  
+  // Now that we have stageLower, determine if we should show server restart protection
+  // Don't show server restart mode during normal batch pauses
+  const serverRestartProtection = serverRestartDetected && 
+                                 !(isPaused || stageLower.includes('batch') && stageLower.includes('seconds remaining'));
   
   // Consider any active work state as "processing"
   const isProcessing = isProcessingRecord || isPaused || stageLower.includes('processing');
