@@ -716,16 +716,16 @@ export function UploadProgressModal() {
                           cancelUpload()
                             .then(() => {
                               console.log(`Upload ${sessionId} cancelled via API`);
-                              forceCloseModal();
+                              forceCloseModalMemo();
                             })
                             .catch(err => {
                               console.error('Error cancelling upload:', err);
                               // Force close anyway
-                              forceCloseModal();
+                              forceCloseModalMemo();
                             });
                         } else {
                           // No sessionId, just close
-                          forceCloseModal();
+                          forceCloseModalMemo();
                         }
                       }}
                       variant="destructive"
@@ -801,7 +801,7 @@ export function UploadProgressModal() {
                   variant="default"
                   size="sm"
                   className="gap-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-full px-5"
-                  onClick={() => forceCloseModal()}
+                  onClick={() => forceCloseModalMemo()}
                 >
                   <CheckCircle className="h-4 w-4" />
                   <span>Complete - Close</span>
