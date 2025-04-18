@@ -351,7 +351,7 @@ export function UploadProgressModal() {
           
           {/* Title */}
           <h3 className="text-xl font-bold text-center mb-4 relative">
-            {isComplete ? 'Analysis Complete!' : hasError ? 'Upload Error' : `Processing Records`}
+            {isReallyComplete ? 'Analysis Complete!' : hasError ? 'Upload Error' : `Processing Records`}
           </h3>
           
           {/* Counter with animations */}
