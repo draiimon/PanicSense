@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { cancelUpload } from "@/lib/api";
 
@@ -33,6 +33,8 @@ export function UploadProgressModal() {
   // Regular check with database boss - if boss says no active sessions but we're showing
   // a modal, boss is right and we should close the modal
   // BUT THIS HAS A SPECIAL EXCEPTION FOR SERVER RESTARTS
+  // We need to place this functionality AFTER all variable declarations
+  
   useEffect(() => {
     if (!isUploading) return; // No need to check if we're not showing a modal
     
@@ -193,8 +195,26 @@ export function UploadProgressModal() {
     batchProgress = 0,
     currentSpeed = 0,
     timeRemaining = 0,
-    error = ''
+    error = '',
+    autoCloseDelay = 3000 // Default to 3 seconds for auto-close
   } = uploadProgress;
+  
+  // Add auto-close timer for "Analysis complete" state - now that we have all variables
+  useEffect(() => {
+    // Only auto-close when analysis is complete
+    if (isUploading && stage === 'Analysis complete') {
+      console.log('🎯 Analysis complete detected - will auto-close after EXACTLY 3 seconds');
+      
+      // Set a timeout to auto-close after exactly 3 seconds
+      const closeTimerId = setTimeout(() => {
+        console.log('⏰ AUTO-CLOSE TIMER TRIGGERED - 3 SECONDS COMPLETE');
+        forceCloseModal(); // Close the modal automatically
+      }, autoCloseDelay); // Use delay from server or default to 3000ms (3 seconds)
+      
+      // Clean up timer on unmount or stage change
+      return () => clearTimeout(closeTimerId);
+    }
+  }, [isUploading, stage, forceCloseModal, autoCloseDelay]);
   
   // ENHANCED STAGE DETECTION LOGIC
   // Convert stage to lowercase once for all checks

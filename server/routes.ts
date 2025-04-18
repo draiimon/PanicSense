@@ -1738,12 +1738,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           };
           
+          // Special "Analysis complete" state with exacty 3-second lifetime
+          // After 3 seconds, this session will be auto-deleted from the database
+          console.log('⏱️ Creating ANALYSIS COMPLETE state - will show for EXACTLY 3 seconds');
+          
           const finalProgress = {
             ...currentProgress,
             processed: totalRecords,
             total: totalRecords,
-            stage: 'Analysis complete',
+            stage: 'Analysis complete', // Exact wording for client detection
             timestamp: Date.now(),
+            autoCloseDelay: 3000, // Signal to client that this will auto-close
             error: undefined // Explicitly clear any error
           };
           
@@ -1821,7 +1826,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.log('Setting error state with message:', errorMessage);
       
-      // Create a proper error state object
+      // Create a proper error state object with all required fields
       const errorProgress = {
         processed: 0,
         total: 10, // Just a placeholder, the UI will show 0/10
@@ -1836,8 +1841,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         processingStats: {   // Add required processing stats
           successCount: 0,
           errorCount: 1,
+          lastBatchDuration: 0, // Required field
           averageSpeed: 0
-        }
+        },
+        autoCloseDelay: 3000 // Auto-close after 3 seconds, just like "Analysis complete"
       };
       
       // Update the progress map
