@@ -1211,7 +1211,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
             if (progress.stage && 
                 (progress.stage.toLowerCase().includes('error') || 
-                 progress.stage.toLowerCase().includes('cancel'))) {
+                 progress.stage.toLowerCase().includes('cancel') ||
+                 progress.stage.toLowerCase().includes('analysis complete'))) {
+              console.log(`🔍 Found session with stage "${progress.stage}" - marking for cleanup`);
               shouldClear = true;
             }
             
@@ -1241,9 +1243,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`🗑️ Clearing stale/error session: ${session.sessionId}`);
           
           try {
-            // Delete the session
+            // Delete the session from the database
             await db.delete(uploadSessions)
               .where(eq(uploadSessions.sessionId, session.sessionId));
+              
+            // Also remove from the progress map if it exists
+            uploadProgressMap.delete(session.sessionId);
               
             clearedCount++;
           } catch (deleteError) {
@@ -1742,7 +1747,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: undefined // Explicitly clear any error
           };
           
+          // Set the progress in the map
           uploadProgressMap.set(sessionId, finalProgress);
+          
+          // Update the session status
           await storage.updateUploadSession(sessionId, 'completed', finalProgress);
           
           // Broadcast final completion state to all listeners
@@ -1753,6 +1761,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           console.log('Final completion state broadcast to clients');
+          
+          // IMPORTANT: Delete the session from the database after a short delay
+          // This ensures the client has time to receive the final state
+          setTimeout(async () => {
+            try {
+              console.log(`🧹 Auto-deleting completed session: ${sessionId}`);
+              
+              // Remove from the progress map
+              uploadProgressMap.delete(sessionId);
+              
+              // Delete the session from the database
+              await db.delete(uploadSessions)
+                .where(eq(uploadSessions.sessionId, sessionId));
+                
+              console.log(`✅ Successfully deleted completed session: ${sessionId}`);
+            } catch (deleteError) {
+              console.error(`Error auto-deleting session ${sessionId}:`, deleteError);
+            }
+          }, 5000); // 5 second delay to ensure clients receive the completion state
         } catch (err) {
           console.error('Error updating session status:', err);
         }
