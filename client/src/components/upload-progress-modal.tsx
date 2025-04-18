@@ -120,21 +120,43 @@ export function UploadProgressModal() {
       // First try to cancel the upload through the API to ensure database cleanup
       // This ensures the server-side cleanup occurs, deleting the session from the database
       const sessionId = localStorage.getItem('uploadSessionId');
-      if (sessionId) {
-        // Try to cancel through the API first (which will delete the session from the database)
-        await cancelUpload();
-        console.log('Force close: Upload cancelled through API to ensure database cleanup');
-      }
-    } catch (error) {
-      console.error('Error cancelling upload during force close:', error);
-    } finally {
-      // Always clean up localStorage regardless of API success/failure
-      // This prevents stale state that could cause UI flickering
+      
+      // Clear all localStorage items FIRST to prevent any race conditions
       localStorage.removeItem('isUploading');
       localStorage.removeItem('uploadProgress');
       localStorage.removeItem('uploadSessionId');
       localStorage.removeItem('lastProgressTimestamp');
       localStorage.removeItem('lastDatabaseCheck');
+      localStorage.removeItem('serverRestartProtection');
+      localStorage.removeItem('serverRestartTimestamp');
+      
+      // Also clear any other upload-related items that might be causing persistence
+      localStorage.removeItem('lastUIUpdateTimestamp');
+      localStorage.removeItem('uploadStartTime');
+      localStorage.removeItem('batchStats');
+      
+      if (sessionId) {
+        try {
+          // Try to cancel through the API (which will delete the session from the database)
+          await cancelUpload();
+          console.log('Force close: Upload cancelled through API to ensure database cleanup');
+          
+          // Make a direct call to cleanup error sessions for immediate cleanup
+          await fetch('/api/cleanup-error-sessions', {
+            method: 'POST'
+          });
+          console.log('Force cleanup: Called error session cleanup API');
+        } catch (e) {
+          console.error('Error during API cleanup (continuing anyway):', e);
+        }
+      }
+    } catch (error) {
+      console.error('Error cancelling upload during force close:', error);
+    } finally {
+      // Double-check that localStorage is really cleared
+      localStorage.removeItem('isUploading');
+      localStorage.removeItem('uploadProgress');
+      localStorage.removeItem('uploadSessionId');
       
       // Clean up any existing EventSource connections
       if (window._activeEventSources) {
@@ -153,6 +175,8 @@ export function UploadProgressModal() {
       // to prevent race conditions with new session checks
       setIsUploading(false);
       setIsCancelling(false);
+      
+      console.log('🧹 MODAL FORCED CLOSED - ALL LOCALSTORAGE CLEARED');
     }
   };
   
@@ -197,16 +221,26 @@ export function UploadProgressModal() {
     autoCloseDelay = 3000 // Default to 3 seconds for auto-close
   } = uploadProgress;
   
-  // Add auto-close timer for "Analysis complete" state
+  // Add auto-close timer for both "Analysis complete" and error states
   useEffect(() => {
-    // Only auto-close when analysis is complete
-    if (isUploading && stage === 'Analysis complete') {
-      const delay = autoCloseDelay || 3000; // Use server provided delay or default to 3 seconds
-      console.log(`🎯 Analysis complete detected - will auto-close after ${delay}ms (server provided: ${autoCloseDelay ? 'yes' : 'no'})`);
+    // Auto-close for completed analysis or persistent error states
+    if (isUploading && (stage === 'Analysis complete' || stage === 'Upload Error')) {
+      const delay = autoCloseDelay || (stage === 'Upload Error' ? 5000 : 3000); // Longer delay for errors
+      console.log(`🎯 Auto-close state detected (${stage}) - will auto-close after ${delay}ms (server provided: ${autoCloseDelay ? 'yes' : 'no'})`);
       
       // Set a timeout to auto-close after the specified delay
       const closeTimerId = setTimeout(() => {
-        console.log(`⏰ AUTO-CLOSE TIMER TRIGGERED AFTER ${delay}ms`);
+        console.log(`⏰ AUTO-CLOSE TIMER TRIGGERED AFTER ${delay}ms for ${stage}`);
+        
+        // For error states, ensure a more aggressive cleanup
+        if (stage === 'Upload Error') {
+          // Clear ALL localStorage before closing
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.includes('upload')) localStorage.removeItem(key);
+          }
+        }
+        
         forceCloseModal(); // Close the modal automatically
       }, delay);
       
@@ -661,32 +695,65 @@ export function UploadProgressModal() {
                   </div>
                 </div>
                 
-                <div className="mt-3 text-center flex gap-2 justify-center">
-                  <Button
-                    onClick={() => {
-                      // First cancel the upload via the API
-                      const sessionId = getCurrentUploadSessionId();
-                      if (sessionId) {
-                        cancelUpload()
-                          .then(() => {
-                            console.log(`Upload ${sessionId} cancelled via API`);
-                            forceCloseModal();
-                          })
-                          .catch(err => {
-                            console.error('Error cancelling upload:', err);
-                            // Force close anyway
-                            forceCloseModal();
-                          });
-                      } else {
-                        // No sessionId, just close
-                        forceCloseModal();
-                      }
-                    }}
-                    variant="destructive"
-                    className="bg-red-600 hover:bg-red-700 text-white px-4"
-                  >
-                    Close & Cancel
-                  </Button>
+                <div className="mt-3 text-center flex flex-col gap-2 justify-center">
+                  <div className="flex justify-center space-x-2">
+                    <Button
+                      onClick={() => {
+                        // First cancel the upload via the API
+                        const sessionId = getCurrentUploadSessionId();
+                        if (sessionId) {
+                          cancelUpload()
+                            .then(() => {
+                              console.log(`Upload ${sessionId} cancelled via API`);
+                              forceCloseModal();
+                            })
+                            .catch(err => {
+                              console.error('Error cancelling upload:', err);
+                              // Force close anyway
+                              forceCloseModal();
+                            });
+                        } else {
+                          // No sessionId, just close
+                          forceCloseModal();
+                        }
+                      }}
+                      variant="destructive"
+                      className="bg-red-600 hover:bg-red-700 text-white px-4"
+                    >
+                      Close & Cancel
+                    </Button>
+                  </div>
+                  
+                  {/* Emergency reset button */}
+                  <div className="mt-2">
+                    <Button
+                      onClick={() => {
+                        // NUCLEAR OPTION: Clear everything in localStorage
+                        for (let i = 0; i < localStorage.length; i++) {
+                          const key = localStorage.key(i);
+                          if (key) localStorage.removeItem(key);
+                        }
+                        
+                        // Also do a direct API cleanup
+                        fetch('/api/reset-upload-sessions', {
+                          method: 'POST'
+                        }).then(() => {
+                          console.log('EMERGENCY: Reset all upload sessions');
+                          // Hard refresh the page
+                          window.location.reload();
+                        }).catch(e => {
+                          console.error('Error in emergency reset:', e);
+                          // Still reload
+                          window.location.reload();
+                        });
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs text-red-700 border-red-300 hover:bg-red-50"
+                    >
+                      Emergency Reset
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
