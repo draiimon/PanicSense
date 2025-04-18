@@ -1575,6 +1575,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Processing batch ${batchNumber}/${totalBatches} with ${batchResults.length} records`);
           isBatchSavingActive = true;
           
+          // Increment usage counter for each batch we process
+          usageTracker.incrementRowCount(batchResults.length);
+          console.log(`Incremented usage counter by ${batchResults.length} rows for batch ${batchNumber}`);
+          console.log(`Daily usage after batch ${batchNumber}: ${usageTracker.getUsageStats().used}/${usageTracker.getUsageStats().limit} rows`);
+          
           // Filter out non-disaster content
           const filteredResults = batchResults.filter(post => {
             const isNonDisasterInput = post.text.length < 9 || 
@@ -1988,9 +1993,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API endpoint to get daily usage stats
   app.get('/api/usage-stats', async (req: Request, res: Response) => {
     try {
+      // Get the latest usage stats directly from the tracker
       const stats = usageTracker.getUsageStats();
+      
+      // Log the current usage
+      if (Math.random() < 0.1) { // Only log occasionally to reduce console spam
+        console.log(`Current usage: ${stats.used}/${stats.limit} rows (${stats.remaining} remaining)`);
+      }
+      
       res.json(stats);
     } catch (error) {
+      console.error('Error fetching usage stats:', error);
       res.status(500).json({ error: "Failed to fetch usage statistics" });
     }
   });

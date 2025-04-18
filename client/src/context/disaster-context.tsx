@@ -2,6 +2,7 @@ import React, { createContext, ReactNode, useContext, useState, useEffect, useRe
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import { 
   getSentimentPosts, 
   getDisasterEvents, 
@@ -430,6 +431,9 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
         refetchSentimentPosts();
         refetchDisasterEvents();
         refetchAnalyzedFiles();
+        
+        // Also refresh usage stats data
+        queryClient.invalidateQueries({ queryKey: ['/api/usage-stats'] });
       }
     };
   }, [refetchSentimentPosts, refetchDisasterEvents, refetchAnalyzedFiles]);
