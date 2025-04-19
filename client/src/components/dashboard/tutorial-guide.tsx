@@ -111,9 +111,11 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ onClose, onComplet
   
   // Calculate the tooltip position based on the element's rect and desired position
   const calculateTooltipPosition = (rect: DOMRect, position: 'top' | 'right' | 'bottom' | 'left') => {
-    const tooltipWidth = 320; // Approximate width of the tooltip
-    const tooltipHeight = 200; // Approximate height of the tooltip
-    const spacing = 16; // Spacing between element and tooltip
+    // Adjust tooltip size based on screen size for better mobile experience
+    const isMobile = window.innerWidth < 640;
+    const tooltipWidth = isMobile ? window.innerWidth * 0.85 : 320; // Responsive width
+    const tooltipHeight = isMobile ? window.innerHeight * 0.4 : 200; // Responsive height
+    const spacing = isMobile ? 8 : 16; // Reduced spacing on mobile
     
     switch (position) {
       case 'top':
@@ -166,27 +168,44 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ onClose, onComplet
       if (!tooltipPosition) return;
       
       let { top, left } = tooltipPosition;
-      const tooltipWidth = 320;
-      const tooltipHeight = 200;
       
-      // Check right boundary
-      if (left + tooltipWidth > window.innerWidth) {
-        left = window.innerWidth - tooltipWidth - 16;
-      }
+      // Adjust tooltip size based on screen size for better mobile experience
+      const isMobile = window.innerWidth < 640;
+      const tooltipWidth = isMobile ? window.innerWidth * 0.85 : 320;
+      const tooltipHeight = isMobile ? window.innerHeight * 0.4 : 200;
+      const padding = isMobile ? 8 : 16;
       
-      // Check left boundary
-      if (left < 16) {
-        left = 16;
-      }
-      
-      // Check bottom boundary
-      if (top + tooltipHeight > window.innerHeight) {
-        top = window.innerHeight - tooltipHeight - 16;
-      }
-      
-      // Check top boundary
-      if (top < 16) {
-        top = 16;
+      // For very small screens, center the tooltip
+      if (isMobile) {
+        // Center horizontally
+        left = (window.innerWidth - tooltipWidth) / 2;
+        
+        // Position vertically in the visible area
+        const visibleHeight = window.innerHeight - 100; // Account for keyboard on mobile
+        if (top + tooltipHeight > visibleHeight) {
+          top = (visibleHeight - tooltipHeight) / 2;
+        }
+      } else {
+        // Desktop adjustments
+        // Check right boundary
+        if (left + tooltipWidth > window.innerWidth) {
+          left = window.innerWidth - tooltipWidth - padding;
+        }
+        
+        // Check left boundary
+        if (left < padding) {
+          left = padding;
+        }
+        
+        // Check bottom boundary
+        if (top + tooltipHeight > window.innerHeight) {
+          top = window.innerHeight - tooltipHeight - padding;
+        }
+        
+        // Check top boundary
+        if (top < padding) {
+          top = padding;
+        }
       }
       
       if (top !== tooltipPosition.top || left !== tooltipPosition.left) {
@@ -238,21 +257,21 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ onClose, onComplet
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.2 }}
-        className="fixed z-[1001] w-80 bg-white rounded-lg shadow-xl"
+        className="fixed z-[1001] w-[85vw] sm:w-80 max-w-[85vw] sm:max-w-md bg-white rounded-lg shadow-xl"
         style={{
           top: tooltipPosition.top,
           left: tooltipPosition.left,
         }}
       >
         {/* Tooltip header */}
-        <div className="flex items-center justify-between bg-blue-600 text-white p-3 rounded-t-lg">
+        <div className="flex items-center justify-between bg-blue-600 text-white p-4 rounded-t-lg">
           <div className="flex items-center gap-2">
             {currentTutorialStep.icon}
-            <h3 className="font-semibold">{currentTutorialStep.title}</h3>
+            <h3 className="font-bold text-base sm:text-lg">{currentTutorialStep.title}</h3>
           </div>
           <button 
             onClick={onClose}
-            className="text-white/80 hover:text-white transition-colors"
+            className="text-white hover:text-white transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -260,7 +279,7 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ onClose, onComplet
         
         {/* Tooltip body */}
         <div className="p-4">
-          <p className="text-gray-700 mb-4">{currentTutorialStep.description}</p>
+          <p className="text-gray-900 dark:text-gray-100 text-base sm:text-base mb-4 font-medium leading-relaxed">{currentTutorialStep.description}</p>
           
           {/* Progress indicators */}
           <div className="flex justify-center gap-1 mb-4">
