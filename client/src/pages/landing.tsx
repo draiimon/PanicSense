@@ -272,9 +272,6 @@ const FloatingElement = ({
   );
 };
 
-// Feature carousel component
-// Feature Carousel has been removed
-
 // Live Time Counter for video effect
 const LiveTimeCounter = () => {
   const [time, setTime] = useState("00:00:00");
@@ -294,6 +291,99 @@ const LiveTimeCounter = () => {
   
   return (
     <span className="video-time-counter">{time}</span>
+  );
+};
+
+// Philippines Map Component - More detailed
+const PhilippinesMap = () => {
+  return (
+    <div className="relative w-full h-full">
+      {/* Grid background */}
+      <div className="absolute inset-0 bg-blue-50 grid grid-cols-[repeat(20,1fr)] grid-rows-[repeat(20,1fr)] opacity-50">
+        {Array.from({ length: 400 }).map((_, i) => (
+          <div key={i} className="border border-blue-100"></div>
+        ))}
+      </div>
+      
+      {/* Philippines Map Outline - More accurate */}
+      <svg 
+        className="absolute inset-0 w-full h-full"
+        viewBox="0 0 500 500"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Luzon */}
+        <path 
+          d="M220,80 C230,70 250,75 265,95 C280,115 295,130 290,150 C285,170 270,175 260,190 C250,205 260,220 255,235 C250,250 235,260 220,255 C205,250 195,235 200,220 C205,205 215,195 205,180 C195,165 180,170 185,155 C190,140 210,130 210,115 C210,100 210,90 220,80Z" 
+          fill="rgba(59, 130, 246, 0.15)" 
+          stroke="rgba(59, 130, 246, 0.8)" 
+          strokeWidth="2"
+        />
+        
+        {/* Visayas Islands */}
+        <path 
+          d="M290,200 C300,195 310,205 315,215 C320,225 315,235 305,240 C295,245 285,240 280,230 C275,220 280,205 290,200Z" 
+          fill="rgba(99, 102, 241, 0.15)" 
+          stroke="rgba(99, 102, 241, 0.8)" 
+          strokeWidth="1.5"
+        />
+        
+        <path 
+          d="M320,230 C330,225 340,230 345,240 C350,250 345,265 335,270 C325,275 315,270 310,260 C305,250 310,235 320,230Z" 
+          fill="rgba(99, 102, 241, 0.15)" 
+          stroke="rgba(99, 102, 241, 0.8)" 
+          strokeWidth="1.5"
+        />
+        
+        <path 
+          d="M270,240 C280,235 290,245 295,255 C300,265 295,280 285,285 C275,290 265,280 260,270 C255,260 260,245 270,240Z" 
+          fill="rgba(99, 102, 241, 0.15)" 
+          stroke="rgba(99, 102, 241, 0.8)" 
+          strokeWidth="1.5"
+        />
+        
+        {/* Mindanao */}
+        <path 
+          d="M300,290 C320,280 340,290 350,310 C360,330 355,350 340,365 C325,380 305,385 285,375 C265,365 255,345 265,325 C275,305 290,295 300,290Z" 
+          fill="rgba(79, 70, 229, 0.15)" 
+          stroke="rgba(79, 70, 229, 0.8)" 
+          strokeWidth="2"
+        />
+        
+        {/* Disaster Points */}
+        <circle cx="235" cy="140" r="5" fill="rgba(239, 68, 68, 0.7)" className="animate-ping-slow" />
+        <circle cx="320" cy="235" r="5" fill="rgba(245, 158, 11, 0.7)" className="animate-ping-slow delay-500" />
+        <circle cx="310" cy="330" r="5" fill="rgba(139, 92, 246, 0.7)" className="animate-ping-slow delay-1000" />
+        
+        {/* Data Flow Lines */}
+        <path 
+          d="M235,140 Q270,170 320,235" 
+          stroke="rgba(59, 130, 246, 0.5)" 
+          strokeWidth="1" 
+          strokeDasharray="3,3"
+          className="animate-dash" 
+        />
+        
+        <path 
+          d="M320,235 Q315,280 310,330" 
+          stroke="rgba(99, 102, 241, 0.5)" 
+          strokeWidth="1" 
+          strokeDasharray="3,3"
+          className="animate-dash-reverse" 
+        />
+      </svg>
+      
+      {/* Radar Scan Effect */}
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <div className="w-[200px] h-[200px] border-2 border-blue-400/30 rounded-full animate-ping-slow"></div>
+        <div className="w-[100px] h-[100px] border border-blue-500/50 rounded-full animate-ping-slow delay-700"></div>
+      </div>
+      
+      {/* Data points */}
+      <div className="absolute top-1/4 left-1/4 w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+      <div className="absolute top-2/4 right-1/4 w-3 h-3 bg-orange-500 rounded-full animate-ping delay-300"></div>
+      <div className="absolute bottom-1/4 left-1/2 w-3 h-3 bg-purple-500 rounded-full animate-ping delay-700"></div>
+    </div>
   );
 };
 
@@ -375,7 +465,14 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
           />
         </div>
         
-        {/* X button removed */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2 z-10 rounded-full"
+          onClick={onClose}
+        >
+          <X className="h-4 w-4" />
+        </Button>
         
         {/* Responsive layout - Single column for mobile, dual column for desktop */}
         <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-600 p-4 md:p-6 lg:p-8">          
@@ -425,140 +522,126 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                 <img 
                   src={steps[currentStep].image} 
                   alt={steps[currentStep].title} 
-                  className="tutorial-image object-contain md:object-cover object-center w-full h-full transform transition-all duration-500"
+                  className="tutorial-image object-contain w-full h-[350px] rounded-lg shadow-lg"
                 />
               </div>
             </div>
             
-            {/* Content Column - desktop only */}
-            <div className="hidden md:flex flex-col justify-center items-start mt-8 md:mt-0 text-left flex-1">
-              <motion.div
+            {/* Tutorial Content - Column 2 */}
+            <div className="text-white p-4 md:p-0 max-w-lg md:ml-8 mt-4 md:mt-0">
+              <motion.div 
+                key={`step-${currentStep}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="mb-6 md:mb-8"
+                transition={{ duration: 0.5 }}
+                className="space-y-4 md:space-y-6"
               >
-                <Badge className="mb-4 py-1.5 px-4 text-sm bg-indigo-500/20 text-indigo-200">
-                  {currentStep === 0 ? 'Data Collection' : 
-                   currentStep === 1 ? 'AI Analysis' :
-                   currentStep === 2 ? 'Geographic Mapping' : 'Real-time Monitoring'}
-                </Badge>
-                
-                <h2 className="text-2xl lg:text-3xl font-bold text-white mb-4">{steps[currentStep].title}</h2>
-                <p className="text-white/70 lg:text-lg mb-6">{steps[currentStep].description}</p>
-                
-                {/* Extra details for desktop view */}
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <div className="flex items-center gap-2 mb-2">
-                      {steps[currentStep].icon}
-                      <span className="text-white font-medium">Key Features</span>
-                    </div>
-                    <ul className="text-white/60 text-sm space-y-1">
-                      {currentStep === 0 && (
-                        <>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Bulk CSV Processing</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Format Recognition</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Data Validation</li>
-                        </>
-                      )}
-                      {currentStep === 1 && (
-                        <>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Emotion Classification</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Confidence Scoring</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Multilingual Support</li>
-                        </>
-                      )}
-                      {currentStep === 2 && (
-                        <>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Interactive Maps</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Location Clustering</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Hotspot Analysis</li>
-                        </>
-                      )}
-                      {currentStep === 3 && (
-                        <>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Live Updates</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Alert System</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Trend Detection</li>
-                        </>
-                      )}
-                    </ul>
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-white/20 rounded-lg">
+                    {steps[currentStep].icon}
                   </div>
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Award className="h-4 w-4 text-amber-300" />
-                      <span className="text-white font-medium">Benefits</span>
-                    </div>
-                    <ul className="text-white/60 text-sm space-y-1">
+                  <h3 className="text-2xl md:text-3xl font-bold">{steps[currentStep].title}</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <p className="text-white/90 text-lg">{steps[currentStep].description}</p>
+                  
+                  <div className="space-y-3 mt-6">
+                    {/* Step Information */}
+                    <div className="space-y-2">
                       {currentStep === 0 && (
                         <>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Fast Processing</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Error Correction</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Automated Handling</li>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-300" />
+                            <p className="text-white/80">Upload single or batch CSV files</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-300" />
+                            <p className="text-white/80">Supports multiple languages including Filipino and English</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-300" />
+                            <p className="text-white/80">Automatic source detection (Twitter, Facebook, etc.)</p>
+                          </div>
                         </>
                       )}
+                      
                       {currentStep === 1 && (
                         <>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Accurate Classification</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Language Detection</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Detailed Explanations</li>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-300" />
+                            <p className="text-white/80">Advanced emotion detection (Panic, Fear, Resilience, etc.)</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-300" />
+                            <p className="text-white/80">AI-powered disaster type classification</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-300" />
+                            <p className="text-white/80">Confidence scoring for each analysis</p>
+                          </div>
                         </>
                       )}
+                      
                       {currentStep === 2 && (
                         <>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Visual Understanding</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Impacted Area Analysis</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Resource Planning</li>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-300" />
+                            <p className="text-white/80">Interactive mapping of disaster locations</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-300" />
+                            <p className="text-white/80">Location clustering for multiple reports</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-300" />
+                            <p className="text-white/80">Regional sentiment heatmaps</p>
+                          </div>
                         </>
                       )}
+                      
                       {currentStep === 3 && (
                         <>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Real-time Response</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Proactive Detection</li>
-                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Improved Coordination</li>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-300" />
+                            <p className="text-white/80">Live monitoring dashboard with real-time updates</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-300" />
+                            <p className="text-white/80">Smart alerting for critical situations</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-300" />
+                            <p className="text-white/80">Timeline view of disaster progression</p>
+                          </div>
                         </>
                       )}
-                    </ul>
+                    </div>
                   </div>
                 </div>
               </motion.div>
+              
+              <div className="mt-8 flex justify-between">
+                <Button 
+                  variant="outline" 
+                  className="border-white/30 text-white hover:bg-white/10 hover:text-white"
+                  onClick={prevStep}
+                  disabled={currentStep === 0}
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Previous
+                </Button>
+                
+                <Button 
+                  onClick={nextStep}
+                  className="bg-white text-indigo-600 hover:bg-white/90"
+                >
+                  {currentStep === steps.length - 1 ? "Finish" : "Next"}
+                  {currentStep !== steps.length - 1 && <ChevronRight className="ml-1 h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* Description for mobile view only */}
-        <div className="p-5 pt-4 pb-16 md:hidden">
-          <div className="px-4">
-            <h3 className="font-bold text-center text-lg">
-              {steps[currentStep].title}
-            </h3>
-            <p className="text-sm text-center text-gray-600 mt-1">
-              {steps[currentStep].description}
-            </p>
-          </div>
-        </div>
-        
-        {/* Only one set of navigation buttons at the bottom */}
-        <div className="fixed left-0 right-0 bottom-0 flex justify-between py-4 px-6 bg-gradient-to-r from-blue-600/90 via-indigo-600/90 to-purple-600/90 backdrop-blur-sm">
-          <Button 
-            className={`${currentStep === 0 ? 'opacity-0 pointer-events-none' : ''} bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center px-4`}
-            onClick={prevStep}
-            disabled={currentStep === 0}
-            size="sm"
-          >
-            <ChevronLeft className="mr-1.5 h-4 w-4" />
-            <span>Previous</span>
-          </Button>
-          
-          <Button 
-            onClick={nextStep}
-            className="bg-white text-blue-600 hover:bg-white/90 hover:scale-105 transform transition-all shadow-lg rounded-full flex items-center px-4"
-            size="sm"
-          >
-            <span>{currentStep === steps.length - 1 ? 'Get Started' : 'Next'}</span>
-            <ChevronRight className="ml-1.5 h-4 w-4" />
-          </Button>
         </div>
       </motion.div>
     </div>
@@ -849,8 +932,6 @@ export default function LandingPage() {
                   </Link>
                 </motion.div>
               </motion.div>
-              
-
             </div>
             
             <motion.div
@@ -867,185 +948,157 @@ export default function LandingPage() {
                   {/* We'll display the three features in rotation */}
                   
                   {/* FEATURE 1: Live Disaster Monitoring */}
-                  <motion.div 
-                    key="live-monitoring"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.5 }}
-                    className="p-4 absolute inset-0"
-                  >
-                    <div className="flex items-center mb-3">
-                      <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                      <h4 className="font-semibold flex items-center">
-                        Live Disaster Monitoring
-                        <span className="ml-2 text-[10px] font-medium px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full">LIVE</span>
-                      </h4>
-                    </div>
-                    
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Real-time sentiment tracking for faster emergency response and coordination in the Philippines.</p>
-                    
-                    {/* Live Disaster Monitoring Content */}
-                    <div className="mt-3 space-y-2">
-                      {/* Live alerts */}
-                      {[
-                        { event: "Typhoon Warning", location: "Northern Luzon", level: "High" },
-                        { event: "Flash Flood", location: "Cagayan Valley", level: "Medium" }
-                      ].map((alert, i) => (
-                        <motion.div 
-                          key={i}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.2 + (i * 0.1) }}
-                          className="flex items-center justify-between p-2 bg-slate-50 rounded-md border border-slate-100"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className={`h-2 w-2 rounded-full ${
-                              alert.level === "High" ? "bg-red-500" : 
-                              alert.level === "Medium" ? "bg-orange-500" : "bg-yellow-500"
-                            }`}></div>
-                            <div>
-                              <div className="text-xs font-medium">{alert.event}</div>
-                              <div className="text-[10px] text-gray-500">{alert.location}</div>
+                  {activeFeature === 'monitoring' && (
+                    <motion.div 
+                      key="live-monitoring"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.5 }}
+                      className="p-4 absolute inset-0"
+                    >
+                      <div className="flex items-center mb-3">
+                        <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                        <h4 className="font-semibold flex items-center">
+                          Live Disaster Monitoring
+                          <span className="ml-2 text-[10px] font-medium px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full">LIVE</span>
+                        </h4>
+                      </div>
+                      
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Real-time sentiment tracking for faster emergency response and coordination in the Philippines.</p>
+                      
+                      {/* Live Disaster Monitoring Content */}
+                      <div className="mt-3 space-y-2">
+                        {/* Live alerts */}
+                        {[
+                          { event: "Typhoon Warning", location: "Northern Luzon", level: "High" },
+                          { event: "Flash Flood", location: "Cagayan Valley", level: "Medium" }
+                        ].map((alert, i) => (
+                          <motion.div 
+                            key={i}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.2 + (i * 0.1) }}
+                            className="flex items-center justify-between p-2 bg-slate-50 rounded-md border border-slate-100"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className={`h-2 w-2 rounded-full ${
+                                alert.level === "High" ? "bg-red-500" : 
+                                alert.level === "Medium" ? "bg-orange-500" : "bg-yellow-500"
+                              }`}></div>
+                              <div>
+                                <div className="text-xs font-medium">{alert.event}</div>
+                                <div className="text-[10px] text-gray-500">{alert.location}</div>
+                              </div>
+                            </div>
+                            <div className="text-[10px] px-1.5 py-0.5 bg-slate-200 rounded text-slate-700">New</div>
+                          </motion.div>
+                        ))}
+                        
+                        {/* Activity indicator */}
+                        <div className="mt-3 pt-1 border-t border-gray-100">
+                          <div className="flex justify-between items-center">
+                            <div className="text-[10px] text-gray-500 uppercase font-medium">Live Activity</div>
+                            <div className="flex items-center">
+                              <div className="h-1.5 w-1.5 bg-red-500 rounded-full animate-pulse mr-1"></div>
+                              <span className="text-[10px] text-gray-500">Recording</span>
                             </div>
                           </div>
-                          <div className="text-[10px] px-1.5 py-0.5 bg-slate-200 rounded text-slate-700">New</div>
-                        </motion.div>
-                      ))}
-                      
-                      {/* Activity indicator */}
-                      <div className="mt-3 pt-1 border-t border-gray-100">
-                        <div className="flex justify-between items-center">
-                          <div className="text-[10px] text-gray-500 uppercase font-medium">Live Activity</div>
-                          <div className="flex items-center">
-                            <div className="h-1.5 w-1.5 bg-red-500 rounded-full animate-pulse mr-1"></div>
-                            <span className="text-[10px] text-gray-500">Recording</span>
+                          
+                          {/* Mini activity chart */}
+                          <div className="h-10 relative mt-1 flex items-end gap-[2px]">
+                            {Array.from({ length: 20 }).map((_, i) => (
+                              <div 
+                                key={i}
+                                className="bg-blue-500 rounded-sm w-2" 
+                                style={{ 
+                                  height: `${Math.floor(Math.random() * 70) + 30}%`,
+                                  opacity: 0.5 + (i / 40)
+                                }}
+                              ></div>
+                            ))}
                           </div>
                         </div>
-                        
-                        {/* Mini activity chart */}
-                        <div className="h-10 relative mt-1 flex items-end gap-[2px]">
-                          {Array.from({ length: 20 }).map((_, i) => (
-                            <div 
-                              key={i}
-                              className="bg-blue-500 rounded-sm w-2" 
-                              style={{ 
-                                height: `${Math.floor(Math.random() * 70) + 30}%`,
-                                opacity: 0.5 + (i / 40)
-                              }}
-                            ></div>
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  {/* FEATURE 2: Geographic Analysis */}
+                  {activeFeature === 'geographic' && (
+                    <motion.div 
+                      key="geographic-analysis"
+                      initial={{ opacity: 0, x: 50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -50 }}
+                      transition={{ duration: 0.5 }}
+                      className="p-4 absolute inset-0"
+                    >
+                      <div className="flex items-center mb-3">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
+                        <h4 className="font-semibold">Geographic Analysis</h4>
+                      </div>
+                      
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Visual mapping of disaster events across the Philippine archipelago for strategic response.</p>
+                      
+                      {/* Geographic Analysis Content with Detailed Philippines Map */}
+                      <div className="relative h-[160px] bg-blue-50 rounded-lg border border-blue-100 overflow-hidden">
+                        <PhilippinesMap />
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  {/* FEATURE 3: Advanced Analytics */}
+                  {activeFeature === 'analytics' && (
+                    <motion.div 
+                      key="advanced-analytics"
+                      initial={{ opacity: 0, x: 50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -50 }}
+                      transition={{ duration: 0.5 }}
+                      className="p-4 absolute inset-0"
+                    >
+                      <div className="flex items-center mb-3">
+                        <div className="w-3 h-3 bg-purple-500 rounded-full mr-2 animate-pulse"></div>
+                        <h4 className="font-semibold">Advanced Analytics</h4>
+                      </div>
+                      
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Advanced sentiment analysis using modern language processing with Filipino language support.</p>
+                      
+                      {/* Analytics Content */}
+                      <div className="mt-2">
+                        {/* Chart visualization */}
+                        <div className="h-[160px] flex items-end justify-between gap-2 px-1">
+                          {["Panic", "Fear", "Disbelief", "Resilience", "Neutral"].map((sentiment, i) => (
+                            <div key={i} className="flex flex-col items-center gap-1 flex-1">
+                              <div 
+                                className={`w-full rounded-t-sm ${
+                                  sentiment === "Panic" ? "bg-red-500" :
+                                  sentiment === "Fear" ? "bg-orange-500" :
+                                  sentiment === "Disbelief" ? "bg-purple-500" :
+                                  sentiment === "Resilience" ? "bg-green-500" : "bg-gray-400"
+                                }`}
+                                style={{ 
+                                  height: `${
+                                    sentiment === "Panic" ? 75 :
+                                    sentiment === "Fear" ? 55 :
+                                    sentiment === "Disbelief" ? 40 :
+                                    sentiment === "Resilience" ? 65 : 35
+                                  }%`
+                                }}
+                              ></div>
+                              <span className="text-[9px] text-gray-500">{sentiment}</span>
+                            </div>
                           ))}
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                  
-                  {/* FEATURE 2: Geographic Analysis (Initially hidden, will be shown via animation) */}
-                  <motion.div 
-                    key="geographic-analysis"
-                    initial={{ opacity: 0, x: 50 }}
-                    animate={{ opacity: 0, x: 50 }}
-                    exit={{ opacity: 0, x: -50 }}
-                    transition={{ duration: 0.5 }}
-                    className="p-4 absolute inset-0"
-                  >
-                    <div className="flex items-center mb-3">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
-                      <h4 className="font-semibold">Geographic Analysis</h4>
-                    </div>
-                    
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Visual mapping of disaster events across the Philippine archipelago for strategic response.</p>
-                    
-                    {/* Geographic Analysis Content */}
-                    <div className="relative h-[160px] bg-blue-50 rounded-lg border border-blue-100 overflow-hidden">
-                      {/* Map effect */}
-                      <div className="geo-coordinate-grid"></div>
-                      
-                      {/* Map outline */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <svg width="120" height="120" viewBox="0 0 100 100" className="opacity-40">
-                          <path 
-                            d="M40,20 C50,10 60,15 65,25 C70,35 65,45 55,50 C45,55 35,65 40,75 C45,85 55,85 65,75 C75,65 85,70 85,55 C85,40 75,30 65,20 C55,10 30,30 40,20 Z" 
-                            fill="none" 
-                            stroke="rgba(59, 130, 246, 0.8)" 
-                            strokeWidth="1"
-                          />
-                        </svg>
-                      </div>
-                      
-                      {/* Data points */}
-                      <div className="absolute top-1/4 left-1/4 h-2 w-2 rounded-full bg-red-500 animate-ping"></div>
-                      <div className="absolute top-1/2 right-1/3 h-2 w-2 rounded-full bg-orange-500 animate-ping delay-300"></div>
-                      <div className="absolute bottom-1/4 left-1/2 h-2 w-2 rounded-full bg-purple-500 animate-ping delay-700"></div>
-                      
-                      {/* Scanning effect */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-24 w-24 border-2 border-blue-500/20 rounded-full animate-ping-slow"></div>
-                    </div>
-                  </motion.div>
-                  
-                  {/* FEATURE 3: Advanced Analytics (Initially hidden, will be shown via animation) */}
-                  <motion.div 
-                    key="advanced-analytics"
-                    initial={{ opacity: 0, x: 50 }}
-                    animate={{ opacity: 0, x: 50 }}
-                    exit={{ opacity: 0, x: -50 }}
-                    transition={{ duration: 0.5 }}
-                    className="p-4 absolute inset-0"
-                  >
-                    <div className="flex items-center mb-3">
-                      <div className="w-3 h-3 bg-purple-500 rounded-full mr-2 animate-pulse"></div>
-                      <h4 className="font-semibold">Advanced Analytics</h4>
-                    </div>
-                    
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Advanced sentiment analysis using modern language processing with Filipino language support.</p>
-                    
-                    {/* Analytics Content */}
-                    <div className="mt-2">
-                      {/* Chart visualization */}
-                      <div className="h-[160px] flex items-end justify-between gap-2 px-1">
-                        {["Panic", "Fear", "Disbelief", "Resilience", "Neutral"].map((sentiment, i) => (
-                          <div key={i} className="flex flex-col items-center gap-1 flex-1">
-                            <div 
-                              className={`w-full rounded-t-sm ${
-                                sentiment === "Panic" ? "bg-red-500" :
-                                sentiment === "Fear" ? "bg-orange-500" :
-                                sentiment === "Disbelief" ? "bg-purple-500" :
-                                sentiment === "Resilience" ? "bg-green-500" : "bg-gray-400"
-                              }`}
-                              style={{ 
-                                height: `${
-                                  sentiment === "Panic" ? 75 :
-                                  sentiment === "Fear" ? 55 :
-                                  sentiment === "Disbelief" ? 40 :
-                                  sentiment === "Resilience" ? 65 : 35
-                                }%`
-                              }}
-                            ></div>
-                            <span className="text-[9px] text-gray-500">{sentiment}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                  )}
                 </AnimatePresence>
                 
-                {/* Animation indicator - without "Latest Updates" label */}
+                {/* Animation indicator */}
                 <div className="absolute bottom-3 right-3 opacity-70">
                   <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
                 </div>
-              </div>
-              
-              <div className="absolute -bottom-2 -right-2 z-20">
-                <motion.div
-                  initial={{ scale: 0, rotate: -20 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 1.2, type: "spring" }}
-                >
-                  <Badge className="py-1.5 px-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg">
-                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                    Real-time Data
-                  </Badge>
-                </motion.div>
               </div>
             </motion.div>
           </div>
@@ -1053,8 +1106,6 @@ export default function LandingPage() {
           {/* Removing the Latest Updates section entirely as requested */}
         </div>
       </section>
-      
-      {/* Removed carousel as requested */}
       
       {/* Features Section with Animated Cards */}
       <section className="py-24 bg-white dark:bg-gray-900 relative overflow-hidden">
@@ -1210,8 +1261,6 @@ export default function LandingPage() {
         </div>
       </section>
       
-
-      
       {/* Footer - Matching main layout style */}
       <footer className="bg-white border-t border-slate-200 py-2 sm:py-4 z-50 relative">
         <div className="max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs sm:text-sm text-slate-600">
@@ -1323,6 +1372,49 @@ export default function LandingPage() {
             linear-gradient(to right, rgba(255,255,255,0.2) 1px, transparent 1px),
             linear-gradient(to bottom, rgba(255,255,255,0.2) 1px, transparent 1px);
           background-size: 40px 40px;
+        }
+        
+        .animate-ping-slow {
+          animation: ping 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        
+        .animate-float-1 {
+          animation: float 6s ease-in-out infinite;
+        }
+        
+        .animate-float-2 {
+          animation: float 8s ease-in-out infinite 1s;
+        }
+        
+        .animate-float-3 {
+          animation: float 7s ease-in-out infinite 2s;
+        }
+        
+        .animate-float-4 {
+          animation: float 9s ease-in-out infinite 3s;
+        }
+        
+        .animate-dash {
+          animation: dash 15s linear infinite;
+        }
+        
+        .animate-dash-reverse {
+          animation: dash 15s linear infinite reverse;
+        }
+        
+        @keyframes dash {
+          to {
+            stroke-dashoffset: 1000;
+          }
+        }
+        
+        .geo-coordinate-grid {
+          position: absolute;
+          inset: 0;
+          background-image: 
+            linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+          background-size: 20px 20px;
         }
       `}</style>
     </div>
