@@ -1148,15 +1148,8 @@ export class PythonService {
         '--text', text
       ]);
       
-      // Use a unique ID for this analysis process
-      const analysisSessionId = nanoid();
-      
-      // Store in active processes (for status monitoring only)
-      this.activeProcesses.set(analysisSessionId, { 
-        process: pythonProcess, 
-        tempFilePath: '', // No temp file for text analysis
-        startTime: new Date() // Add start time for tracking
-      });
+      // DO NOT create session IDs for regular text analysis
+      // This prevents the upload modal from appearing during real-time analysis
 
       const result = await new Promise<string>((resolve, reject) => {
         let output = '';
@@ -1189,8 +1182,7 @@ export class PythonService {
         });
 
         pythonProcess.on('close', (code) => {
-          // Clean up from active processes
-          this.activeProcesses.delete(analysisSessionId);
+          // Real-time analysis doesn't need session ID cleanup
           
           if (code !== 0) {
             reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
