@@ -445,13 +445,15 @@ export function UploadProgressModal() {
           // Use the synchronization manager to mark it complete and notify other tabs
           markUploadCompleted(finalProgress);
           
+          // ENHANCED VALIDATION CHECK: More rigorous validation to prevent premature completion
           // Validate that this is not a premature completion notification
           const hasValidPreviousStage = 
             stage && (
               stage.toLowerCase().includes('processing') ||
               stage.toLowerCase().includes('record') ||
               stage.toLowerCase().includes('loading') ||
-              stage.toLowerCase().includes('batch')
+              stage.toLowerCase().includes('batch') ||
+              stage.toLowerCase().includes('analyzing')
             );
             
           if (!hasValidPreviousStage) {
@@ -459,8 +461,40 @@ export function UploadProgressModal() {
             return;
           }
           
-          // Verify processed count
-          const processedThreshold = Math.floor(uploadProgress.total * 0.95);
+          // Check if upload is still in preliminary stages
+          const isStillInitializing = 
+            stage.toLowerCase().includes('initializing') ||
+            stage.toLowerCase().includes('starting') ||
+            stage.toLowerCase().includes('preparing') ||
+            stage.toLowerCase().includes('loading csv') ||
+            stage.toLowerCase().includes('identifying columns');
+            
+          if (isStillInitializing) {
+            console.log('⛔ SERVER VALIDATION FAILURE: Upload still in initialization stage:', stage);
+            return;
+          }
+          
+          // Check if there's a Python process actively running this upload
+          const sessionId = localStorage.getItem('uploadSessionId');
+          if (sessionId) {
+            try {
+              const pythonResponse = await fetch(`/api/upload-progress/${sessionId}`);
+              if (pythonResponse.ok) {
+                const pythonStatus = await pythonResponse.json();
+                if (pythonStatus && pythonStatus.active) {
+                  console.log('⛔ SERVER VALIDATION FAILURE: Python process still active for this session');
+                  return;
+                }
+              }
+            } catch (e) {
+              // If we can't check, err on the side of caution
+              console.log('⛔ SERVER VALIDATION FAILURE: Could not verify Python process status');
+              return;
+            }
+          }
+          
+          // Verify processed count (increased threshold to 98%)
+          const processedThreshold = Math.floor(uploadProgress.total * 0.98);
           if (uploadProgress.processed < processedThreshold) {
             console.log(`⛔ SERVER VALIDATION FAILURE: Processed count too low (${uploadProgress.processed}/${uploadProgress.total})`);
             return;

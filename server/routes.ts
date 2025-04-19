@@ -1081,24 +1081,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const clientSession = await uploadSessionManager.getSessionById(clientSessionId);
         if (clientSession && clientSession.status === 'processing') {
           // Valid client session found, verify it's not stale
-          const isRecent = new Date(Date.now() - 30 * 60 * 1000) < clientSession.updatedAt;
-          
-          if (isRecent) {
-            // Get progress data
-            const progress = uploadProgressMap.get(clientSessionId) || 
-              (typeof clientSession.progress === 'string' 
-                ? JSON.parse(clientSession.progress) 
-                : clientSession.progress);
+          if (clientSession.updatedAt) {
+            const isRecent = new Date(Date.now() - 30 * 60 * 1000) < clientSession.updatedAt;
+            
+            if (isRecent) {
+              // Get progress data
+              const progress = uploadProgressMap.get(clientSessionId) || 
+                (typeof clientSession.progress === 'string' 
+                  ? JSON.parse(clientSession.progress) 
+                  : clientSession.progress);
+                  
+              // Update session timestamp to keep it fresh
+              await uploadSessionManager.updateSession(clientSessionId, 'processing', progress);
                 
-            // Update session timestamp to keep it fresh
-            await uploadSessionManager.updateSession(clientSessionId, 'processing', progress);
-              
-            // Return the session
-            return res.json({ 
-              sessionId: clientSessionId,
-              status: 'processing',
-              progress: progress
-            });
+              // Return the session
+              return res.json({ 
+                sessionId: clientSessionId,
+                status: 'processing',
+                progress: progress
+              });
+            }
           }
         }
       }
@@ -1171,37 +1173,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/reset-upload-sessions', async (req: Request, res: Response) => {
     try {
       console.log("🚨 RESET request received - cleaning all upload sessions");
-      // Update all active sessions to error status instead of completed
-      // Using 'error' state triggers client-side cleanup better than 'completed'
-      await db.update(uploadSessions)
-        .set({ 
-          status: 'error',
-          progress: JSON.stringify({
-            processed: 0,
-            total: 0,
-            stage: "Error: Session manually reset by administrator",
-            batchNumber: 0,
-            totalBatches: 0,
-            batchProgress: 0,
-            currentSpeed: 0,
-            timeRemaining: 0,
-            error: "Session was manually reset",
-            timestamp: Date.now(),
-            processingStats: {
-              successCount: 0,
-              errorCount: 0,
-              lastBatchDuration: 0,
-              averageSpeed: 0
-            }
-          }),
-          updatedAt: new Date()
-        })
-        .where(eq(uploadSessions.status, 'active'));
       
-      // Then delete all upload sessions to ensure complete cleanup
-      await db.delete(uploadSessions);
+      // Get all active sessions first
+      const activeSessions = await db.select().from(uploadSessions)
+        .where(eq(uploadSessions.status, 'processing'));
       
-      // Cancel all running processes
+      // Mark each active session with error status using our session manager
+      for (const session of activeSessions) {
+        await uploadSessionManager.errorSession(
+          session.sessionId, 
+          "Session was manually reset by administrator"
+        );
+      }
+      
+      // Get all session IDs for complete deletion
+      const allSessions = await db.select().from(uploadSessions);
+      const sessionIds = allSessions.map(s => s.sessionId);
+      
+      // Delete each session using our session manager
+      for (const id of sessionIds) {
+        await uploadSessionManager.deleteSession(id);
+      }
+      
+      // Cancel all running Python processes
       pythonService.cancelAllProcesses();
       
       // Clear the upload progress map
@@ -1218,7 +1212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       return res.json({ 
         success: true, 
-        message: 'All upload sessions have been reset and cleared from database'
+        message: `All upload sessions (${sessionIds.length}) have been reset and cleared from database`
       });
     } catch (error) {
       console.error('Error resetting upload sessions:', error);
@@ -1234,73 +1228,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("🧹 Starting cleanup of error sessions...");
       
-      // First get all sessions
-      const allSessions = await db.select().from(uploadSessions);
+      // Use our session manager to clean up stale/error sessions
+      const clearedCount = await uploadSessionManager.cleanupSessions();
       
-      // Count how many were deleted
-      let clearedCount = 0;
-      
-      // Filter for error sessions or stuck sessions
-      for (const session of allSessions) {
-        let shouldClear = false;
-        
-        // Check if session status indicates error or canceled state
-        if (session.status === 'error' || session.status === 'canceled') {
-          shouldClear = true;
-        }
-        
-        // Check if progress contains error markers
-        if (session.progress) {
-          try {
-            const progress = typeof session.progress === 'string' 
-              ? JSON.parse(session.progress) 
-              : session.progress;
-              
-            if (progress.stage && 
-                (progress.stage.toLowerCase().includes('error') || 
-                 progress.stage.toLowerCase().includes('cancel') ||
-                 progress.stage.toLowerCase().includes('analysis complete'))) {
-              console.log(`🔍 Found session with stage "${progress.stage}" - marking for cleanup`);
-              shouldClear = true;
-            }
-            
-            // Check if explicitly has error field
-            if (progress.error) {
-              shouldClear = true;
-            }
-          } catch (e) {
-            // If we can't parse the progress, it's probably corrupted, so clear it
-            shouldClear = true;
-          }
-        }
-        
-        // Check if session is more than 2 hours old
-        const twoHoursAgo = new Date();
-        twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
-        
-        if (session.updatedAt && new Date(session.updatedAt) < twoHoursAgo) {
-          shouldClear = true;
-        }
-        
-        // Is there an active Python process for this session?
-        const hasActiveProcess = pythonService.isProcessRunning(session.sessionId);
-        
-        // If should clear and no active process, delete it
-        if (shouldClear && !hasActiveProcess) {
-          console.log(`🗑️ Clearing stale/error session: ${session.sessionId}`);
-          
-          try {
-            // Delete the session from the database
-            await db.delete(uploadSessions)
-              .where(eq(uploadSessions.sessionId, session.sessionId));
-              
-            // Also remove from the progress map if it exists
-            uploadProgressMap.delete(session.sessionId);
-              
-            clearedCount++;
-          } catch (deleteError) {
-            console.error(`Error deleting session ${session.sessionId}:`, deleteError);
-          }
+      // Also clean up any orphaned sessions from the progress map
+      // by checking if they exist in the database
+      const sessionIds = Array.from(uploadProgressMap.keys());
+      for (const sessionId of sessionIds) {
+        const session = await uploadSessionManager.getSessionById(sessionId);
+        if (!session) {
+          // Session doesn't exist in database, clean up from memory
+          uploadProgressMap.delete(sessionId);
+          console.log(`🧹 Cleaned orphaned progress data for session: ${sessionId}`);
         }
       }
       
