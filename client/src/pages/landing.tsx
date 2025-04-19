@@ -815,9 +815,8 @@ export default function LandingPage() {
               transition={{ delay: 0.2, duration: 0.6 }}
             >
               <h2 className="text-4xl md:text-5xl font-bold mb-6 relative">
-                Ready to Experience <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-100">
-                  PanicSense PH?
+                  Ready to start?
                 </span>
               </h2>
               
