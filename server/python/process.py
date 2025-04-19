@@ -1409,8 +1409,9 @@ class DisasterSentimentBackend:
 
                         # Use the proper identified text column
                         text = str(row.get(text_col, ""))
+                        # Don't skip empty texts, treat them as valid records
                         if not text.strip():
-                            continue
+                            text = "[No text content]"
 
                         # Get timestamp, with fallback to current time
                         timestamp = str(
