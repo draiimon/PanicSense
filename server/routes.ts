@@ -2210,9 +2210,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the latest usage stats directly from the tracker
       const stats = usageTracker.getUsageStats();
       
-      // Log the current usage
-      if (Math.random() < 0.1) { // Only log occasionally to reduce console spam
-        console.log(`Current usage: ${stats.used}/${stats.limit} rows (${stats.remaining} remaining)`);
+      // Enhanced logging - always log usage stats to ensure consistent tracking
+      console.log(`📊 USAGE STATS: ${stats.used}/${stats.limit} rows (${stats.remaining} remaining), resets at ${stats.resetAt}`);
+      
+      // Check for anomalies - if used count is 0 but we know we've processed data
+      const files = await storage.getAnalyzedFiles();
+      const totalRecordsInDb = files.reduce((total, file) => total + (file.recordCount || 0), 0);
+      
+      if (totalRecordsInDb > 0 && stats.used === 0) {
+        console.warn(`⚠️ USAGE TRACKING ANOMALY: Database shows ${totalRecordsInDb} processed records but usage counter is 0. This may indicate a tracking issue.`);
       }
       
       res.json(stats);
