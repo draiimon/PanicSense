@@ -46,196 +46,165 @@ def report_progress(processed: int, stage: str, total: int = None):
 class DisasterSentimentBackend:
 
     def __init__(self):
-        # Using the enhanced emotion classification from PanicSensePH guidelines
         self.sentiment_labels = [
             'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'
         ]
         
-        # Enhanced emotion indicators based on PanicSensePH guidelines
-        self.emotion_indicators = {
-            "Panic": {
-                "keywords": [
-                    "help", "tulungan", "tulong", "rescue", "makaalis", "makakapasok", "nakukulong", 
-                    "naiipit", "trapped", "emergency", "urgent", "evac", "evacuate", "save", "mayday", 
-                    "sos", "stranded", "nasa bubong", "nasa taas", "nasa bubungan", "nasa baha", 
-                    "nalulunod", "drowning", "inaanod", "mamamatay", "dying", "mababalaho", "gasping"
-                ],
-                "patterns": [
-                    r'[A-Z]{5,}',  # ALL CAPS (5+ chars)
-                    r'!{3,}',      # Multiple exclamation marks
-                    r'\?{3,}',     # Multiple question marks
-                    r'HELP',       # The word HELP in all caps
-                    r'RESCUE',     # The word RESCUE in all caps
-                    r'TULONG',     # The word TULONG in all caps
-                    r'TULUNGAN',   # The word TULUNGAN in all caps
-                    r'hel+p+',     # Extended help (heeeeelp)
-                    r'tulo+ng+',   # Extended tulong (tulooong)
-                    r'\.{3,}',     # Multiple periods (ellipsis) indicating distress
-                ],
-                "emojis": ["😱", "😭", "🆘", "💔"]
-            },
-            "Fear/Anxiety": {
-                "keywords": [
-                    "takot", "kinakabahan", "kabado", "nervous", "scared", "baka", 
-                    "what if", "paano", "worried", "natatakot", "fear", "afraid", 
-                    "frightened", "alarmed", "terrified", "parang", "feeling", "might",
-                    "may chance", "dread", "uneasy", "distress", "apprehensive", "tense",
-                    "hindi mapakali", "di mapakali", "restless", "hindi makatulog"
-                ],
-                "patterns": [
-                    r'\.{3,}',     # Ellipsis indicating uncertainty
-                    r'baka',       # Filipino word for "maybe/might" (anxiety indicator)
-                    r'paano kung', # "What if" in Filipino
-                    r'kinakabahan', # "Feeling nervous" in Filipino
-                ],
-                "emojis": ["😨", "😰", "😟", "😥", "😓"]
-            },
-            "Resilience": {
-                "keywords": [
-                    "kaya", "laban", "kapit", "tiwala", "hope", "strong", "strength", 
-                    "courage", "brave", "tatag", "matibay", "resilient", "faith", "pray", 
-                    "dasal", "magtulungan", "help each other", "bayanihan", "cooperation", 
-                    "cooperation", "united", "sama-sama", "together", "kaya natin", "we can",
-                    "malalagpasan", "makakayanan", "overcome", "malalampasan", "kakayanin"
-                ],
-                "patterns": [
-                    r'kaya[a-z]* natin',  # "We can do it" variations
-                    r'dasal', # Prayers
-                    r'kapit', # "Hold on" metaphor common in Filipino resilience
-                    r'malalampasan', # "Will overcome"
-                ],
-                "emojis": ["💪", "🙏", "🌈", "🕊️", "❤️", "🤲"]
-            },
-            "Neutral": {
-                "keywords": [
-                    "report", "update", "advisory", "notice", "bulletin", "information", 
-                    "status", "level", "measurement", "observed", "recorded", "announced", 
-                    "estimated", "located", "reported", "detected", "declared", "issued",
-                    "advisory", "earthquake information", "weather", "panahon", "lindol", 
-                    "bagyo", "forecast", "pagasa", "phivolcs", "official", "maaari", 
-                    "pwede", "evacuation center", "response team"
-                ],
-                "patterns": [
-                    r'weather advisory',
-                    r'earthquake information',
-                    r'[0-9]+\.[0-9]+ magnitude', # Earthquake magnitude reporting
-                    r'alert level [0-9]', # Volcano alert level
-                    r'storm signal [0-9]', # Storm signal   
-                ],
-                "emojis": ["📍", "📰", "📊", "📈", "📉", "🔄"]
-            },
-            "Disbelief": {
-                "keywords": [
-                    "talaga", "seryoso", "seriously", "grabe", "lol", "haha", "lmao", 
-                    "rotfl", "classic", "as usual", "nice one", "wow", "hay", "hay nako", 
-                    "nakakagalit", "nakakainis", "frustrating", "walang kwenta", "useless", 
-                    "wala nanaman", "walang silbi", "kalokohan", "mga corrupt", "kainis", 
-                    "sarcastic", "ironic", "waste", "typical", "again", "nanaman", "wew"
-                ],
-                "patterns": [
-                    r'(ha){2,}',  # Laugh pattern (haha, hahaha)
-                    r'lol',       # Common disbelief indicators in social media
-                    r'classic',   # Common sarcastic indicator
-                    r'nice one',  # Sarcastic praise
-                    r'wow',       # Often used sarcastically
-                    r'talaga\?',  # "Really?" in Filipino
-                    r'ay wow',    # Filipino sarcastic expression
-                ],
-                "emojis": ["🤯", "🙄", "😆", "😑", "🤦‍♀️", "🤦‍♂️", "🙃"]
-            }
-        }
-        
-        # Use the 83 hardcoded API keys with rotation to avoid rate limiting
-        self.api_keys = [
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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"
-        ]
-        
+        # For API calls in regular analysis
+        self.api_keys = []
         # For validation use only (1 key maximum)
-        self.groq_api_keys = [self.api_keys[0]]
+        self.groq_api_keys = []
         
-        logging.info(f"Using {len(self.api_keys)} hardcoded API keys with rotation for rate limit protection")
+        # First check for a dedicated validation key
+        validation_key = os.getenv("VALIDATION_API_KEY")
+        if validation_key:
+            # If we have a dedicated validation key, use it
+            self.groq_api_keys.append(validation_key)
+            logging.info(f"Using dedicated validation API key")
+
+        # Load API keys from environment (for regular analysis)
+        i = 1
+        while True:
+            key_name = f"API_KEY_{i}"
+            api_key = os.getenv(key_name)
+            if api_key:
+                self.api_keys.append(api_key)
+                # Only add to validation keys if we don't already have a dedicated one
+                if not self.groq_api_keys and i == 1:
+                    self.groq_api_keys.append(api_key)
+                i += 1
+            else:
+                break
+
+        # Handle API key legacy format if present
+        if not self.api_keys and os.getenv("API_KEY"):
+            api_key = os.getenv("API_KEY")
+            self.api_keys.append(api_key)
+            # Only add to validation keys if we don't already have one
+            if not self.groq_api_keys:
+                self.groq_api_keys.append(api_key)
+
+        # Default keys if none provided - IMPORTANT: Limit validation to ONE key
+        if not self.api_keys:
+            # Load API keys from attached file instead of hardcoding
+            api_key_list = []
+            # Get keys from environment variables first
+            for i in range(1, 30):  # Try up to 30 keys
+                env_key = os.getenv(f"GROQ_API_KEY_{i}")
+                if env_key:
+                    api_key_list.append(env_key)
+            
+            # If no environment keys, use the keys provided by the user
+            if not api_key_list:
+                # In production, we will use the GROQ_API_KEY_X variables from environment
+                # If no keys were found in the environment, check for legacy API_KEY variables
+                if not api_key_list:
+                    for i in range(1, 30):  # Try up to 30 keys
+                        env_key = os.getenv(f"API_KEY_{i}")
+                        if env_key:
+                            api_key_list.append(env_key)
+                
+                # Final fallback - check for a single API_KEY environment variable
+                if not api_key_list and os.getenv("API_KEY"):
+                    api_key_list.append(os.getenv("API_KEY"))
+                
+                # If no API keys found in environment, use the provided list of API keys
+                if not api_key_list:
+                    # Load the 83 API keys for rotation to avoid rate limiting
+                    api_key_list = [
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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"
+                    ]
+                
+                # We'll only use one key for validation to avoid rate limiting
+                logging.info(f"Using {len(api_key_list)} API keys with rotation for rate limit protection")
+            
+            self.api_keys = api_key_list
+            
+            # Only use one key for validation - this is critical to avoid rate limiting
+            if not self.groq_api_keys:
+                self.groq_api_keys = [self.api_keys[0]]
         
         # Log how many keys we're using
         logging.info(f"Loaded {len(self.api_keys)} API keys for rotation")
@@ -429,8 +398,6 @@ class DisasterSentimentBackend:
 
     def extract_location(self, text):
         """Enhanced location extraction with typo tolerance and fuzzy matching for Philippine locations"""
-        # Enhanced location detection with more provinces, cities, and common landmarks
-        # This improves detection accuracy for both CSV and real-time analysis
         if not text:
             return "UNKNOWN"
             
@@ -771,23 +738,6 @@ class DisasterSentimentBackend:
         
         All sentiment analysis MUST go through this function to ensure consistency.
         """
-        
-        # Enhanced sentiment analysis using the PanicSensePH emotion classification guidelines
-        # First try to detect sentiment using pattern matching and rule-based approach
-        sentiment_scores = self._analyze_emotion_patterns(text)
-        
-        # If we have a clear winner from pattern analysis, use it (confidence > 0.7)
-        max_score = max(sentiment_scores.values()) if sentiment_scores else 0
-        if max_score > 0.7:
-            # Get the emotion with the highest score
-            sentiment = max(sentiment_scores, key=sentiment_scores.get)
-            confidence = max_score
-            explanation = f"Strong {sentiment} indicators detected in text based on linguistic patterns and emotional markers."
-            return {
-                "sentiment": sentiment,
-                "confidence": confidence,
-                "explanation": explanation
-            }
         if not text or len(text.strip()) == 0:
             return {
                 "sentiment": "Neutral",
@@ -867,85 +817,6 @@ class DisasterSentimentBackend:
             result["language"] = language
 
         return result
-
-    def _analyze_emotion_patterns(self, text):
-        """
-        Analyze text for emotional patterns using the enhanced PanicSensePH emotion classification guidelines.
-        
-        This is a rule-based approach that uses the emotion_indicators to detect patterns in text.
-        Returns a dictionary of emotion scores {emotion: score} where score is between 0 and 1.
-        """
-        if not text:
-            return {"Neutral": 0.9}
-            
-        text_lower = text.lower()
-        scores = {emotion: 0.0 for emotion in self.sentiment_labels}
-        
-        # Check for ALL CAPS (strong emotion indicator)
-        all_caps_ratio = sum(1 for c in text if c.isupper()) / len(text) if len(text) > 0 else 0
-        if all_caps_ratio > 0.5 and len(text) > 5:  # More than 50% caps and text longer than 5 chars
-            # All caps text strongly indicates Panic or Fear/Anxiety
-            scores["Panic"] += 0.3
-            scores["Fear/Anxiety"] += 0.2
-        
-        # Check for exclamation marks (strong emotion indicator)
-        exclamation_count = text.count("!")
-        if exclamation_count >= 3:
-            scores["Panic"] += min(0.3, exclamation_count * 0.05)  # Cap at 0.3
-        elif exclamation_count > 0:
-            scores["Fear/Anxiety"] += min(0.2, exclamation_count * 0.05)  # Cap at 0.2
-        
-        # Check for question marks (uncertainty indicator)
-        question_count = text.count("?")
-        if question_count >= 3:
-            scores["Fear/Anxiety"] += min(0.25, question_count * 0.05)  # Cap at 0.25
-            scores["Disbelief"] += min(0.2, question_count * 0.04)  # Cap at 0.2
-        
-        # Check for emoji indicators
-        for emotion, data in self.emotion_indicators.items():
-            for emoji in data.get("emojis", []):
-                if emoji in text:
-                    scores[emotion] += 0.25  # Strong indicator
-        
-        # Check for keywords
-        for emotion, data in self.emotion_indicators.items():
-            for keyword in data.get("keywords", []):
-                # Check for whole word match
-                if re.search(r'\b' + re.escape(keyword) + r'\b', text_lower):
-                    scores[emotion] += 0.2  # Moderate indicator
-                # Check for partial match for longer keywords (>5 chars)
-                elif len(keyword) > 5 and keyword in text_lower:
-                    scores[emotion] += 0.1  # Weak indicator
-        
-        # Check for regex patterns
-        for emotion, data in self.emotion_indicators.items():
-            for pattern in data.get("patterns", []):
-                if re.search(pattern, text):
-                    scores[emotion] += 0.25  # Strong indicator
-        
-        # Special case for "tulong" vs "tumulong" 
-        if re.search(r'\btulong\b|\btulungan\b', text_lower) and not re.search(r'\btumulong\b|\btulungan natin\b', text_lower):
-            scores["Panic"] += 0.3  # "tulong" - asking for help (panic)
-        if re.search(r'\btumulong\b|\btulungan natin\b|\bmagtulong\b', text_lower):
-            scores["Resilience"] += 0.3  # "tumulong" - offering help (resilience)
-        
-        # Neutral detection overrides - factual statements
-        if len(re.findall(r'(\d+\.\d+)|(\d+ na)|(\d+ casualt)|(\d+ victim)|(\d+ dead)', text_lower)) > 0:
-            scores["Neutral"] += 0.4  # Numerical reporting is usually neutral
-        
-        if any(term in text_lower for term in ['update', 'advisory', 'bulletin', 'announcement', 'report']):
-            scores["Neutral"] += 0.3  # Official communications are usually neutral
-        
-        # Normalize scores to sum to 1.0
-        total = sum(scores.values())
-        if total > 0:
-            for emotion in scores:
-                scores[emotion] /= total
-        else:
-            # If no patterns matched, default to Neutral
-            scores["Neutral"] = 1.0
-        
-        return scores
 
     def get_api_sentiment_analysis(self, text, language):
         """Get sentiment analysis from API using proper key rotation across all available keys"""
@@ -1266,43 +1137,6 @@ class DisasterSentimentBackend:
 
     def _rule_based_sentiment_analysis(self, text, language):
         """Fallback rule-based sentiment analysis"""
-        # If we have the enhanced pattern analyzer, use it for rule-based analysis
-        if hasattr(self, 'emotion_indicators'):
-            logging.info("Using enhanced emotion pattern analysis for rule-based fallback")
-            # Get sentiment scores from the pattern analyzer
-            sentiment_scores = self._analyze_emotion_patterns(text)
-            
-            # Get the highest scoring sentiment
-            max_score = max(sentiment_scores.values()) if sentiment_scores else 0
-            if max_score > 0:
-                sentiment = max(sentiment_scores, key=sentiment_scores.get)
-                confidence = max_score
-                
-                # Enhanced location and disaster type detection
-                disaster_type = self.extract_disaster_type(text)
-                location = self.extract_location(text)
-                
-                # Generate a helpful explanation
-                explanation = f"Based on linguistic patterns, tone, and emotional markers, this message appears to express {sentiment.lower()}."
-                if sentiment == "Panic":
-                    explanation = "Urgent tone with strong indicators of distress or immediate help needed."
-                elif sentiment == "Fear/Anxiety": 
-                    explanation = "Shows concern, worry, or apprehension about the situation."
-                elif sentiment == "Resilience":
-                    explanation = "Demonstrates strength, hope, or community support in the face of adversity."
-                elif sentiment == "Disbelief":
-                    explanation = "Expresses surprise, skepticism, or sarcasm about the situation."
-                elif sentiment == "Neutral":
-                    explanation = "Factual statement without emotional indicators."
-                    
-                return {
-                    "sentiment": sentiment,
-                    "confidence": confidence,
-                    "explanation": explanation,
-                    "disasterType": disaster_type,
-                    "location": location,
-                    "language": language
-                }
         text_lower = text.lower()
         
         # VERY IMPORTANT: The algorithm follows EXACTLY what's in the text 
