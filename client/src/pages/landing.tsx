@@ -275,6 +275,28 @@ const FloatingElement = ({
 // Feature carousel component
 // Feature Carousel has been removed
 
+// Live Time Counter for video effect
+const LiveTimeCounter = () => {
+  const [time, setTime] = useState("00:00:00");
+  
+  useEffect(() => {
+    // Update time every second
+    const interval = setInterval(() => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      setTime(`${hours}:${minutes}:${seconds}`);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  return (
+    <span className="video-time-counter">{time}</span>
+  );
+};
+
 // Interactive Tutorial Component with better animations
 const Tutorial = ({ onClose }: { onClose: () => void }) => {
   const [currentStep, setCurrentStep] = useState(0);
