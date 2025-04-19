@@ -1363,7 +1363,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                     # Special override for factual/descriptive content that got misclassified
                     if looks_descriptive and not has_emotion and sentiment == "Fear/Anxiety":
                         corrected_sentiment = "Neutral"
-                        explanation += " [Automatically corrected to Neutral as this appears to be a descriptive statement without explicit emotional markers]"
+                        # Just log the correction without adding to the visible explanation
                         logging.info(f"Corrected sentiment from Fear/Anxiety to Neutral for descriptive content: {text}")
                     
                     # Update result with corrected values
@@ -2409,7 +2409,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                         # Special override for factual/descriptive content that got misclassified
                         if looks_descriptive and not has_emotion and sentiment == "Fear/Anxiety":
                             corrected_sentiment = "Neutral"
-                            explanation += " [CSV auto-corrected: This appears to be a descriptive statement without explicit emotional markers]"
+                            # Just log the correction without adding explanation text
                             logging.info(f"CSV batch: Corrected sentiment from Fear/Anxiety to Neutral: {text}")
                         
                         processed_results.append({
