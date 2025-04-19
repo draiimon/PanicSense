@@ -538,9 +538,7 @@ export default function LandingPage() {
                       <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-30 -translate-x-full animate-shimmer"/>
                       <span className="relative flex items-center">
                         Get Started Now
-                        <span className="ml-3 rounded-full bg-white/20 p-1.5">
-                          <ArrowRight className="h-5 w-5" />
-                        </span>
+                        <ArrowRight className="ml-3 h-5 w-5" />
                       </span>
                     </Button>
                   </Link>
