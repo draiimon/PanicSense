@@ -257,62 +257,68 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ onClose, onComplet
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.2 }}
-        className="fixed z-[1001] w-[85vw] sm:w-80 max-w-[85vw] sm:max-w-md bg-white rounded-lg shadow-xl"
+        className="fixed z-[1001] w-[92vw] sm:w-80 max-w-[92vw] sm:max-w-md bg-white rounded-lg shadow-xl"
         style={{
           top: tooltipPosition.top,
           left: tooltipPosition.left,
+          transform: window.innerWidth < 640 ? 'translate(-50%, 0)' : 'none', // Center on mobile
+          margin: '0 auto',
         }}
       >
-        {/* Tooltip header */}
-        <div className="flex items-center justify-between bg-blue-600 text-white p-4 rounded-t-lg">
-          <div className="flex items-center gap-2">
-            {currentTutorialStep.icon}
-            <h3 className="font-bold text-base sm:text-lg">{currentTutorialStep.title}</h3>
+        {/* Tooltip header - Improved for mobile */}
+        <div className="flex items-center justify-between bg-blue-600 text-white p-2 sm:p-4 rounded-t-lg">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex-shrink-0">
+              {currentTutorialStep.icon}
+            </div>
+            <h3 className="font-bold text-sm sm:text-lg truncate max-w-[180px] sm:max-w-[230px]">{currentTutorialStep.title}</h3>
           </div>
           <button 
             onClick={onClose}
-            className="text-white hover:text-white transition-colors"
+            className="text-white hover:text-white transition-colors p-1"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
         </div>
         
-        {/* Tooltip body */}
-        <div className="p-4">
-          <p className="text-gray-900 dark:text-gray-100 text-base sm:text-base mb-4 font-medium leading-relaxed">{currentTutorialStep.description}</p>
+        {/* Tooltip body - Better mobile spacing */}
+        <div className="p-3 sm:p-4">
+          <p className="text-gray-900 dark:text-gray-100 text-sm sm:text-base mb-3 sm:mb-4 font-medium leading-relaxed">{currentTutorialStep.description}</p>
           
           {/* Progress indicators */}
-          <div className="flex justify-center gap-1 mb-4">
+          <div className="flex justify-center gap-1 mb-3 sm:mb-4">
             {tutorialSteps.map((_, index) => (
               <div 
                 key={index}
-                className={`h-1.5 rounded-full ${
-                  index === currentStep ? 'w-4 bg-blue-600' : 'w-2 bg-gray-300'
+                className={`h-1 sm:h-1.5 rounded-full ${
+                  index === currentStep ? 'w-3 sm:w-4 bg-blue-600' : 'w-1.5 sm:w-2 bg-gray-300'
                 }`}
               />
             ))}
           </div>
           
-          {/* Navigation buttons */}
+          {/* Navigation buttons - Enhanced for mobile */}
           <div className="flex justify-between">
             <Button
               variant="outline"
               onClick={goToPrevStep}
               disabled={currentStep === 0}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-2 text-sm sm:text-base"
             >
-              <ChevronLeft className="h-4 w-4" />
-              Back
+              <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Back</span>
+              <span className="inline sm:hidden">Prev</span>
             </Button>
             
             <Button
               onClick={goToNextStep}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-2 text-sm sm:text-base"
             >
               {currentStep < tutorialSteps.length - 1 ? (
                 <>
-                  Next
-                  <ChevronRight className="h-4 w-4" />
+                  <span className="hidden sm:inline">Next</span>
+                  <span className="inline sm:hidden">Next</span>
+                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
                 </>
               ) : (
                 'Finish'
