@@ -775,25 +775,32 @@ export function UploadProgressModal() {
   
   // Calculate time remaining in human-readable format with improved batch-aware logic
   const formatTimeRemaining = (seconds: number): string => {
-    // Initialize a default time value - NEVER SHOW "Calculating..." 
-    // Hindi na lalabas ang "Calculating..." text
-    let calculatedTimeRemaining = 60; // Default 1 minute for initialization
+    // Initialize with a more realistic estimation based on 3 seconds per record
+    // Use a more realistic default based on 3 seconds per record
+    const recordsRemaining = total - processedCount;
+    // Default to 3 seconds per record as mentioned by the user
+    const timePerRecord = 3; 
+    
+    // Calculate time more accurately 
+    let calculatedTimeRemaining = recordsRemaining * timePerRecord;
     
     // If we're in a batch pause state, show cooldown directly
     if (isPaused && cooldownTime !== null) {
       return `${cooldownTime} sec cooldown`;
     }
     
-    // DYNAMIC CALCULATION with MUCH SLOWER transitions
-    // Add a very small random value (-1% to +2% variance) to slow down changes
+    // Add a very small random value for natural transitions
     // Mas mabagal na transition para sa estimated time
-    const randomVariance = Math.random() * 0.03 - 0.01; // -1% to +2% very small changes only
+    const randomVariance = Math.random() * 0.02 - 0.01; // -1% to +1% very small changes only
     
     if (currentSpeed > 0 && total > processedCount) {
       try {
-        // For normal processing with speed, calculate based on current speed and records left
-        const recordsRemaining = total - processedCount;
-        const processingTime = recordsRemaining / currentSpeed;
+        // For normal processing with speed, we'll still use our 3-second-per-record model
+        // but we'll consider the actual observed speed as a minor factor
+        const speedBasedTime = recordsRemaining / currentSpeed;
+        
+        // Use a weighted average: 80% based on our 3-second model, 20% on observed speed
+        let baseTime = (calculatedTimeRemaining * 0.8) + (speedBasedTime * 0.2);
         
         // Add batch cooldown estimation based on remaining batches
         let cooldownEstimate = 0;
@@ -804,50 +811,41 @@ export function UploadProgressModal() {
           }
         }
         
-        // Calculate total time with realistic variance
-        let baseTime = processingTime + cooldownEstimate;
+        // Calculate total time with our model plus cooldown
+        baseTime = baseTime + cooldownEstimate;
         
         // Add small random variance to make it look more natural
-        // This will make time fluctuate slightly which looks more realistic
         calculatedTimeRemaining = baseTime * (1 + randomVariance);
       } catch (e) {
-        // If calculation error, use server time directly 
-        calculatedTimeRemaining = seconds > 0 ? seconds : 60;
+        // If calculation error, fall back to our 3-second model
+        calculatedTimeRemaining = (recordsRemaining * timePerRecord) * (1 + randomVariance);
       }
     } else if (seconds > 0) {
-      // If server provides time but no speed calculation, use server time with variance
-      calculatedTimeRemaining = seconds * (1 + randomVariance * 0.3);
-    } else {
-      // Fallback: calculate based on progress percentage with randomness
-      const progressPercent = Math.max(0.01, processedCount / total); // Avoid division by zero
-      calculatedTimeRemaining = (((1 - progressPercent) * 180) + 30) * (1 + randomVariance);
+      // If server provides time, use it as a factor but still prioritize our model
+      calculatedTimeRemaining = (calculatedTimeRemaining * 0.7) + (seconds * 0.3);
     }
     
-    // Use either calculated time or server time, whichever is available
-    // Add slight random variation to make it look natural
-    const actualSeconds = seconds > 0 ? 
-      Math.min(calculatedTimeRemaining, seconds * (1 + randomVariance * 0.2)) : 
-      calculatedTimeRemaining;
+    // Ensure we have a reasonable positive value
+    const actualSeconds = Math.max(1, calculatedTimeRemaining);
     
-    // Less than a minute
-    if (actualSeconds < 60) return `${Math.ceil(actualSeconds)} sec`;
+    // Less than a minute - show seconds
+    if (actualSeconds < 60) return `${Math.ceil(actualSeconds)} seconds`;
     
     // Calculate days, hours, minutes, seconds
     const days = Math.floor(actualSeconds / 86400); // 86400 seconds in a day
     const hours = Math.floor((actualSeconds % 86400) / 3600); // 3600 seconds in an hour
     const minutes = Math.floor((actualSeconds % 3600) / 60);
-    const remainingSeconds = Math.ceil(actualSeconds % 60);
     
-    // Format based on duration
+    // Format based on duration with PRIORITY for showing minutes and hours as requested
     if (days > 0) {
       // If we have days, show days and hours
-      return `${days}d ${hours}h`;
+      return `${days} ${days === 1 ? 'day' : 'days'} ${hours} ${hours === 1 ? 'hour' : 'hours'}`;
     } else if (hours > 0) {
       // If we have hours, show hours and minutes
-      return `${hours}h ${minutes}m`;
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
     } else {
-      // Otherwise just show minutes and seconds
-      return `${minutes}m ${remainingSeconds}s`;
+      // Just minutes (don't show seconds as requested - focus on minutes for cleaner display)
+      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
     }
   };
 
@@ -870,12 +868,17 @@ export function UploadProgressModal() {
         transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
         className="relative bg-white dark:bg-gray-900 rounded-xl overflow-hidden w-full max-w-md mx-4 shadow-xl border border-gray-200 dark:border-gray-800"
       >
-        {/* Header */}
-        <div className="bg-blue-600 p-4 text-white">
-          {/* Simple header content */}
+        {/* Enhanced Header with Gradient */}
+        <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 p-4 md:p-5 text-white relative overflow-hidden">
+          {/* Decorative gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50"></div>
           
-          {/* Title */}
-          <h3 className="text-xl font-bold text-center mb-4 relative">
+          {/* Decorative circles */}
+          <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-white/10"></div>
+          <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-white/5"></div>
+          
+          {/* Title with enhanced styling */}
+          <h3 className="text-xl md:text-2xl font-bold text-center mb-4 relative text-white drop-shadow-sm">
             {isComplete ? 'Analysis Complete!' : hasError ? 'Upload Error' : `Processing Records`}
           </h3>
           
