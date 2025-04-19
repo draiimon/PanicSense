@@ -1275,7 +1275,7 @@ export function UploadProgressModal() {
                 <Button 
                   variant="destructive"
                   size="sm"
-                  onClick={() => handleCancel(true)} 
+                  onClick={() => handleCancel(false)} 
                   className="w-full sm:w-auto bg-gradient-to-r from-red-500 via-pink-600 to-purple-600 hover:from-red-600 hover:via-pink-700 hover:to-purple-700 text-white border-none rounded-full px-5 py-2 hover:scale-105 transition-transform duration-200 shadow-md"
                 >
                   <span className="flex items-center justify-center gap-2">
