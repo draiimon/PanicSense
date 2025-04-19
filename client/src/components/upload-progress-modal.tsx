@@ -110,14 +110,13 @@ export function UploadProgressModal() {
   
   // Set up broadcast listener using the new synchronization manager
   useEffect(() => {
-    // Before setting up listeners, check if another tab already marked completion
-    if (isUploadCompleted() && isUploading) {
-      console.log('🔄 Another tab already completed the upload, closing this modal');
-      // Use a short delay to allow UI to update first
-      setTimeout(() => {
-        cleanupAndClose();
-      }, 500);
-    }
+    // Disable auto-detection of terminal states in progress messages
+    const isCompletedState = (status: string) => {
+      if (!status) return false;
+      // Only consider Analysis complete as a terminal state
+      // Don't consider "Completed record X/Y" as terminal
+      return status.toLowerCase() === 'analysis complete';
+    };
     
     // Create a listener for broadcast messages using our synchronization manager
     const removeListener = createBroadcastListener({
