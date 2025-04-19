@@ -5,7 +5,6 @@ import { ChevronRight, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Dat
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import useEmblaCarousel from 'embla-carousel-react';
 
 // Create a twinkling stars effect
 const TwinklingStars = () => {
@@ -389,11 +388,11 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                     transition={{ delay: 0.4 }}
                   >
                     <Button 
-                      variant="outline" 
-                      className="border-white/20 text-white hover:bg-white/10 hover:scale-105 transform transition-all"
+                      className="bg-gradient-to-r from-white/10 to-white/5 text-white border-0 hover:from-white/20 hover:to-white/10 hover:scale-105 transform transition-all rounded-full flex items-center px-5"
                       onClick={prevStep}
                     >
-                      Previous Step
+                      <ChevronLeft className="mr-1.5 h-4 w-4" />
+                      <span>Previous</span>
                     </Button>
                   </motion.div>
                 )}
@@ -537,7 +536,7 @@ export default function LandingPage() {
           >
             <Button 
               onClick={() => setShowTutorial(true)}
-              className="relative overflow-hidden bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all rounded-xl px-5 py-2.5"
+              className="relative overflow-hidden bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all rounded-full px-5 py-2.5"
             >
               <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-30 -translate-x-full animate-shimmer"/>
               <span className="relative flex items-center">
@@ -647,7 +646,7 @@ export default function LandingPage() {
                   <Link href="/dashboard">
                     <Button 
                       size="lg"
-                      className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-12 py-8 text-xl font-bold tracking-wide rounded-xl"
+                      className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-12 py-8 text-xl font-bold tracking-wide rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
                     >
                       <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-30 -translate-x-full animate-shimmer"/>
                       <span className="relative flex items-center">
@@ -728,8 +727,7 @@ export default function LandingPage() {
         </div>
       </section>
       
-      {/* Feature Carousel Section */}
-      <FeatureCarousel />
+      {/* Removed carousel as requested */}
       
       {/* Features Section with Animated Cards */}
       <section className="py-24 bg-white dark:bg-gray-900 relative overflow-hidden">
