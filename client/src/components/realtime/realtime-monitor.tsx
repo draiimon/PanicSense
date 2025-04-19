@@ -514,29 +514,49 @@ export function RealtimeMonitor() {
                           </div>
                         </div>
 
+                        {/* Current Location & Disaster Type Section - Always show */}
+                        <div className="mt-2 flex items-center gap-2 bg-slate-50 p-2 rounded-md border border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-medium text-slate-700">Current Location:</span>
+                            {item.location && item.location !== "UNKNOWN" ? (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                {item.location}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200">
+                                Not detected
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <div className="h-4 w-px bg-slate-200 mx-1"></div>
+                          
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-medium text-slate-700">Current Disaster:</span>
+                            {item.disasterType && item.disasterType !== "Not Specified" && item.disasterType !== "UNKNOWN" ? (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                {item.disasterType}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200">
+                                Not detected
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
                         <div className="mt-2 flex justify-between items-center text-xs text-slate-500">
                           <div className="flex items-center gap-2">
                             <span>Confidence: {(item.confidence * 100).toFixed(1)}%</span>
                             <SentimentFeedback 
                               originalText={item.text}
                               originalSentiment={item.sentiment}
+                              originalLocation={item.location}
+                              originalDisasterType={item.disasterType}
                             />
                           </div>
                           <span>{item.timestamp.toLocaleTimeString()}</span>
                         </div>
-
-                        {item.disasterType && item.disasterType !== "Not Specified" && item.disasterType !== "UNKNOWN" && (
-                          <div className="mt-2 flex items-center gap-2">
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                              {item.disasterType}
-                            </Badge>
-                            {item.location && item.location !== "UNKNOWN" && (
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                {item.location}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
 
                         {/* Show explanation in quiz-like format if it exists and is meaningful */}
                         {item.explanation && !item.explanation.includes("Fallback") && (
