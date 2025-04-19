@@ -95,13 +95,20 @@ let currentUploadController: AbortController | null = null;
 let currentEventSource: EventSource | null = null;
 let currentUploadSessionId: string | null = null;
 
-// Cancel the current upload with force option
+// Cancel the current upload with optional gentle/force modes
 export async function cancelUpload(forceCancel = false): Promise<{ success: boolean; message: string; forceCloseCalled?: boolean }> {
   const sessionId = currentUploadSessionId || localStorage.getItem('uploadSessionId');
   
-  // If force cancel is true, we'll clean up the client side even if server cancellation fails
+  if (!sessionId) {
+    console.log('No session ID found - nothing to cancel');
+    return { success: false, message: 'No active upload to cancel' };
+  }
+  
+  // IMPROVED: Add gentler cancellation by default
   if (forceCancel) {
     console.log('🔥 FORCE CANCEL MODE ACTIVATED');
+    
+    // Force cancel immediately cleans up client side regardless of server response
     
     // Close the event source
     if (currentEventSource) {
@@ -140,41 +147,57 @@ export async function cancelUpload(forceCancel = false): Promise<{ success: bool
     } catch (e) {
       console.error('Error broadcasting force cancel:', e);
     }
+  } else {
+    // NEW GENTLE APPROACH: For gentle cancel, log but don't immediately close everything
+    console.log('🌸 GENTLE CANCEL MODE - Letting server handle the cancellation gracefully');
     
-    // Even if we don't have a session ID, we'll still return success
-    if (!sessionId) {
-      return { 
-        success: true, 
-        message: 'Force canceled. Client state cleared.',
-        forceCloseCalled: true
-      };
-    }
+    // Don't immediately terminate connections - let the server complete current batch
+    // This provides a smoother experience and animates the "Upload Canceled" state
   }
   
   if (sessionId) {
     try {
-      // Close the event source
-      if (currentEventSource) {
-        currentEventSource.close();
-        currentEventSource = null;
+      // For gentle cancel, we DON'T force close connections immediately
+      // Let the server finish any in-progress work and animate the cancellation
+      if (forceCancel) {
+        // Only force close these if in force cancel mode 
+        // (already done earlier in the force block, but double check here)
+        if (currentEventSource) {
+          currentEventSource.close();
+          currentEventSource = null;
+        }
+        
+        if (currentUploadController) {
+          currentUploadController.abort();
+          currentUploadController = null;
+        }
       }
       
-      // Abort the fetch request
-      if (currentUploadController) {
-        currentUploadController.abort();
-        currentUploadController = null;
-      }
-      
-      // Call the server to cancel processing
+      // Always call the server to cancel - the server knows how to handle both force and gentle cancels
       const response = await apiRequest('POST', `/api/cancel-upload/${sessionId}`);
       const result = await response.json();
       
-      // Reset the current session ID
-      currentUploadSessionId = null;
+      // For gentle cancel, we leave session cleanup for after the success message
+      // This allows the UI to show the "Upload Canceled" message and animate first
+      
+      // In gentle mode, we actually want to keep things active until we confirm server completed
+      if (forceCancel) {
+        // Reset the current session ID immediately in force mode
+        currentUploadSessionId = null;
+      } else {
+        // For gentle mode, we delay cleanup to allow the animation
+        setTimeout(() => {
+          // Now we can clean up this reference
+          currentUploadSessionId = null;
+        }, 1500);
+      }
       
       // Clear localStorage (but only if not force cancel mode, which already did this)
       if (!forceCancel) {
-        localStorage.removeItem('uploadSessionId');
+        // Don't immediately remove these in gentle mode to allow UI transitions
+        setTimeout(() => {
+          localStorage.removeItem('uploadSessionId');
+        }, 1500);
       }
       
       // If server cancellation failed but we're in force mode, still return success
