@@ -512,11 +512,15 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                       // Analyze Sentiment effects
                       <>
                         <div className="absolute bottom-4 left-4 bg-black/40 text-white text-xs py-1 px-2 rounded z-20">
-                          <span className="font-mono">SENTIMENT: POSITIVE</span>
+                          <span className="font-mono">ALERT: PANIC DETECTED</span>
                         </div>
                         <div className="data-point-pulse sentiment-point-1"></div>
                         <div className="data-point-pulse sentiment-point-2"></div>
                         <div className="data-point-pulse sentiment-point-3"></div>
+                        <div className="sentiment-chart-container">
+                          <div className="sentiment-chart-bar positive" style={{height: '70%'}}></div>
+                          <div className="sentiment-chart-bar negative" style={{height: '30%'}}></div>
+                        </div>
                       </>
                     )}
                     
@@ -529,6 +533,9 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                         <div className="data-point-pulse geo-point-1"></div>
                         <div className="data-point-pulse geo-point-2"></div>
                         <div className="data-point-pulse geo-point-3"></div>
+                        <div className="geo-coordinate-grid"></div>
+                        <div className="geo-target-marker"></div>
+                        <div className="geo-radar-sweep"></div>
                       </>
                     )}
                     
@@ -539,6 +546,11 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                         <div className="data-point-pulse data-point-2"></div>
                         <div className="data-point-pulse data-point-3"></div>
                         <div className="data-point-pulse data-point-4"></div>
+                        <div className="realtime-alert-banner">
+                          <span className="realtime-alert-text">LIVE MONITORING</span>
+                        </div>
+                        <div className="realtime-data-stream"></div>
+                        <div className="realtime-ping-effect"></div>
                       </>
                     )}
                     
@@ -555,13 +567,16 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                   </div>
                 </div>
                 
-                <h3 className="text-xl font-bold text-center mb-2 text-gray-900 dark:text-white slide-up-animation bg-white/80 backdrop-blur-sm p-1 rounded-md" style={{animationDelay: '0.1s'}}>
-                  {steps[currentStep].title}
-                </h3>
-                
-                <p className="text-center text-gray-700 dark:text-gray-300 text-sm slide-up-animation bg-white/80 backdrop-blur-sm p-2 rounded-md" style={{animationDelay: '0.2s'}}>
-                  {steps[currentStep].description}
-                </p>
+                <motion.div 
+                  className="absolute -bottom-4 -right-4 z-30"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-3 py-1">
+                    Step {currentStep + 1}/{steps.length}
+                  </Badge>
+                </motion.div>
                 
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
