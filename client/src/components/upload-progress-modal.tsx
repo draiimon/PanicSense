@@ -774,9 +774,6 @@ export function UploadProgressModal() {
   const isCancelled = stageLower.includes('cancel');
   
   // Calculate time remaining in human-readable format with improved batch-aware logic
-  // Cache for previous time value to ensure consistent behavior
-  const prevTimeRef = useRef<number>(0);
-  
   const formatTimeRemaining = (seconds: number): string => {
     // Initialize a default time value - NEVER SHOW "Calculating..." 
     // Hindi na lalabas ang "Calculating..." text
@@ -787,9 +784,10 @@ export function UploadProgressModal() {
       return `${cooldownTime} sec cooldown`;
     }
     
-    // DYNAMIC CALCULATION - randomly varies time to be more realistic
-    // Add a small random value (-5% to +10% variance)
-    const randomVariance = Math.random() * 0.15 - 0.05; // -5% to +10%
+    // DYNAMIC CALCULATION with MUCH SLOWER transitions
+    // Add a very small random value (-1% to +2% variance) to slow down changes
+    // Mas mabagal na transition para sa estimated time
+    const randomVariance = Math.random() * 0.03 - 0.01; // -1% to +2% very small changes only
     
     if (currentSpeed > 0 && total > processedCount) {
       try {
@@ -811,34 +809,19 @@ export function UploadProgressModal() {
         
         // Add small random variance to make it look more natural
         // This will make time fluctuate slightly which looks more realistic
-        const adjustedTime = baseTime * (1 + randomVariance);
-        
-        // If the variance would make time increase too much, limit it
-        if (prevTimeRef.current > 0 && adjustedTime > prevTimeRef.current + 10) {
-          // Only allow reasonable increases (max 10 seconds)
-          calculatedTimeRemaining = prevTimeRef.current + Math.random() * 5;
-        } else {
-          calculatedTimeRemaining = adjustedTime;
-        }
+        calculatedTimeRemaining = baseTime * (1 + randomVariance);
       } catch (e) {
-        // If calculation error, use server time or previous value with slight variation
-        calculatedTimeRemaining = seconds > 0 ? seconds : (prevTimeRef.current > 0 ? 
-          prevTimeRef.current * (1 + randomVariance * 0.5) : 60);
+        // If calculation error, use server time directly 
+        calculatedTimeRemaining = seconds > 0 ? seconds : 60;
       }
     } else if (seconds > 0) {
       // If server provides time but no speed calculation, use server time with variance
       calculatedTimeRemaining = seconds * (1 + randomVariance * 0.3);
-    } else if (prevTimeRef.current > 0) {
-      // If we have a previous time value, use it with slight decrease
-      calculatedTimeRemaining = prevTimeRef.current * (0.95 + randomVariance * 0.3);
     } else {
       // Fallback: calculate based on progress percentage with randomness
       const progressPercent = Math.max(0.01, processedCount / total); // Avoid division by zero
       calculatedTimeRemaining = (((1 - progressPercent) * 180) + 30) * (1 + randomVariance);
     }
-    
-    // CRITICAL: Save current calculated time for next render
-    prevTimeRef.current = calculatedTimeRemaining;
     
     // Use either calculated time or server time, whichever is available
     // Add slight random variation to make it look natural
@@ -987,7 +970,11 @@ export function UploadProgressModal() {
                   <div className="ml-3">
                     <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400">Processing Speed</h4>
                     <p className="text-base font-medium text-gray-900 dark:text-gray-200 mt-0.5">
-                      {currentSpeed > 0 ? `${currentSpeed.toFixed(2)} records/sec` : 'Calculating...'}
+                      {currentSpeed > 0 ? 
+                        // Format with less decimal places and more stable feeling
+                        // Round to nearest 0.05 to reduce jitter
+                        `${(Math.round(currentSpeed * 20) / 20).toFixed(2)} records/sec` 
+                        : 'Calculating...'}
                     </p>
                   </div>
                 </div>
