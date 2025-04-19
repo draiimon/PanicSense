@@ -627,7 +627,10 @@ export function UploadProgressModal() {
   
   // Calculate time remaining in human-readable format with improved batch-aware logic
   const formatTimeRemaining = (seconds: number): string => {
-    if (!seconds || seconds <= 0) return 'calculating...';
+    // Make sure we return "calculating..." for missing or zero values
+    if (seconds === undefined || seconds === null || seconds <= 0) {
+      return 'Calculating...';
+    }
     
     // Calculate a realistic time remaining based on processed records, speed, and batch cooldowns
     // This ensures we're showing updated time even if server doesn't update timeRemaining
@@ -638,22 +641,30 @@ export function UploadProgressModal() {
       // Use the cooldown time directly if available
       return `${cooldownTime} sec cooldown`;
     } else if (currentSpeed > 0 && total > processedCount) {
-      // For normal processing, calculate based on current speed and records left
-      const recordsRemaining = total - processedCount;
-      const processingTime = recordsRemaining / currentSpeed;
-      
-      // Add batch cooldown estimation - for every 30 records, add 60 seconds of cooldown
-      // Only if we have multiple batches
-      let cooldownEstimate = 0;
-      if (totalBatches > 1) {
-        const remainingBatches = Math.ceil(recordsRemaining / 30);
-        if (remainingBatches > 0) {
-          cooldownEstimate = (remainingBatches - 1) * 60; // 60 sec cooldown between batches
+      try {
+        // For normal processing, calculate based on current speed and records left
+        const recordsRemaining = total - processedCount;
+        const processingTime = recordsRemaining / currentSpeed;
+        
+        // Add batch cooldown estimation - for every 30 records, add 60 seconds of cooldown
+        // Only if we have multiple batches
+        let cooldownEstimate = 0;
+        if (totalBatches > 1) {
+          const remainingBatches = Math.ceil(recordsRemaining / 30);
+          if (remainingBatches > 0) {
+            cooldownEstimate = (remainingBatches - 1) * 60; // 60 sec cooldown between batches
+          }
         }
+        
+        // Combine processing time and cooldown time
+        calculatedTimeRemaining = processingTime + cooldownEstimate;
+      } catch (e) {
+        // If any error occurs in calculation, just return the calculating message
+        return 'Calculating...';
       }
-      
-      // Combine processing time and cooldown time
-      calculatedTimeRemaining = processingTime + cooldownEstimate;
+    } else if (currentSpeed <= 0) {
+      // If speed is not yet calculated, show calculating
+      return 'Calculating...';
     }
     
     // Use the smaller of the two values but only if server-provided time is reasonable
