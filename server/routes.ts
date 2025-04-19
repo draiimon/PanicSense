@@ -344,33 +344,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const elapsed = (now - progress.timestamp) / 1000; // seconds
 
           if (elapsed > 0) {
-            // Calculate current speed based on processed records
-            // Limit to reasonable value to prevent division by small numbers creating huge speeds
-            const rawSpeed = progress.processed / elapsed;
-            progress.currentSpeed = Math.min(rawSpeed, 10); // Cap at 10 records/second
+            // STABLE SPEED CALCULATION - much more consistent processing speed
+            let rawSpeed = 0;
             
-            // Calculate time remaining with enhanced batch logic and improved accuracy:
+            // Store previous information to calculate delta
+            let lastProgress = { processed: 0, timeRemaining: 0, currentSpeed: 0 };
+            try {
+              // Try to get cached previous info for this session
+              const cachedInfo = uploadProgressMap.get(sessionId);
+              if (cachedInfo) {
+                lastProgress = {
+                  processed: cachedInfo.processed || 0,
+                  timeRemaining: cachedInfo.timeRemaining || 0,
+                  currentSpeed: cachedInfo.currentSpeed || 0
+                };
+              }
+            } catch (err) {
+              console.error("Error getting last progress", err);
+            }
+            
+            // CONSISTENCY BOOST - Check stage to apply appropriate speed logic
+            const stageLower = (progress.stage || '').toLowerCase();
+            if (stageLower.includes('record')) {
+              // IMPORTANT - FIXED SPEED: Always maintain 3 records/second speed for "record" stages
+              // This eliminates random speed fluctuations
+              if (stageLower.includes('completed record') || stageLower.includes('processing record')) {
+                // FIXED at exactly 3 records per second for consistent UX
+                progress.currentSpeed = 3;
+              } else {
+                // For other states, calculate but keep it consistent
+                rawSpeed = progress.processed / elapsed;
+                // Keep speed between 1-5 records/second for stability
+                progress.currentSpeed = Math.min(Math.max(rawSpeed, 1), 5);
+              }
+            } else {
+              // For non-record stages, maintain the previous speed
+              progress.currentSpeed = lastProgress.currentSpeed || 3;
+            }
+            
+            // STABILIZED TIME REMAINING CALCULATION
             if (progress.currentSpeed > 0) {
               const remainingRecords = Math.max(0, progress.total - progress.processed);
               const recordsPerBatch = 30; // Standard batch size
-              const processTimePerBatch = 30; // 30s processing time per batch
-              const pauseTimePerBatch = 60; // 60s pause between batches
-              const batchTimeSeconds = processTimePerBatch + pauseTimePerBatch; // total per batch
+              const timePerRecord = 1 / progress.currentSpeed; // Time in seconds for one record
+              const pauseTimePerBatch = 60; // Fixed 60s pause between batches
               
-              // More accurate calculation of remaining batches - accounts for partial batches
+              // Calculate remaining batches more accurately
               const completedBatches = Math.floor(progress.processed / recordsPerBatch);
               const totalBatches = Math.ceil(progress.total / recordsPerBatch);
-              const remainingBatches = Math.max(0, totalBatches - completedBatches);
+              const remainingFullBatches = Math.max(0, totalBatches - completedBatches - 1); // -1 for current batch
               
-              // Start with basic calculation for remaining full batches
-              let estimatedTimeRemaining = remainingBatches * batchTimeSeconds;
+              // Calculate time for current batch + remaining batches with pauses
+              const recordsInCurrentBatch = progress.processed % recordsPerBatch;
+              const recordsLeftInCurrentBatch = recordsPerBatch - recordsInCurrentBatch;
+              const timeForCurrentBatch = recordsLeftInCurrentBatch * timePerRecord;
+              const timeForRemainingBatches = remainingFullBatches * (recordsPerBatch * timePerRecord + pauseTimePerBatch);
               
-              // Prevent time remaining from going up - only allow it to go down
-              // This creates a smoother, more intuitive user experience
-              if (progress.timeRemaining && estimatedTimeRemaining > progress.timeRemaining) {
-                // Don't increase the time, but allow it to decrease slightly each update
-                // This ensures time counts down even if processing slows
-                estimatedTimeRemaining = Math.max(0, progress.timeRemaining - 2);
+              // Total estimated time
+              let estimatedTimeRemaining = timeForCurrentBatch + timeForRemainingBatches;
+              
+              // CRITICAL: Prevent time remaining from going up - only allow it to go down
+              // This ensures a smooth countdown experience for users
+              if (lastProgress.timeRemaining && lastProgress.timeRemaining > 0) {
+                // If we already had a time estimate, it should only go down (or stay the same)
+                if (lastProgress.timeRemaining <= estimatedTimeRemaining) {
+                  // Time would increase - force it down slightly instead
+                  estimatedTimeRemaining = Math.max(0, lastProgress.timeRemaining - 1);
+                } else if (lastProgress.timeRemaining - estimatedTimeRemaining > 10) {
+                  // Too big a jump down - smoothly interpolate
+                  estimatedTimeRemaining = lastProgress.timeRemaining - 3;
+                }
               }
               
               // Special handling for pause states - extract exact remaining pause time
