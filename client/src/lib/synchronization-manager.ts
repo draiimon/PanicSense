@@ -176,6 +176,13 @@ export function isUploadCompleted(): boolean {
  */
 export function cleanupUploadState(): void {
   try {
+    // First get a full list of all localStorage keys
+    const allKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) allKeys.push(key);
+    }
+    
     // Clean up all upload-related localStorage items
     localStorage.removeItem(KEYS.UPLOAD_ACTIVE);
     localStorage.removeItem(KEYS.UPLOAD_SESSION_ID);
@@ -183,8 +190,13 @@ export function cleanupUploadState(): void {
     localStorage.removeItem(KEYS.UPLOAD_COMPLETED);
     localStorage.removeItem(KEYS.UPLOAD_COMPLETED_TIMESTAMP);
     localStorage.removeItem(KEYS.UPLOAD_FORCE_CLOSED);
+    localStorage.removeItem(KEYS.LEADER_ID);
+    localStorage.removeItem(KEYS.LEADER_TIMESTAMP);
+    localStorage.removeItem(KEYS.HEARTBEAT_TIMESTAMP);
+    localStorage.removeItem(KEYS.LAST_BROADCAST_TIME);
+    localStorage.removeItem(KEYS.LAST_POLL_TIME);
     
-    // Also clean up older keys for backward compatibility
+    // Clean up older keys for backward compatibility
     localStorage.removeItem('isUploading');
     localStorage.removeItem('uploadProgress');
     localStorage.removeItem('uploadSessionId');
@@ -198,6 +210,21 @@ export function cleanupUploadState(): void {
     localStorage.removeItem('batchStats');
     localStorage.removeItem('uploadCompleted');
     localStorage.removeItem('uploadCompletedTimestamp');
+    localStorage.removeItem('lastCompletionBroadcast');
+    
+    // Clean up any other keys that might be related to uploads
+    for (const key of allKeys) {
+      if (key.toLowerCase().includes('upload') || 
+          key.toLowerCase().includes('progress') ||
+          key.toLowerCase().includes('session') ||
+          key.toLowerCase().includes('batch') ||
+          key.toLowerCase().includes('analysis')) {
+        localStorage.removeItem(key);
+      }
+    }
+    
+    // Use sessionStorage as a guard to prevent false triggers
+    sessionStorage.setItem('lastCleanupTime', Date.now().toString());
     
     // Broadcast cleanup to other tabs
     broadcastMessage('upload_cleanup');

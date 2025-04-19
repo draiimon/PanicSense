@@ -782,8 +782,8 @@ export function UploadProgressModal() {
                   </div>
                 </div>
                 
-                {/* Batch information - only show if we have batch data */}
-                {totalBatches > 0 && (
+                {/* Batch information - only show if we have multiple batches */}
+                {totalBatches > 1 && batchNumber > 0 && (
                   <div className="flex items-start">
                     <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mt-0.5 flex-shrink-0">
                       <Database className="h-4 w-4 text-green-600 dark:text-green-400" />
