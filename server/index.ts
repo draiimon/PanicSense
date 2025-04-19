@@ -56,18 +56,32 @@ const app = express();
 app.use(express.json({ limit: '50mb' })); // Increased limit for better performance
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Apply standard rate limiter to all API routes
+// Apply standard rate limiter to all API routes as base protection
 app.use('/api', createRateLimiter('standard'));
 
 // Apply specific rate limiters to heavy endpoints
 app.use('/api/upload-csv', createRateLimiter('upload'));
 app.use('/api/analyze-text', createRateLimiter('analysis'));
+app.use('/api/sentiment-feedback', createRateLimiter('analysis')); // Training feedback is resource-intensive
+app.use('/api/profile-images', createRateLimiter('upload')); // File uploads need stricter limits
+
+// Apply admin rate limiters to sensitive operations
 app.use('/api/emergency-reset', createRateLimiter('admin'));
 app.use('/api/reset-upload-sessions', createRateLimiter('admin'));
 app.use('/api/delete-all-data', createRateLimiter('admin'));
+app.use('/api/cleanup-error-sessions', createRateLimiter('admin'));
+app.use('/api/untrained-feedback', createRateLimiter('admin'));
+
+// Track these endpoints for usage limits
+const dataProcessingEndpoints = [
+  '/api/upload-csv', 
+  '/api/analyze-text',
+  '/api/sentiment-feedback',
+  '/api/untrained-feedback'
+];
 
 // Apply daily usage check to data processing endpoints
-app.use(['/api/upload-csv', '/api/analyze-text'], dailyUsageCheck);
+app.use(dataProcessingEndpoints, dailyUsageCheck);
 
 // Enhanced logging middleware with better performance metrics
 app.use((req, res, next) => {
