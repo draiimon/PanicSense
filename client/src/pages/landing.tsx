@@ -417,9 +417,9 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
           </div>
           
           <div className="flex flex-col md:flex-row items-center md:items-center justify-center md:gap-8 lg:gap-12">
-            {/* Tutorial Image - Column 1 - WIDER but not too tall, more centered */}
+            {/* Tutorial Image - Column 1 - WIDER with TALLER height, more centered */}
             <div 
-              className="tutorial-image-container slide-up-animation video-style-effect w-full max-w-[300px] md:max-w-[450px] lg:max-w-[500px] mx-auto mt-4 md:mt-8 md:mx-0 md:aspect-video overflow-hidden"
+              className="tutorial-image-container slide-up-animation video-style-effect w-full max-w-[300px] md:max-w-[450px] lg:max-w-[500px] h-[250px] md:h-[300px] lg:h-[350px] mx-auto mt-4 md:mt-6 md:mx-0 overflow-hidden"
             >
               <div className="tutorial-dynamic-content h-full flex items-center justify-center">
                 <img 
