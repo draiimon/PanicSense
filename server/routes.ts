@@ -1018,76 +1018,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // This is the most reliable indicator of an active upload
       const activePythonSessions = pythonService.getActiveProcessSessions();
       if (activePythonSessions.length > 0) {
-        console.log(`⭐ Found ${activePythonSessions.length} active Python sessions:`, activePythonSessions);
+        if (shouldLog) {
+          console.log(`⭐ Found ${activePythonSessions.length} active Python sessions:`, activePythonSessions);
+        }
         
         // Get the first active session
         const activeSessionId = activePythonSessions[0];
         
-        // Check if this session exists in the database
-        const dbSessions = await db.select().from(uploadSessions)
-          .where(eq(uploadSessions.sessionId, activeSessionId));
+        // Check if this session exists in the database using our new session manager
+        const session = await uploadSessionManager.getSessionById(activeSessionId);
         
-        if (dbSessions.length > 0) {
+        if (session) {
           // Session exists in database, update it to ensure it's marked as active
-          const session = dbSessions[0];
-          
           // Get the progress from the upload progress map
           const progress = uploadProgressMap.get(activeSessionId);
           
-          // Update the session to keep it fresh and store the current server timestamp
-          await db.update(uploadSessions)
-            .set({ 
-              status: 'active',
-              updatedAt: new Date(),
-              serverStartTimestamp: SERVER_START_TIMESTAMP.toString()
-            })
-            .where(eq(uploadSessions.sessionId, activeSessionId));
+          // Update the session using our session manager
+          await uploadSessionManager.updateSession(
+            activeSessionId,
+            'processing', // Use consistent 'processing' status
+            progress || session.progress
+          );
           
-          console.log(`⭐ Returning active session ${activeSessionId} with progress:`, progress);
+          if (shouldLog) {
+            console.log(`⭐ Returning active session ${activeSessionId} with progress`);
+          }
           
           // Return the session with progress
           return res.json({ 
             sessionId: activeSessionId,
-            status: 'active',
+            status: 'processing', 
             progress: progress || session.progress
           });
         } else {
           // Session doesn't exist in database but Python process is running
-          // This is unusual but can happen if the database record failed to create
+          // Create a new session using our session manager
           console.log(`⭐ Active Python process ${activeSessionId} has no database record, creating one`);
           
-          // Create a new session record
           const progress = uploadProgressMap.get(activeSessionId);
-          await db.insert(uploadSessions)
-            .values({
-              sessionId: activeSessionId,
-              status: 'active',
-              progress: JSON.stringify(progress || {}),
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              serverStartTimestamp: SERVER_START_TIMESTAMP.toString()
-            });
+          await uploadSessionManager.createSession(activeSessionId, null);
+          
+          if (progress) {
+            await uploadSessionManager.updateSession(activeSessionId, 'processing', progress);
+          }
             
           // Return the session
           return res.json({ 
             sessionId: activeSessionId,
-            status: 'active',
-            progress: progress || {}
+            status: 'processing',
+            progress: progress || {
+              processed: 0,
+              total: 100,
+              stage: "Processing...",
+              timestamp: Date.now()
+            }
           });
         }
       }
       
-      // No active Python processes, check the database
+      // Check for client-provided session ID first if available
+      if (clientSessionId) {
+        const clientSession = await uploadSessionManager.getSessionById(clientSessionId);
+        if (clientSession && clientSession.status === 'processing') {
+          // Valid client session found, verify it's not stale
+          const isRecent = new Date(Date.now() - 30 * 60 * 1000) < clientSession.updatedAt;
+          
+          if (isRecent) {
+            // Get progress data
+            const progress = uploadProgressMap.get(clientSessionId) || 
+              (typeof clientSession.progress === 'string' 
+                ? JSON.parse(clientSession.progress) 
+                : clientSession.progress);
+                
+            // Update session timestamp to keep it fresh
+            await uploadSessionManager.updateSession(clientSessionId, 'processing', progress);
+              
+            // Return the session
+            return res.json({ 
+              sessionId: clientSessionId,
+              status: 'processing',
+              progress: progress
+            });
+          }
+        }
+      }
+      
+      // No active Python processes, check the database for any active session
       if (shouldLog) {
         console.log("⭐ No active Python processes, checking database...");
       }
-      const sessions = await db.select().from(uploadSessions)
-        .where(eq(uploadSessions.status, 'active'))
-        .orderBy(desc(uploadSessions.id))
-        .limit(1);
       
-      if (sessions.length > 0) {
-        const activeSession = sessions[0];
+      // Use our session manager to find active sessions
+      const activeSession = await uploadSessionManager.findActiveSession();
+      
+      if (activeSession) {
         if (shouldLog) {
           console.log(`⭐ Found active session in database: ${activeSession.sessionId}`);
         }
@@ -1098,41 +1122,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`⭐ Server restart detected! Session ${activeSession.sessionId} was created on a different server instance.`);
           console.log(`⭐ Stored timestamp: ${activeSession.serverStartTimestamp}, Current: ${SERVER_START_TIMESTAMP}`);
           
-          // Update to completed status
-          await db.update(uploadSessions)
-            .set({ 
-              status: 'completed',
-              updatedAt: new Date()
-            })
-            .where(eq(uploadSessions.sessionId, activeSession.sessionId));
+          // Mark as completed using our session manager
+          await uploadSessionManager.completeSession(activeSession.sessionId);
           
           // Return no active session with a restart flag
           return res.json({ 
             sessionId: null, 
             serverRestartDetected: true
           });
-        }
-        
-        // Check if the session might be stale (created more than 60 minutes ago with no updates)
-        // Increased to 60 minutes to be extra sure we don't close active sessions
-        const updatedAt = activeSession.updatedAt || activeSession.createdAt;
-        const currentTime = new Date();
-        const sixtyMinutesAgo = new Date(currentTime.getTime() - 60 * 60 * 1000);
-        
-        // If the session is too old and hasn't been updated recently, mark it as stale
-        if (updatedAt && updatedAt < sixtyMinutesAgo) {
-          console.log(`⭐ Session ${activeSession.sessionId} is stale (older than 60 minutes), marking as completed`);
-          
-          // Update to completed status
-          await db.update(uploadSessions)
-            .set({ 
-              status: 'completed',
-              updatedAt: new Date()
-            })
-            .where(eq(uploadSessions.sessionId, activeSession.sessionId));
-          
-          // Return no active session
-          return res.json({ sessionId: null, staleSessionCleared: true });
         }
         
         // Get the most up-to-date progress
@@ -1143,13 +1140,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
         // Update the session, but only once per 10 requests to reduce database load
         if (shouldLog) {
-          await db.update(uploadSessions)
-            .set({ 
-              updatedAt: new Date(),
-              progress: JSON.stringify(progress || {}),
-              serverStartTimestamp: SERVER_START_TIMESTAMP.toString()
-            })
-            .where(eq(uploadSessions.sessionId, activeSession.sessionId));
+          await uploadSessionManager.updateSession(
+            activeSession.sessionId, 
+            'processing',
+            progress || activeSession.progress
+          );
         }
         
         // Return the session
