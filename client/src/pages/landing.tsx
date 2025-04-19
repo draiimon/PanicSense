@@ -375,17 +375,7 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
           />
         </div>
         
-        <motion.button 
-          onClick={onClose}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          whileHover={{ scale: 1.1, rotate: 90 }}
-          whileTap={{ scale: 0.9 }}
-          transition={{ type: "spring", stiffness: 500, damping: 25 }}
-          className="absolute top-4 right-4 p-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10 text-white"
-        >
-          <X size={24} />
-        </motion.button>
+        {/* X button removed */}
         
         {/* Mobile-optimized SINGLE column layout */}
         <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-600 p-4">          
@@ -459,16 +449,7 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                 <LiveTimeCounter />
               </div>
               
-              <motion.div 
-                className="absolute -bottom-2 -right-2 z-30"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-3 py-1">
-                  Step {currentStep + 1}/{steps.length}
-                </Badge>
-              </motion.div>
+              {/* Step badge removed */}
             </div>
           </div>
         </div>
