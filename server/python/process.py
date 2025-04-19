@@ -902,7 +902,7 @@ Suriin mo rin kung may nabanggit na uri ng sakuna (Flood, Typhoon, Fire, Volcani
 
 Ang response mo ay dapat nasa JSON format lang na may: "sentiment", "confidence", "explanation", "disasterType", "location" """
                     else:
-                        system_message = """You are a disaster sentiment analysis expert specialized in Philippine disaster contexts using the Meta Llama 4 Maverick model.
+                        system_message = """You are a disaster sentiment analysis expert specialized in Philippine disaster contexts using the DeepSeek R1 Distill Llama 70B model.
 
 CRITICAL: You must classify the message into one of five categories:
 - Panic: Intense distress, fear and urgent calls for help, often with all-caps or multiple exclamation marks.
@@ -911,8 +911,13 @@ CRITICAL: You must classify the message into one of five categories:
 - Resilience: Showing strength, unity and hope despite disaster.
 - Neutral: Simple factual statements without emotional content.
 
-IMPORTANT CONTEXTUAL GUIDELINES:
-- Simple statements like "there is a fire at the corner" or "there is flooding" are NEUTRAL if there's no other emotional context.
+IMPORTANT CONTEXTUAL GUIDELINES FOR NEUTRAL VS EMOTIONAL CONTENT (CRITICAL):
+- Simple statements like "there is a fire at the corner" or "there is flooding" are ALWAYS NEUTRAL if there's no other emotional context.
+- Physical descriptions like "buildings collapsed" or "people evacuated" are NEUTRAL (descriptive, no emotion).
+- General damage reports like "earthquake caused significant damage" are NEUTRAL (factual description).
+- NEWS-STYLE REPORTS ARE NEUTRAL, not Fear/Anxiety - this is a common misclassification error.
+- Descriptions of damage or effects WITHOUT emotional words are NEUTRAL.
+- Only classify as Fear/Anxiety when there are EXPLICIT emotional markers like "scary", "afraid", "worried", etc.
 - Messages with "HELP!" or urgent cries for assistance indicate Panic.
 - Messages offering to help others ("let's help them") show Resilience, while those asking for help ("please help us") indicate Panic or Fear.
 - Many messages mix Tagalog and English (Taglish) that require cultural context awareness.
@@ -1171,9 +1176,13 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                     'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', or 'Neutral'.
                     Choose ONLY ONE category and provide a confidence score (0.0-1.0) and brief explanation.
                     
-                    CRITICAL UNDERSTANDING OF 'NEUTRAL':
-                    - SIMPLE STATEMENTS WITHOUT EMOTION are ALWAYS 'Neutral'
+                    CRITICAL UNDERSTANDING OF 'NEUTRAL' VS 'FEAR/ANXIETY' (EXTREMELY IMPORTANT):
+                    - SIMPLE STATEMENTS WITHOUT EMOTIONAL LANGUAGE are ALWAYS 'Neutral' even if they describe disasters
                     - Examples: "there is a fire", "there is a flood", "may sunog", "earthquake happened", "many were injured"
+                    - NEWS-STYLE REPORTS ARE NEUTRAL, not Fear/Anxiety - this is a common and critical misclassification error
+                    - Descriptions of damage or effects WITHOUT emotional words are NEUTRAL
+                    - Physical descriptions like "buildings collapsed" or "people evacuated" are NEUTRAL
+                    - Only classify as Fear/Anxiety when there are EXPLICIT emotional markers like "scary", "afraid", "worried", etc.
                     - Just information, no emotion -- NOT PANIC, NOT FEAR/ANXIETY
                     
                     Examples of correct analysis:
@@ -1182,6 +1191,8 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                     - "there is a flood in Manila" = NEUTRAL (just information)
                     - "the earthquake is scary" = FEAR/ANXIETY (shows emotional response of fear)
                     - "many were injured in the earthquake" = NEUTRAL (simple report without emotion)
+                    - "buildings collapsed and people evacuated" = NEUTRAL (descriptive, no emotion)
+                    - "earthquake caused significant damage" = NEUTRAL (factual description)
                     
                     ANALYZE THE ENTIRE CONTEXT AND MEANING of messages. Keywords, capitalization, or punctuation alone SHOULD NOT determine sentiment.
                     
@@ -1200,6 +1211,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                     - Tone: plea for help vs. offer to help
                     - Perspective: personal danger vs. witnessing danger vs. recovery
                     - Implied action: need rescue vs. providing rescue
+                    - AVOID assuming emotion in descriptive or informative content
                     
                     EMOJI AND EXCLAMATION INDICATORS (ESSENTIAL TO ANALYZE):
                     - EMOJI INDICATORS:
