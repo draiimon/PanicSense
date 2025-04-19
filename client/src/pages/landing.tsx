@@ -356,44 +356,39 @@ export default function LandingPage() {
   
   return (
     <div className="min-h-screen overflow-hidden">
-      {/* Header with Glass Effect */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/10 dark:bg-gray-900/20 backdrop-blur-md py-4 px-6 border-b border-white/10">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+      {/* Header with same style as main pages */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-lg py-3 px-4">
+        <div className="max-w-[2000px] mx-auto flex justify-between items-center">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
             className="flex items-center space-x-3"
           >
-            <div className="relative">
-              <motion.img 
-                src="/images/PANICSENSE PH.png" 
-                alt="PanicSense PH Logo" 
-                className="h-12 rounded-full"
-                whileHover={{ rotate: 10, scale: 1.1 }}
-                transition={{ type: "spring", stiffness: 500 }}
-              />
-              <motion.div 
-                className="absolute -right-1 -top-1 w-4 h-4 bg-green-400 rounded-full"
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  opacity: [1, 0.8, 1] 
+            <div className="relative w-11 h-11 sm:w-14 sm:h-14">
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-br from-blue-600/30 via-indigo-600/30 to-purple-600/30 rounded-xl shadow-lg"
+                animate={{
+                  scale: [1, 1.02, 1],
                 }}
-                transition={{ 
+                transition={{
+                  duration: 0.5,
                   repeat: Infinity,
-                  duration: 2 
+                  repeatType: "reverse",
                 }}
               />
+              <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                <img src="/favicon.png" alt="PanicSense PH Logo" className="w-7 h-7 sm:w-9 sm:h-9 drop-shadow" />
+              </div>
             </div>
             
             <div>
-              <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500">
+              <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
                 PanicSense PH
               </h1>
-              <div className="flex items-center">
-                <span className="text-xs px-1.5 py-0.5 bg-green-500/20 text-green-500 rounded-full">LIVE</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">Monitoring active</span>
-              </div>
+              <p className="text-sm sm:text-base text-slate-600 font-medium">
+                Real-time Disaster Analysis
+              </p>
             </div>
           </motion.div>
           
@@ -405,8 +400,7 @@ export default function LandingPage() {
           >
             <Link href="/dashboard">
               <Button 
-                size="lg"
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all"
               >
                 Sign in to Dashboard
                 <ArrowRight className="ml-2 h-4 w-4" />
