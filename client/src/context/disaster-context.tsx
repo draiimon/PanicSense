@@ -13,6 +13,7 @@ import {
   getCurrentUploadSessionId,
   checkForActiveSessions
 } from "@/lib/api";
+import { nuclearCleanup } from "@/hooks/use-nuclear-cleanup";
 
 // Add BroadcastChannel for cross-tab communication
 const uploadBroadcastChannel = typeof window !== 'undefined' ? new BroadcastChannel('upload_status') : null;
@@ -124,6 +125,22 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
   const storedIsUploading = localStorage.getItem('isUploading') === 'true';
   const storedSessionId = localStorage.getItem('uploadSessionId');
   let storedProgress = localStorage.getItem('uploadProgress');
+  
+  // Nuclear cleanup at start to clear any lingering upload state on first load
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('☢️ DISASTER CONTEXT: Running nuclear cleanup at startup to ensure clean state');
+      // Only run once when the app starts
+      const cleanupFlag = sessionStorage.getItem('initial_cleanup_performed');
+      if (!cleanupFlag) {
+        // Run nuclear cleanup to ensure a clean state
+        nuclearCleanup();
+        // Mark that we've done the cleanup
+        sessionStorage.setItem('initial_cleanup_performed', 'true');
+        console.log('☢️ Initial nuclear cleanup completed');
+      }
+    }
+  }, []);
   
   // Initialize with localStorage state to improve cross-tab experience
   // But only if not in a force close state

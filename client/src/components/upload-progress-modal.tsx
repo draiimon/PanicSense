@@ -9,7 +9,8 @@ import {
   AlertCircle,
   BarChart3,
   Server,
-  Terminal
+  Terminal,
+  Trash2
 } from "lucide-react";
 import { useDisasterContext } from "@/context/disaster-context";
 import { createPortal } from "react-dom";
@@ -25,6 +26,7 @@ import {
   broadcastMessage
 } from "@/lib/synchronization-manager";
 import { cancelUpload, getCurrentUploadSessionId } from "@/lib/api";
+import { nuclearCleanup, listenForNuclearCleanup } from "@/hooks/use-nuclear-cleanup";
 
 // Add a global TypeScript interface for window
 declare global {
@@ -58,11 +60,20 @@ export function UploadProgressModal() {
     autoCloseDelay = 3000 // Default to 3 seconds for auto-close
   } = uploadProgress || {};
   
+  // Set up listener for nuclear cleanup broadcasts from other tabs
+  useEffect(() => {
+    const removeNuclearListener = listenForNuclearCleanup();
+    return () => removeNuclearListener();
+  }, []);
+  
   // Define a clean-up function that will be used for both direct modal closing and broadcast handling
   const cleanupAndClose = React.useCallback(() => {
     console.log('🧹 Cleanup and close function triggered');
     
-    // Use the new synchronization manager to clean up all upload state
+    // Try the nuclear cleanup option first to ensure complete cleanup
+    nuclearCleanup();
+    
+    // Fallback to regular cleanup if nuclear fails for any reason
     cleanupUploadState();
     
     // Clean up any existing EventSource connections
@@ -870,7 +881,7 @@ export function UploadProgressModal() {
                   </div>
                   
                   {/* Emergency reset button */}
-                  <div className="mt-2">
+                  <div className="mt-2 flex space-x-2">
                     <Button
                       onClick={() => {
                         // Clean up all state
@@ -895,6 +906,45 @@ export function UploadProgressModal() {
                     >
                       Emergency Reset
                     </Button>
+                    
+                    <Button
+                      onClick={() => {
+                        toast({
+                          title: "Nuclear Cleanup Initiated",
+                          description: "Performing complete cleanup across all browser tabs",
+                          variant: "destructive",
+                        });
+                        
+                        // Perform nuclear cleanup
+                        nuclearCleanup();
+                        
+                        // Force close the modal
+                        forceCloseModalMemo();
+                        
+                        // Also do server-side cleanup
+                        fetch('/api/reset-upload-sessions', {
+                          method: 'POST'
+                        }).then(() => {
+                          console.log('☢️ NUCLEAR: Reset all upload sessions');
+                          // Hard refresh the page after a short delay
+                          setTimeout(() => {
+                            window.location.reload();
+                          }, 1000);
+                        }).catch(e => {
+                          console.error('Error in nuclear reset:', e);
+                          // Still reload after a delay
+                          setTimeout(() => {
+                            window.location.reload();
+                          }, 1000);
+                        });
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs bg-red-800 text-white border-red-900 hover:bg-red-900 hover:text-white flex items-center gap-1"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      <span>Nuclear Cleanup</span>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -902,48 +952,88 @@ export function UploadProgressModal() {
             
             {/* Action buttons */}
             {!isComplete && !hasError && (
-              <div className="mt-3 flex flex-col sm:flex-row gap-2 justify-center">
-                {/* Regular Cancel Button */}
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="gap-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white rounded-full px-5"
-                  onClick={() => setShowCancelDialog(true)}
-                  disabled={isCancelling}
-                >
-                  {isCancelling ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Cancelling...</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-4 w-4" />
-                      <span>Cancel Upload</span>
-                    </>
-                  )}
-                </Button>
+              <div className="mt-3 space-y-2">
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  {/* Regular Cancel Button */}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white rounded-full px-5"
+                    onClick={() => setShowCancelDialog(true)}
+                    disabled={isCancelling}
+                  >
+                    {isCancelling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Cancelling...</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-4 w-4" />
+                        <span>Cancel Upload</span>
+                      </>
+                    )}
+                  </Button>
+                  
+                  {/* Force Cancel Button - For stuck uploads */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 border border-red-300 text-red-600 hover:bg-red-50 rounded-full px-5"
+                    onClick={() => handleCancel(true)}
+                    disabled={isCancelling}
+                  >
+                    {isCancelling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Force Cancelling...</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-4 w-4" />
+                        <span>Force Cancel</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
                 
-                {/* Force Cancel Button - For stuck uploads */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1 border border-red-300 text-red-600 hover:bg-red-50 rounded-full px-5"
-                  onClick={() => handleCancel(true)}
-                  disabled={isCancelling}
-                >
-                  {isCancelling ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Force Cancelling...</span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="h-4 w-4" />
-                      <span>Force Cancel</span>
-                    </>
-                  )}
-                </Button>
+                {/* Nuclear Reset Button */}
+                <div className="flex justify-center">
+                  <Button
+                    onClick={() => {
+                      // Perform nuclear cleanup
+                      nuclearCleanup();
+
+                      toast({
+                        title: "Nuclear Cleanup",
+                        description: "Performing complete cleanup across all tabs",
+                        variant: "destructive",
+                      });
+                      
+                      // Also do a direct API cleanup
+                      fetch('/api/reset-upload-sessions', {
+                        method: 'POST'
+                      }).catch(e => {
+                        console.error('Error in nuclear reset API call:', e);
+                      });
+                      
+                      // Force close the modal immediately
+                      setIsUploading(false);
+                      setIsCancelling(false);
+                      
+                      // Hard refresh after short delay
+                      setTimeout(() => {
+                        window.location.reload();
+                      }, 500);
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1 text-xs mt-1 bg-gray-800 text-white hover:bg-gray-900 border-none px-3 py-1 rounded"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    <span>Nuclear Reset</span>
+                  </Button>
+                </div>
               </div>
             )}
             
