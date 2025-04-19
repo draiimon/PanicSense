@@ -626,10 +626,97 @@ export function UploadProgressModal() {
   // forceCancel = false (default) uses the new gentle cancellation approach
   // Only uses force cancel when explicitly set to true
   const handleCancel = async (forceCancel = false) => {
+    // EMERGENCY/FORCE MODE: Always use force approach if specified
+    if (forceCancel) {
+      console.log('☢️ EMERGENCY CANCEL ACTIVATED');
+      
+      // Show toast for feedback
+      toast({
+        title: "⚠️ EMERGENCY CANCEL",
+        description: "Forcing cleanup of all upload processes...",
+        duration: 2000,
+      });
+      
+      // STEP 1: Frontend State Cleanup (immediately)
+      setIsUploading(false);
+      setIsCancelling(false);
+      setShowCancelDialog(false);
+      
+      // STEP 2: Client-side nuclear cleanup
+      try {
+        // Clear ALL upload-related localStorage state
+        if (typeof window !== 'undefined') {
+          console.log('🧨 EMERGENCY: Clearing all localStorage state');
+          
+          const keysToRemove = []; // Collect keys to avoid modification during iteration
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (
+              key.includes('upload') || 
+              key.includes('isUploading') || 
+              key.includes('session') ||
+              key.includes('progress')
+            )) {
+              keysToRemove.push(key);
+            }
+          }
+          
+          // Now remove all collected keys
+          keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            console.log(`🧹 Removed: ${key}`);
+          });
+        }
+        
+        // Clear any autoclose timers
+        if (typeof window !== 'undefined' && window._autoCloseTimer) {
+          clearTimeout(window._autoCloseTimer);
+          window._autoCloseTimer = undefined;
+        }
+        
+        // Broadcast emergency cancel to all tabs
+        try {
+          broadcastMessage({
+            type: 'upload_finished',
+            isUploading: false,
+            timestamp: Date.now(),
+            emergency: true
+          });
+          console.log('📡 Emergency cleanup broadcast to all tabs');
+        } catch (err) {
+          console.error('Failed to broadcast emergency cleanup:', err);
+        }
+      } catch (e) {
+        console.error('Error during frontend emergency cleanup:', e);
+      }
+      
+      // STEP 3: Server-side cancellation (don't wait for response)
+      const sessionId = localStorage.getItem('uploadSessionId');
+      if (sessionId) {
+        console.log(`🔥 Sending emergency cancel to server for session: ${sessionId}`);
+        fetch(`/api/cancel-upload/${sessionId}`, { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ force: true, emergency: true })
+        }).catch(err => console.error('Server cancel request failed, but UI is already cleaned up:', err));
+      }
+      
+      // Emergency reset complete!
+      toast({
+        title: "Upload Canceled",
+        description: "Emergency reset complete - modal closed forcefully",
+        variant: "destructive",
+        duration: 3000,
+      });
+      
+      return; // Exit early - we're done with emergency cancel!
+    }
+    
+    // NORMAL CANCEL FLOW (not emergency/force)
     if (isCancelling) return;
     
     // If we're not force cancelling and the dialog isn't shown yet, show it first
-    if (!forceCancel && !showCancelDialog) {
+    if (!showCancelDialog) {
       setShowCancelDialog(true);
       return;
     }
@@ -647,7 +734,7 @@ export function UploadProgressModal() {
     });
     
     try {
-      const result = await cancelUpload(forceCancel);
+      const result = await cancelUpload(false);
       
       if (result.success) {
         // Wait 2 seconds to show the "Upload Canceled" message before closing
@@ -656,59 +743,39 @@ export function UploadProgressModal() {
         }, 2000);
       } else {
         // If normal cancel failed, show option for force cancel
-        if (!forceCancel) {
-          toast({
-            title: 'Gentle Cancel Failed',
-            description: 'Trying force cancel instead...',
-            variant: 'destructive',
-            action: (
-              <ToastAction 
-                altText="Force Cancel Now" 
-                onClick={() => handleCancel(true)}
-              >
-                Force Cancel Now
-              </ToastAction>
-            ),
-          });
-        } else {
-          // Even if server force cancel failed, still close UI
-          cleanupAndClose();
-          toast({
-            title: 'Force Canceled',
-            description: 'The upload has been forcefully canceled in this browser tab.',
-            variant: 'destructive',
-          });
-        }
-        setIsCancelling(false);
-      }
-    } catch (error) {
-      console.error('Error cancelling upload:', error);
-      
-      // On force cancel, always close the modal even if there was an error
-      if (forceCancel) {
-        cleanupAndClose();
         toast({
-          title: 'Force Canceled',
-          description: 'The upload has been forcefully canceled in this browser tab.',
-          variant: 'destructive',
-        });
-      } else {
-        // For regular cancel errors, offer force cancel option
-        toast({
-          title: 'Cancel Error',
-          description: 'Gentle cancel failed. Trying force cancel...',
+          title: 'Gentle Cancel Failed',
+          description: 'Please use EMERGENCY CANCEL instead',
           variant: 'destructive',
           action: (
             <ToastAction 
-              altText="Force Cancel Now" 
+              altText="EMERGENCY CANCEL" 
               onClick={() => handleCancel(true)}
             >
-              Force Cancel Now
+              EMERGENCY CANCEL
             </ToastAction>
           ),
         });
         setIsCancelling(false);
       }
+    } catch (error) {
+      console.error('Error cancelling upload:', error);
+      
+      // For regular cancel errors, offer emergency cancel option
+      toast({
+        title: 'Cancel Error',
+        description: 'Please use EMERGENCY CANCEL to force close the modal',
+        variant: 'destructive',
+        action: (
+          <ToastAction 
+            altText="EMERGENCY CANCEL" 
+            onClick={() => handleCancel(true)}
+          >
+            EMERGENCY CANCEL
+          </ToastAction>
+        ),
+      });
+      setIsCancelling(false);
     }
   };
 
@@ -1237,7 +1304,7 @@ export function UploadProgressModal() {
             onClick={e => e.stopPropagation()}
           >
             {/* Enhanced gradient header for cancel dialog */}
-            <div className="bg-gradient-to-r from-red-500 via-pink-500 to-purple-600 p-4 text-white relative overflow-hidden">
+            <div className="bg-gradient-to-r from-red-700 via-orange-500 to-yellow-500 p-4 text-white relative overflow-hidden">
               {/* Animated decorative gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-70 animate-pulse"></div>
               
@@ -1254,7 +1321,7 @@ export function UploadProgressModal() {
                     <AlertCircle className="h-5 w-5 text-white" />
                   </motion.div>
                 </div>
-                <h3 className="text-lg font-bold text-white">Cancel Upload?</h3>
+                <h3 className="text-lg font-bold text-white">EMERGENCY CANCEL OPTIONS</h3>
               </div>
             </div>
             
@@ -1274,6 +1341,7 @@ export function UploadProgressModal() {
                     <span>Continue</span>
                   </span>
                 </Button>
+                {/* NORMAL CANCEL */}
                 <Button 
                   variant="destructive"
                   size="sm"
@@ -1282,7 +1350,20 @@ export function UploadProgressModal() {
                 >
                   <span className="flex items-center justify-center gap-2">
                     <Trash2 className="h-4 w-4" />
-                    <span>Cancel</span>
+                    <span>Normal Cancel</span>
+                  </span>
+                </Button>
+                
+                {/* EMERGENCY CANCEL - ADDED NEW BUTTON */}
+                <Button 
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleCancel(true)} 
+                  className="w-full sm:w-auto bg-gradient-to-r from-red-700 via-orange-600 to-yellow-500 hover:from-red-800 hover:via-orange-700 hover:to-yellow-600 text-white border-2 border-red-700 font-bold rounded-full px-5 py-2 hover:scale-105 transition-transform duration-200 shadow-md"
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>EMERGENCY CANCEL</span>
                   </span>
                 </Button>
               </div>
