@@ -53,7 +53,15 @@ const AnimatedGlobe = () => {
 };
 
 // Animated text effect
-const AnimatedText = ({ text, className = "", delay = 0 }) => {
+const AnimatedText = ({ 
+  text, 
+  className = "", 
+  delay = 0 
+}: { 
+  text: string; 
+  className?: string; 
+  delay?: number 
+}) => {
   const controls = useAnimation();
   
   useEffect(() => {
@@ -66,7 +74,7 @@ const AnimatedText = ({ text, className = "", delay = 0 }) => {
   
   return (
     <span className={`inline-block ${className}`}>
-      {text.split("").map((char, i) => (
+      {text.split("").map((char: string, i: number) => (
         <motion.span
           key={i}
           custom={i}
@@ -82,7 +90,17 @@ const AnimatedText = ({ text, className = "", delay = 0 }) => {
 };
 
 // Floating elements effect
-const FloatingElement = ({ delay = 0, duration = 3, children, className = "" }) => {
+const FloatingElement = ({ 
+  delay = 0, 
+  duration = 3, 
+  children, 
+  className = "" 
+}: { 
+  delay?: number; 
+  duration?: number; 
+  children: React.ReactNode; 
+  className?: string 
+}) => {
   return (
     <motion.div
       initial={{ y: 0 }}
@@ -255,36 +273,8 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                 </motion.div>
               </AnimatePresence>
               
-              <div className="flex space-x-3 mt-auto relative z-20">
-                {currentStep > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 }}
-                  >
-                    <Button 
-                      className="bg-gradient-to-r from-white/10 to-white/5 text-white border-0 hover:from-white/20 hover:to-white/10 hover:scale-105 transform transition-all rounded-full flex items-center px-5"
-                      onClick={prevStep}
-                    >
-                      <ChevronLeft className="mr-1.5 h-4 w-4" />
-                      <span>Previous</span>
-                    </Button>
-                  </motion.div>
-                )}
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  <Button 
-                    onClick={nextStep}
-                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white hover:scale-105 transform transition-all shadow-lg rounded-full flex items-center px-5"
-                  >
-                    <span>{currentStep === steps.length - 1 ? 'Get Started' : 'Next Step'}</span>
-                    <ChevronRight className="ml-1.5 h-4 w-4" />
-                  </Button>
-                </motion.div>
-              </div>
+              {/* Buttons removed from here - now in fixed bottom position */}
+              
             </div>
           </div>
           
@@ -329,6 +319,28 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
               </motion.div>
             </AnimatePresence>
           </div>
+        </div>
+        {/* Mobile-friendly bottom navigation */}
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-600/95 via-indigo-600/95 to-purple-600/95 p-4 flex justify-between z-20">
+          <div>
+            {currentStep > 0 && (
+              <Button 
+                className="bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center px-5"
+                onClick={prevStep}
+              >
+                <ChevronLeft className="mr-1.5 h-4 w-4" />
+                <span>Previous</span>
+              </Button>
+            )}
+          </div>
+          
+          <Button 
+            onClick={nextStep}
+            className="bg-white text-blue-600 hover:bg-white/90 hover:scale-105 transform transition-all shadow-lg rounded-full flex items-center px-5"
+          >
+            <span>{currentStep === steps.length - 1 ? 'Get Started' : 'Next'}</span>
+            <ChevronRight className="ml-1.5 h-4 w-4" />
+          </Button>
         </div>
       </motion.div>
     </div>
