@@ -864,11 +864,11 @@ class DisasterSentimentBackend:
         is_realtime = not ('process_csv' in caller_info)
         
         # Log usage type with rate limits (30/min, 1k/day for real-time)
-        logging.info(f"Sentiment analysis - Usage type: {'REAL-TIME (Llama 4 Maverick - 30/min, 1k/day)' if is_realtime else 'CSV UPLOAD (Default model)'}")
+        logging.info(f"Sentiment analysis - Usage type: {'REAL-TIME (DeepSeek R1 Distill Llama 70B - 30/min, 1k/day)' if is_realtime else 'CSV UPLOAD (Gemma2 9B IT)'}")
         
-        # If this is real-time analysis, use Llama 4 Maverick model if available
+        # If this is real-time analysis, use DeepSeek model if available
         if is_realtime:
-            logging.info(f"Using Meta Llama 4 Maverick for real-time sentiment analysis")
+            logging.info(f"Using DeepSeek R1 Distill Llama 70B for real-time sentiment analysis")
             
             # First check for dedicated API key for real-time analysis
             validation_api_key = os.getenv("VALIDATION_API_KEY")
