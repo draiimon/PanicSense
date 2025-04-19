@@ -567,7 +567,27 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
 
 export default function LandingPage() {
   const [showTutorial, setShowTutorial] = useState(false);
+  const [activeFeature, setActiveFeature] = useState<'monitoring' | 'geographic' | 'analytics'>('monitoring');
   const parallaxRef = useRef<HTMLDivElement>(null);
+  
+  // Auto-rotate feature cards
+  useEffect(() => {
+    const features: ('monitoring' | 'geographic' | 'analytics')[] = ['monitoring', 'geographic', 'analytics'];
+    let currentIndex = 0;
+    
+    // Initial delay before starting rotation
+    const initialTimeout = setTimeout(() => {
+      // Set up interval for continuous rotation
+      const intervalId = setInterval(() => {
+        currentIndex = (currentIndex + 1) % features.length;
+        setActiveFeature(features[currentIndex]);
+      }, 5000); // Switch every 5 seconds
+      
+      return () => clearInterval(intervalId);
+    }, 4000); // Wait 4 seconds before first switch
+    
+    return () => clearTimeout(initialTimeout);
+  }, []);
   
   // Parallax effect
   useEffect(() => {
@@ -841,44 +861,179 @@ export default function LandingPage() {
             >
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-transparent to-purple-500/10"></div>
               
-              <motion.div 
-                className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700 mb-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                <div className="flex items-center mb-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                  <h4 className="font-semibold">Live Disaster Monitoring</h4>
+              {/* Auto-transitioning Disaster Features Section */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 mb-6 min-h-[260px] relative">
+                <AnimatePresence initial={false} mode="wait">
+                  {/* We'll display the three features in rotation */}
+                  
+                  {/* FEATURE 1: Live Disaster Monitoring */}
+                  <motion.div 
+                    key="live-monitoring"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.5 }}
+                    className="p-4 absolute inset-0"
+                  >
+                    <div className="flex items-center mb-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                      <h4 className="font-semibold flex items-center">
+                        Live Disaster Monitoring
+                        <span className="ml-2 text-[10px] font-medium px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full">LIVE</span>
+                      </h4>
+                    </div>
+                    
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Real-time sentiment tracking for faster emergency response and coordination in the Philippines.</p>
+                    
+                    {/* Live Disaster Monitoring Content */}
+                    <div className="mt-3 space-y-2">
+                      {/* Live alerts */}
+                      {[
+                        { event: "Typhoon Warning", location: "Northern Luzon", level: "High" },
+                        { event: "Flash Flood", location: "Cagayan Valley", level: "Medium" }
+                      ].map((alert, i) => (
+                        <motion.div 
+                          key={i}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 + (i * 0.1) }}
+                          className="flex items-center justify-between p-2 bg-slate-50 rounded-md border border-slate-100"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`h-2 w-2 rounded-full ${
+                              alert.level === "High" ? "bg-red-500" : 
+                              alert.level === "Medium" ? "bg-orange-500" : "bg-yellow-500"
+                            }`}></div>
+                            <div>
+                              <div className="text-xs font-medium">{alert.event}</div>
+                              <div className="text-[10px] text-gray-500">{alert.location}</div>
+                            </div>
+                          </div>
+                          <div className="text-[10px] px-1.5 py-0.5 bg-slate-200 rounded text-slate-700">New</div>
+                        </motion.div>
+                      ))}
+                      
+                      {/* Activity indicator */}
+                      <div className="mt-3 pt-1 border-t border-gray-100">
+                        <div className="flex justify-between items-center">
+                          <div className="text-[10px] text-gray-500 uppercase font-medium">Live Activity</div>
+                          <div className="flex items-center">
+                            <div className="h-1.5 w-1.5 bg-red-500 rounded-full animate-pulse mr-1"></div>
+                            <span className="text-[10px] text-gray-500">Recording</span>
+                          </div>
+                        </div>
+                        
+                        {/* Mini activity chart */}
+                        <div className="h-10 relative mt-1 flex items-end gap-[2px]">
+                          {Array.from({ length: 20 }).map((_, i) => (
+                            <div 
+                              key={i}
+                              className="bg-blue-500 rounded-sm w-2" 
+                              style={{ 
+                                height: `${Math.floor(Math.random() * 70) + 30}%`,
+                                opacity: 0.5 + (i / 40)
+                              }}
+                            ></div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                  
+                  {/* FEATURE 2: Geographic Analysis (Initially hidden, will be shown via animation) */}
+                  <motion.div 
+                    key="geographic-analysis"
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 0, x: 50 }}
+                    exit={{ opacity: 0, x: -50 }}
+                    transition={{ duration: 0.5 }}
+                    className="p-4 absolute inset-0"
+                  >
+                    <div className="flex items-center mb-3">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
+                      <h4 className="font-semibold">Geographic Analysis</h4>
+                    </div>
+                    
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Visual mapping of disaster events across the Philippine archipelago for strategic response.</p>
+                    
+                    {/* Geographic Analysis Content */}
+                    <div className="relative h-[160px] bg-blue-50 rounded-lg border border-blue-100 overflow-hidden">
+                      {/* Map effect */}
+                      <div className="geo-coordinate-grid"></div>
+                      
+                      {/* Map outline */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <svg width="120" height="120" viewBox="0 0 100 100" className="opacity-40">
+                          <path 
+                            d="M40,20 C50,10 60,15 65,25 C70,35 65,45 55,50 C45,55 35,65 40,75 C45,85 55,85 65,75 C75,65 85,70 85,55 C85,40 75,30 65,20 C55,10 30,30 40,20 Z" 
+                            fill="none" 
+                            stroke="rgba(59, 130, 246, 0.8)" 
+                            strokeWidth="1"
+                          />
+                        </svg>
+                      </div>
+                      
+                      {/* Data points */}
+                      <div className="absolute top-1/4 left-1/4 h-2 w-2 rounded-full bg-red-500 animate-ping"></div>
+                      <div className="absolute top-1/2 right-1/3 h-2 w-2 rounded-full bg-orange-500 animate-ping delay-300"></div>
+                      <div className="absolute bottom-1/4 left-1/2 h-2 w-2 rounded-full bg-purple-500 animate-ping delay-700"></div>
+                      
+                      {/* Scanning effect */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-24 w-24 border-2 border-blue-500/20 rounded-full animate-ping-slow"></div>
+                    </div>
+                  </motion.div>
+                  
+                  {/* FEATURE 3: Advanced Analytics (Initially hidden, will be shown via animation) */}
+                  <motion.div 
+                    key="advanced-analytics"
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 0, x: 50 }}
+                    exit={{ opacity: 0, x: -50 }}
+                    transition={{ duration: 0.5 }}
+                    className="p-4 absolute inset-0"
+                  >
+                    <div className="flex items-center mb-3">
+                      <div className="w-3 h-3 bg-purple-500 rounded-full mr-2 animate-pulse"></div>
+                      <h4 className="font-semibold">Advanced Analytics</h4>
+                    </div>
+                    
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Advanced sentiment analysis using modern language processing with Filipino language support.</p>
+                    
+                    {/* Analytics Content */}
+                    <div className="mt-2">
+                      {/* Chart visualization */}
+                      <div className="h-[160px] flex items-end justify-between gap-2 px-1">
+                        {["Panic", "Fear", "Disbelief", "Resilience", "Neutral"].map((sentiment, i) => (
+                          <div key={i} className="flex flex-col items-center gap-1 flex-1">
+                            <div 
+                              className={`w-full rounded-t-sm ${
+                                sentiment === "Panic" ? "bg-red-500" :
+                                sentiment === "Fear" ? "bg-orange-500" :
+                                sentiment === "Disbelief" ? "bg-purple-500" :
+                                sentiment === "Resilience" ? "bg-green-500" : "bg-gray-400"
+                              }`}
+                              style={{ 
+                                height: `${
+                                  sentiment === "Panic" ? 75 :
+                                  sentiment === "Fear" ? 55 :
+                                  sentiment === "Disbelief" ? 40 :
+                                  sentiment === "Resilience" ? 65 : 35
+                                }%`
+                              }}
+                            ></div>
+                            <span className="text-[9px] text-gray-500">{sentiment}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+                
+                {/* Animation indicator - without "Latest Updates" label */}
+                <div className="absolute bottom-3 right-3 opacity-70">
+                  <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Real-time sentiment tracking for faster emergency response and coordination in the Philippines.</p>
-              </motion.div>
-              
-              <motion.div 
-                className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700 mb-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-              >
-                <div className="flex items-center mb-2">
-                  <Globe className="h-4 w-4 text-blue-500 mr-2" />
-                  <h4 className="font-semibold">Geographic Analysis</h4>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Visual mapping of disaster events across the Philippine archipelago for strategic response.</p>
-              </motion.div>
-              
-              <motion.div 
-                className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.9 }}
-              >
-                <div className="flex items-center mb-2">
-                  <Activity className="h-4 w-4 text-purple-500 mr-2" />
-                  <h4 className="font-semibold">Advanced Analytics</h4>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Advanced sentiment analysis using modern language processing with Filipino language support.</p>
-              </motion.div>
+              </div>
               
               <div className="absolute -bottom-2 -right-2 z-20">
                 <motion.div
@@ -888,120 +1043,14 @@ export default function LandingPage() {
                 >
                   <Badge className="py-1.5 px-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg">
                     <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                    Latest Updates
+                    Real-time Data
                   </Badge>
                 </motion.div>
               </div>
             </motion.div>
           </div>
           
-          {/* Latest Updates Section inspired by dashboard */}
-          <motion.div 
-            className="mt-8 max-w-md mx-auto"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.5, duration: 0.5 }}
-          >
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
-              <div className="p-3 pb-2 border-b border-slate-200 flex items-center justify-between relative z-10">
-                <motion.div className="flex items-center gap-2">
-                  <motion.div
-                    className="p-1.5 rounded-md bg-indigo-100"
-                    animate={{
-                      boxShadow: [
-                        "0 0 0px rgba(79, 70, 229, 0.2)",
-                        "0 0 10px rgba(79, 70, 229, 0.5)",
-                        "0 0 0px rgba(79, 70, 229, 0.2)",
-                      ],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      repeatType: "reverse",
-                    }}
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-                  </motion.div>
-                  <h3 className="text-sm font-medium text-slate-800 flex items-center gap-1.5">
-                    Latest Updates
-                    <motion.span
-                      className="inline-block"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3, delay: 2 }}
-                    >
-                      <div className="flex h-4 items-center justify-center rounded-full bg-green-500/20 px-1.5">
-                        <span className="text-[8px] font-semibold text-green-600">
-                          LIVE
-                        </span>
-                      </div>
-                    </motion.span>
-                  </h3>
-                </motion.div>
-              </div>
-              
-              <div className="space-y-1.5 p-3">
-                {[
-                  { 
-                    disaster: "Typhoon Amang", 
-                    sentiment: "Resilience", 
-                    location: "Cagayan Province",
-                    time: "Just now" 
-                  },
-                  { 
-                    disaster: "Floods", 
-                    sentiment: "Fear", 
-                    location: "Metro Manila",
-                    time: "5 mins ago" 
-                  },
-                  { 
-                    disaster: "Earthquake", 
-                    sentiment: "Disbelief", 
-                    location: "Batangas",
-                    time: "10 mins ago" 
-                  }
-                ].map((item, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ 
-                      duration: 0.3, 
-                      delay: 1.8 + (index * 0.2),
-                      ease: "easeOut"
-                    }}
-                    className="flex items-center justify-between bg-slate-50 p-1.5 rounded-md"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        item.sentiment === "Resilience" ? "bg-green-500" :
-                        item.sentiment === "Fear" ? "bg-orange-500" :
-                        item.sentiment === "Disbelief" ? "bg-purple-500" :
-                        item.sentiment === "Panic" ? "bg-red-500" : "bg-blue-500"
-                      }`} />
-                      <div>
-                        <p className="text-xs font-medium text-slate-800">{item.disaster}</p>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-slate-500">{item.location}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                        item.sentiment === "Resilience" ? "bg-green-100 text-green-700" :
-                        item.sentiment === "Fear" ? "bg-orange-100 text-orange-700" :
-                        item.sentiment === "Disbelief" ? "bg-purple-100 text-purple-700" :
-                        item.sentiment === "Panic" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
-                      }`}>
-                        {item.sentiment}
-                      </span>
-                      <span className="text-[10px] text-slate-400 mt-0.5">{item.time}</span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
+          {/* Removing the Latest Updates section entirely as requested */}
         </div>
       </section>
       
