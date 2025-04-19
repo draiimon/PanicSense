@@ -422,7 +422,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let status = 'active';
             if (progress.error) {
               status = 'error';
-            } else if (progress.stage && progress.stage.toLowerCase().includes('complete')) {
+            } else if (progress.stage && 
+                      (progress.stage.toLowerCase() === 'analysis complete' || 
+                       (progress.stage.toLowerCase().includes('complete') && 
+                        !progress.stage.toLowerCase().includes('record')))) {
               status = 'complete';
             } else if (progress.stage && progress.stage.toLowerCase().includes('cancel')) {
               status = 'canceled';

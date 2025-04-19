@@ -762,11 +762,13 @@ export function DisasterContextProvider({ children }: { children: ReactNode }): 
             // Check for ANY completion/error/cancellation signals
             const stageLower = progress.stage.toLowerCase();
             
-            // BROADER PATTERN MATCHING for terminal states
-            const isCompleteState = stageLower.includes('complete') || 
-                                  stageLower.includes('finish') || 
-                                  stageLower.includes('done') ||
-                                  (progress.processed >= progress.total && progress.total > 0);
+            // STRICTER TERMINAL STATE DETECTION - ONLY Analysis complete is a terminal state
+            // Not "Completed record X/Y" which is NOT a terminal state
+            const isCompleteState = stageLower === 'analysis complete' || 
+                                   stageLower === 'upload complete' || 
+                                   stageLower === 'processing complete' ||
+                                   (stageLower.includes('complete') && !stageLower.includes('record')) ||
+                                   (progress.processed >= progress.total && progress.total > 0 && !stageLower.includes('record'));
                                   
             const isErrorState = stageLower.includes('error') || 
                                stageLower.includes('fail') || 

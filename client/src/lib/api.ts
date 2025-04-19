@@ -467,9 +467,13 @@ export async function uploadCSV(
         return;
       }
       
-      // Special case: Always process terminal state messages (errors, completion)
+      // Special case: Always process terminal state messages (errors, completion) 
+      // BUT STRICT FILTER: Only exact "Analysis complete" is treated as completion
+      // NOT "Completed record X/Y" which is NOT a terminal state!
+      const stageLower = progress.stage?.toLowerCase() || '';
       const isTerminalState = progress.stage === 'Analysis complete' || 
-                             progress.stage?.toLowerCase()?.includes('complete') ||
+                             stageLower === 'analysis complete' || 
+                             (stageLower.includes('complete') && !stageLower.includes('record')) ||
                              progress.stage === 'Upload Error' || 
                              progress.error;
       
