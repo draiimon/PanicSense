@@ -42,6 +42,195 @@
   transition-duration: 0.001ms !important;
 }*/
 
+/* Dashboard and real-time monitoring animations */
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+}
+
+@keyframes dash-data {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@keyframes card-float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
+}
+
+/* Tutorial image container animations and styling */
+.tutorial-image-container {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.3), 0 8px 10px -6px rgba(124, 58, 237, 0.2);
+  transition: all 0.3s ease;
+  height: 200px;
+  width: 100%;
+}
+
+.tutorial-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  transition: all 0.5s ease;
+  border-radius: 0.75rem;
+}
+
+.tutorial-image-blur {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.75rem;
+  background: radial-gradient(circle at center, transparent 50%, rgba(15, 23, 42, 0.15) 100%);
+  pointer-events: none;
+}
+
+.tutorial-image-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.75rem;
+  background: radial-gradient(circle at 70% 20%, rgba(139, 92, 246, 0.15), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.tutorial-image-container:hover .tutorial-image-glow {
+  opacity: 1;
+}
+
+.tutorial-image-container:hover .tutorial-image {
+  transform: scale(1.03);
+}
+
+.tutorial-pulse-ring {
+  animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(0.7);
+    opacity: 0.3;
+  }
+}
+
+/* Real-time monitoring specific enhanced animations */
+.realtime-monitoring-container {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.3), 0 8px 10px -6px rgba(124, 58, 237, 0.2);
+  transition: all 0.3s ease;
+  animation: card-float 6s ease-in-out infinite;
+}
+
+.realtime-monitoring-container:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 35px -10px rgba(124, 58, 237, 0.4), 0 10px 15px -3px rgba(124, 58, 237, 0.1);
+}
+
+/* Video Effects */
+.realtime-video-effect {
+  position: relative;
+  border: 2px solid rgba(39, 39, 42, 0.8) !important;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4) !important;
+}
+
+.realtime-video-effect::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(30, 41, 59, 0.2), rgba(30, 41, 59, 0));
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Video scanlines effect */
+.video-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 1px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 3px
+  );
+}
+
+/* Video noise effect */
+.video-noise {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0.03;
+  animation: noise 0.5s steps(2) infinite;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+@keyframes noise {
+  0% { opacity: 0.03; }
+  50% { opacity: 0.015; }
+  100% { opacity: 0.03; }
+}
+
+/* Video time counter */
+.video-time-counter {
+  font-family: monospace;
+  font-size: 0.7rem;
+  animation: time-counter 1s linear infinite;
+}
+
+@keyframes time-counter {
+  0% { opacity: 1; }
+  50% { opacity: 1; }
+  51% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* Add animated data points over the real-time image */
+.data-point-pulse {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: rgba(124, 58, 237, 0.7);
+  animation: pulse-glow 2s infinite;
+  z-index: 10;
+}
+
+.data-point-1 { top: 30%; left: 20%; animation-delay: 0s; }
+.data-point-2 { top: 25%; right: 25%; animation-delay: 0.7s; }
+.data-point-3 { bottom: 40%; left: 35%; animation-delay: 1.3s; }
+.data-point-4 { bottom: 20%; right: 20%; animation-delay: 2s; }
+
+/* Mobile responsiveness for real-time monitoring UI */
+@media (max-width: 640px) {
+  .tutorial-image-container {
+    height: 150px;
+  }
+  
+  .data-point-pulse {
+    width: 8px;
+    height: 8px;
+  }
+}
+
 /* Social-media style rendering optimizations for complex components */
 .optimize-render {
   contain: layout;

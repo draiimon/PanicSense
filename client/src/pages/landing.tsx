@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import uploadDataImg from '../assets/upload-disaster-data.png';
 import analyzeSentimentImg from '../assets/analyze-sentiment.png';
 import geographicAnalysisImg from '../assets/geographic-analysis.png';
+import realTimeMonitoringImg from '../assets/real-time-monitoring.png';
 
 // Create a twinkling stars effect
 const TwinklingStars = () => {
@@ -316,7 +317,7 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
       title: "Real-time Monitoring",
       description: "Monitor new disaster reports in real-time for faster emergency response and coordination.",
       icon: <Clock size={24} />,
-      image: uploadDataImg // For now, we'll reuse the first image for this step
+      image: realTimeMonitoringImg
     }
   ];
   
@@ -443,7 +444,9 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                 className="relative z-10 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm"
               >
                 {/* Image with blur effects and radius */}
-                <div className="tutorial-image-container mb-6 slide-up-animation">
+                <div 
+                  className={`tutorial-image-container mb-6 slide-up-animation ${currentStep === 3 ? 'realtime-video-effect' : ''}`}
+                >
                   <img 
                     src={steps[currentStep].image} 
                     alt={steps[currentStep].title} 
@@ -453,6 +456,34 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                   <div className="tutorial-image-blur"></div>
                   {/* Interactive glow effect */}
                   <div className="tutorial-image-glow"></div>
+                  
+                  {/* Video effects for real-time monitoring */}
+                  {currentStep === 3 && (
+                    <>
+                      {/* CCTV-style recording indicator */}
+                      <div className="absolute top-3 left-3 flex items-center space-x-2 bg-black/40 rounded-full py-1 px-3 z-20">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        <span className="text-white text-xs font-medium">LIVE</span>
+                      </div>
+                      
+                      {/* Video scan lines */}
+                      <div className="video-scanlines"></div>
+                      
+                      {/* Video static noise */}
+                      <div className="video-noise"></div>
+                      
+                      {/* Data points animation */}
+                      <div className="data-point-pulse data-point-1"></div>
+                      <div className="data-point-pulse data-point-2"></div>
+                      <div className="data-point-pulse data-point-3"></div>
+                      <div className="data-point-pulse data-point-4"></div>
+                      
+                      {/* Time counter */}
+                      <div className="absolute bottom-3 right-3 bg-black/40 text-white text-xs py-1 px-2 rounded font-mono z-20">
+                        <LiveTimeCounter />
+                      </div>
+                    </>
+                  )}
                   
                   {/* Pulsing indicator */}
                   <div className="absolute top-4 right-4 flex items-center justify-center">
