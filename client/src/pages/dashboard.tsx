@@ -1135,7 +1135,7 @@ export default function Dashboard() {
               </div>
 
               {/* Recent Posts Card */}
-              <div className="h-full flex flex-col">
+              <div id="recent-posts" className="h-full flex flex-col">
                 <div className="bg-gradient-to-r from-teal-50 to-cyan-50 border-b border-teal-100/50 p-6 pb-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
