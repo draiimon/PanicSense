@@ -855,7 +855,143 @@ class DisasterSentimentBackend:
                 "language": language
             }
         
-        # If no exact match, proceed with regular API-based analysis
+        # Track whether this is a single-text analysis (real-time) or part of a CSV upload
+        # We'll use this to decide whether to use Meta Llama 4 Maverick (for real-time only)
+        import inspect
+        caller_info = inspect.stack()[1].function if inspect.stack() and len(inspect.stack()) > 1 else ""
+        
+        # Check if this is a real-time analysis (not from process_csv function) vs CSV upload (from process_csv)
+        is_realtime = not ('process_csv' in caller_info)
+        
+        # Log usage type with rate limits (30/min, 1k/day for real-time)
+        logging.info(f"Sentiment analysis - Usage type: {'REAL-TIME (Llama 4 Maverick - 30/min, 1k/day)' if is_realtime else 'CSV UPLOAD (Default model)'}")
+        
+        # If this is real-time analysis, use Llama 4 Maverick model if available
+        if is_realtime:
+            logging.info(f"Using Meta Llama 4 Maverick for real-time sentiment analysis")
+            
+            # First check for dedicated API key for real-time analysis
+            validation_api_key = os.getenv("VALIDATION_API_KEY")
+            
+            # If we have a key, try to use Llama 4 Maverick for real-time analysis
+            if validation_api_key:
+                try:
+                    import requests
+                    
+                    # Use specialized prompt for Llama 4 Maverick
+                    if language == "Filipino":
+                        system_message = """Ikaw ay isang dalubhasa sa pagsusuri ng damdamin sa panahon ng sakuna sa Pilipinas.
+
+MAHALAGA: Ang sistema ay nakatuon sa pag-classify ng mensahe sa isa sa limang kategorya:
+- Panic: Matinding pag-aalala, pagkatakot at paghingi ng tulong, madalas may all-caps o maraming tandang padamdam, o madiing paghingi ng saklolo.
+- Fear/Anxiety: Nakakaramdam ng takot o pag-aalala ngunit may control pa rin, di kasing-intense ng Panic.
+- Disbelief: Pagkagulat, pagdududa, sarkasmo o hindi paniniwala sa nangyayari.
+- Resilience: Pagpapakita ng lakas-loob, pagkakaisa at pag-asa sa kabila ng sakuna.
+- Neutral: Simpleng pahayag ng impormasyon, walang emosyon o damdamin.
+
+MAHALAGANG KONTEKSTO:
+- Mga simpleng statement tulad ng "may sunog sa kanto" o "may baha" ay NEUTRAL kung walang ibang emotional context.
+- Mga mensaheng may "TULONG!" o "HELP!" ay madalas na Panic.
+- Mga mensaheng nag-aalok na tumulong ("tulungan natin sila") ay Resilience, samantalang mga nanghihingi ng tulong ("tulungan niyo kami") ay Panic o Fear.
+- Madalas na may mga mixed message na Tagalog at English (Taglish) na kailangang bigyan ng cultural context.
+
+Suriin mo rin kung may nabanggit na uri ng sakuna (Flood, Typhoon, Fire, Volcanic Eruption, Earthquake, Landslide) at lokasyon sa Pilipinas.
+
+Ang response mo ay dapat nasa JSON format lang na may: "sentiment", "confidence", "explanation", "disasterType", "location" """
+                    else:
+                        system_message = """You are a disaster sentiment analysis expert specialized in Philippine disaster contexts using the Meta Llama 4 Maverick model.
+
+CRITICAL: You must classify the message into one of five categories:
+- Panic: Intense distress, fear and urgent calls for help, often with all-caps or multiple exclamation marks.
+- Fear/Anxiety: Experiencing worry and concern but with more control, less intense than Panic.
+- Disbelief: Expressions of shock, doubt, sarcasm or disbelief about the situation.
+- Resilience: Showing strength, unity and hope despite disaster.
+- Neutral: Simple factual statements without emotional content.
+
+IMPORTANT CONTEXTUAL GUIDELINES:
+- Simple statements like "there is a fire at the corner" or "there is flooding" are NEUTRAL if there's no other emotional context.
+- Messages with "HELP!" or urgent cries for assistance indicate Panic.
+- Messages offering to help others ("let's help them") show Resilience, while those asking for help ("please help us") indicate Panic or Fear.
+- Many messages mix Tagalog and English (Taglish) that require cultural context awareness.
+- The presence of emojis requires careful interpretation as they may change the emotional meaning significantly.
+
+Also identify the disaster type (Flood, Typhoon, Fire, Volcanic Eruption, Earthquake, Landslide) and location in the Philippines if mentioned.
+
+Format your response as a JSON object with: "sentiment", "confidence" (between 0.0-1.0), "explanation", "disasterType", "location" """
+
+                    # For Meta Llama models we need to use the correct base URL
+                    llama_url = "https://api.groq.com/openai/v1/chat/completions"
+                    headers = {
+                        "Authorization": f"Bearer {validation_api_key}",
+                        "Content-Type": "application/json"
+                    }
+                    
+                    response = requests.post(
+                        llama_url,
+                        headers=headers,
+                        json={
+                            "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
+                            "messages": [
+                                {"role": "system", "content": system_message},
+                                {"role": "user", "content": f"Please analyze this disaster-related text: \"{text}\""}
+                            ],
+                            "temperature": 0.1,
+                            "max_tokens": 350,
+                            "response_format": {"type": "json_object"}
+                        },
+                        timeout=30
+                    )
+                    
+                    if response.status_code == 200:
+                        content = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
+                        if content:
+                            import json
+                            llama_result = json.loads(content)
+                            
+                            if isinstance(llama_result, dict) and 'sentiment' in llama_result:
+                                # Make sure we have all required fields
+                                sentiment = llama_result.get('sentiment')
+                                confidence = float(llama_result.get('confidence', 0.85))
+                                explanation = llama_result.get('explanation', 'Analysis via Llama 4 Maverick')
+                                disaster_type = llama_result.get('disasterType')
+                                location = llama_result.get('location')
+                                
+                                # Map sentiment to our 5 categories if needed
+                                if sentiment not in ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"]:
+                                    # Some mapping for common variations
+                                    sentiment_map = {
+                                        "PANIC": "Panic",
+                                        "FEAR": "Fear/Anxiety", 
+                                        "ANXIETY": "Fear/Anxiety",
+                                        "FEAR/ANXIETY": "Fear/Anxiety",
+                                        "NEUTRAL": "Neutral",
+                                        "DISBELIEF": "Disbelief",
+                                        "RESILIENCE": "Resilience",
+                                        "HOPE": "Resilience"
+                                    }
+                                    sentiment = sentiment_map.get(sentiment.upper(), "Neutral")
+                                
+                                # If successful return Meta Llama 4 Maverick result
+                                logging.info(f"Llama 4 Maverick real-time analysis successful: {sentiment} [{confidence:.2f}]")
+                                
+                                # Return the Llama 4 Maverick result - don't include language here to match format
+                                return {
+                                    "sentiment": sentiment,
+                                    "confidence": min(0.97, confidence),  # Cap at 0.97 for safety
+                                    "explanation": explanation,
+                                    "disasterType": disaster_type,
+                                    "location": location,
+                                    "language": language
+                                }
+                    
+                    # If reaching here, Llama 4 analysis failed, fall back to regular method
+                    logging.warning("Llama 4 Maverick analysis failed - falling back to regular method")
+                    
+                except Exception as e:
+                    logging.error(f"Error using Llama 4 Maverick for real-time analysis: {str(e)}")
+                    # Fall through to regular analysis
+        
+        # If not real-time or Llama 4 failed, use regular API-based analysis
         result = self.get_api_sentiment_analysis(text, language)
 
         # Add additional metadata
@@ -2554,15 +2690,19 @@ class DisasterSentimentBackend:
                 language = "English"
         except:
             language = "English"
-            
-        # Use ONLY ONE API key for validation to prevent rate limiting
-        # This strictly follows the requirement of using just one API key
-        validation_api_key = self.groq_api_keys[0] if len(self.groq_api_keys) > 0 else None
+        
+        # IMPORTANT CHANGE: Use Meta Llama 4 Maverick 17B for validation as requested by the user
+        # Check for dedicated validation API key first
+        validation_api_key = os.getenv("VALIDATION_API_KEY")
+        
+        # If no dedicated validation key, fall back to the first groq key
+        if not validation_api_key and len(self.groq_api_keys) > 0:
+            validation_api_key = self.groq_api_keys[0]
         
         # Safe logging to avoid None subscripting error
         if validation_api_key:
             masked_key = validation_api_key[:10] + "***" if len(validation_api_key) > 10 else "***"
-            logging.info(f"Using 1 key for validation: {masked_key} - ENABLED LESS STRICT VALIDATION")
+            logging.info(f"Using Meta Llama 4 Maverick model for validation with key: {masked_key}")
         else:
             logging.warning("No validation key available")
         
@@ -2575,31 +2715,116 @@ class DisasterSentimentBackend:
                     "Content-Type": "application/json"
                 }
                 
-                # Use same prompt construction as in regular analysis
+                # Specialized high-quality prompt for Meta Llama 4 Maverick model - much more detailed than regular prompt
                 if language == "Filipino":
-                    system_message = """Ikaw ay isang dalubhasa sa pagsusuri ng damdamin sa panahon ng sakuna sa Pilipinas..."""
+                    system_message = """Ikaw ay isang dalubhasa sa pagsusuri ng damdamin sa panahon ng sakuna sa Pilipinas na ginagamit para sa validation ng mga user corrections.
+
+MAHALAGA: Ang sistema ay nakatuon sa pag-classify ng mensahe sa isa sa limang kategorya:
+- Panic: Matinding pag-aalala, pagkatakot at paghingi ng tulong, madalas may all-caps o maraming tandang padamdam, o madiing paghingi ng saklolo.
+- Fear/Anxiety: Nakakaramdam ng takot o pag-aalala ngunit may control pa rin, di kasing-intense ng Panic.
+- Disbelief: Pagkagulat, pagdududa, sarkasmo o hindi paniniwala sa nangyayari.
+- Resilience: Pagpapakita ng lakas-loob, pagkakaisa at pag-asa sa kabila ng sakuna.
+- Neutral: Simpleng pahayag ng impormasyon, walang emosyon o damdamin.
+
+MAHALAGANG KONTEKSTO:
+- Mga simpleng statement tulad ng "may sunog sa kanto" o "may baha" ay NEUTRAL kung walang ibang emotional context.
+- Mga mensaheng may "TULONG!" o "HELP!" ay madalas na Panic.
+- Mga mensaheng nag-aalok na tumulong ("tulungan natin sila") ay Resilience, samantalang mga nanghihingi ng tulong ("tulungan niyo kami") ay Panic o Fear.
+- Madalas na may mga mixed message na Tagalog at English (Taglish) na kailangang bigyan ng cultural context.
+
+Suriin mo ngayon ang texto at ilarawan sa isang malinaw at structured na paraan kung anong kategorya ng damdamin ang pinakaangkop."""
                 else:
-                    system_message = """You are a disaster sentiment analysis expert specialized in Philippine disaster contexts..."""
+                    system_message = """You are a disaster sentiment validation expert specialized in Philippine disaster contexts using the Meta Llama 4 Maverick model specifically for validation.
+
+CRITICAL: The system focuses on classifying messages into one of five categories:
+- Panic: Intense distress, fear and urgent calls for help, often with all-caps or multiple exclamation marks.
+- Fear/Anxiety: Experiencing worry and concern but with more control, less intense than Panic.
+- Disbelief: Expressions of shock, doubt, sarcasm or disbelief about the situation.
+- Resilience: Showing strength, unity and hope despite disaster.
+- Neutral: Simple factual statements without emotional content.
+
+IMPORTANT CONTEXTUAL GUIDELINES:
+- Simple statements like "there is a fire at the corner" or "there is flooding" are NEUTRAL if there's no other emotional context.
+- Messages with "HELP!" or urgent cries for assistance indicate Panic.
+- Messages offering to help others ("let's help them") show Resilience, while those asking for help ("please help us") indicate Panic or Fear.
+- Many messages mix Tagalog and English (Taglish) that require cultural context awareness.
+- The presence of emojis requires careful interpretation as they may change the emotional meaning significantly.
+
+Analyze the provided text and describe in a clear, structured way which sentiment category is most appropriate."""
+                
+                # Use Meta Llama 4 Maverick 17B model for validation as specifically requested
+                # For Meta Llama models we need to use the correct base URL
+                llama_url = "https://api.groq.com/openai/v1/chat/completions"
                 
                 response = requests.post(
-                    url,
+                    llama_url,
                     headers=headers,
                     json={
-                        "model": "gemma2-9b-it",
+                        "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
                         "messages": [
                             {"role": "system", "content": system_message},
-                            {"role": "user", "content": f"Analyze the following text and determine the sentiment: \"{text}\""}
+                            {"role": "user", "content": f"""Please analyze this disaster-related text: "{text}"
+
+The original system classified this as: {original_sentiment}
+A user has suggested it should be: {corrected_sentiment}
+
+TASK:
+1. Analyze the text's emotional content considering Filipino cultural context
+2. Determine which classification is most accurate
+3. Provide a clear explanation of your reasoning
+4. Format your response as JSON: {{"sentiment": "THE_CATEGORY", "confidence": 0.XX, "explanation": "detailed explanation", "validation": "valid" or "invalid", "reason": "why the correction is valid or invalid"}}
+
+Remember the context of Filipino/Taglish expressions and disaster-specific language patterns."""}
                         ],
-                        "temperature": 0.2,
-                        "max_tokens": 150
+                        "temperature": 0.1,
+                        "max_tokens": 350,
+                        "response_format": {"type": "json_object"}
                     },
                     timeout=30
                 )
                 
                 # Process response directly
                 if response.status_code == 200:
-                    ai_analysis = self._process_llm_response(response.json(), text, language)
-                    logging.info(f"API validation used single key successfully")
+                    response_data = response.json()
+                    
+                    # Check if we're using Llama 4 Maverick and got back a JSON response
+                    logging.info(f"Using Llama 4 Maverick for validation")
+                    
+                    # Extract the response content
+                    content = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
+                    
+                    try:
+                        # Try to parse JSON directly from the content
+                        if content:
+                            import json
+                            llama_result = json.loads(content)
+                            
+                            # Check if this is a structured JSON response with the validation fields
+                            if isinstance(llama_result, dict) and 'validation' in llama_result:
+                                # Use the Llama 4 Maverick validation result directly
+                                logging.info(f"Llama 4 Maverick validation result: {llama_result}")
+                                
+                                # The model directly tells us whether the correction is valid
+                                validation_result = llama_result.get('validation', 'valid')
+                                is_valid = validation_result.lower() == 'valid'
+                                
+                                # Create a result object directly from the Llama response
+                                return {
+                                    "valid": is_valid,
+                                    "reason": llama_result.get('reason', llama_result.get('explanation', ''))
+                                }
+                            else:
+                                # Fall back to our regular processing if Llama didn't give us validation fields
+                                ai_analysis = self._process_llm_response(response_data, text, language)
+                                logging.info(f"API validation used Llama 4 Maverick but didn't get validation fields, using regular processing")
+                        else:
+                            # Fall back to our regular processing
+                            ai_analysis = self._process_llm_response(response_data, text, language)
+                    except Exception as e:
+                        logging.error(f"Error processing Llama 4 Maverick response: {str(e)}")
+                        # Fall back to regular processing
+                        ai_analysis = self._process_llm_response(response_data, text, language)
+                        logging.info(f"API validation used Llama 4 Maverick with fallback processing")
                 else:
                     # If API call fails, fall back to cached result
                     ai_analysis = self._rule_based_sentiment_analysis(text, language)
