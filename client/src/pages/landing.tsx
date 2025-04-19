@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'wouter';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
-import { ChevronRight, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Database, ArrowRight, Info, ExternalLink, Shield, Users, BellRing, Star, Award, Heart, Globe, Activity, ChevronLeft, Check, Sparkles } from 'lucide-react';
+import { ChevronRight, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Database, ArrowRight, Info, ExternalLink, Shield, Users, BellRing, Star, Award, Heart, Globe, Activity, ChevronLeft, Check, Sparkles, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -514,15 +514,15 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
           </div>
           
           <div className="flex flex-col md:flex-row items-center md:items-start md:gap-8 lg:gap-12">
-            {/* Tutorial Image - Column 1 - WIDER but with good height too */}
+            {/* Tutorial Image - Column 1 - FIXED SIZE for consistency */}
             <div 
-              className="tutorial-image-container slide-up-animation w-full max-w-[300px] md:max-w-[450px] lg:max-w-[500px] mx-auto md:mx-0 md:aspect-[4/3] overflow-hidden"
+              className="tutorial-image-container slide-up-animation w-[300px] h-[300px] mx-auto md:mx-0 overflow-hidden flex items-center justify-center"
             >
-              <div className="tutorial-dynamic-content h-full">
+              <div className="w-[300px] h-[300px] fixed-tutorial-image flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-lg shadow-lg">
                 <img 
                   src={steps[currentStep].image} 
                   alt={steps[currentStep].title} 
-                  className="tutorial-image object-contain w-full h-[350px] rounded-lg shadow-lg"
+                  className="tutorial-image object-contain w-[280px] h-[280px] rounded-lg"
                 />
               </div>
             </div>
@@ -621,28 +621,30 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                 </div>
               </motion.div>
               
-              <div className="mt-8 flex justify-between items-center">
-                <motion.div
-                  whileTap={{ scale: 0.95 }}
-                  whileHover={{ scale: 1.05 }}
-                >
-                  {currentStep > 0 ? (
-                    <Button 
-                      onClick={prevStep}
-                      className="relative overflow-hidden bg-gradient-to-r from-white/20 to-white/5 border-0 backdrop-blur-md text-white hover:from-white/30 hover:to-white/10 px-6 rounded-full font-medium shadow-lg group"
+              {/* Fixed position navigation buttons */}
+              <div className="mt-8 h-12 flex justify-between items-center">
+                <div className="w-28 h-10">
+                  {currentStep > 0 && (
+                    <motion.div
+                      whileTap={{ scale: 0.95 }}
+                      whileHover={{ scale: 1.05 }}
+                      className="h-full"
                     >
-                      <span className="relative z-10 flex items-center">
-                        <ChevronLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                        Previous
-                      </span>
-                      <span className="absolute inset-0 overflow-hidden rounded-full">
-                        <span className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/5 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                      </span>
-                    </Button>
-                  ) : (
-                    <div className="w-28"></div>
+                      <Button 
+                        onClick={prevStep}
+                        className="relative overflow-hidden h-full bg-gradient-to-r from-white/20 to-white/5 border-0 backdrop-blur-md text-white hover:from-white/30 hover:to-white/10 px-6 rounded-full font-medium shadow-lg group"
+                      >
+                        <span className="relative z-10 flex items-center">
+                          <ChevronLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                          Previous
+                        </span>
+                        <span className="absolute inset-0 overflow-hidden rounded-full">
+                          <span className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/5 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                        </span>
+                      </Button>
+                    </motion.div>
                   )}
-                </motion.div>
+                </div>
                 
                 {/* Step indicators */}
                 <div className="flex space-x-1.5">
@@ -665,35 +667,38 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                   ))}
                 </div>
                 
-                <motion.div
-                  whileTap={{ scale: 0.95 }}
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <Button 
-                    onClick={nextStep}
-                    className={`relative overflow-hidden px-8 py-2.5 rounded-full font-medium shadow-lg group ${
-                      currentStep === steps.length - 1
-                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white'
-                        : 'bg-white text-indigo-600 hover:text-indigo-800'
-                    }`}
+                <div className="w-28 h-10">
+                  <motion.div
+                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.05 }}
+                    className="h-full"
                   >
-                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
-                    <span className="relative z-10 flex items-center font-bold">
-                      {currentStep === steps.length - 1 ? "Get Started" : "Next"}
-                      {currentStep !== steps.length - 1 && 
-                        <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                      }
-                      {currentStep === steps.length - 1 && (
-                        <>
-                          <Sparkles className="ml-2 h-4 w-4 animate-pulse" />
-                          <div className="absolute -right-10 transform rotate-45 animate-bounce">
-                            <ArrowUp className="h-5 w-5 text-yellow-300 drop-shadow-glow" />
-                          </div>
-                        </>
-                      )}
-                    </span>
-                  </Button>
-                </motion.div>
+                    <Button 
+                      onClick={nextStep}
+                      className={`relative overflow-hidden h-full px-8 py-2.5 rounded-full font-medium shadow-lg group ${
+                        currentStep === steps.length - 1
+                          ? 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white'
+                          : 'bg-white text-indigo-600 hover:text-indigo-800'
+                      }`}
+                    >
+                      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
+                      <span className="relative z-10 flex items-center font-bold">
+                        {currentStep === steps.length - 1 ? "Get Started" : "Next"}
+                        {currentStep !== steps.length - 1 && 
+                          <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        }
+                        {currentStep === steps.length - 1 && (
+                          <>
+                            <Sparkles className="ml-2 h-4 w-4 animate-pulse" />
+                            <div className="absolute -right-10 transform rotate-45 animate-bounce">
+                              <ArrowUp className="h-5 w-5 text-yellow-300 drop-shadow-glow" />
+                            </div>
+                          </>
+                        )}
+                      </span>
+                    </Button>
+                  </motion.div>
+                </div>
               </div>
             </div>
           </div>
