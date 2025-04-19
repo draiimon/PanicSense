@@ -32,6 +32,7 @@ import { nuclearCleanup, listenForNuclearCleanup, runAutoCleanupWhenNeeded } fro
 declare global {
   interface Window {
     _activeEventSources?: Record<string, EventSource>;
+    _autoCloseTimer?: ReturnType<typeof setTimeout>;  // Add timer reference
   }
 }
 
@@ -131,14 +132,29 @@ export function UploadProgressModal() {
       onUploadComplete: (progress) => {
         console.log('🏁 Received completion notification from another tab');
         
-        // Verify this is a genuine completion and not a premature notification
-        // by checking if we've processed at least 95% of the total records
-        const total = progress.total || 100;
-        const processed = progress.processed || 0;
+        // CRITICAL: Only process completion notifications on ACTIVE uploads
+        // This prevents the "Analysis complete" message from showing up on page load
+        if (!isUploading) {
+          console.log('⚠️ IMPORTANT: Ignoring completion notification because no upload is active');
+          return;
+        }
+        
+        // Check if stage is already showing completion, if so don't process
+        // This is another layer of protection against premature notifications
+        if (stage && stage.toLowerCase() === 'analysis complete') {
+          console.log('⚠️ Already showing completion stage, ignoring duplicate notification');
+          return;
+        }
+        
+        // Now verify this is a genuine completion by checking processed count
+        // Only accept completion notices if we've processed at least 95% of records
+        const total = uploadProgress?.total || progress.total || 100;
+        const processed = uploadProgress?.processed || progress.processed || 0;
         const processedThreshold = Math.floor(total * 0.95);
         
+        // Strict validation to prevent premature notifications
         if (processed < processedThreshold) {
-          console.log(`⚠️ Ignoring premature completion notification - only processed ${processed}/${total} records`);
+          console.log(`⚠️ IGNORED: Premature completion notification - only processed ${processed}/${total} records`);
           return; // Don't process premature completions
         }
         
@@ -151,6 +167,8 @@ export function UploadProgressModal() {
           console.log('⚠️ Ignoring duplicate completion event - already handled recently');
           return;
         }
+        
+        console.log('✅ VALID COMPLETION NOTIFICATION: Showing Analysis complete');
         
         // Force this tab to show the upload modal if we're not already showing it
         if (!isUploading) {
@@ -168,14 +186,29 @@ export function UploadProgressModal() {
           timeRemaining: 0
         });
         
-        // Set a timer to auto-close
+        // Set a timer to auto-close EXACTLY 3 seconds from now
         const completionDelay = 3000; // 3 seconds
-        console.log(`📊 Will auto-close after ${completionDelay}ms due to completion message`);
+        console.log(`📊 Will auto-close after EXACTLY ${completionDelay}ms due to completion message`);
         
-        setTimeout(() => {
-          console.log('⏰ AUTO-CLOSE TRIGGERED BY COMPLETION MESSAGE');
+        // Store completion timestamp in localStorage to prevent duplicate handling
+        localStorage.setItem('uploadCompletedTimestamp', now.toString());
+        
+        // Clear any existing auto-close timers to prevent race conditions
+        if (typeof window !== 'undefined' && window._autoCloseTimer) {
+          clearTimeout(window._autoCloseTimer);
+          window._autoCloseTimer = undefined;
+        }
+        
+        // Set strict auto-close timer at exactly 3 seconds
+        const timerRef = setTimeout(() => {
+          console.log('⏰ AUTO-CLOSE TRIGGERED BY COMPLETION MESSAGE - EXACTLY 3 SECONDS');
           cleanupAndClose();
         }, completionDelay);
+        
+        // Store reference to the timer
+        if (typeof window !== 'undefined') {
+          window._autoCloseTimer = timerRef;
+        }
       },
       
       onUploadCleanup: () => {
@@ -355,11 +388,23 @@ export function UploadProgressModal() {
           // Use the synchronization manager to mark it complete and notify other tabs
           markUploadCompleted(finalProgress);
           
-          // Auto-close after a delay
-          setTimeout(() => {
-            console.log('⏰ AUTO-CLOSE TRIGGERED BY COMPLETION VERIFICATION');
+          // Auto-close after a strict 3 second delay
+          // Clear any existing auto-close timers to prevent race conditions
+          if (typeof window !== 'undefined' && window._autoCloseTimer) {
+            clearTimeout(window._autoCloseTimer);
+            window._autoCloseTimer = undefined;
+          }
+          
+          // Set strict auto-close timer at exactly 3 seconds
+          const timerRef = setTimeout(() => {
+            console.log('⏰ AUTO-CLOSE TRIGGERED BY COMPLETION VERIFICATION - EXACTLY 3 SECONDS');
             cleanupAndClose();
           }, 3000);
+          
+          // Store reference to the timer
+          if (typeof window !== 'undefined') {
+            window._autoCloseTimer = timerRef;
+          }
         }
       } catch (error) {
         console.error('Error checking upload completion status:', error);
