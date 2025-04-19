@@ -26,7 +26,7 @@ import {
   broadcastMessage
 } from "@/lib/synchronization-manager";
 import { cancelUpload, getCurrentUploadSessionId } from "@/lib/api";
-import { nuclearCleanup, listenForNuclearCleanup } from "@/hooks/use-nuclear-cleanup";
+import { nuclearCleanup, listenForNuclearCleanup, runAutoCleanupWhenNeeded } from "@/hooks/use-nuclear-cleanup";
 
 // Add a global TypeScript interface for window
 declare global {
@@ -61,9 +61,21 @@ export function UploadProgressModal() {
   } = uploadProgress || {};
   
   // Set up listener for nuclear cleanup broadcasts from other tabs
+  // and automatic stability check
   useEffect(() => {
+    // Set up cleanup listener
     const removeNuclearListener = listenForNuclearCleanup();
-    return () => removeNuclearListener();
+    
+    // Run auto cleanup on mount and every 15 seconds
+    runAutoCleanupWhenNeeded();
+    const autoCleanupInterval = setInterval(() => {
+      runAutoCleanupWhenNeeded();
+    }, 15000); // Every 15 seconds check for inconsistencies
+    
+    return () => {
+      removeNuclearListener();
+      clearInterval(autoCleanupInterval);
+    };
   }, []);
   
   // Define a clean-up function that will be used for both direct modal closing and broadcast handling
@@ -880,72 +892,7 @@ export function UploadProgressModal() {
                     </Button>
                   </div>
                   
-                  {/* Emergency reset button */}
-                  <div className="mt-2 flex space-x-2">
-                    <Button
-                      onClick={() => {
-                        // Clean up all state
-                        cleanupUploadState();
-                        
-                        // Also do a direct API cleanup
-                        fetch('/api/reset-upload-sessions', {
-                          method: 'POST'
-                        }).then(() => {
-                          console.log('EMERGENCY: Reset all upload sessions');
-                          // Hard refresh the page
-                          window.location.reload();
-                        }).catch(e => {
-                          console.error('Error in emergency reset:', e);
-                          // Still reload
-                          window.location.reload();
-                        });
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs text-red-700 border-red-300 hover:bg-red-50"
-                    >
-                      Emergency Reset
-                    </Button>
-                    
-                    <Button
-                      onClick={() => {
-                        toast({
-                          title: "Nuclear Cleanup Initiated",
-                          description: "Performing complete cleanup across all browser tabs",
-                          variant: "destructive",
-                        });
-                        
-                        // Perform nuclear cleanup
-                        nuclearCleanup();
-                        
-                        // Force close the modal
-                        forceCloseModalMemo();
-                        
-                        // Also do server-side cleanup
-                        fetch('/api/reset-upload-sessions', {
-                          method: 'POST'
-                        }).then(() => {
-                          console.log('☢️ NUCLEAR: Reset all upload sessions');
-                          // Hard refresh the page after a short delay
-                          setTimeout(() => {
-                            window.location.reload();
-                          }, 1000);
-                        }).catch(e => {
-                          console.error('Error in nuclear reset:', e);
-                          // Still reload after a delay
-                          setTimeout(() => {
-                            window.location.reload();
-                          }, 1000);
-                        });
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs bg-red-800 text-white border-red-900 hover:bg-red-900 hover:text-white flex items-center gap-1"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                      <span>Nuclear Cleanup</span>
-                    </Button>
-                  </div>
+                  {/* No buttons here anymore - using automatic cleanup */}
                 </div>
               </div>
             )}
@@ -997,43 +944,7 @@ export function UploadProgressModal() {
                   </Button>
                 </div>
                 
-                {/* Nuclear Reset Button */}
-                <div className="flex justify-center">
-                  <Button
-                    onClick={() => {
-                      // Perform nuclear cleanup
-                      nuclearCleanup();
 
-                      toast({
-                        title: "Nuclear Cleanup",
-                        description: "Performing complete cleanup across all tabs",
-                        variant: "destructive",
-                      });
-                      
-                      // Also do a direct API cleanup
-                      fetch('/api/reset-upload-sessions', {
-                        method: 'POST'
-                      }).catch(e => {
-                        console.error('Error in nuclear reset API call:', e);
-                      });
-                      
-                      // Force close the modal immediately
-                      setIsUploading(false);
-                      setIsCancelling(false);
-                      
-                      // Hard refresh after short delay
-                      setTimeout(() => {
-                        window.location.reload();
-                      }, 500);
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1 text-xs mt-1 bg-gray-800 text-white hover:bg-gray-900 border-none px-3 py-1 rounded"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                    <span>Nuclear Reset</span>
-                  </Button>
-                </div>
               </div>
             )}
             

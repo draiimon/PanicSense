@@ -256,6 +256,90 @@ export const listenForNuclearCleanup = (): () => void => {
   }
 };
 
+/**
+ * This function runs automatic deep cleaning when needed
+ * It monitors for abnormal upload states and automatically fixes them
+ */
+export const runAutoCleanupWhenNeeded = (): void => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    console.log('🔄 Running automatic deep stability check');
+    
+    // Check if we have any lingering upload state that should be cleaned up
+    const hasInconsistentState = () => {
+      // Case 1: Upload marked as completed but still showing as active
+      const uploadCompleted = localStorage.getItem('uploadCompleted') === 'true';
+      const isUploading = localStorage.getItem('isUploading') === 'true';
+      
+      if (uploadCompleted && isUploading) {
+        console.log('🚨 Inconsistent state: Upload marked as both completed and active');
+        return true;
+      }
+      
+      // Case 2: Analysis complete state but still showing
+      const progressData = localStorage.getItem('uploadProgress');
+      if (progressData && isUploading) {
+        try {
+          const progress = JSON.parse(progressData);
+          // If in terminal state for over 10 seconds, this is a stuck UI
+          if (
+            (progress.stage?.toLowerCase().includes('complete') || 
+             progress.stage?.toLowerCase().includes('error')) && 
+            progress.savedAt && 
+            Date.now() - progress.savedAt > 10000
+          ) {
+            console.log('🚨 Terminal state detected but still showing after 10 seconds');
+            return true;
+          }
+        } catch (e) {
+          // Parse error - could be corrupt state
+          return true;
+        }
+      }
+      
+      // Case 3: No session ID but uploading state is true
+      const sessionId = localStorage.getItem('uploadSessionId');
+      if (isUploading && !sessionId) {
+        console.log('🚨 Inconsistent state: Uploading is true but no session ID');
+        return true;
+      }
+      
+      // Case 4: Very old upload progress (over 30 minutes)
+      if (progressData && isUploading) {
+        try {
+          const progress = JSON.parse(progressData);
+          const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
+          if (progress.savedAt && progress.savedAt < thirtyMinutesAgo) {
+            console.log('🚨 Upload data is over 30 minutes old, likely stale');
+            return true;
+          }
+        } catch (e) {
+          // Parse error - could be corrupt state
+          return true;
+        }
+      }
+      
+      return false;
+    };
+    
+    // If inconsistent state detected, run nuclear cleanup
+    if (hasInconsistentState()) {
+      console.log('☢️ Auto-triggering nuclear cleanup due to inconsistent state');
+      nuclearCleanup();
+      
+      // Also clean server state
+      fetch('/api/cleanup-error-sessions', {
+        method: 'POST'
+      }).catch(e => {
+        console.error('Error cleaning up server state:', e);
+      });
+    }
+  } catch (e) {
+    console.error('Error in automatic cleaning:', e);
+  }
+};
+
 // Setup global reference
 registerNuclearCleanupGlobally();
 
@@ -263,7 +347,8 @@ registerNuclearCleanupGlobally();
 export const useNuclearCleanup = () => {
   return {
     nuclearCleanup,
-    listenForNuclearCleanup
+    listenForNuclearCleanup,
+    runAutoCleanupWhenNeeded
   };
 };
 
