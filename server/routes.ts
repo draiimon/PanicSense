@@ -154,46 +154,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  // Test time formatting with different durations
-  app.get('/api/test-time-estimates', (req: Request, res: Response) => {
-    // Create a test session ID
-    const sessionId = `test-${Date.now()}`;
-    
-    // Get the requested time in seconds from query parameter, default to 10 minutes
-    const durationSeconds = parseInt(req.query.seconds as string, 10) || 600;
-    
-    // Add a test session to the progress map
-    uploadProgressMap.set(sessionId, {
-      processed: 10,
-      total: 1000,
-      stage: 'Test time estimation',
-      timestamp: Date.now(),
-      batchNumber: 1,
-      totalBatches: 100,
-      batchProgress: 0.1,
-      currentSpeed: 0.5,
-      timeRemaining: durationSeconds, // Set explicitly from parameter
-      processingStats: {
-        successCount: 10,
-        errorCount: 0,
-        lastBatchDuration: 10,
-        averageSpeed: 0.5
-      }
-    });
-    
-    // Return the session ID and duration
-    res.json({
-      sessionId,
-      durationSeconds,
-      durationFormatted: {
-        seconds: durationSeconds,
-        minutes: Math.floor(durationSeconds / 60),
-        hours: Math.floor(durationSeconds / 3600),
-        days: Math.floor(durationSeconds / 86400)
-      }
-    });
-  });
-
   // Serve static files from attached_assets
   app.use('/assets', express.static(path.join(process.cwd(), 'attached_assets')));
 
