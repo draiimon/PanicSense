@@ -345,7 +345,40 @@ class DisasterSentimentBackend:
 
     def extract_location(self, text):
         """Enhanced location extraction with typo tolerance and fuzzy matching for Philippine locations"""
+        if not text:
+            return "UNKNOWN"
+            
         text_lower = text.lower()
+        
+        # SPECIAL CASE: MAY SUNOG SA X, MAY BAHA SA X pattern (disaster in LOCATION)
+        # This is exactly the case you're asking about
+        emergency_location_patterns = [
+            r'may sunog sa ([a-zA-Z]+)',
+            r'may baha sa ([a-zA-Z]+)',
+            r'may lindol sa ([a-zA-Z]+)',
+            r'may bagyo sa ([a-zA-Z]+)',
+            r'may landslide sa ([a-zA-Z]+)',
+            r'nasunugan sa ([a-zA-Z]+)',
+            r'binaha sa ([a-zA-Z]+)',
+            r'may eruption sa ([a-zA-Z]+)'
+        ]
+        
+        for pattern in emergency_location_patterns:
+            matches = re.findall(pattern, text_lower)
+            if matches:
+                location = matches[0].strip()
+                if len(location) > 1:  # Make sure it's not just a single letter
+                    print(f"EMERGENCY LOCATION PATTERN MATCH: {location}")
+                    return location.title()  # Return with Title Case
+        
+        # Also check for SA X! pattern - common Filipino emergency pattern
+        sa_pattern = r'\bsa\s+([a-zA-Z]+)!+'
+        sa_matches = re.findall(sa_pattern, text_lower)
+        if sa_matches:
+            location = sa_matches[0].strip()
+            if len(location) > 1:  # Make sure it's not just a single letter
+                print(f"SA LOCATION! PATTERN MATCH: {location}")
+                return location.title()  # Return with Title Case
         
         # First, preprocess the text to handle common misspellings/shortcuts
         # Map of common misspellings and shortcuts to correct forms
@@ -435,6 +468,11 @@ class DisasterSentimentBackend:
             "Manila", "Quezon City", "Makati", "Taguig", "Pasig", "Mandaluyong", "Pasay",
             "Caloocan", "Parañaque", "Las Piñas", "Muntinlupa", "Marikina", "Valenzuela",
             "Malabon", "Navotas", "San Juan", "Pateros",
+            
+            # Manila Sub-areas and Barangays (frequently mentioned in emergency reports)
+            "Tondo", "Sampaloc", "Malate", "Paco", "Intramuros", "Quiapo", "Binondo", 
+            "Ermita", "San Nicolas", "San Miguel", "Santa Cruz", "Santa Mesa", "Pandacan",
+            "Port Area", "Sta. Ana", "Tipi", "TIPI", "Tipas", "Tipas Taguig", "Napindan",
             
             # Major Cities Outside NCR
             "Baguio", "Cebu", "Davao", "Iloilo", "Cagayan de Oro", "Zamboanga", "Bacolod",
