@@ -104,132 +104,7 @@ const FloatingElement = ({ delay = 0, duration = 3, children, className = "" }) 
 };
 
 // Feature carousel component
-const FeatureCarousel = () => {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'center' });
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
-
-  const scrollPrev = React.useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
-  }, [emblaApi]);
-
-  const scrollNext = React.useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
-  }, [emblaApi]);
-
-  const scrollTo = React.useCallback(
-    (index: number) => emblaApi && emblaApi.scrollTo(index),
-    [emblaApi]
-  );
-
-  const onSelect = React.useCallback(() => {
-    if (!emblaApi) return;
-    setSelectedIndex(emblaApi.selectedScrollSnap());
-  }, [emblaApi, setSelectedIndex]);
-
-  React.useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    setScrollSnaps(emblaApi.scrollSnapList());
-    emblaApi.on('select', onSelect);
-    emblaApi.on('reInit', onSelect);
-  }, [emblaApi, setScrollSnaps, onSelect]);
-
-  const features = [
-    {
-      title: "Sentiment Analysis",
-      description: "Accurately detect emotions in social media posts to understand disaster impact",
-      color: "from-blue-500 to-indigo-600",
-      icon: <BarChart3 className="h-8 w-8 text-white" />
-    },
-    {
-      title: "Geographic Tracking",
-      description: "View disaster events on interactive maps to coordinate response efforts",
-      color: "from-emerald-500 to-green-600",
-      icon: <MapPin className="h-8 w-8 text-white" />
-    },
-    {
-      title: "Real-time Monitoring",
-      description: "Receive instant updates when new disaster events are reported",
-      color: "from-orange-500 to-amber-600",
-      icon: <Clock className="h-8 w-8 text-white" />
-    },
-    {
-      title: "Multilingual Support",
-      description: "Process posts in Filipino, English, and other regional languages",
-      color: "from-purple-500 to-violet-600",
-      icon: <Info className="h-8 w-8 text-white" />
-    }
-  ];
-
-  return (
-    <div className="relative overflow-hidden py-16 bg-slate-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-slate-800">
-            Powerful <span className="text-blue-600">Features</span>
-          </h2>
-          <p className="text-slate-600 mt-2 max-w-2xl mx-auto">
-            Explore what makes PanicSense PH a cutting-edge disaster intelligence platform
-          </p>
-        </div>
-        
-        <div className="relative">
-          <div className="overflow-hidden" ref={emblaRef}>
-            <div className="flex">
-              {features.map((feature, index) => (
-                <div className="flex-[0_0_90%] sm:flex-[0_0_40%] md:flex-[0_0_30%] mx-4" key={index}>
-                  <motion.div 
-                    whileHover={{ y: -5 }}
-                    className="bg-white rounded-xl overflow-hidden shadow-xl h-full"
-                  >
-                    <div className={`bg-gradient-to-r ${feature.color} p-6 flex items-center justify-center`}>
-                      <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                        {feature.icon}
-                      </div>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="font-bold text-xl mb-2">{feature.title}</h3>
-                      <p className="text-slate-600">{feature.description}</p>
-                    </div>
-                  </motion.div>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          <button 
-            className="absolute top-1/2 -translate-y-1/2 left-2 md:left-4 z-10 bg-white/80 hover:bg-white rounded-full p-2 shadow-md"
-            onClick={scrollPrev}
-          >
-            <ChevronLeft className="h-6 w-6 text-slate-800" />
-          </button>
-          
-          <button 
-            className="absolute top-1/2 -translate-y-1/2 right-2 md:right-4 z-10 bg-white/80 hover:bg-white rounded-full p-2 shadow-md"
-            onClick={scrollNext}
-          >
-            <ChevronRight className="h-6 w-6 text-slate-800" />
-          </button>
-        </div>
-        
-        <div className="flex justify-center mt-8 space-x-2">
-          {scrollSnaps.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => scrollTo(index)}
-              className={`w-3 h-3 rounded-full transition-colors ${
-                index === selectedIndex 
-                  ? 'bg-blue-600' 
-                  : 'bg-slate-300 hover:bg-slate-400'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
+// Feature Carousel has been removed
 
 // Interactive Tutorial Component with better animations
 const Tutorial = ({ onClose }: { onClose: () => void }) => {
@@ -403,10 +278,10 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                 >
                   <Button 
                     onClick={nextStep}
-                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white hover:scale-105 transform transition-all shadow-lg"
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white hover:scale-105 transform transition-all shadow-lg rounded-full flex items-center px-5"
                   >
-                    {currentStep === steps.length - 1 ? 'Get Started' : 'Next Step'}
-                    <ChevronRight className="ml-1 h-4 w-4" />
+                    <span>{currentStep === steps.length - 1 ? 'Get Started' : 'Next Step'}</span>
+                    <ChevronRight className="ml-1.5 h-4 w-4" />
                   </Button>
                 </motion.div>
               </div>
