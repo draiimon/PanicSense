@@ -621,24 +621,74 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                 </div>
               </motion.div>
               
-              <div className="mt-8 flex justify-between">
-                <Button 
-                  variant="outline" 
-                  className="border-white/30 text-white hover:bg-white/10 hover:text-white"
-                  onClick={prevStep}
-                  disabled={currentStep === 0}
+              <div className="mt-8 flex justify-between items-center">
+                <motion.div
+                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.05 }}
                 >
-                  <ChevronLeft className="mr-1 h-4 w-4" />
-                  Previous
-                </Button>
+                  {currentStep > 0 ? (
+                    <Button 
+                      onClick={prevStep}
+                      className="relative overflow-hidden bg-gradient-to-r from-white/20 to-white/5 border-0 backdrop-blur-md text-white hover:from-white/30 hover:to-white/10 px-6 rounded-full font-medium shadow-lg group"
+                    >
+                      <span className="relative z-10 flex items-center">
+                        <ChevronLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                        Previous
+                      </span>
+                      <span className="absolute inset-0 overflow-hidden rounded-full">
+                        <span className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/5 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                      </span>
+                    </Button>
+                  ) : (
+                    <div className="w-28"></div>
+                  )}
+                </motion.div>
                 
-                <Button 
-                  onClick={nextStep}
-                  className="bg-white text-indigo-600 hover:bg-white/90"
+                {/* Step indicators */}
+                <div className="flex space-x-1.5">
+                  {steps.map((_, idx) => (
+                    <motion.button
+                      key={idx}
+                      onClick={() => {
+                        setDirection(idx > currentStep ? 1 : -1);
+                        setCurrentStep(idx);
+                      }}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        idx === currentStep 
+                          ? 'w-6 bg-white shadow-glow-white' 
+                          : 'w-1.5 bg-white/40 hover:bg-white/60'
+                      }`}
+                      whileHover={{ scale: 1.2 }}
+                      whileTap={{ scale: 0.9 }}
+                      aria-label={`Go to step ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+                
+                <motion.div
+                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.05 }}
                 >
-                  {currentStep === steps.length - 1 ? "Finish" : "Next"}
-                  {currentStep !== steps.length - 1 && <ChevronRight className="ml-1 h-4 w-4" />}
-                </Button>
+                  <Button 
+                    onClick={nextStep}
+                    className={`relative overflow-hidden px-8 py-2.5 rounded-full font-medium shadow-lg group ${
+                      currentStep === steps.length - 1
+                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white'
+                        : 'bg-white text-indigo-600 hover:text-indigo-800'
+                    }`}
+                  >
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
+                    <span className="relative z-10 flex items-center font-bold">
+                      {currentStep === steps.length - 1 ? "Get Started" : "Next"}
+                      {currentStep !== steps.length - 1 && 
+                        <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      }
+                      {currentStep === steps.length - 1 && 
+                        <Sparkles className="ml-2 h-4 w-4 animate-pulse" />
+                      }
+                    </span>
+                  </Button>
+                </motion.div>
               </div>
             </div>
           </div>
@@ -942,162 +992,317 @@ export default function LandingPage() {
             >
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-transparent to-purple-500/10"></div>
               
-              {/* Auto-transitioning Disaster Features Section */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 mb-6 min-h-[260px] relative">
-                <AnimatePresence initial={false} mode="wait">
-                  {/* We'll display the three features in rotation */}
-                  
-                  {/* FEATURE 1: Live Disaster Monitoring */}
-                  {activeFeature === 'monitoring' && (
-                    <motion.div 
-                      key="live-monitoring"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.5 }}
-                      className="p-4 absolute inset-0"
-                    >
-                      <div className="flex items-center mb-3">
-                        <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                        <h4 className="font-semibold flex items-center">
-                          Live Disaster Monitoring
-                          <span className="ml-2 text-[10px] font-medium px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full">LIVE</span>
-                        </h4>
-                      </div>
-                      
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Real-time sentiment tracking for faster emergency response and coordination in the Philippines.</p>
-                      
-                      {/* Live Disaster Monitoring Content */}
-                      <div className="mt-3 space-y-2">
-                        {/* Live alerts */}
-                        {[
-                          { event: "Typhoon Warning", location: "Northern Luzon", level: "High" },
-                          { event: "Flash Flood", location: "Cagayan Valley", level: "Medium" }
-                        ].map((alert, i) => (
-                          <motion.div 
-                            key={i}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 + (i * 0.1) }}
-                            className="flex items-center justify-between p-2 bg-slate-50 rounded-md border border-slate-100"
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className={`h-2 w-2 rounded-full ${
-                                alert.level === "High" ? "bg-red-500" : 
-                                alert.level === "Medium" ? "bg-orange-500" : "bg-yellow-500"
-                              }`}></div>
-                              <div>
-                                <div className="text-xs font-medium">{alert.event}</div>
-                                <div className="text-[10px] text-gray-500">{alert.location}</div>
-                              </div>
-                            </div>
-                            <div className="text-[10px] px-1.5 py-0.5 bg-slate-200 rounded text-slate-700">New</div>
-                          </motion.div>
-                        ))}
+              {/* Auto-transitioning Disaster Features Section - ENHANCED DESIGN */}
+              <div className="bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 mb-6 h-[400px] relative overflow-hidden group">
+                {/* Colorful glowing border */}
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-t-xl"></div>
+                
+                {/* Animated background effect */}
+                <div className="absolute inset-0 bg-grid-pattern-white opacity-5"></div>
+                <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-all duration-700"></div>
+                <div className="absolute -top-32 -left-32 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl group-hover:bg-purple-500/10 transition-all duration-700"></div>
+                
+                {/* Feature navigation indicators - Enhanced */}
+                <div className="absolute top-3 right-3 flex space-x-3 z-20">
+                  {['monitoring', 'geographic', 'analytics'].map((feature, index) => (
+                    <button
+                      key={feature}
+                      onClick={() => setActiveFeature(feature as any)}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                        activeFeature === feature 
+                          ? 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg shadow-blue-400/30 scale-125' 
+                          : 'bg-gray-300/70 backdrop-blur-sm hover:bg-gray-400 hover:scale-110'
+                      }`}
+                      aria-label={`Show ${feature} feature`}
+                    />
+                  ))}
+                </div>
+                
+                <div className="absolute inset-0 overflow-hidden">
+                  <AnimatePresence initial={false} mode="wait">
+                    {/* FEATURE 1: Live Disaster Monitoring */}
+                    {activeFeature === 'monitoring' && (
+                      <motion.div 
+                        key="live-monitoring"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.5 }}
+                        className="absolute inset-0 p-6"
+                      >
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white shadow-lg shadow-green-200 mr-3">
+                            <AlertTriangle className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
+                              Live Disaster Monitoring
+                              <span className="ml-3 text-xs font-medium px-2 py-0.5 bg-red-100 text-red-700 rounded-full animate-pulse">LIVE</span>
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">Real-time disaster intelligence for community resilience</p>
+                          </div>
+                        </div>
                         
-                        {/* Activity indicator */}
-                        <div className="mt-3 pt-1 border-t border-gray-100">
-                          <div className="flex justify-between items-center">
-                            <div className="text-[10px] text-gray-500 uppercase font-medium">Live Activity</div>
-                            <div className="flex items-center">
-                              <div className="h-1.5 w-1.5 bg-red-500 rounded-full animate-pulse mr-1"></div>
-                              <span className="text-[10px] text-gray-500">Recording</span>
+                        <div className="mt-6 flex flex-col h-[280px]">
+                          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-md p-3 border border-gray-100 dark:border-gray-700 mb-4">
+                            <div className="mb-2 flex justify-between items-center">
+                              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Active Alerts</h4>
+                              <span className="text-xs text-gray-500">{new Date().toLocaleTimeString()}</span>
+                            </div>
+                            
+                            <div className="space-y-3 max-h-[150px] overflow-auto hide-scrollbar">
+                              {[
+                                { event: "Typhoon Warning", location: "Northern Luzon", level: "High", time: "10m ago" },
+                                { event: "Flash Flood", location: "Cagayan Valley", level: "Medium", time: "25m ago" },
+                                { event: "Earthquake", location: "Bicol Region", level: "High", time: "45m ago" }
+                              ].map((alert, i) => (
+                                <motion.div 
+                                  key={i}
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: 0.1 + (i * 0.1) }}
+                                  className="flex items-center justify-between p-2 bg-white dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600 shadow-sm"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className={`h-3 w-3 rounded-full animate-pulse ${
+                                      alert.level === "High" ? "bg-red-500" : 
+                                      alert.level === "Medium" ? "bg-orange-500" : "bg-yellow-500"
+                                    }`}></div>
+                                    <div>
+                                      <div className="text-sm font-medium">{alert.event}</div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">{alert.location}</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col items-end">
+                                    <div className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-gray-700 dark:text-gray-300">{alert.level}</div>
+                                    <div className="text-xs text-gray-500 mt-1">{alert.time}</div>
+                                  </div>
+                                </motion.div>
+                              ))}
                             </div>
                           </div>
                           
-                          {/* Mini activity chart */}
-                          <div className="h-10 relative mt-1 flex items-end gap-[2px]">
-                            {Array.from({ length: 20 }).map((_, i) => (
-                              <div 
-                                key={i}
-                                className="bg-blue-500 rounded-sm w-2" 
-                                style={{ 
-                                  height: `${Math.floor(Math.random() * 70) + 30}%`,
-                                  opacity: 0.5 + (i / 40)
-                                }}
-                              ></div>
-                            ))}
+                          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-md p-3 border border-gray-100 dark:border-gray-700 flex-1">
+                            <div className="flex justify-between items-center mb-2">
+                              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Activity Monitor</h4>
+                              <div className="flex items-center">
+                                <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse mr-1"></div>
+                                <span className="text-xs text-gray-500">Recording</span>
+                              </div>
+                            </div>
+                            
+                            {/* Activity graph with animation */}
+                            <div className="h-16 w-full relative mt-2">
+                              <div className="absolute inset-0 flex items-end justify-between gap-[1px]">
+                                {Array.from({ length: 40 }).map((_, i) => {
+                                  const height = Math.floor(Math.random() * 70) + 30;
+                                  return (
+                                    <motion.div 
+                                      key={i}
+                                      initial={{ height: 0 }}
+                                      animate={{ height: `${height}%` }}
+                                      transition={{ 
+                                        duration: 0.5, 
+                                        delay: i * 0.02,
+                                        ease: "easeOut" 
+                                      }}
+                                      className={`w-[2.4%] rounded-t ${
+                                        height > 80 ? "bg-red-500" :
+                                        height > 60 ? "bg-orange-500" :
+                                        height > 40 ? "bg-yellow-500" : "bg-blue-500"
+                                      }`}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                              <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-2 text-center">
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Total Alerts</div>
+                                <div className="text-lg font-bold text-blue-600 dark:text-blue-400">273</div>
+                              </div>
+                              <div className="bg-red-50 dark:bg-red-900/20 rounded p-2 text-center">
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Critical Events</div>
+                                <div className="text-lg font-bold text-red-600 dark:text-red-400">14</div>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
-                  
-                  {/* FEATURE 2: Geographic Analysis */}
-                  {activeFeature === 'geographic' && (
-                    <motion.div 
-                      key="geographic-analysis"
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -50 }}
-                      transition={{ duration: 0.5 }}
-                      className="p-4 absolute inset-0"
-                    >
-                      <div className="flex items-center mb-3">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
-                        <h4 className="font-semibold">Geographic Analysis</h4>
-                      </div>
-                      
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Visual mapping of disaster events across the Philippine archipelago for strategic response.</p>
-                      
-                      {/* Geographic Analysis Content with Detailed Philippines Map */}
-                      <div className="relative h-[160px] bg-blue-50 rounded-lg border border-blue-100 overflow-hidden">
-                        <PhilippinesMap />
-                      </div>
-                    </motion.div>
-                  )}
-                  
-                  {/* FEATURE 3: Advanced Analytics */}
-                  {activeFeature === 'analytics' && (
-                    <motion.div 
-                      key="advanced-analytics"
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -50 }}
-                      transition={{ duration: 0.5 }}
-                      className="p-4 absolute inset-0"
-                    >
-                      <div className="flex items-center mb-3">
-                        <div className="w-3 h-3 bg-purple-500 rounded-full mr-2 animate-pulse"></div>
-                        <h4 className="font-semibold">Advanced Analytics</h4>
-                      </div>
-                      
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Advanced sentiment analysis using modern language processing with Filipino language support.</p>
-                      
-                      {/* Analytics Content */}
-                      <div className="mt-2">
-                        {/* Chart visualization */}
-                        <div className="h-[160px] flex items-end justify-between gap-2 px-1">
-                          {["Panic", "Fear", "Disbelief", "Resilience", "Neutral"].map((sentiment, i) => (
-                            <div key={i} className="flex flex-col items-center gap-1 flex-1">
-                              <div 
-                                className={`w-full rounded-t-sm ${
-                                  sentiment === "Panic" ? "bg-red-500" :
-                                  sentiment === "Fear" ? "bg-orange-500" :
-                                  sentiment === "Disbelief" ? "bg-purple-500" :
-                                  sentiment === "Resilience" ? "bg-green-500" : "bg-gray-400"
-                                }`}
-                                style={{ 
-                                  height: `${
-                                    sentiment === "Panic" ? 75 :
-                                    sentiment === "Fear" ? 55 :
-                                    sentiment === "Disbelief" ? 40 :
-                                    sentiment === "Resilience" ? 65 : 35
-                                  }%`
-                                }}
-                              ></div>
-                              <span className="text-[9px] text-gray-500">{sentiment}</span>
-                            </div>
-                          ))}
+                      </motion.div>
+                    )}
+                    
+                    {/* FEATURE 2: Geographic Analysis */}
+                    {activeFeature === 'geographic' && (
+                      <motion.div 
+                        key="geographic-analysis"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.5 }}
+                        className="absolute inset-0 p-6"
+                      >
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200 mr-3">
+                            <MapPin className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Geographic Analysis</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">Interactive maps for visualizing disaster impact zones</p>
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                
-                {/* Animation indicator */}
-                <div className="absolute bottom-3 right-3 opacity-70">
-                  <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
+                        
+                        <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl overflow-hidden h-[280px] shadow-inner border border-blue-100 dark:border-blue-900/50 relative">
+                          {/* Real Philippines map with disaster indicators */}
+                          <div className="absolute inset-0">
+                            <PhilippinesMap />
+                          </div>
+                          
+                          {/* Map overlay with labels */}
+                          <div className="absolute inset-0 pointer-events-none">
+                            {/* Region labels */}
+                            <div className="absolute top-[25%] left-[20%] bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm px-2 py-1 rounded text-xs shadow-sm">
+                              Luzon
+                            </div>
+                            <div className="absolute top-[40%] right-[30%] bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm px-2 py-1 rounded text-xs shadow-sm">
+                              Visayas
+                            </div>
+                            <div className="absolute bottom-[30%] left-[40%] bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm px-2 py-1 rounded text-xs shadow-sm">
+                              Mindanao
+                            </div>
+                            
+                            {/* Floating stats panel */}
+                            <div className="absolute top-4 right-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg shadow-lg p-3 border border-gray-200 dark:border-gray-700 w-[120px]">
+                              <h5 className="text-xs font-semibold border-b border-gray-200 dark:border-gray-700 pb-1 mb-2">Disaster Zones</h5>
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center gap-1">
+                                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                    <span className="text-xs">Severe</span>
+                                  </div>
+                                  <span className="text-xs font-semibold">3</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center gap-1">
+                                    <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                                    <span className="text-xs">Moderate</span>
+                                  </div>
+                                  <span className="text-xs font-semibold">7</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center gap-1">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                    <span className="text-xs">Minor</span>
+                                  </div>
+                                  <span className="text-xs font-semibold">12</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                    
+                    {/* FEATURE 3: Advanced Analytics */}
+                    {activeFeature === 'analytics' && (
+                      <motion.div 
+                        key="advanced-analytics"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.5 }}
+                        className="absolute inset-0 p-6"
+                      >
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-purple-200 mr-3">
+                            <BarChart3 className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Advanced Analytics</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">Sentiment analysis with Filipino language processing</p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-6 flex flex-col sm:flex-row gap-4 h-[280px]">
+                          <div className="flex-1 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-100 dark:border-gray-700">
+                            <h4 className="text-sm font-semibold mb-4">Emotion Distribution</h4>
+                            
+                            <div className="h-[200px] flex items-end justify-between gap-3 px-2 pt-2">
+                              {[
+                                {label: "Panic", value: 35, color: "bg-red-500 shadow-red-200"},
+                                {label: "Fear", value: 25, color: "bg-orange-500 shadow-orange-200"},
+                                {label: "Distress", value: 15, color: "bg-pink-500 shadow-pink-200"},
+                                {label: "Concern", value: 10, color: "bg-yellow-500 shadow-yellow-200"},
+                                {label: "Neutral", value: 10, color: "bg-blue-500 shadow-blue-200"},
+                                {label: "Resilience", value: 5, color: "bg-green-500 shadow-green-200"}
+                              ].map((item, i) => (
+                                <motion.div 
+                                  key={i}
+                                  className="flex flex-col items-center group"
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.1 + (i * 0.1) }}
+                                >
+                                  <div className="text-xs font-medium text-gray-500 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {item.value}%
+                                  </div>
+                                  <motion.div 
+                                    className={`w-8 rounded-t-lg ${item.color} shadow-lg`}
+                                    initial={{ height: 0 }}
+                                    animate={{ height: `${item.value * 3.5}px` }}
+                                    transition={{ 
+                                      duration: 0.8, 
+                                      delay: 0.2 + (i * 0.1),
+                                      ease: "easeOut" 
+                                    }}
+                                  />
+                                  <div className="text-xs mt-2 text-gray-600 dark:text-gray-400 text-center">
+                                    {item.label}
+                                  </div>
+                                </motion.div>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="flex-1 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-100 dark:border-gray-700">
+                            <h4 className="text-sm font-semibold mb-3">Recent Insights</h4>
+                            
+                            <div className="space-y-3 max-h-[200px] overflow-auto hide-scrollbar">
+                              {[
+                                { type: "Trending", text: "Rising flood concern in Pangasinan area", sentiment: "Panic", confidence: 87 },
+                                { type: "Language", text: "Mixed Filipino/English messages for earthquake reports", sentiment: "Fear", confidence: 92 },
+                                { type: "Pattern", text: "Increased tsunami mentions after seismic activity", sentiment: "Concern", confidence: 78 }
+                              ].map((insight, i) => (
+                                <motion.div 
+                                  key={i}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.2 + (i * 0.15) }}
+                                  className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-100 dark:border-gray-600"
+                                >
+                                  <div className="flex justify-between mb-1">
+                                    <span className="text-xs font-bold text-purple-600 dark:text-purple-400">{insight.type}</span>
+                                    <span className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 rounded text-gray-700 dark:text-gray-300">{insight.confidence}%</span>
+                                  </div>
+                                  <p className="text-sm text-gray-800 dark:text-gray-200 mb-1">{insight.text}</p>
+                                  <div className="flex items-center mt-1">
+                                    <span className="text-xs text-gray-500 mr-2">Dominant emotion:</span>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                      insight.sentiment === "Panic" ? "bg-red-100 text-red-700" :
+                                      insight.sentiment === "Fear" ? "bg-orange-100 text-orange-700" :
+                                      "bg-yellow-100 text-yellow-700"
+                                    }`}>
+                                      {insight.sentiment}
+                                    </span>
+                                  </div>
+                                </motion.div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             </motion.div>

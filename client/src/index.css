@@ -1379,3 +1379,15 @@ section {
 .sentiment-neutral {
   @apply bg-slate-100 text-slate-600;
 }
+.shadow-glow-white {
+  box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.6);
+}
+
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
+}
