@@ -7,9 +7,10 @@ import { FileUploaderButton } from "./file-uploader-button";
 interface FileUploaderProps {
   onSuccess?: (data: any) => void;
   className?: string;
+  id?: string;
 }
 
-export function FileUploader({ onSuccess, className }: FileUploaderProps) {
+export function FileUploader({ onSuccess, className, id }: FileUploaderProps) {
   // Removed UploadProgressModal since it's now included globally in App.tsx
-  return <FileUploaderButton onSuccess={onSuccess} className={className} />;
+  return <FileUploaderButton id={id} onSuccess={onSuccess} className={className} />;
 }

@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 interface FileUploaderButtonProps {
   onSuccess?: (data: any) => void;
   className?: string;
+  id?: string;
 }
 
-export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonProps) {
+export function FileUploaderButton({ onSuccess, className, id }: FileUploaderButtonProps) {
   const { toast } = useToast();
   const { isUploading, setIsUploading, setUploadProgress } = useDisasterContext();
   const [isCheckingForUploads, setIsCheckingForUploads] = useState(true);
@@ -319,6 +320,7 @@ export function FileUploaderButton({ onSuccess, className }: FileUploaderButtonP
 
   return (
     <motion.label
+      id={id}
       whileHover={{ scale: isUploading || isCheckingForUploads ? 1 : 1.03 }}
       whileTap={{ scale: isUploading || isCheckingForUploads ? 1 : 0.97 }}
       className={`

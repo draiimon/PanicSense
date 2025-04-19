@@ -462,7 +462,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="relative space-y-8 pb-10" ref={scrollRef}>
+    <div id="dashboard-main" className="relative space-y-8 pb-10" ref={scrollRef}>
       {/* Enhanced colorful background for entire dashboard */}
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-violet-50 to-pink-50 overflow-hidden">
         {/* More vibrant animated gradient overlay - CSS Animation */}
@@ -964,7 +964,7 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* Upload button placed outside the dashboard cards */}
-      <div className="mb-8 relative">
+      <div id="upload-data-section" className="mb-8 relative">
         <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-blue-50"
         >
           <div className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -997,7 +997,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid with improved styling (3-card layout) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div id="sentiment-stats" className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <StatusCard
           title="Dominant Disaster"
           value={dominantDisaster}
