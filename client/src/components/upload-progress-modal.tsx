@@ -622,24 +622,42 @@ export function UploadProgressModal() {
     }
   }, [isUploading, stage, processedCount, total, uploadProgress, forceCloseModalMemo, cleanupAndClose, autoCloseDelay]);
 
-  // Handle cancel button click with force option
+  // Handle cancel button click with improved UX
   const handleCancel = async (forceCancel = false) => {
     if (isCancelling) return;
     
+    // If we're not force cancelling and the dialog isn't shown yet, show it first
+    if (!forceCancel && !showCancelDialog) {
+      setShowCancelDialog(true);
+      return;
+    }
+    
+    // Close the confirmation dialog
     setShowCancelDialog(false);
     setIsCancelling(true);
+    
+    // Change the stage to show cancellation is in progress
+    setUploadProgress({
+      ...uploadProgress,
+      stage: "Upload Canceled",
+      currentSpeed: 0,
+      timeRemaining: 0
+    });
+    
     try {
       const result = await cancelUpload(forceCancel);
       
       if (result.success) {
-        // Force close the modal instead of waiting for events
-        cleanupAndClose();
+        // Wait 2 seconds to show the "Upload Canceled" message before closing
+        setTimeout(() => {
+          cleanupAndClose();
+        }, 2000);
       } else {
         // If normal cancel failed, show option for force cancel
         if (!forceCancel) {
           toast({
             title: 'Cancel Failed',
-            description: 'Server could not cancel the upload. Try Force Cancel instead.',
+            description: 'Server could not cancel the upload. Trying again...',
             variant: 'destructive',
             action: (
               <ToastAction 
@@ -1133,48 +1151,63 @@ export function UploadProgressModal() {
       
       {/* Enhanced Cancel confirmation dialog with gradient */}
       {showCancelDialog && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000]" onClick={() => setShowCancelDialog(false)}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[10000]" onClick={() => setShowCancelDialog(false)}>
           <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden w-full max-w-xs mx-4 shadow-xl border border-gray-200 dark:border-gray-700 transform-gpu" 
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 10 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden w-full max-w-xs mx-4 shadow-2xl border border-gray-200 dark:border-gray-700 transform-gpu" 
             onClick={e => e.stopPropagation()}
           >
-            {/* Gradient header for cancel dialog */}
-            <div className="bg-gradient-to-r from-red-500 to-pink-600 p-4 text-white relative overflow-hidden">
-              {/* Decorative gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50"></div>
+            {/* Enhanced gradient header for cancel dialog */}
+            <div className="bg-gradient-to-r from-red-500 via-pink-500 to-purple-600 p-4 text-white relative overflow-hidden">
+              {/* Animated decorative gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-70 animate-pulse"></div>
+              
+              {/* Decorative circles */}
+              <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-white/10"></div>
+              <div className="absolute top-10 -right-4 w-8 h-8 rounded-full bg-white/5"></div>
               
               <div className="flex items-center gap-3 relative z-10">
-                <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm">
-                  <AlertCircle className="h-5 w-5 text-white" />
+                <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm shadow-inner border border-white/10">
+                  <motion.div
+                    animate={{ rotate: [0, -10, 10, -10, 0] }}
+                    transition={{ repeat: 2, duration: 0.5, delay: 0.2 }}
+                  >
+                    <AlertCircle className="h-5 w-5 text-white" />
+                  </motion.div>
                 </div>
                 <h3 className="text-lg font-bold text-white">Cancel Upload?</h3>
               </div>
             </div>
             
-            <div className="p-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="p-5">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 This will stop the current processing job. Progress will be lost and you'll need to start over.
               </p>
               
-              <div className="flex flex-col sm:flex-row justify-end gap-2 mt-5">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 mt-5">
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setShowCancelDialog(false)}
-                  className="w-full sm:w-auto bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 hover:text-gray-900 border-gray-200 dark:border-gray-700 rounded-full px-4 py-2 hover-scale shadow-sm"
+                  className="w-full sm:w-auto bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 hover:text-gray-900 border-gray-200 dark:border-gray-700 rounded-full px-5 py-2 hover:scale-105 transition-transform duration-200 shadow-sm"
                 >
-                  No, Continue
+                  <span className="flex items-center justify-center gap-2">
+                    <span>Continue</span>
+                  </span>
                 </Button>
                 <Button 
                   variant="destructive"
                   size="sm"
                   onClick={() => handleCancel(true)} 
-                  className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white border-none rounded-full px-4 py-2 hover-scale shadow-md"
+                  className="w-full sm:w-auto bg-gradient-to-r from-red-500 via-pink-600 to-purple-600 hover:from-red-600 hover:via-pink-700 hover:to-purple-700 text-white border-none rounded-full px-5 py-2 hover:scale-105 transition-transform duration-200 shadow-md"
                 >
-                  Yes, Cancel
+                  <span className="flex items-center justify-center gap-2">
+                    <Trash2 className="h-4 w-4" />
+                    <span>Cancel</span>
+                  </span>
                 </Button>
               </div>
             </div>
