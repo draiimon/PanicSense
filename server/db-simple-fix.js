@@ -1,98 +1,150 @@
-// Simple database fix using ESM syntax for compatibility
-// To be imported directly by index.ts
+/**
+ * Simple database fix function.
+ * Directly creates tables with all the necessary columns.
+ * @returns Promise<boolean> True if the fix was applied successfully
+ */
+import { db } from './db';
+import * as schema from '../shared/schema';
+import { sql } from 'drizzle-orm';
 
-// Use ESM imports for compatibility
-import pg from 'pg';
-const { Pool } = pg;
-
-// Simple emergency fix function
 export async function simpleDbFix() {
-  console.log('🚨 RUNNING SIMPLE DATABASE FIX 🚨');
+  console.log("Running simple database fix...");
   
-  let pool;
   try {
-    // Create a connection
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-    });
+    // Create all tables from our schema
+    const tableCreatePromises = [
+      // Users table
+      db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "users" (
+          "id" serial PRIMARY KEY,
+          "username" varchar(255) NOT NULL UNIQUE,
+          "password" varchar(255) NOT NULL,
+          "email" varchar(255),
+          "full_name" varchar(255),
+          "role" varchar(50) DEFAULT 'user',
+          "created_at" timestamp DEFAULT now()
+        )
+      `),
+      
+      // Sessions table
+      db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "sessions" (
+          "id" serial PRIMARY KEY,
+          "user_id" integer REFERENCES "users"("id") ON DELETE CASCADE,
+          "token" varchar(255) NOT NULL UNIQUE,
+          "created_at" timestamp DEFAULT now(),
+          "expires_at" timestamp
+        )
+      `),
+      
+      // Sentiment posts table
+      db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "sentiment_posts" (
+          "id" serial PRIMARY KEY,
+          "text" text NOT NULL,
+          "timestamp" timestamp DEFAULT now(),
+          "source" varchar(255),
+          "language" varchar(50),
+          "sentiment" varchar(50),
+          "confidence" double precision DEFAULT 0,
+          "file_id" integer,
+          "disaster_type" varchar(255),
+          "location" varchar(255)
+        )
+      `),
+      
+      // Disaster events table
+      db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "disaster_events" (
+          "id" serial PRIMARY KEY,
+          "name" varchar(255) NOT NULL,
+          "type" varchar(50),
+          "start_date" timestamp,
+          "end_date" timestamp,
+          "location" varchar(255),
+          "description" text,
+          "impact_level" varchar(50),
+          "created_at" timestamp DEFAULT now()
+        )
+      `),
+      
+      // Analyzed files table
+      db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "analyzed_files" (
+          "id" serial PRIMARY KEY,
+          "filename" varchar(255) NOT NULL,
+          "original_filename" varchar(255),
+          "file_size" integer,
+          "record_count" integer,
+          "processed_count" integer,
+          "success_count" integer,
+          "error_count" integer,
+          "source_type" varchar(50),
+          "upload_date" timestamp DEFAULT now(),
+          "processing_time" integer,
+          "status" varchar(50),
+          "user_id" integer,
+          "metrics" jsonb
+        )
+      `),
+      
+      // Sentiment feedback table
+      db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "sentiment_feedback" (
+          "id" serial PRIMARY KEY,
+          "text" text NOT NULL,
+          "original_sentiment" varchar(50),
+          "corrected_sentiment" varchar(50),
+          "submitted_at" timestamp DEFAULT now(),
+          "user_id" integer,
+          "trained" boolean DEFAULT false
+        )
+      `),
+      
+      // Training examples table
+      db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "training_examples" (
+          "id" serial PRIMARY KEY,
+          "text" text NOT NULL,
+          "sentiment" varchar(50) NOT NULL,
+          "language" varchar(50),
+          "created_at" timestamp DEFAULT now(),
+          "source" varchar(255)
+        )
+      `),
+      
+      // Upload sessions table
+      db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "upload_sessions" (
+          "id" serial PRIMARY KEY,
+          "session_id" varchar(255) NOT NULL UNIQUE,
+          "status" varchar(50) NOT NULL,
+          "progress" jsonb,
+          "created_at" timestamp DEFAULT now(),
+          "updated_at" timestamp DEFAULT now(),
+          "user_id" integer
+        )
+      `),
+      
+      // Profile images table
+      db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "profile_images" (
+          "id" serial PRIMARY KEY,
+          "filename" varchar(255) NOT NULL,
+          "original_filename" varchar(255),
+          "file_size" integer,
+          "upload_date" timestamp DEFAULT now(),
+          "user_id" integer
+        )
+      `)
+    ];
     
-    // Just create tables with all columns included
-    await pool.query(`
-    -- sentiment_posts table with all columns
-    CREATE TABLE IF NOT EXISTS sentiment_posts (
-      id SERIAL PRIMARY KEY,
-      text TEXT NOT NULL,
-      timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
-      source TEXT,
-      language TEXT,
-      sentiment TEXT NOT NULL,
-      confidence REAL NOT NULL,
-      location TEXT,
-      disaster_type TEXT,
-      file_id INTEGER,
-      explanation TEXT,
-      processed_by INTEGER,
-      ai_trust_message TEXT
-    );
-
-    -- training_examples table
-    CREATE TABLE IF NOT EXISTS training_examples (
-      id SERIAL PRIMARY KEY,
-      text TEXT NOT NULL,
-      text_key TEXT NOT NULL,
-      sentiment TEXT NOT NULL,
-      language TEXT NOT NULL,
-      confidence REAL DEFAULT 0.95 NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW(),
-      updated_at TIMESTAMP DEFAULT NOW(),
-      CONSTRAINT training_examples_text_unique UNIQUE(text),
-      CONSTRAINT training_examples_text_key_unique UNIQUE(text_key)
-    );
+    await Promise.all(tableCreatePromises);
+    console.log("All tables created successfully");
     
-    -- sentiment_feedback table with all needed columns
-    CREATE TABLE IF NOT EXISTS sentiment_feedback (
-      id SERIAL PRIMARY KEY,
-      original_post_id INTEGER REFERENCES sentiment_posts(id) ON DELETE CASCADE,
-      original_text TEXT NOT NULL,
-      original_sentiment TEXT NOT NULL,
-      corrected_sentiment TEXT DEFAULT '',
-      corrected_location TEXT,
-      corrected_disaster_type TEXT,
-      trained_on BOOLEAN DEFAULT false,
-      created_at TIMESTAMP DEFAULT NOW(),
-      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-      ai_trust_message TEXT,
-      possible_trolling BOOLEAN DEFAULT false
-    );
-    
-    -- upload_sessions table for tracking file uploads
-    CREATE TABLE IF NOT EXISTS upload_sessions (
-      id SERIAL PRIMARY KEY,
-      session_id TEXT NOT NULL UNIQUE,
-      status TEXT NOT NULL DEFAULT 'active',
-      file_id INTEGER REFERENCES analyzed_files(id) ON DELETE SET NULL,
-      progress JSON,
-      created_at TIMESTAMP DEFAULT NOW(),
-      updated_at TIMESTAMP DEFAULT NOW(),
-      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
-    );
-    `);
-    
-    // Verify
-    const result = await pool.query(`
-      SELECT 
-        EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'sentiment_posts' AND column_name = 'ai_trust_message') as col_exists,
-        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'training_examples') as table_exists,
-        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'sentiment_feedback') as feedback_exists,
-        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'upload_sessions') as upload_sessions_exists
-    `);
-    
-    console.log('✅ SIMPLE FIX COMPLETE! Verification:', result.rows[0]);
     return true;
-  } catch (err) {
-    console.error('❌ SIMPLE DB FIX ERROR:', err.message);
+  } catch (error) {
+    console.error("Error creating tables:", error);
     return false;
-  } finally {
-    if (pool) await pool.end();
   }
 }

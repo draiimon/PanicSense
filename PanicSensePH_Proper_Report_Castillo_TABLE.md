@@ -1,37 +1,115 @@
-Technological Institute of the Philippines
-Thesis 1
+# Technological Institute of the Philippines
+## Thesis 1 - Individual Progress Report
 
-INDIVIDUAL PROGRESS REPORT
+<table align="center" style="border-collapse: collapse; width: 100%; border: 2px solid #4A86E8;">
+<tr bgcolor="#4A86E8" style="color: white;">
+<td colspan="2" align="center"><h2>INDIVIDUAL PROGRESS REPORT</h2></td>
+</tr>
+<tr>
+<td width="30%" bgcolor="#E6F0FF"><strong>Name</strong></td>
+<td bgcolor="#F8F9FA">Mark Andrei R. Castillo</td>
+</tr>
+<tr>
+<td bgcolor="#E6F0FF"><strong>Role</strong></td>
+<td bgcolor="#F8F9FA">Member</td>
+</tr>
+<tr>
+<td bgcolor="#E6F0FF"><strong>Week No. / Inclusive Dates</strong></td>
+<td bgcolor="#F8F9FA">Week No. 1 / January 20 - January 24, 2025</td>
+</tr>
+<tr bgcolor="#4A86E8" style="color: white;">
+<td colspan="2" align="center"><strong>Initial Architecture Design for PanicSensePH Platform</strong></td>
+</tr>
+<tr>
+<td bgcolor="#E6F0FF" valign="top"><strong>Activities and Progress</strong><br>(Actual Code, Screenshot of the Design, etc.)</td>
+<td bgcolor="#F8F9FA">
+<p>This week, I focused on establishing the foundational architecture for our PanicSensePH disaster monitoring platform. I designed the initial system architecture diagram showing data flow between React components, Express backend, and PostgreSQL database. This architecture emphasizes real-time processing capabilities needed for disaster response.</p>
+<ul>
+<li>Successfully drafted database schema using Drizzle ORM with 8 primary tables: users, sessions, sentiment_posts, disaster_events, analyzed_files, sentiment_feedback, training_examples, and upload_sessions</li>
+<li>Researched combined LSTM-BiGRU model architecture for sequential text processing with bidirectional context awareness</li>
+<li>Identified MBERT (Multilingual BERT) as optimal solution for handling Filipino-English code-switching and jejemon text patterns</li>
+<li>Structured project into client, server, and shared modules with proper type definitions</li>
+<li>Created preliminary mockups of 7 main dashboard pages: Dashboard, Geographic Analysis, Timeline, Comparison, Raw Data, Evaluation, and Real-time monitoring</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td bgcolor="#E6F0FF" valign="top"><strong>Techniques, Tools, and Methodologies Used</strong></td>
+<td bgcolor="#F8F9FA">
+<ul>
+<li>PostgreSQL with Drizzle ORM for type-safe database modeling and migrations</li>
+<li>TypeScript for ensuring type consistency across both frontend and backend</li>
+<li>TensorFlow for implementing the combined LSTM-BiGRU architecture</li>
+<li>PyTorch for fine-tuning the MBERT model on Filipino slang and jejemon text patterns</li>
+<li>React with Tailwind CSS for responsive and accessible user interfaces</li>
+<li>Git Flow methodology for maintaining clean branching structure</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td bgcolor="#E6F0FF" valign="top"><strong>Reflection: Problems Encountered and Lessons Learned</strong></td>
+<td bgcolor="#F8F9FA">
+<p>The most significant challenge was designing a database schema that effectively supports both structured disaster reports and unstructured social media content. I learned that proper normalization with flexible JSON fields for metadata provides the optimal balance.</p>
+<p>I also encountered difficulties with the approach to multilingual text processing, particularly with Filipino slang and jejemon text patterns. Through comparative research, I determined that fine-tuning MBERT on Filipino text corpora would provide better results than training custom embeddings from scratch.</p>
+</td>
+</tr>
+</table>
 
-| Name | Mark Andrei R. Castillo |
-| ---- | ----------------------- |
-| Role | Member |
-| Week No. / Inclusive Dates | Week No. 1 / January 20 - January 24, 2025 |
 
-| Initial Architecture Design for PanicSensePH Platform | |
-| ---------------------------------------------------- | --- |
-
-| Activities and Progress (Actual Code, Screenshot of the Design, etc.) | This week, I focused on establishing the foundational architecture for our PanicSensePH disaster monitoring platform. I designed the initial system architecture diagram showing data flow between React components, Express backend, and PostgreSQL database. This architecture emphasizes real-time processing capabilities needed for disaster response.<br><br>• Successfully drafted database schema using Drizzle ORM with 8 primary tables: users, sessions, sentiment_posts, disaster_events, analyzed_files, sentiment_feedback, training_examples, and upload_sessions<br>• Researched combined LSTM-BiGRU model architecture for sequential text processing with bidirectional context awareness<br>• Identified MBERT (Multilingual BERT) as optimal solution for handling Filipino-English code-switching and jejemon text patterns<br>• Structured project into client, server, and shared modules with proper type definitions<br>• Created preliminary mockups of 7 main dashboard pages: Dashboard, Geographic Analysis, Timeline, Comparison, Raw Data, Evaluation, and Real-time monitoring |
-| Techniques, Tools, and Methodologies Used | • PostgreSQL with Drizzle ORM for type-safe database modeling and migrations<br>• TypeScript for ensuring type consistency across both frontend and backend<br>• TensorFlow for implementing the combined LSTM-BiGRU architecture<br>• PyTorch for fine-tuning the MBERT model on Filipino slang and jejemon text patterns<br>• React with Tailwind CSS for responsive and accessible user interfaces<br>• Git Flow methodology for maintaining clean branching structure |
-| Reflection: Problems Encountered and Lessons Learned | The most significant challenge was designing a database schema that effectively supports both structured disaster reports and unstructured social media content. I learned that proper normalization with flexible JSON fields for metadata provides the optimal balance.<br><br>I also encountered difficulties with the approach to multilingual text processing, particularly with Filipino slang and jejemon text patterns. Through comparative research, I determined that fine-tuning MBERT on Filipino text corpora would provide better results than training custom embeddings from scratch. |
-
-
-Technological Institute of the Philippines
-Thesis 1
-
-INDIVIDUAL PROGRESS REPORT
-
-| Name | Mark Andrei R. Castillo |
-| ---- | ----------------------- |
-| Role | Member |
-| Week No. / Inclusive Dates | Week No. 2 / January 27 - January 31, 2025 |
-
-| Setting Up Development Environment and Core Infrastructure | |
-| --------------------------------------------------------- | --- |
-
-| Activities and Progress (Actual Code, Screenshot of the Design, etc.) | During the second week, I concentrated on implementing core infrastructure components essential for our development workflow. I set up our collaborative environment to ensure consistent development across the team.<br><br>• Established CI/CD pipeline for automated testing and deployment<br>• Implemented initial Express.js backend structure with TypeScript<br>• Created foundational API endpoints for sentiment analysis and disaster monitoring<br>• Configured Drizzle ORM with PostgreSQL, implementing proper migrations<br>• Set up React application with Vite and implemented basic layout components<br>• Developed reusable UI components using Tailwind CSS for consistent user experience |
-| Techniques, Tools, and Methodologies Used | • Git with feature branch workflow for clean development history<br>• Drizzle ORM for type-safe database access and migrations<br>• React with Vite for efficient frontend development<br>• Agile methodology with weekly sprints and daily stand-ups<br>• RESTful API design principles with proper error handling<br>• Docker containers for consistent development environments |
-| Reflection: Problems Encountered and Lessons Learned | The main challenge was ensuring consistency across different development environments, as team members encountered issues with package versions and database connections. I addressed this by implementing Docker containers for development, providing a standardized environment.<br><br>Another difficulty was balancing rapid prototyping with establishing a solid foundation. I learned that investing time in proper architecture early on, while seemingly slower initially, pays significant dividends as complexity increases. |
+<table align="center" style="border-collapse: collapse; width: 100%; border: 2px solid #4A86E8; margin-top: 30px;">
+<tr bgcolor="#4A86E8" style="color: white;">
+<td colspan="2" align="center"><h2>INDIVIDUAL PROGRESS REPORT</h2></td>
+</tr>
+<tr>
+<td width="30%" bgcolor="#E6F0FF"><strong>Name</strong></td>
+<td bgcolor="#F8F9FA">Mark Andrei R. Castillo</td>
+</tr>
+<tr>
+<td bgcolor="#E6F0FF"><strong>Role</strong></td>
+<td bgcolor="#F8F9FA">Member</td>
+</tr>
+<tr>
+<td bgcolor="#E6F0FF"><strong>Week No. / Inclusive Dates</strong></td>
+<td bgcolor="#F8F9FA">Week No. 2 / January 27 - January 31, 2025</td>
+</tr>
+<tr bgcolor="#4A86E8" style="color: white;">
+<td colspan="2" align="center"><strong>Setting Up Development Environment and Core Infrastructure</strong></td>
+</tr>
+<tr>
+<td bgcolor="#E6F0FF" valign="top"><strong>Activities and Progress</strong><br>(Actual Code, Screenshot of the Design, etc.)</td>
+<td bgcolor="#F8F9FA">
+<p>During the second week, I concentrated on implementing core infrastructure components essential for our development workflow. I set up our collaborative environment to ensure consistent development across the team.</p>
+<ul>
+<li>Established CI/CD pipeline for automated testing and deployment</li>
+<li>Implemented initial Express.js backend structure with TypeScript</li>
+<li>Created foundational API endpoints for sentiment analysis and disaster monitoring</li>
+<li>Configured Drizzle ORM with PostgreSQL, implementing proper migrations</li>
+<li>Set up React application with Vite and implemented basic layout components</li>
+<li>Developed reusable UI components using Tailwind CSS for consistent user experience</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td bgcolor="#E6F0FF" valign="top"><strong>Techniques, Tools, and Methodologies Used</strong></td>
+<td bgcolor="#F8F9FA">
+<ul>
+<li>Git with feature branch workflow for clean development history</li>
+<li>Drizzle ORM for type-safe database access and migrations</li>
+<li>React with Vite for efficient frontend development</li>
+<li>Agile methodology with weekly sprints and daily stand-ups</li>
+<li>RESTful API design principles with proper error handling</li>
+<li>Docker containers for consistent development environments</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td bgcolor="#E6F0FF" valign="top"><strong>Reflection: Problems Encountered and Lessons Learned</strong></td>
+<td bgcolor="#F8F9FA">
+<p>The main challenge was ensuring consistency across different development environments, as team members encountered issues with package versions and database connections. I addressed this by implementing Docker containers for development, providing a standardized environment.</p>
+<p>Another difficulty was balancing rapid prototyping with establishing a solid foundation. I learned that investing time in proper architecture early on, while seemingly slower initially, pays significant dividends as complexity increases.</p>
+</td>
+</tr>
+</table>
 
 
 Technological Institute of the Philippines
