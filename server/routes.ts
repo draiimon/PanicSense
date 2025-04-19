@@ -366,11 +366,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // CONSISTENCY BOOST - Check stage to apply appropriate speed logic
             const stageLower = (progress.stage || '').toLowerCase();
             if (stageLower.includes('record')) {
-              // IMPORTANT - FIXED SPEED: Always maintain 3 records/second speed for "record" stages
-              // This eliminates random speed fluctuations
+              // VARIABLE SPEED: Allow processing speed to vary naturally within a reasonable range
               if (stageLower.includes('completed record') || stageLower.includes('processing record')) {
-                // FIXED at exactly 3 records per second for consistent UX
-                progress.currentSpeed = 3;
+                // Process the speed based on actual calculation but with sensible limits
+                rawSpeed = progress.processed / elapsed;
+                
+                // Get a variable speed between 1.0 and 4.0 records/second
+                // This is more natural and shows actual progress variations
+                progress.currentSpeed = Math.min(Math.max(rawSpeed, 1.0), 4.0);
+                
+                // Add small random variation for more natural feel (±0.2)
+                const randomVariation = (Math.random() * 0.4) - 0.2;
+                progress.currentSpeed = Math.max(1.0, progress.currentSpeed + randomVariation);
               } else {
                 // For other states, calculate but keep it consistent
                 rawSpeed = progress.processed / elapsed;
