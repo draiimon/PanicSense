@@ -366,7 +366,7 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="bg-card text-card-foreground rounded-xl shadow-2xl max-w-md sm:max-w-lg md:max-w-3xl lg:max-w-4xl w-full relative overflow-hidden"
+        className="bg-card text-card-foreground rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md relative overflow-hidden"
       >
         <div className="absolute top-0 left-0 w-full h-1">
           <div 
@@ -387,222 +387,151 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
           <X size={24} />
         </motion.button>
         
-        <div className="flex flex-col md:flex-row h-[600px]">
-          <div className="w-full md:w-1/2 bg-gradient-to-br from-violet-600 via-indigo-700 to-blue-800 p-8 text-white relative overflow-hidden">
-            {/* Animated background elements */}
-            <div className="absolute inset-0 opacity-10">
-              <TwinklingStars />
-            </div>
-            
-            <div className="absolute top-4 left-4 flex space-x-2">
-              {steps.map((_, index) => (
+        {/* Mobile-optimized SINGLE column layout */}
+        <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-600 p-4">          
+          <div className="flex items-center justify-between mt-1 mb-4 px-2">
+            {steps.map((_, index) => {
+              // Randomize position styling for each number
+              const positionClasses = [
+                "self-start", // Top position
+                "self-center", // Center position
+                "self-end",    // Bottom position
+                "mt-3"         // Different top margin
+              ];
+              const randomPosition = positionClasses[index % positionClasses.length];
+              
+              return (
                 <motion.div 
                   key={index}
                   initial={{ scale: 0.8, opacity: 0.5 }}
                   animate={{ 
-                    scale: currentStep === index ? 1 : 0.8,
+                    scale: currentStep === index ? 1.2 : 0.85,
                     opacity: currentStep === index ? 1 : 0.5
                   }}
-                  whileHover={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.1, y: -2 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => {
                     setDirection(index > currentStep ? 1 : -1);
                     setCurrentStep(index);
                   }}
-                  className={`w-3 h-3 rounded-full cursor-pointer transition-all ${
-                    currentStep === index ? 'bg-white' : 'bg-white/40'
+                  className={`flex items-center justify-center rounded-full w-8 h-8 cursor-pointer transition-all ${randomPosition} ${
+                    currentStep === index 
+                      ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold shadow-lg' 
+                      : 'bg-white/20 text-white/70'
                   }`}
-                />
-              ))}
-            </div>
-            
-            <div className="h-full flex flex-col justify-center relative z-10 pt-8">
-              <AnimatePresence custom={direction} initial={false}>
-                <motion.div
-                  key={currentStep}
-                  custom={direction}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className="absolute inset-0 flex flex-col justify-center p-8 pt-16"
                 >
-                  <FloatingElement delay={0.1} className="mb-6">
-                    <motion.div 
-                      className="p-4 bg-white/10 rounded-full w-fit mb-4"
-                      whileHover={{ rotate: 5, scale: 1.05 }}
-                    >
-                      {steps[currentStep].icon}
-                    </motion.div>
-                  </FloatingElement>
-                  
-                  <h3 className="text-2xl md:text-3xl font-bold mb-2 md:mb-4 break-words">
-                    {steps[currentStep].title}
-                  </h3>
-                  
-                  <p className="text-white/80 text-base md:text-lg mb-4 md:mb-8 break-words">
-                    {steps[currentStep].description}
-                  </p>
+                  {index + 1}
                 </motion.div>
-              </AnimatePresence>
-              
-              {/* Buttons removed from here - now in fixed bottom position */}
-              
-            </div>
+              );
+            })}
           </div>
           
-          <div className="w-full md:w-1/2 flex items-center justify-center p-8 bg-gradient-to-b from-gray-100 to-white dark:from-gray-900 dark:to-gray-800 relative overflow-hidden">
-            <div className="absolute inset-0">
-              <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-            </div>
-            
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStep}
-                initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
-                animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                exit={{ opacity: 0, scale: 0.8, rotateY: -90 }}
-                transition={{ type: "spring", damping: 20 }}
-                className="relative z-10 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm"
-              >
-                {/* Image with blur effects and radius */}
-                <div 
-                  className={`tutorial-image-container mb-6 slide-up-animation video-style-effect`}
-                >
-                  <div className="tutorial-dynamic-content">
-                    <img 
-                      src={steps[currentStep].image} 
-                      alt={steps[currentStep].title} 
-                      className="tutorial-image"
-                    />
-                    <div className="video-moving-overlay-1"></div>
-                    <div className="video-moving-overlay-2"></div>
-                    <div className="video-moving-overlay-3"></div>
-                  </div>
-                  {/* Radial blur overlay */}
-                  <div className="tutorial-image-blur"></div>
-                  {/* Interactive glow effect */}
-                  <div className="tutorial-image-glow"></div>
-                  
-                  {/* Video effects for all tutorial steps */}
-                  <>
-
-                    
-                    {/* Video scan lines */}
-                    <div className="video-scanlines"></div>
-                    
-                    {/* Video static noise */}
-                    <div className="video-noise"></div>
-                    
-                    {/* Additional step-specific effects */}
-                    {currentStep === 0 && (
-                      // Upload Disaster Data effects
-                      <>
-                        <div className="absolute bottom-4 left-4 bg-black/40 text-white text-xs py-1 px-2 rounded z-20">
-                          <span className="font-mono">UPLOAD CSV</span>
-                        </div>
-                        <div className="data-point-pulse upload-point-1"></div>
-                        <div className="data-point-pulse upload-point-2"></div>
-                        <div className="data-point-pulse upload-point-3"></div>
-                        <div className="dynamic-progress-bar"></div>
-                      </>
-                    )}
-                    
-                    {currentStep === 1 && (
-                      // Analyze Sentiment effects
-                      <>
-                        <div className="absolute bottom-4 left-4 bg-black/40 text-white text-xs py-1 px-2 rounded z-20">
-                          <span className="font-mono">ALERT: PANIC DETECTED</span>
-                        </div>
-                        <div className="data-point-pulse sentiment-point-1"></div>
-                        <div className="data-point-pulse sentiment-point-2"></div>
-                        <div className="data-point-pulse sentiment-point-3"></div>
-                        <div className="sentiment-chart-container">
-                          <div className="sentiment-chart-bar positive" style={{height: '70%'}}></div>
-                          <div className="sentiment-chart-bar negative" style={{height: '30%'}}></div>
-                        </div>
-                      </>
-                    )}
-                    
-                    {currentStep === 2 && (
-                      // Geographic Analysis effects
-                      <>
-                        <div className="absolute bottom-4 left-4 bg-black/40 text-white text-xs py-1 px-2 rounded z-20">
-                          <span className="font-mono">LAT: 14.5°N LON: 121.0°E</span>
-                        </div>
-                        <div className="data-point-pulse geo-point-1"></div>
-                        <div className="data-point-pulse geo-point-2"></div>
-                        <div className="data-point-pulse geo-point-3"></div>
-                        <div className="geo-coordinate-grid"></div>
-                        <div className="geo-target-marker"></div>
-                        <div className="geo-radar-sweep"></div>
-                      </>
-                    )}
-                    
-                    {currentStep === 3 && (
-                      // Real-time Monitoring special effects
-                      <>
-                        <div className="data-point-pulse data-point-1"></div>
-                        <div className="data-point-pulse data-point-2"></div>
-                        <div className="data-point-pulse data-point-3"></div>
-                        <div className="data-point-pulse data-point-4"></div>
-                        <div className="realtime-alert-banner">
-                          <span className="realtime-alert-text">LIVE MONITORING</span>
-                        </div>
-                        <div className="realtime-data-stream"></div>
-                        <div className="realtime-ping-effect"></div>
-                      </>
-                    )}
-                    
-                    {/* Time counter on all images */}
-                    <div className="absolute bottom-3 right-3 bg-black/40 text-white text-xs py-1 px-2 rounded font-mono z-20">
-                      <LiveTimeCounter />
-                    </div>
-                  </>
-                  
-                  {/* Pulsing indicator */}
-                  <div className="absolute top-4 right-4 flex items-center justify-center">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <div className="absolute inset-0 w-8 h-8 rounded-full border-2 border-blue-500/40 tutorial-pulse-ring"></div>
-                  </div>
+          <div className="flex flex-col items-center">
+            {/* Tutorial Image - Now the main focus for mobile */}
+            <div 
+              className="tutorial-image-container slide-up-animation video-style-effect w-full max-w-[300px] mx-auto"
+            >
+              <div className="tutorial-dynamic-content">
+                <img 
+                  src={steps[currentStep].image} 
+                  alt={steps[currentStep].title} 
+                  className="tutorial-image"
+                />
+                <div className="video-moving-overlay-1"></div>
+                <div className="video-moving-overlay-2"></div>
+                <div className="video-moving-overlay-3"></div>
+              </div>
+              <div className="tutorial-image-blur"></div>
+              <div className="tutorial-image-glow"></div>
+              
+              <div className="video-scanlines"></div>
+              <div className="video-noise"></div>
+              
+              {/* Step-specific overlays based on content */}
+              {currentStep === 3 && (
+                <div className="realtime-alert-banner">
+                  <span className="realtime-alert-text">LIVE MONITORING</span>
                 </div>
-                
-                <motion.div 
-                  className="absolute -bottom-4 -right-4 z-30"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-3 py-1">
-                    Step {currentStep + 1}/{steps.length}
-                  </Badge>
-                </motion.div>
-                
-
+              )}
+              
+              {/* Time counter */}
+              <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full z-20">
+                <LiveTimeCounter />
+              </div>
+              
+              <motion.div 
+                className="absolute -bottom-2 -right-2 z-30"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-3 py-1">
+                  Step {currentStep + 1}/{steps.length}
+                </Badge>
               </motion.div>
-            </AnimatePresence>
+            </div>
           </div>
         </div>
-        {/* Mobile-friendly bottom navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-600/95 via-indigo-600/95 to-purple-600/95 p-4 flex justify-between z-20">
-          <div>
-            {currentStep > 0 && (
-              <Button 
-                className="bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center px-5"
-                onClick={prevStep}
-              >
-                <ChevronLeft className="mr-1.5 h-4 w-4" />
-                <span>Previous</span>
-              </Button>
-            )}
+        
+        {/* Bottom navigation */}
+        <div className="p-5 pt-4 pb-16 flex items-center justify-between">
+          <Button 
+            className={`rounded-full ${currentStep === 0 ? 'opacity-0' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+            onClick={prevStep}
+            disabled={currentStep === 0}
+            size="sm"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span className="sr-only">Previous</span>
+          </Button>
+          
+          <div className="flex-1 px-4">
+            <h3 className="font-bold text-center text-lg">
+              {steps[currentStep].title}
+            </h3>
+            <p className="text-sm text-center text-gray-600 mt-1">
+              {steps[currentStep].description}
+            </p>
           </div>
           
           <Button 
+            className="rounded-full bg-blue-600 hover:bg-blue-700 text-white"
             onClick={nextStep}
-            className="bg-white text-blue-600 hover:bg-white/90 hover:scale-105 transform transition-all shadow-lg rounded-full flex items-center px-5"
+            size="sm"
+          >
+            {currentStep === steps.length - 1 ? (
+              <>
+                <span className="sr-only">Finish</span>
+                <Check className="h-4 w-4" />
+              </>
+            ) : (
+              <>
+                <span className="sr-only">Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </div>
+        
+        {/* Fixed navigation buttons at bottom */}
+        <div className="fixed left-0 right-0 bottom-0 flex justify-between py-4 px-6 bg-gradient-to-r from-blue-600/90 via-indigo-600/90 to-purple-600/90 backdrop-blur-sm">
+          <Button 
+            className={`${currentStep === 0 ? 'opacity-0 pointer-events-none' : ''} bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center px-3`}
+            onClick={prevStep}
+            disabled={currentStep === 0}
+            size="sm"
+          >
+            <ChevronLeft className="mr-1 h-3 w-3" />
+            <span>Previous</span>
+          </Button>
+          
+          <Button 
+            onClick={nextStep}
+            className="bg-white text-blue-600 hover:bg-white/90 hover:scale-105 transform transition-all shadow-lg rounded-full flex items-center px-3"
+            size="sm"
           >
             <span>{currentStep === steps.length - 1 ? 'Get Started' : 'Next'}</span>
-            <ChevronRight className="ml-1.5 h-4 w-4" />
+            <ChevronRight className="ml-1 h-3 w-3" />
           </Button>
         </div>
       </motion.div>
