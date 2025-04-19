@@ -979,12 +979,31 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                     }
                                     sentiment = sentiment_map.get(sentiment.upper(), "Neutral")
                                 
-                                # If successful return DeepSeek result
-                                logging.info(f"DeepSeek R1 Distill Llama 70B real-time analysis successful: {sentiment} [{confidence:.2f}]")
+                                # Apply post-processing rules to correct common misclassifications
+                                # This enforces our basic rule that purely descriptive/informative text should be Neutral
+                                corrected_sentiment = sentiment
+                                
+                                # Check if text is simple description without strong emotional markers
+                                text_lower = text.lower()
+                                emotional_words = ["nakakatakot", "scary", "afraid", "takot", "worried", "kabado", "help", "tulong", "saklolo", "emergency", "bantay", "delikado", "ingat"]
+                                emotional_markers = ["!!!", "???", "HELP", "TULONG", "OMG", "OH MY GOD"]
+                                
+                                # If it sounds descriptive and doesn't have emotional markers
+                                looks_descriptive = any(word in text_lower for word in ["may", "there is", "there was", "nangyari", "happened", "maraming", "many", "several", "buildings", "collapsed", "evacuated"])
+                                has_emotion = any(word in text_lower for word in emotional_words) or any(marker in text.upper() for marker in emotional_markers)
+                                
+                                # Special override for factual/descriptive content that got misclassified
+                                if looks_descriptive and not has_emotion and sentiment == "Fear/Anxiety":
+                                    corrected_sentiment = "Neutral"
+                                    explanation += " [Automatically corrected to Neutral as this appears to be a descriptive statement without explicit emotional markers]"
+                                    logging.info(f"Corrected sentiment from Fear/Anxiety to Neutral for descriptive content: {text}")
+                                
+                                # If successful return DeepSeek result with possible correction
+                                logging.info(f"DeepSeek R1 Distill Llama 70B real-time analysis: {sentiment} → {corrected_sentiment} [{confidence:.2f}]")
                                 
                                 # Return the DeepSeek result - don't include language here to match format
                                 return {
-                                    "sentiment": sentiment,
+                                    "sentiment": corrected_sentiment,
                                     "confidence": min(0.97, confidence),  # Cap at 0.97 for safety
                                     "explanation": explanation,
                                     "disasterType": disaster_type,
@@ -1311,8 +1330,6 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                 raise ValueError(
                                     "No valid JSON found in response")
 
-                    # Remove forced overrides and let AI decide more naturally
-                    
                     # Add required fields if missing
                     if "sentiment" not in result:
                         result["sentiment"] = "Neutral"
@@ -1327,6 +1344,35 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                         result["location"] = self.extract_location(text)
                     if "language" not in result:
                         result["language"] = language
+                        
+                    # Apply post-processing rules to correct common misclassifications
+                    # This enforces our basic rule that purely descriptive/informative text should be Neutral
+                    sentiment = result["sentiment"]
+                    corrected_sentiment = sentiment
+                    explanation = result["explanation"]
+                    
+                    # Check if text is simple description without strong emotional markers
+                    text_lower = text.lower()
+                    emotional_words = ["nakakatakot", "scary", "afraid", "takot", "worried", "kabado", "help", "tulong", "saklolo", "emergency", "bantay", "delikado", "ingat"]
+                    emotional_markers = ["!!!", "???", "HELP", "TULONG", "OMG", "OH MY GOD"]
+                    
+                    # If it sounds descriptive and doesn't have emotional markers
+                    looks_descriptive = any(word in text_lower for word in ["may", "there is", "there was", "nangyari", "happened", "maraming", "many", "several", "buildings", "collapsed", "evacuated"])
+                    has_emotion = any(word in text_lower for word in emotional_words) or any(marker in text.upper() for marker in emotional_markers)
+                    
+                    # Special override for factual/descriptive content that got misclassified
+                    if looks_descriptive and not has_emotion and sentiment == "Fear/Anxiety":
+                        corrected_sentiment = "Neutral"
+                        explanation += " [Automatically corrected to Neutral as this appears to be a descriptive statement without explicit emotional markers]"
+                        logging.info(f"Corrected sentiment from Fear/Anxiety to Neutral for descriptive content: {text}")
+                    
+                    # Update result with corrected values
+                    result["sentiment"] = corrected_sentiment
+                    result["explanation"] = explanation
+                    
+                    # Log the correction if applicable
+                    if sentiment != corrected_sentiment:
+                        logging.info(f"Gemma2 CSV analysis corrected: {sentiment} → {corrected_sentiment}")
 
                     # Success - update the next key to use
                     self.current_key_index = (key_index + 1) % num_keys
@@ -1382,6 +1428,20 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
         # If the input is a short statement like "may sunog", "may baha", etc.
         # and doesn't explicitly indicate panic, fear, etc., then it MUST be NEUTRAL
         
+        # Prioritize the neutral descriptive content rule above all else
+        # This ensures informative/descriptive content is ALWAYS Neutral even in rule-based
+        looks_descriptive = any(word in text_lower for word in ["may", "there is", "there was", "nangyari", "happened", "maraming", "many", "several", "buildings", "collapsed", "evacuated"])
+        emotional_words = ["nakakatakot", "scary", "afraid", "takot", "worried", "kabado", "help", "tulong", "saklolo", "emergency", "bantay", "delikado", "ingat"]
+        emotional_markers = ["!!!", "???", "HELP", "TULONG", "OMG", "OH MY GOD"]
+        has_emotion = any(word in text_lower for word in emotional_words) or any(marker in text.upper() for marker in emotional_markers)
+        
+        if looks_descriptive and not has_emotion:
+            return {
+                "sentiment": "Neutral",
+                "confidence": 0.92,
+                "explanation": "Descriptive statement without emotional markers. These types of informative reports should be classified as Neutral regardless of disaster content."
+            }
+            
         # Simple statements count check
         word_count = len(text_lower.split())
         
@@ -2329,29 +2389,39 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                         "text": text  # Include text for confidence adjustment
                                     }
 
+                        # Get sentiment and apply post-processing
+                        sentiment = analysis_result.get("sentiment", "Neutral")
+                        explanation = analysis_result.get("explanation", "")
+                        
+                        # Apply post-processing rules to correct common misclassifications in CSV
+                        # This enforces our basic rule that purely descriptive/informative text should be Neutral
+                        corrected_sentiment = sentiment
+                        
+                        # Check if text is simple description without strong emotional markers
+                        text_lower = text.lower()
+                        emotional_words = ["nakakatakot", "scary", "afraid", "takot", "worried", "kabado", "help", "tulong", "saklolo", "emergency", "bantay", "delikado", "ingat"]
+                        emotional_markers = ["!!!", "???", "HELP", "TULONG", "OMG", "OH MY GOD"]
+                        
+                        # If it sounds descriptive and doesn't have emotional markers
+                        looks_descriptive = any(word in text_lower for word in ["may", "there is", "there was", "nangyari", "happened", "maraming", "many", "several", "buildings", "collapsed", "evacuated"])
+                        has_emotion = any(word in text_lower for word in emotional_words) or any(marker in text.upper() for marker in emotional_markers)
+                        
+                        # Special override for factual/descriptive content that got misclassified
+                        if looks_descriptive and not has_emotion and sentiment == "Fear/Anxiety":
+                            corrected_sentiment = "Neutral"
+                            explanation += " [CSV auto-corrected: This appears to be a descriptive statement without explicit emotional markers]"
+                            logging.info(f"CSV batch: Corrected sentiment from Fear/Anxiety to Neutral: {text}")
+                        
                         processed_results.append({
-                            "text":
-                            text,
-                            "timestamp":
-                            timestamp,
-                            "source":
-                            source,
-                            "language":
-                            csv_language if csv_language else
-                            analysis_result.get("language", "English"),
-                            "sentiment":
-                            analysis_result.get("sentiment", "Neutral"),
-                            "confidence":
-                            analysis_result.get("confidence", 0.7),
-                            "explanation":
-                            analysis_result.get("explanation", ""),
-                            "disasterType":
-                            csv_disaster
-                            if csv_disaster else analysis_result.get(
-                                "disasterType", "Not Specified"),
-                            "location":
-                            csv_location if csv_location else
-                            analysis_result.get("location")
+                            "text": text,
+                            "timestamp": timestamp,
+                            "source": source,
+                            "language": csv_language if csv_language else analysis_result.get("language", "English"),
+                            "sentiment": corrected_sentiment,  # Use corrected sentiment here
+                            "confidence": analysis_result.get("confidence", 0.7),
+                            "explanation": explanation,  # Use updated explanation
+                            "disasterType": csv_disaster if csv_disaster else analysis_result.get("disasterType", "Not Specified"),
+                            "location": csv_location if csv_location else analysis_result.get("location")
                         })
 
                         time.sleep(1.0)  # Wait 1 second between retries
