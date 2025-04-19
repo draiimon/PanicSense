@@ -995,7 +995,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                 # Special override for factual/descriptive content that got misclassified
                                 if looks_descriptive and not has_emotion and sentiment == "Fear/Anxiety":
                                     corrected_sentiment = "Neutral"
-                                    explanation += " [Automatically corrected to Neutral as this appears to be a descriptive statement without explicit emotional markers]"
+                                    # Just log it without adding to the visible explanation
                                     logging.info(f"Corrected sentiment from Fear/Anxiety to Neutral for descriptive content: {text}")
                                 
                                 # If successful return DeepSeek result with possible correction
