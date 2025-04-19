@@ -866,7 +866,7 @@ export function UploadProgressModal() {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
-        className="relative bg-white dark:bg-gray-900 rounded-xl overflow-hidden w-full max-w-md mx-4 shadow-xl border border-gray-200 dark:border-gray-800"
+        className="relative bg-white dark:bg-gray-900 rounded-xl overflow-hidden w-full max-w-md mx-4 shadow-xl border border-gray-200 dark:border-gray-800 transform-gpu sm:max-w-lg"
       >
         {/* Enhanced Header with Gradient */}
         <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 p-4 md:p-5 text-white relative overflow-hidden">
@@ -929,8 +929,8 @@ export function UploadProgressModal() {
           </motion.div>
         </div>
         
-        {/* Progress Content */}
-        <div className="p-5">
+        {/* Progress Content - Enhanced for mobile */}
+        <div className="p-4 sm:p-5 md:p-6">
           {/* Progress bar */}
           {!isComplete && !hasError && (
             <div className="mb-4">
@@ -1085,46 +1085,25 @@ export function UploadProgressModal() {
             
             {/* Action buttons */}
             {!isComplete && !hasError && (
-              <div className="mt-3 space-y-2">
-                <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                  {/* Regular Cancel Button */}
+              <div className="mt-4">
+                <div className="flex justify-center">
+                  {/* Single Enhanced Cancel Button with force cancel functionality */}
                   <Button
                     variant="destructive"
                     size="sm"
-                    className="gap-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white rounded-full px-5"
-                    onClick={() => setShowCancelDialog(true)}
-                    disabled={isCancelling}
-                  >
-                    {isCancelling ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Cancelling...</span>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="h-4 w-4" />
-                        <span>Cancel Upload</span>
-                      </>
-                    )}
-                  </Button>
-                  
-                  {/* Force Cancel Button - For stuck uploads */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1 border border-red-300 text-red-600 hover:bg-red-50 rounded-full px-5"
+                    className="gap-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white rounded-full px-6 py-5 font-medium shadow-md transition-all hover:shadow-lg hover-scale"
                     onClick={() => handleCancel(true)}
                     disabled={isCancelling}
                   >
                     {isCancelling ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Force Cancelling...</span>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span className="text-base">Cancelling...</span>
                       </>
                     ) : (
                       <>
-                        <AlertCircle className="h-4 w-4" />
-                        <span>Force Cancel</span>
+                        <XCircle className="h-5 w-5" />
+                        <span className="text-base">Cancel Upload</span>
                       </>
                     )}
                   </Button>
@@ -1140,7 +1119,7 @@ export function UploadProgressModal() {
                 <Button
                   variant="default"
                   size="sm"
-                  className="gap-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-full px-5"
+                  className="gap-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-full px-5 py-2 hover-scale shadow-md"
                   onClick={() => forceCloseModalMemo()}
                 >
                   <CheckCircle className="h-4 w-4" />
@@ -1152,52 +1131,59 @@ export function UploadProgressModal() {
         </div>
       </motion.div>
       
-      {/* Cancel confirmation dialog */}
+      {/* Enhanced Cancel confirmation dialog with gradient */}
       {showCancelDialog && createPortal(
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[10000]" onClick={() => setShowCancelDialog(false)}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000]" onClick={() => setShowCancelDialog(false)}>
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-5 max-w-xs mx-4 shadow-xl border border-gray-200 dark:border-gray-700" 
+            className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden w-full max-w-xs mx-4 shadow-xl border border-gray-200 dark:border-gray-700 transform-gpu" 
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-start gap-3 mb-3">
-              <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-full">
-                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Cancel Upload?</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  This will stop the current processing job. Progress will be lost and you'll need to start over.
-                </p>
+            {/* Gradient header for cancel dialog */}
+            <div className="bg-gradient-to-r from-red-500 to-pink-600 p-4 text-white relative overflow-hidden">
+              {/* Decorative gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50"></div>
+              
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm">
+                  <AlertCircle className="h-5 w-5 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-white">Cancel Upload?</h3>
               </div>
             </div>
             
-            <div className="flex justify-end gap-2 mt-5">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowCancelDialog(false)}
-                className="bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 hover:text-gray-900 border-gray-200 dark:border-gray-700 rounded-full px-4"
-              >
-                No, Continue
-              </Button>
-              <Button 
-                variant="destructive"
-                size="sm"
-                onClick={() => handleCancel(false)} 
-                className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white border-none rounded-full px-4"
-              >
-                Yes, Cancel
-              </Button>
+            <div className="p-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                This will stop the current processing job. Progress will be lost and you'll need to start over.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row justify-end gap-2 mt-5">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowCancelDialog(false)}
+                  className="w-full sm:w-auto bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 hover:text-gray-900 border-gray-200 dark:border-gray-700 rounded-full px-4 py-2 hover-scale shadow-sm"
+                >
+                  No, Continue
+                </Button>
+                <Button 
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleCancel(true)} 
+                  className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white border-none rounded-full px-4 py-2 hover-scale shadow-md"
+                >
+                  Yes, Cancel
+                </Button>
+              </div>
             </div>
           </motion.div>
         </div>,
         document.body
       )}
       
-      {/* Animations */}
+      {/* Enhanced Animations */}
       <style>
         {`
           @keyframes gradientShift {
@@ -1207,6 +1193,31 @@ export function UploadProgressModal() {
             100% {
               background-position: -100% 0;
             }
+          }
+
+          .bg-gradient-to-r {
+            background-size: 200% 100%;
+            animation: gradientBackground 8s linear infinite;
+          }
+
+          @keyframes gradientBackground {
+            0% {
+              background-position: 0% 50%;
+            }
+            50% {
+              background-position: 100% 50%;
+            }
+            100% {
+              background-position: 0% 50%;
+            }
+          }
+
+          /* Make buttons pop on hover */
+          .hover-scale {
+            transition: transform 0.2s ease-in-out;
+          }
+          .hover-scale:hover {
+            transform: scale(1.05);
           }
         `}
       </style>
