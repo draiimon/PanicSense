@@ -68,7 +68,7 @@
   overflow: hidden;
   box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.3), 0 8px 10px -6px rgba(124, 58, 237, 0.2);
   transition: all 0.3s ease;
-  height: 200px;
+  height: 350px; /* Increased from 200px to show advanced elements */
   width: 100%;
 }
 
