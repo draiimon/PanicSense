@@ -570,7 +570,7 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                         <>
                           <div className="flex items-center gap-2">
                             <Check className="h-4 w-4 text-green-300" />
-                            <p className="text-white/80">Advanced emotion detection (Panic, Fear/Anxiety, Anger)</p>
+                            <p className="text-white/80">Advanced emotion detection (Panic, Fear/Anxiety, Disbelief)</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <Check className="h-4 w-4 text-green-300" />
@@ -683,9 +683,14 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                       {currentStep !== steps.length - 1 && 
                         <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                       }
-                      {currentStep === steps.length - 1 && 
-                        <Sparkles className="ml-2 h-4 w-4 animate-pulse" />
-                      }
+                      {currentStep === steps.length - 1 && (
+                        <>
+                          <Sparkles className="ml-2 h-4 w-4 animate-pulse" />
+                          <div className="absolute -right-10 transform rotate-45 animate-bounce">
+                            <ArrowUp className="h-5 w-5 text-yellow-300 drop-shadow-glow" />
+                          </div>
+                        </>
+                      )}
                     </span>
                   </Button>
                 </motion.div>
@@ -1231,7 +1236,7 @@ export default function LandingPage() {
                               {[
                                 {label: "Panic", value: 35, color: "bg-red-500 shadow-red-200"},
                                 {label: "Fear/Anxiety", value: 30, color: "bg-orange-500 shadow-orange-200"},
-                                {label: "Anger", value: 15, color: "bg-purple-500 shadow-purple-200"},
+                                {label: "Disbelief", value: 15, color: "bg-purple-500 shadow-purple-200"},
                                 {label: "Resilience", value: 10, color: "bg-green-500 shadow-green-200"},
                                 {label: "Neutral", value: 10, color: "bg-blue-500 shadow-blue-200"}
                               ].map((item, i) => (
@@ -1270,7 +1275,7 @@ export default function LandingPage() {
                               {[
                                 { type: "Trending", text: "Rising flood concern in Pangasinan area", sentiment: "Panic", confidence: 87 },
                                 { type: "Language", text: "Mixed Filipino/English messages for earthquake reports", sentiment: "Fear/Anxiety", confidence: 92 },
-                                { type: "Pattern", text: "Increased tsunami mentions after seismic activity", sentiment: "Anger", confidence: 78 }
+                                { type: "Pattern", text: "Increased tsunami mentions after seismic activity", sentiment: "Disbelief", confidence: 78 }
                               ].map((insight, i) => (
                                 <motion.div 
                                   key={i}
@@ -1289,7 +1294,7 @@ export default function LandingPage() {
                                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                                       insight.sentiment === "Panic" ? "bg-red-100 text-red-700" :
                                       insight.sentiment === "Fear/Anxiety" ? "bg-orange-100 text-orange-700" :
-                                      insight.sentiment === "Anger" ? "bg-purple-100 text-purple-700" :
+                                      insight.sentiment === "Disbelief" ? "bg-purple-100 text-purple-700" :
                                       "bg-yellow-100 text-yellow-700"
                                     }`}>
                                       {insight.sentiment}
