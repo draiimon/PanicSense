@@ -926,37 +926,49 @@ class DisasterSentimentBackend:
         return fallback_result
 
     def _rule_based_sentiment_analysis(self, text, language):
-        """Fallback rule-based sentiment analysis"""
+        """Fallback rule-based sentiment analysis - ENHANCED FOR BETTER DISASTER DETECTION"""
         text_lower = text.lower()
         
-        # VERY IMPORTANT: The algorithm follows EXACTLY what's in the text 
-        # If the input is a short statement like "may sunog", "may baha", etc.
-        # and doesn't explicitly indicate panic, fear, etc., then it MUST be NEUTRAL
+        # Check for exclamation points
+        has_exclamation = "!" in text
+        exclamation_count = text.count("!")
         
-        # Simple statements count check
-        word_count = len(text_lower.split())
+        # Count ALL CAPS words as emotional indicators
+        caps_words_count = len([word for word in text.split() if word.isupper() and len(word) > 2])
         
-        # Check if this is a simple statement (3 words or less) with no strong emotional indicators
-        if word_count <= 3:
-            # Quick check for short factual statements
-            contains_emotion = False
-            emotion_words = [
-                "saklolo", "help", "tulong", "tulungan", "takot", "scared", "afraid", 
-                "panic", "nanginginig", "nakakatakot", "😱", "😨", "namatay", 
-                "patay", "iyak", "cry", "!!!"]
-            
-            for emotion in emotion_words:
-                if emotion in text_lower:
-                    contains_emotion = True
-                    break
-            
-            # If it's a short statement without emotional words, it's NEUTRAL by default
-            if not contains_emotion:
+        # Prioritize disaster detection with urgency indicators
+        is_urgent = exclamation_count >= 3 or caps_words_count >= 2
+        
+        # First check for disaster keywords that should trigger emotion even in short texts
+        disaster_terms = ["sunog", "fire", "baha", "flood", "lindol", "earthquake", "bagyo", "typhoon", 
+                         "landslide", "eruption", "tsunami", "apoy", "tubig"]
+        
+        has_disaster_term = any(term in text_lower for term in disaster_terms)
+        
+        # CRUCIAL FIX: MULTIPLE EXCLAMATION POINTS WITH DISASTER TERM SHOULD NEVER BE NEUTRAL
+        if has_disaster_term and is_urgent:
+            if "tulong" in text_lower or "help" in text_lower or "saklolo" in text_lower:
                 return {
-                    "sentiment": "Neutral",
-                    "confidence": 0.90,
-                    "explanation": "Simple statement without emotional indicators - analyzing exactly what's in the text."
+                    "sentiment": "Panic",
+                    "confidence": 0.95,
+                    "explanation": "Disaster report with multiple exclamation marks and request for help indicates urgent panic situation."
                 }
+            else:
+                return {
+                    "sentiment": "Fear/Anxiety",
+                    "confidence": 0.92,
+                    "explanation": "Urgent disaster reporting with strong emphasis (exclamation/caps) indicates fear or anxiety."
+                }
+        
+        # Check for location keywords and exclamation points
+        # Example: nasusunog sa TIP!!!!!
+        location_terms = ["sa", "in", "at", "near", "malapit"]
+        if has_disaster_term and any(term in text_lower for term in location_terms) and has_exclamation:
+            return {
+                "sentiment": "Fear/Anxiety",
+                "confidence": 0.90,
+                "explanation": "Disaster report with location details and exclamation marks indicates fear/anxiety."
+            }
         
         # Check specifically for laughing emoji + TULONG pattern first
         # This is a common Filipino pattern expressing disbelief or humor
@@ -985,41 +997,50 @@ class DisasterSentimentBackend:
                 "explanation": "The combination of laughter ('HAHA') and words like 'TULONG' indicates this is expressing humor or disbelief, not actual panic. This is a common Filipino pattern for jokes or sarcasm."
             }
 
-        # Keywords associated with each sentiment
+        # Keywords associated with each sentiment - EXPANDED FOR BETTER DETECTION
         sentiment_keywords = {
             "Panic": [
-                "emergency", "trapped", "dying", "death", "urgent",
-                "critical", "saklolo", "naiipit", "mamamatay",
-                "agad", "kritikal", "emerhensya"
+                "emergency", "trapped", "dying", "death", "urgent", "hurry", "quick",
+                "critical", "saklolo", "naiipit", "mamamatay", "bilisan", "dali",
+                "agad", "kritikal", "emerhensya", "help", "tulong", "tulungan", 
+                "takbo", "run", "evacuate", "evacuate now", "now", "ngayon", "danger",
+                "delikado", "panganib", "masaklap", "tabang"
             ],
             "Fear/Anxiety": [
-                "scared", "afraid", "worried", "fear", "terrified", "anxious",
-                "frightened", "takot", "natatakot", "nag-aalala", "kabado",
-                "kinakabahan", "nangangamba"
+                "scared", "afraid", "worried", "fear", "terrified", "anxious", "dread",
+                "frightened", "takot", "natatakot", "nag-aalala", "kabado", "worry",
+                "kinakabahan", "nangangamba", "bahala", "concerned", "concern", "scary",
+                "nakakatakot", "nakakakaba", "nakakaparanoid", "kinatatakutan", "alarming",
+                "alarma", "ikinababahala", "nervous", "nerbyoso"
             ],
             "Disbelief": [
-                "unbelievable", "impossible", "can't believe", "no way",
-                "what's happening", "shocked", "hindi kapani-paniwala", "haha",
+                "unbelievable", "impossible", "can't believe", "no way", "hindi totoo",
+                "what's happening", "shocked", "hindi kapani-paniwala", "haha", "joke",
                 "hahaha", "lol", "lmao", "ulol", "gago", "tanga", "wtf", "daw?", "raw?", 
-                "talaga?", "really?", "seriously?", "seryoso?", "?!", "??", 
-                "imposible", "di ako makapaniwala", "nagulat", "gulat"
+                "talaga?", "really?", "seriously?", "seryoso?", "?!", "??", "fake news",
+                "imposible", "di ako makapaniwala", "nagulat", "gulat", "di totoo"
             ],
             "Resilience": [
-                "stay strong", "we will overcome", "resilient", "rebuild",
+                "stay strong", "we will overcome", "resilient", "rebuild", "kaya natin",
                 "recover", "hope", "lets help", "let's help", "let us help", "help them",
-                "malalampasan", "tatayo ulit", "magbabalik",
-                "pag-asa", "malalagpasan", "tulungan natin", "tumulong",
-                "we can help", "we will help", "tutulong tayo"
+                "malalampasan", "tatayo ulit", "magbabalik", "kapit lang", "be strong",
+                "pag-asa", "malalagpasan", "tulungan natin", "tumulong", "hindi susuko",
+                "we can help", "we will help", "tutulong tayo", "prayers", "dasal"
             ]
         }
 
         # Score each sentiment
         scores = {sentiment: 0 for sentiment in self.sentiment_labels}
 
+        # ENHANCED SCORING: Add more weight to emotion words
         for sentiment, keywords in sentiment_keywords.items():
             for keyword in keywords:
                 if keyword in text_lower:
-                    scores[sentiment] += 1
+                    # Give more weight to exact matches
+                    if f" {keyword} " in f" {text_lower} " or text_lower.startswith(f"{keyword} ") or text_lower.endswith(f" {keyword}"):
+                        scores[sentiment] += 2  # More weight for full word matches
+                    else:
+                        scores[sentiment] += 1  # Regular weight for partial matches
 
         # DEEPLY ANALYZE FULL CONTEXT
         # Check for phrases indicating help/resilience in the context
@@ -1051,7 +1072,7 @@ class DisasterSentimentBackend:
                 if scores["Panic"] > 0:
                     scores["Panic"] -= 1
         
-        # Look for specific context clues of victims asking for help
+        # ENHANCED DETECTION: Look for specific context clues of victims asking for help
         panic_phrases = [
             "help me", "save me", "trapped", "can't breathe", "tulungan ako", "help us",
             "saklolo", "tulong!", "naipit ako", "hindi makahinga", "naiipit", "nakulong", 
@@ -1062,31 +1083,31 @@ class DisasterSentimentBackend:
         ]
         
         # Check for single word "tulong" context
-        if "tulong" in text_lower and not any(phrase in text_lower for phrase in resilience_phrases):
+        if ("tulong" in text_lower or "help" in text_lower) and not any(phrase in text_lower for phrase in resilience_phrases):
             # If "tulong" appears alone without resilience context, it's likely a call for help
             scores["Panic"] += 2
             
-        # IMPORTANTE: Ang mga salitang "may sunog", "may baha", "fire", etc. ay dapat NEUTRAL kung hindi malinaw na nagpapakita ng panic
-        # Pag simpleng sinasabi lang na "may sunog" o "fire" ito ay statement of fact lang - hindi panic o emotion
-        # Example: "May sunog" = NEUTRAL, "MAY SUNOG! TAKBO!" = PANIC
-        
-        # Special handling for simple factual statements that should ALWAYS be Neutral
+        # ENHANCED DISASTER DETECTION: Simple disaster reports with exclamation should show emotion!
         simple_statements = ["may sunog", "may baha", "may lindol", "there is a fire", "there is a flood", "there is an earthquake"]
         
         # Check if the text is a simple factual statement
         if any(statement in text_lower for statement in simple_statements):
-            # Calculate maximum score across all sentiment categories
-            max_score = max(scores.values()) if scores else 0
-            
-            # Only override if there are no strong emotional indicators
-            if max_score <= 1:
-                scores["Neutral"] = 3  # Force to Neutral with higher score if no strong emotions
-                
-                # Reset other scores to ensure Neutral wins
-                scores["Panic"] = 0
-                scores["Fear/Anxiety"] = 0
-                scores["Disbelief"] = 0
-                scores["Resilience"] = 0
+            # IMPROVED: If there are exclamation points, it's not just a neutral statement
+            if exclamation_count >= 1:
+                scores["Fear/Anxiety"] += exclamation_count  # More exclamations = more emotion
+            elif caps_words_count >= 1:
+                scores["Fear/Anxiety"] += caps_words_count  # ALL CAPS indicates emotion
+            else:
+                # Only override if there are no strong emotional indicators
+                max_score = max(scores.values()) if scores else 0
+                if max_score <= 1:
+                    scores["Neutral"] = 2  # Force to Neutral with higher score if no strong emotions
+                    
+                    # Reset other scores to ensure Neutral wins
+                    scores["Panic"] = 0
+                    scores["Fear/Anxiety"] = 0
+                    scores["Disbelief"] = 0
+                    scores["Resilience"] = 0
         
         # Parse full context of panic phrases  
         for phrase in panic_phrases:
@@ -1096,9 +1117,19 @@ class DisasterSentimentBackend:
         # CONTEXT-AWARE ANALYSIS OF TEXT FORMATTING
         # Analyze formatting in context, not by itself
         
-        # Analyze surrounding context for exclamation points
+        # ENHANCED: Analyze surrounding context for exclamation points - now with better weighting
         if "!" in text:
-            # Don't just count exclamation points - look at CONTEXT
+            # Count total exclamations and adjust scores
+            exclamation_count = text.count("!")
+            
+            # More exclamations = more emotion
+            if exclamation_count >= 3 and has_disaster_term:
+                # Multiple exclamations with disaster words shows strong emotion
+                scores["Panic"] += 2
+                scores["Fear/Anxiety"] += 1
+            elif exclamation_count >= 1 and has_disaster_term:
+                # At least some emotion for any exclamation with disaster terms
+                scores["Fear/Anxiety"] += 1
             
             # Extract phrases with exclamation (5 words before and after)
             exclamation_phrases = []
@@ -1112,10 +1143,10 @@ class DisasterSentimentBackend:
             
             # Analyze the context of each exclamation phrase
             for phrase in exclamation_phrases:
-                # Context indicates victim perspective (panic)
+                # Context indicates victim perspective (panic) - ENHANCED DETECTION
                 if any(word in phrase for word in ["help", "emergency", "saklolo", "trapped", "tulong", "danger"]):
                     if not any(rp in phrase for rp in resilience_phrases):
-                        scores["Panic"] += 1
+                        scores["Panic"] += 2  # Increased from 1 to 2
                 
                 # Context indicates helper perspective (resilience)
                 elif any(word in phrase for word in ["donate", "let's help", "support", "tulungan natin", "assist"]):
@@ -1146,24 +1177,32 @@ class DisasterSentimentBackend:
                 if any(word in phrase for word in ["bakit", "paano", "why", "how could", "paanong"]):
                     scores["Disbelief"] += 1
         
-        # Analyze ALL CAPS text with full context
-        # ALL CAPS is not itself an indicator - analyze the meaning
-        if len([word for word in text.split() if word.isupper() and len(word) > 2]) > 1:
+        # ENHANCED: Analyze ALL CAPS text with full context - stronger emotion indicators
+        # ALL CAPS with disaster terms should never be neutral
+        if caps_words_count > 0:
             # Get ALL CAPS words
             caps_words = [word.lower() for word in text.split() if word.isupper() and len(word) > 2]
             
             # Context-based analysis of ALL CAPS content
             if any(word in caps_words for word in ["emergency", "tulong", "saklolo", "help", "rescue"]):
                 if not any(phrase in text_lower for phrase in resilience_phrases):
-                    scores["Panic"] += 1
+                    scores["Panic"] += 2  # Increased from 1 to 2
             
             # ALL CAPS for offering help is resilience
             elif any(word in " ".join(caps_words) for word in ["donate", "tulungan", "help", "lets", "tumulong"]):
                 if any(phrase in text_lower for phrase in resilience_phrases):
                     scores["Resilience"] += 1
+                    
+            # ALL CAPS disaster terms indicate emotion
+            elif any(word in " ".join(caps_words) for word in disaster_terms):
+                scores["Fear/Anxiety"] += 1
+                
+            # ALL CAPS location terms with disaster terms indicate concern/fear
+            elif any(word in " ".join(caps_words) for word in ["sa", "in", "at"]):
+                if has_disaster_term:
+                    scores["Fear/Anxiety"] += 1
 
-        # Determine the sentiment with the highest score
-        # Add safety check to ensure scores is not empty
+        # ENHANCED: Determine the sentiment with the highest score
         max_score = max(scores.values()) if scores else 0
         if max_score == 0:
             # If no clear sentiment detected, return Neutral
@@ -1174,30 +1213,33 @@ class DisasterSentimentBackend:
             }
 
         # Get all sentiments with the maximum score (in case of ties)
-        top_sentiments = [
-            s for s, score in scores.items() if score == max_score
-        ]
+        top_sentiments = [s for s, score in scores.items() if score == max_score]
 
         if len(top_sentiments) == 1:
             sentiment = top_sentiments[0]
         else:
-            # In case of a tie, prefer Neutral for simple statements
-            if "Neutral" in top_sentiments and len(text_lower.split()) < 7:
-                sentiment = "Neutral"
+            # IMPROVED HANDLING FOR TIES: Prioritize emotions over neutral for disaster-related texts
+            if "Neutral" in top_sentiments and has_disaster_term and (exclamation_count > 0 or caps_words_count > 0):
+                # Even in a tie, prioritize emotion for disaster terms with emphasis
+                if "Panic" in top_sentiments:
+                    sentiment = "Panic"
+                elif "Fear/Anxiety" in top_sentiments:
+                    sentiment = "Fear/Anxiety"
+                elif "Disbelief" in top_sentiments:
+                    sentiment = "Disbelief"
+                elif "Resilience" in top_sentiments:
+                    sentiment = "Resilience"
+                else:
+                    sentiment = "Neutral"
             else:
                 # IMPROVED: For mixed messages, always prioritize the stronger emotional indicators
-                # Prioritize Panic when mixed with other emotions if there are clear help indicators
-                # Neutral is ONLY used when the text is a simple factual report with no emotional markers
                 
                 # First check for additional indicators to give a nudge in case of ties
                 is_reporting_style = any(s in text_lower for s in ["news", "bulletin", "flash report", "balita", "ulat", "breaking news", "headline"])
                 has_help_request = any(s in text_lower for s in ["please help", "help please", "need help", "kailangan ng tulong", "pakitulong", "pakigalaw po", "asap"])
                 has_fear_words = any(s in text_lower for s in ["takot", "natatakot", "afraid", "scared", "frightened", "nanginginig"])
-                has_resilience_words = any(s in text_lower for s in ["be brave", "stay strong", "kakayanin", "magtulungan", "matibay", "malalagpasan"])
                 
                 # If text has more emojis than words, prioritize Disbelief regardless
-                emoji_count = sum(1 for char in text if ord(char) > 127000)  # Count emoji characters
-                word_count = len([w for w in text.split() if w.isalpha()])
                 if emoji_count > 3 and emoji_count > word_count / 2:
                     if "Disbelief" in top_sentiments:
                         sentiment = "Disbelief"
@@ -1225,6 +1267,23 @@ class DisasterSentimentBackend:
                         "confidence": 0.90, 
                         "explanation": "Text uses news reporting style with factual information, not expressing personal emotions."
                     }
+                
+                # ENHANCED: Many exclamation points should never be neutral for disaster reports
+                if exclamation_count >= 3 and has_disaster_term:
+                    if "Panic" in top_sentiments:
+                        sentiment = "Panic"
+                        return {
+                            "sentiment": sentiment,
+                            "confidence": 0.92,
+                            "explanation": "Multiple exclamation points with disaster terms indicates panic or urgency."
+                        }
+                    elif "Fear/Anxiety" in top_sentiments:
+                        sentiment = "Fear/Anxiety"
+                        return {
+                            "sentiment": sentiment,
+                            "confidence": 0.90,
+                            "explanation": "Multiple exclamation points with disaster terms indicates fear or anxiety."
+                        }
                     
                 # Only use standard priority if no special cases match
                 priority_order = [
@@ -1243,7 +1302,7 @@ class DisasterSentimentBackend:
             confidence = 0.70  # Default minimum
         else:
             # Direct scaling with no artificial limits - let AI determine confidence
-            confidence = 0.70 + (max_score * 0.03)
+            confidence = 0.75 + (max_score * 0.03)  # Increased base confidence
             
         # Always format as floating point with consistent 2 decimal places
         confidence = round(confidence, 2)
