@@ -46,9 +46,59 @@ def report_progress(processed: int, stage: str, total: int = None):
 class DisasterSentimentBackend:
 
     def __init__(self):
+        # Enhanced sentiment categories with clearer definitions from PanicSensePH Emotion Classification Guide
         self.sentiment_labels = [
             'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'
         ]
+        
+        # Enhanced sentiment definitions with examples for better classification
+        self.sentiment_definitions = {
+            'Panic': {
+                'definition': 'A state of intense fear and emotional overwhelm with helplessness and urgent cry for help',
+                'indicators': ['exclamatory expressions', 'all-caps text', 'repeated punctuation', 'emotional breakdowns', 'frantic sentence structure'],
+                'emojis': ['😱', '😭', '🆘', '💔'],
+                'phrases': [
+                    'Tulungan nyo po kami', 'HELP', 'RESCUE', 'tulong', 'mamamatay na kami',
+                    'ASAN ANG RESCUE', 'di kami makaalis', 'NAIIPIT KAMI', 'PLEASE'
+                ]
+            },
+            'Fear/Anxiety': {
+                'definition': 'Heightened worry, stress and uncertainty with some level of control',
+                'indicators': ['expressions of worry', 'use of ellipses', 'passive tones', 'lingering unease'],
+                'emojis': ['😨', '😰', '😟'],
+                'phrases': [
+                    'kinakabahan ako', 'natatakot ako', 'di ako mapakali', 'worried', 'anxious',
+                    'fearful', 'nakakatakot', 'nakakapraning', 'makakaligtas kaya', 'paano na'
+                ]
+            },
+            'Resilience': {
+                'definition': 'Expression of strength, unity and optimism despite adversity',
+                'indicators': ['encouraging tone', 'supportive language', 'references to community', 'affirmative language', 'faith'],
+                'emojis': ['💪', '🙏', '🌈', '🕊️'],
+                'phrases': [
+                    'kapit lang', 'kaya natin to', 'malalagpasan din natin', 'stay strong', 'prayers',
+                    'dasal', 'tulong tayo', 'magtulungan', 'babangon tayo', 'sama-sama', 'matatag'
+                ]
+            },
+            'Neutral': {
+                'definition': 'Emotionally flat statements focused on factual information',
+                'indicators': ['lack of emotional language', 'objective reporting', 'formal sentence structure'],
+                'emojis': ['📍', '📰'],
+                'phrases': [
+                    'reported', 'according to', 'magnitude', 'flooding detected', 'advisory',
+                    'update', 'bulletin', 'announcement', 'alert level', 'status'
+                ]
+            },
+            'Disbelief': {
+                'definition': 'Reactions of surprise, sarcasm, irony or denial as coping mechanism',
+                'indicators': ['ironic tone', 'sarcastic comments', 'humor to mask fear', 'exaggeration', 'memes'],
+                'emojis': ['🤯', '🙄', '😆', '😑'],
+                'phrases': [
+                    'baha na naman', 'classic ph', 'wala tayong alert', 'nice one', 'as usual',
+                    'same old story', 'what else is new', 'nakakasawa na', 'expected', 'wow surprise'
+                ]
+            }
+        }
         
         # For API calls in regular analysis
         self.api_keys = []
@@ -879,6 +929,44 @@ class DisasterSentimentBackend:
                     - Mga halimbawa: "may sunog", "may baha", "may lindol", "nangyari ang lindol", "maraming nasugatan"
                     - Walang emosyon, impormasyon lang -- HINDI PANIC, HINDI FEAR/ANXIETY
                     
+                    MALINAW NA GABAY SA SENTIMENT ANALYSIS:
+                    
+                    1. PANIC:
+                    - Matinding takot at pagiging emosyonal kasama ang pakiramdam ng kawalan ng kakayahang tumulong sa sarili
+                    - Madalas gumagamit ng all-caps, maraming tandang padamdam (!!! o ???)
+                    - Pangungusap na naghahanap ng tulong o saklolo
+                    - Mga karaniwang emoji: 😱😭🆘💔
+                    - Halimbawa: "TULUNGAN NYO PO KAMI, DI NA KAMI MAKAALIS!!! 😭"
+                    
+                    2. FEAR/ANXIETY:
+                    - Nag-aalalang estado ngunit may antas ng kontrol pa rin
+                    - Pagpapahayag ng pag-aalala, paggamit ng ellipses (...)
+                    - Hindi katiyakan tungkol sa kaligtasan
+                    - Mga karaniwang emoji: 😨😰😟
+                    - Halimbawa: "Kinakabahan ako sa lakas ng ulan... Parang di ako mapakali ngayon."
+                    
+                    3. RESILIENCE:
+                    - Pagpapakita ng lakas, pagkakaisa, at pag-asa sa kabila ng paghihirap
+                    - Tono ng pag-asa, suporta, at pagbibigay ng lakas sa iba
+                    - Mga karaniwang emoji: 💪🙏🌈🕊️
+                    - Halimbawa: "Kapit lang tayo, kababayan. Kaya natin to! Magbayanihan tayo."
+                    
+                    4. NEUTRAL:
+                    - Mga pahayag na naglalaman lamang ng impormasyon
+                    - Walang emosyonal na ekspresyon
+                    - Mga karaniwang emoji: 📍📰 (o wala)
+                    - Halimbawa: "Magnitude 5.6 earthquake detected sa Batangas."
+                    
+                    5. DISBELIEF:
+                    - Reaksyon ng pagkabigla, pagdududa, o sarkasmo
+                    - Madalas gumagamit ng humor o pang-iinis upang itago ang takot
+                    - Mga karaniwang emoji: 🤯🙄😆😑
+                    - Halimbawa: "Baha na naman? Classic PH. Wala nanaman tayong alert? Nice one."
+                    
+                    PAALALA: Maraming post sa social media ang nasa Taglish (kombinasyon ng Tagalog at Ingles).
+                    Palaging isaalang-alang ang KONTEKSTONG KULTURAL at huwag isipin na porket gumagamit ng emoji ay nagpapahiwatig na ito ng emosyon.
+                    Dapat palaging suriin muna ang aktwal na nilalaman ng mensahe.
+                    
                     Halimbawa ng tamang pag-analyze:
                     - "may sunog" = NEUTRAL (simpleng statement of fact)
                     - "MAY SUNOG! TULONG!" = PANIC (malinaw na nagpapanic/humihingi ng tulong)
@@ -1150,10 +1238,36 @@ class DisasterSentimentBackend:
         if word_count <= 3:
             # Quick check for short factual statements
             contains_emotion = False
+            # Enhanced emotion words list based on the PanicSensePH Emotion Classification Guide
             emotion_words = [
-                "saklolo", "help", "tulong", "tulungan", "takot", "scared", "afraid", 
-                "panic", "nanginginig", "nakakatakot", "😱", "😨", "namatay", 
-                "patay", "iyak", "cry", "!!!"]
+                # Panic indicators
+                "saklolo", "help", "tulong", "tulungan", "rescue", "emergency",
+                "naiipit", "nakulong", "trapped", "HELP", "PLEASE", "SOS", 
+                "mamamatay", "😱", "😭", "🆘", "💔", "!!!", "???",
+                
+                # Fear/Anxiety indicators
+                "takot", "scared", "afraid", "kinakabahan", "natatakot", "kabado",
+                "worried", "anxious", "fearful", "nanginginig", "nakakatakot",
+                "nakakapraning", "makakaligtas kaya", "paano na", "😨", "😰", "😟",
+                
+                # Disbelief indicators
+                "hindi makapaniwala", "seriously", "omg", "gosh", "can't believe",
+                "what the", "wow", "haha", "baha na naman", "classic", "srsly", 
+                "as usual", "🤯", "🙄", "😆", "😑", "nice one",
+                
+                # Resilience indicators
+                "kapit", "kaya natin", "malalagpasan", "babangon", "walang susuko",
+                "prayers", "pray", "dasal", "tulong tayo", "magtulungan", "sama-sama",
+                "matatag", "💪", "🙏", "🌈", "🕊️",
+                
+                # Death/injury serious indicators - these always indicate panic context
+                "namatay", "patay", "nasugatan", "dead", "died", "killed", "injured",
+                "walang buhay", "nawawala", "missing", "casualty",
+                
+                # Extreme distress indicators
+                "iyak", "cry", "trauma", "diyos ko", "oh my god", "lord help",
+                "dios mio", "panginoon", "tulungan nyo kami"
+            ]
             
             for emotion in emotion_words:
                 if emotion in text_lower:
