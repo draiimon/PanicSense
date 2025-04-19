@@ -1152,6 +1152,15 @@ class DisasterSentimentBackend:
                 "explanation": "Ang paggamit ng malalaking titik, profanity, at maraming tandang padamdam ay nagpapahiwatig ng matinding takot o pagkabahala.",
             }
             
+        # SPECIAL CASE #5: Filipino emergency "MAY SUNOG/BAHA/LINDOL" all caps with exclamation points
+        # This captures typical Filipino emergency alerts like "MAY SUNOG SA TIPI!"
+        if text.isupper() and re.search(r'MAY (SUNOG|BAHA|LINDOL|BAGYO|ERUPTION|GULO|BARILAN|AKSIDENTE)', text) and ("!" in text):
+            return {
+                "sentiment": "Panic",
+                "confidence": 0.94,
+                "explanation": "Mga emergency alertong Pilipino sa malalaking titik na may tandang padamdam, nagpapahiwatig ng agarang panganib o matinding takot.",
+            }
+            
         # Check specifically for laughing emoji + TULONG pattern first
         # This is a common Filipino pattern expressing disbelief or humor
         if ('😂' in text or '🤣' in text or '😆' in text or '😅' in text) and ('TULONG' in text.upper() or 'SAKLOLO' in text.upper() or 'HELP' in text.upper()):
