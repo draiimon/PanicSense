@@ -960,11 +960,21 @@ class DisasterSentimentBackend:
         
         # Check specifically for laughing emoji + TULONG pattern first
         # This is a common Filipino pattern expressing disbelief or humor
-        if ('😂' in text or '🤣' in text) and ('TULONG' in text.upper() or 'SAKLOLO' in text.upper() or 'HELP' in text.upper()):
+        if ('😂' in text or '🤣' in text or '😆' in text or '😅' in text) and ('TULONG' in text.upper() or 'SAKLOLO' in text.upper() or 'HELP' in text.upper()):
             return {
                 "sentiment": "Disbelief",
                 "confidence": 0.95,
-                "explanation": "The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress."
+                "explanation": "The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress. This is a common pattern in Filipino social media to express sarcasm or jokes."
+            }
+        
+        # Check for multiple emojis - if there are more emoji than actual content words, it's likely Disbelief/sarcastic
+        emoji_count = sum(1 for char in text if ord(char) > 127000)  # Count emoji characters
+        word_count = len([w for w in text.split() if w.isalpha()])
+        if emoji_count > 3 and emoji_count > word_count / 2:
+            return {
+                "sentiment": "Disbelief",
+                "confidence": 0.90,
+                "explanation": "The excessive use of emojis suggests this is likely expressing mockery or sarcasm rather than genuine information or distress."
             }
         
         # Check for HAHA + TULONG pattern (common in Filipino social media)
@@ -972,7 +982,7 @@ class DisasterSentimentBackend:
             return {
                 "sentiment": "Disbelief",
                 "confidence": 0.92,
-                "explanation": "The combination of laughter ('HAHA') and words like 'TULONG' indicates this is expressing humor or disbelief, not actual panic."
+                "explanation": "The combination of laughter ('HAHA') and words like 'TULONG' indicates this is expressing humor or disbelief, not actual panic. This is a common Filipino pattern for jokes or sarcasm."
             }
 
         # Keywords associated with each sentiment
@@ -1175,10 +1185,50 @@ class DisasterSentimentBackend:
             if "Neutral" in top_sentiments and len(text_lower.split()) < 7:
                 sentiment = "Neutral"
             else:
-                # In case of a tie, use a more balanced priority order
-                # IMPORTANT CHANGE: Prefer Neutral first for factual statements
+                # IMPROVED: For mixed messages, always prioritize the stronger emotional indicators
+                # Prioritize Panic when mixed with other emotions if there are clear help indicators
+                # Neutral is ONLY used when the text is a simple factual report with no emotional markers
+                
+                # First check for additional indicators to give a nudge in case of ties
+                is_reporting_style = any(s in text_lower for s in ["news", "bulletin", "flash report", "balita", "ulat", "breaking news", "headline"])
+                has_help_request = any(s in text_lower for s in ["please help", "help please", "need help", "kailangan ng tulong", "pakitulong", "pakigalaw po", "asap"])
+                has_fear_words = any(s in text_lower for s in ["takot", "natatakot", "afraid", "scared", "frightened", "nanginginig"])
+                has_resilience_words = any(s in text_lower for s in ["be brave", "stay strong", "kakayanin", "magtulungan", "matibay", "malalagpasan"])
+                
+                # If text has more emojis than words, prioritize Disbelief regardless
+                emoji_count = sum(1 for char in text if ord(char) > 127000)  # Count emoji characters
+                word_count = len([w for w in text.split() if w.isalpha()])
+                if emoji_count > 3 and emoji_count > word_count / 2:
+                    if "Disbelief" in top_sentiments:
+                        sentiment = "Disbelief"
+                        return {
+                            "sentiment": sentiment,
+                            "confidence": 0.92,
+                            "explanation": "Multiple emojis indicate sarcasm or mockery rather than genuine distress."
+                        }
+                        
+                # Mixed emotion handling - determine the STRONGEST based on content
+                if has_help_request and "Panic" in top_sentiments:
+                    # Clear help request should always be Panic
+                    sentiment = "Panic"
+                    return {
+                        "sentiment": sentiment,
+                        "confidence": 0.95,
+                        "explanation": "Text contains explicit requests for help indicating urgent distress."
+                    }
+                    
+                # News-style reporting always defaults to Neutral
+                if is_reporting_style and "Neutral" in top_sentiments:
+                    sentiment = "Neutral"
+                    return {
+                        "sentiment": sentiment,
+                        "confidence": 0.90, 
+                        "explanation": "Text uses news reporting style with factual information, not expressing personal emotions."
+                    }
+                    
+                # Only use standard priority if no special cases match
                 priority_order = [
-                    "Neutral", "Panic", "Fear/Anxiety", "Disbelief", "Resilience" 
+                    "Panic", "Fear/Anxiety", "Resilience", "Disbelief", "Neutral"
                 ]
                 
                 for s in priority_order:
