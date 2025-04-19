@@ -132,15 +132,43 @@ export function broadcastMessage(type: string, payload?: any): void {
       }
     }
     
-    // Special handling for completion messages with triple redundancy
+    // Special handling for completion messages with triple redundancy 
+    // BUT ONLY FOR GENUINE COMPLETIONS
     if (type === 'upload_complete') {
+      // Completeness validation - only broadcast if we have genuine data
+      // This helps prevent false positives and ghost "Analysis complete" messages
+      const isGenuineCompletion = payload && 
+                                 payload.progress && 
+                                 payload.progress.total > 0 &&
+                                 payload.progress.processed >= payload.progress.total * 0.95;
+      
+      if (!isGenuineCompletion) {
+        console.log('⛔ BLOCKING COMPLETION BROADCAST: Not enough data or processed count too low');
+        return; // Don't broadcast incomplete data
+      }
+      
+      // Additional check: needs to come from a session with a sessionId
+      const sessionId = localStorage.getItem('uploadSessionId');
+      if (!sessionId) {
+        console.log('⛔ BLOCKING COMPLETION BROADCAST: No active sessionId in localStorage');
+        return; // Don't broadcast without a sessionId
+      }
+      
       // 1. Try the dedicated completion channel
       if (completionChannel) {
         try {
+          // Include much more validation data in the message
           completionChannel.postMessage({
             type: 'analysis_complete',
             timestamp: now,
-            instanceId: INSTANCE_ID
+            instanceId: INSTANCE_ID,
+            sessionId: sessionId,
+            progress: payload.progress,
+            validation: {
+              processed: payload.progress.processed,
+              total: payload.progress.total,
+              stage: payload.progress.stage
+            }
           });
         } catch (completionError) {
           console.error('Error sending on completion channel:', completionError);
@@ -151,7 +179,9 @@ export function broadcastMessage(type: string, payload?: any): void {
             completionChannel.postMessage({
               type: 'analysis_complete',
               timestamp: now,
-              instanceId: INSTANCE_ID
+              instanceId: INSTANCE_ID,
+              sessionId: sessionId,
+              progress: payload.progress
             });
             console.log('🔄 Successfully recreated completion channel after error');
           } catch (retryError) {
@@ -165,7 +195,9 @@ export function broadcastMessage(type: string, payload?: any): void {
           completionChannel.postMessage({
             type: 'analysis_complete',
             timestamp: now,
-            instanceId: INSTANCE_ID
+            instanceId: INSTANCE_ID,
+            sessionId: sessionId,
+            progress: payload.progress
           });
           console.log('🔄 Created missing completion channel and sent message');
         } catch (createError) {
@@ -377,7 +409,7 @@ export function createBroadcastListener(handlers: {
   };
   
   const handleCompletionMessage = (event: MessageEvent) => {
-    const { type, instanceId } = event.data;
+    const { type, instanceId, sessionId, progress, validation } = event.data;
     
     // Ignore our own messages
     if (instanceId === INSTANCE_ID) {
@@ -387,8 +419,32 @@ export function createBroadcastListener(handlers: {
     if (type === 'analysis_complete' && handlers.onUploadComplete) {
       console.log('🏁 Received dedicated completion message');
       
-      // Use a standard completion object
-      const completionProgress = {
+      // ⚠️ CRITICAL VALIDATION FOR COMPLETION MESSAGES
+      
+      // Verify we only accept completion for tabs with active uploads
+      const ourSessionId = localStorage.getItem('uploadSessionId');
+      const isUploading = localStorage.getItem('isUploading') === 'true';
+      
+      if (!isUploading || !ourSessionId) {
+        console.log('⛔ REJECTING completion message - no active upload in this tab');
+        return;
+      }
+      
+      // Validate the sessionId if present in the message
+      if (sessionId && ourSessionId !== sessionId) {
+        console.log(`⛔ REJECTING completion message - sessionId mismatch (ours: ${ourSessionId}, message: ${sessionId})`);
+        return;
+      }
+      
+      // Use the provided progress data if available, or fallback to standard
+      const completionProgress = progress ? {
+        ...progress,
+        stage: 'Analysis complete',
+        processed: progress.total || 100,
+        total: progress.total || 100,
+        currentSpeed: 0,
+        timeRemaining: 0
+      } : {
         stage: 'Analysis complete',
         processed: 100,
         total: 100,
@@ -396,10 +452,20 @@ export function createBroadcastListener(handlers: {
         timeRemaining: 0
       };
       
+      // Validate based on count if available 
+      if (validation && validation.processed && validation.total) {
+        const processedThreshold = Math.floor(validation.total * 0.95);
+        if (validation.processed < processedThreshold) {
+          console.log(`⛔ REJECTING completion message - processed count too low (${validation.processed}/${validation.total})`);
+          return;
+        }
+      }
+      
       // Mark as complete in localStorage
       localStorage.setItem(KEYS.UPLOAD_COMPLETED, 'true');
       localStorage.setItem(KEYS.UPLOAD_COMPLETED_TIMESTAMP, Date.now().toString());
       
+      console.log('✅✅✅ VALIDATED COMPLETION MESSAGE - Showing Analysis complete');
       handlers.onUploadComplete(completionProgress);
     }
   };

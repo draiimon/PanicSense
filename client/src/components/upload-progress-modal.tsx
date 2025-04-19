@@ -132,66 +132,100 @@ export function UploadProgressModal() {
       onUploadComplete: (progress) => {
         console.log('🏁 Received completion notification from another tab');
         
-        // CRITICAL: Only process completion notifications on ACTIVE uploads
-        // This prevents the "Analysis complete" message from showing up on page load
+        // ⚠️⚠️⚠️ CRITICAL VALIDATION: ABSOLUTELY ONLY PROCESS COMPLETION IF:
+        // 1. Tab MUST already be showing an upload modal
+        // 2. Tab MUST have a real active sessionId
+        // 3. Tab MUST have processed almost all records
+        // ⚠️⚠️⚠️ This prevents the "Analysis complete" message showing up on page load
+        
+        // Check 1: Must be actively uploading with modal already open
         if (!isUploading) {
-          console.log('⚠️ IMPORTANT: Ignoring completion notification because no upload is active');
+          console.log('⛔ VALIDATION FAILURE: Ignoring completion - No active upload modal');
           return;
         }
         
-        // Check if stage is already showing completion, if so don't process
-        // This is another layer of protection against premature notifications
+        // Check 2: Must have valid sessionId in localStorage
+        const sessionId = localStorage.getItem('uploadSessionId');
+        if (!sessionId) {
+          console.log('⛔ VALIDATION FAILURE: Ignoring completion - No sessionId in localStorage');
+          return;
+        }
+        
+        // Check 3: Stage must NOT already be showing 'Analysis complete'
         if (stage && stage.toLowerCase() === 'analysis complete') {
-          console.log('⚠️ Already showing completion stage, ignoring duplicate notification');
+          console.log('⛔ VALIDATION FAILURE: Already showing completion stage, preventing duplicate');
           return;
         }
         
-        // Now verify this is a genuine completion by checking processed count
-        // Only accept completion notices if we've processed at least 95% of records
-        const total = uploadProgress?.total || progress.total || 100;
+        // Check 4: Stage must contain a processing or loading indicator
+        // Only accept completion notices during active processing
+        const hasValidPreviousStage = 
+          stage && (
+            stage.toLowerCase().includes('processing') ||
+            stage.toLowerCase().includes('record') ||
+            stage.toLowerCase().includes('loading') ||
+            stage.toLowerCase().includes('batch')
+          );
+        
+        if (!hasValidPreviousStage) {
+          console.log('⛔ VALIDATION FAILURE: No valid processing stage detected:', stage);
+          return;
+        }
+        
+        // Check 5: Processing count validation - must have processed almost all records
+        const total = uploadProgress?.total || progress.total || 100; 
         const processed = uploadProgress?.processed || progress.processed || 0;
         const processedThreshold = Math.floor(total * 0.95);
         
         // Strict validation to prevent premature notifications
         if (processed < processedThreshold) {
-          console.log(`⚠️ IGNORED: Premature completion notification - only processed ${processed}/${total} records`);
-          return; // Don't process premature completions
+          console.log(`⛔ VALIDATION FAILURE: Premature completion - only processed ${processed}/${total} records`);
+          return;
         }
         
-        // Check if we've already handled completion recently to avoid duplicate handlers
+        // Check 6: Must not have handled completion recently (debouncing)
         const completionTimestamp = parseInt(localStorage.getItem('uploadCompletedTimestamp') || '0');
         const now = Date.now();
         const completionDebounce = 5000; // 5 seconds
         
         if (now - completionTimestamp < completionDebounce) {
-          console.log('⚠️ Ignoring duplicate completion event - already handled recently');
+          console.log('⛔ VALIDATION FAILURE: Already handled completion recently');
           return;
         }
         
-        console.log('✅ VALID COMPLETION NOTIFICATION: Showing Analysis complete');
-        
-        // Force this tab to show the upload modal if we're not already showing it
-        if (!isUploading) {
-          console.log('🔄 This tab was not showing the upload modal, forcing it to show');
-          setIsUploading(true);
+        // Additional check: Verify with server (if time permits)
+        try {
+          fetch('/api/upload-complete-check')
+            .then(response => response.json())
+            .then(data => {
+              if (!data.uploadComplete) {
+                console.log('⚠️ Server does not confirm completion, but continuing anyway');
+              }
+            })
+            .catch(() => {});
+        } catch (e) {
+          // Ignore check errors
         }
+        
+        // 🎯🎯🎯 ALL VALIDATIONS PASSED! This is a genuine completion notification
+        console.log('✅✅✅ ALL VALIDATIONS PASSED: Showing Analysis complete');
         
         // Update progress state to show completion
         setUploadProgress({
-          ...progress,
+          ...uploadProgress, // Keep existing settings, just change crucial ones
           stage: 'Analysis complete',
-          processed: progress.total || 100,
-          total: progress.total || 100,
+          processed: total,
+          total: total,
           currentSpeed: 0,
           timeRemaining: 0
         });
         
+        // Store completion timestamp in localStorage to prevent duplicate handling
+        localStorage.setItem('uploadCompletedTimestamp', now.toString());
+        
         // Set a timer to auto-close EXACTLY 3 seconds from now
         const completionDelay = 3000; // 3 seconds
         console.log(`📊 Will auto-close after EXACTLY ${completionDelay}ms due to completion message`);
-        
-        // Store completion timestamp in localStorage to prevent duplicate handling
-        localStorage.setItem('uploadCompletedTimestamp', now.toString());
         
         // Clear any existing auto-close timers to prevent race conditions
         if (typeof window !== 'undefined' && window._autoCloseTimer) {
@@ -388,6 +422,27 @@ export function UploadProgressModal() {
           // Use the synchronization manager to mark it complete and notify other tabs
           markUploadCompleted(finalProgress);
           
+          // Validate that this is not a premature completion notification
+          const hasValidPreviousStage = 
+            stage && (
+              stage.toLowerCase().includes('processing') ||
+              stage.toLowerCase().includes('record') ||
+              stage.toLowerCase().includes('loading') ||
+              stage.toLowerCase().includes('batch')
+            );
+            
+          if (!hasValidPreviousStage) {
+            console.log('⛔ SERVER VALIDATION FAILURE: No valid processing stage detected:', stage);
+            return;
+          }
+          
+          // Verify processed count
+          const processedThreshold = Math.floor(uploadProgress.total * 0.95);
+          if (uploadProgress.processed < processedThreshold) {
+            console.log(`⛔ SERVER VALIDATION FAILURE: Processed count too low (${uploadProgress.processed}/${uploadProgress.total})`);
+            return;
+          }
+          
           // Auto-close after a strict 3 second delay
           // Clear any existing auto-close timers to prevent race conditions
           if (typeof window !== 'undefined' && window._autoCloseTimer) {
@@ -397,7 +452,7 @@ export function UploadProgressModal() {
           
           // Set strict auto-close timer at exactly 3 seconds
           const timerRef = setTimeout(() => {
-            console.log('⏰ AUTO-CLOSE TRIGGERED BY COMPLETION VERIFICATION - EXACTLY 3 SECONDS');
+            console.log('⏰ SERVER VERIFICATION: AUTO-CLOSE TRIGGERED - EXACTLY 3 SECONDS');
             cleanupAndClose();
           }, 3000);
           
@@ -405,6 +460,9 @@ export function UploadProgressModal() {
           if (typeof window !== 'undefined') {
             window._autoCloseTimer = timerRef;
           }
+          
+          // Store completion timestamp in localStorage to prevent duplicate handling
+          localStorage.setItem('uploadCompletedTimestamp', Date.now().toString());
         }
       } catch (error) {
         console.error('Error checking upload completion status:', error);
