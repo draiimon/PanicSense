@@ -82,7 +82,7 @@ function updateLeaderHeartbeat(): void {
 }
 
 /**
- * Send a message to other tabs
+ * Send a message to other tabs with enhanced reliability
  */
 export function broadcastMessage(type: string, payload?: any): void {
   try {
@@ -107,16 +107,101 @@ export function broadcastMessage(type: string, payload?: any): void {
     
     // Send on main channel
     if (uploadBroadcastChannel) {
-      uploadBroadcastChannel.postMessage(message);
+      try {
+        uploadBroadcastChannel.postMessage(message);
+      } catch (channelError) {
+        console.error(`Error sending message on main channel:`, channelError);
+        
+        // Attempt to recreate the channel and retry once
+        try {
+          uploadBroadcastChannel = new BroadcastChannel('upload_status');
+          uploadBroadcastChannel.postMessage(message);
+          console.log('🔄 Successfully recreated and sent on main channel after error');
+        } catch (retryError) {
+          console.error('Failed to recreate main channel:', retryError);
+        }
+      }
+    } else if (typeof window !== 'undefined') {
+      // If no channel exists, try to create one
+      try {
+        uploadBroadcastChannel = new BroadcastChannel('upload_status');
+        uploadBroadcastChannel.postMessage(message);
+        console.log('🔄 Created missing main channel and sent message');
+      } catch (createError) {
+        console.error('Failed to create missing main channel:', createError);
+      }
     }
     
-    // Special handling for completion messages
-    if (type === 'upload_complete' && completionChannel) {
-      completionChannel.postMessage({
-        type: 'analysis_complete',
-        timestamp: now,
-        instanceId: INSTANCE_ID
-      });
+    // Special handling for completion messages with triple redundancy
+    if (type === 'upload_complete') {
+      // 1. Try the dedicated completion channel
+      if (completionChannel) {
+        try {
+          completionChannel.postMessage({
+            type: 'analysis_complete',
+            timestamp: now,
+            instanceId: INSTANCE_ID
+          });
+        } catch (completionError) {
+          console.error('Error sending on completion channel:', completionError);
+          
+          // Try to recreate the channel
+          try {
+            completionChannel = new BroadcastChannel('upload_completion');
+            completionChannel.postMessage({
+              type: 'analysis_complete',
+              timestamp: now,
+              instanceId: INSTANCE_ID
+            });
+            console.log('🔄 Successfully recreated completion channel after error');
+          } catch (retryError) {
+            console.error('Failed to recreate completion channel:', retryError);
+          }
+        }
+      } else if (typeof window !== 'undefined') {
+        // Try to create the channel if missing
+        try {
+          completionChannel = new BroadcastChannel('upload_completion');
+          completionChannel.postMessage({
+            type: 'analysis_complete',
+            timestamp: now,
+            instanceId: INSTANCE_ID
+          });
+          console.log('🔄 Created missing completion channel and sent message');
+        } catch (createError) {
+          console.error('Failed to create missing completion channel:', createError);
+        }
+      }
+      
+      // 2. Create independent temporary channels for critical messages
+      try {
+        const tempChannel = new BroadcastChannel('upload_status_backup');
+        tempChannel.postMessage({
+          type: 'upload_complete',
+          payload,
+          timestamp: now,
+          instanceId: INSTANCE_ID,
+          isBackupChannel: true
+        });
+        
+        // Close after short delay to prevent resource leaks
+        setTimeout(() => {
+          try { tempChannel.close(); } catch (e) { /* ignore */ }
+        }, 1000);
+      } catch (tempError) {
+        console.error('Failed to create temporary backup channel:', tempError);
+      }
+      
+      // 3. Set explicit localStorage flags as final fallback
+      try {
+        localStorage.setItem(KEYS.UPLOAD_COMPLETED, 'true');
+        localStorage.setItem(KEYS.UPLOAD_COMPLETED_TIMESTAMP, now.toString());
+        if (payload && payload.progress) {
+          localStorage.setItem(KEYS.UPLOAD_PROGRESS, JSON.stringify(payload.progress));
+        }
+      } catch (storageError) {
+        console.error('Failed to set localStorage completion flags:', storageError);
+      }
     }
     
     console.log(`📣 Broadcasting: ${type}`);
