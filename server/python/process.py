@@ -425,7 +425,7 @@ class DisasterSentimentBackend:
         # CRITICAL STEP: Special case for TIP (Technological Institute of the Philippines)
         if "tip" in text_lower or "t.i.p" in text_lower or "t.i.p." in text_lower:
             # Special direct handling for TIP to ensure proper detection
-            print("Found special location: TIP (Technological Institute of the Philippines)")
+            # Silent detection without printing to avoid breaking JSON output
             return "TIP"
                         
         # Step 1: Check if any known misspellings are in the text
@@ -434,7 +434,7 @@ class DisasterSentimentBackend:
                 # Find the correct location name
                 for loc in ph_locations:
                     if loc.lower() == correct:
-                        print(f"Found location from misspelling: {misspelling} → {loc}")
+                        logging.info(f"Found location from misspelling: {misspelling} → {loc}")
                         return loc
                         
         # Step 2: Check for exact whole-word matches
@@ -483,7 +483,7 @@ class DisasterSentimentBackend:
                                     diff_count += abs(len(word) - len(part))  # Add difference in length
                                     
                                     if diff_count <= max_edits:
-                                        print(f"Found location via fuzzy match: {word} ≈ {loc} (edit distance: {diff_count})")
+                                        logging.info(f"Found location via fuzzy match: {word} ≈ {loc} (edit distance: {diff_count})")
                                         return loc
         
         # Step 5: Check for Philippine location patterns in the text
