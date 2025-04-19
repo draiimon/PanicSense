@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groq API Key Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        h1 {
+            color: #2563eb;
+            text-align: center;
+        }
+        
+        .container {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        
+        button:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .success {
+            background-color: #ecfdf5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        
+        .error {
+            background-color: #fef2f2;
+            border: 1px solid #ef4444;
+            color: #b91c1c;
+        }
+        
+        .loading {
+            background-color: #f1f5f9;
+            border: 1px solid #64748b;
+            color: #334155;
+        }
+        
+        .history {
+            margin-top: 30px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+        
+        .history-item {
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 4px;
+            background-color: #f8fafc;
+            border-left: 4px solid #64748b;
+        }
+        
+        .history-item.success {
+            border-left-color: #10b981;
+        }
+        
+        .history-item.error {
+            border-left-color: #ef4444;
+        }
+        
+        .key-display {
+            font-family: monospace;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .test-count {
+            text-align: center;
+            margin-bottom: 16px;
+            font-weight: bold;
+            color: #334155;
+        }
+    </style>
+</head>
+<body>
+    <h1>Groq API Key Tester</h1>
+    
+    <div class="container">
+        <div class="test-count">
+            <span id="working-count">0</span> working keys | 
+            <span id="broken-count">0</span> broken keys
+        </div>
+        
+        <form id="test-form">
+            <label for="api-key">Groq API Key (gsk_...):</label>
+            <input type="text" id="api-key" placeholder="Paste your Groq API key here..." required>
+            
+            <label for="prompt">Test Prompt (optional):</label>
+            <textarea id="prompt" placeholder="Enter a prompt to test...">Hello, can you respond with just a simple greeting?</textarea>
+            
+            <button type="submit" id="test-button">Test API Key</button>
+        </form>
+        
+        <div id="result" class="result" style="display: none;"></div>
+        
+        <div class="history">
+            <h3>Test History</h3>
+            <div id="history-list"></div>
+        </div>
+    </div>
+    
+    <script>
+        const form = document.getElementById('test-form');
+        const apiKeyInput = document.getElementById('api-key');
+        const promptInput = document.getElementById('prompt');
+        const testButton = document.getElementById('test-button');
+        const resultDiv = document.getElementById('result');
+        const historyList = document.getElementById('history-list');
+        const workingCount = document.getElementById('working-count');
+        const brokenCount = document.getElementById('broken-count');
+        
+        let workingKeysCount = 0;
+        let brokenKeysCount = 0;
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const apiKey = apiKeyInput.value.trim();
+            const prompt = promptInput.value.trim() || 'Hello';
+            
+            if (!apiKey.startsWith('gsk_')) {
+                showResult('Error: API key must start with gsk_', 'error');
+                return;
+            }
+            
+            // Show loading state
+            testButton.disabled = true;
+            resultDiv.className = 'result loading';
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = 'Testing API key, please wait...';
+            
+            try {
+                const result = await testGroqApiKey(apiKey, prompt);
+                addToHistory(apiKey, result);
+                
+                if (result.success) {
+                    workingKeysCount++;
+                    workingCount.textContent = workingKeysCount;
+                    showResult(
+                        `✅ API KEY WORKS!\n\n${JSON.stringify(result.data, null, 2)}`,
+                        'success'
+                    );
+                } else {
+                    brokenKeysCount++;
+                    brokenCount.textContent = brokenKeysCount;
+                    showResult(
+                        `❌ API KEY FAILED: ${result.error}\n\n${JSON.stringify(result.data || {}, null, 2)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                brokenKeysCount++;
+                brokenCount.textContent = brokenKeysCount;
+                showResult(
+                    `❌ TEST ERROR: ${error.message}`,
+                    'error'
+                );
+                addToHistory(apiKey, { success: false, error: error.message });
+            } finally {
+                testButton.disabled = false;
+            }
+        });
+        
+        async function testGroqApiKey(apiKey, prompt) {
+            const url = 'https://api.groq.com/openai/v1/chat/completions';
+            const headers = {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            };
+            const data = {
+                model: 'llama3-8b-8192',
+                messages: [{ role: 'user', content: prompt }]
+            };
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(data)
+                });
+                
+                const responseData = await response.json();
+                
+                if (response.ok) {
+                    return {
+                        success: true,
+                        data: responseData
+                    };
+                } else {
+                    return {
+                        success: false,
+                        error: responseData.error?.message || 'Unknown error',
+                        data: responseData
+                    };
+                }
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+        
+        function showResult(message, type) {
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+        }
+        
+        function addToHistory(apiKey, result) {
+            const item = document.createElement('div');
+            item.className = `history-item ${result.success ? 'success' : 'error'}`;
+            
+            const shortKey = apiKey.substring(0, 10) + '***';
+            
+            item.innerHTML = `
+                <div class="key-display">${shortKey}</div>
+                <div>${result.success 
+                    ? '✅ KEY WORKS'
+                    : `❌ FAILED: ${result.error || 'Unknown error'}`}
+                </div>
+                <div>${new Date().toLocaleTimeString()}</div>
+            `;
+            
+            historyList.prepend(item);
+        }
+    </script>
+</body>
+</html>
