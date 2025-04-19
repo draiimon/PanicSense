@@ -451,6 +451,67 @@
   100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
+/* Realtime alert banner */
+.realtime-alert-banner {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background-color: rgba(239, 68, 68, 0.8);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  z-index: 30;
+  animation: alert-pulse 1.5s infinite alternate;
+}
+
+.realtime-alert-text {
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+@keyframes alert-pulse {
+  0% { background-color: rgba(239, 68, 68, 0.7); }
+  100% { background-color: rgba(239, 68, 68, 0.9); }
+}
+
+/* Realtime data stream */
+.realtime-data-stream {
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  right: 15px;
+  height: 20px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.2), transparent);
+  animation: data-stream 3s infinite;
+  z-index: 5;
+}
+
+@keyframes data-stream {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Realtime ping effect */
+.realtime-ping-effect {
+  position: absolute;
+  top: 40%;
+  right: 30%;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: rgba(16, 185, 129, 0.5);
+  z-index: 20;
+  animation: ping-pulse 2s infinite;
+}
+
+@keyframes ping-pulse {
+  0% { transform: scale(0.3); opacity: 1; }
+  70% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(0.3); opacity: 0; }
+}
+
 /* Mobile responsiveness for real-time monitoring UI */
 @media (max-width: 640px) {
   .tutorial-image-container {

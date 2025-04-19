@@ -578,16 +578,7 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                   </Badge>
                 </motion.div>
                 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="absolute -bottom-4 -right-4"
-                >
-                  <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-3 py-1">
-                    Step {currentStep + 1}/{steps.length}
-                  </Badge>
-                </motion.div>
+
               </motion.div>
             </AnimatePresence>
           </div>
