@@ -350,8 +350,26 @@ class DisasterSentimentBackend:
             
         text_lower = text.lower()
         
-        # SPECIAL CASE: MAY SUNOG SA X, MAY BAHA SA X pattern (disaster in LOCATION)
-        # This is exactly the case you're asking about
+        # SPECIAL CASE: MAY SUNOG SA X!, MAY BAHA SA X! pattern (disaster in LOCATION)
+        # Handle ALL-CAPS emergency statements common in Filipino language
+        
+        # First check for uppercase patterns which are common in emergency situations
+        if text.isupper():
+            # MAY SUNOG SA TIPI! type of pattern (all caps)
+            upper_emergency_matches = re.findall(r'MAY\s+\w+\s+SA\s+([A-Z]+)[\!\.\?]*', text)
+            if upper_emergency_matches:
+                location = upper_emergency_matches[0].strip()
+                if len(location) > 1:  # Make sure it's not just a single letter
+                    return location.title()  # Return with Title Case
+                    
+            # Check for uppercase SA LOCATION! pattern
+            upper_sa_matches = re.findall(r'SA\s+([A-Z]+)[\!\.\?]*', text)
+            if upper_sa_matches:
+                location = upper_sa_matches[0].strip()
+                if len(location) > 1:
+                    return location.title()
+        
+        # Regular case patterns (lowercase or mixed case)
         emergency_location_patterns = [
             r'may sunog sa ([a-zA-Z]+)',
             r'may baha sa ([a-zA-Z]+)',
@@ -360,7 +378,11 @@ class DisasterSentimentBackend:
             r'may landslide sa ([a-zA-Z]+)',
             r'nasunugan sa ([a-zA-Z]+)',
             r'binaha sa ([a-zA-Z]+)',
-            r'may eruption sa ([a-zA-Z]+)'
+            r'may eruption sa ([a-zA-Z]+)',
+            # Adding more specific patterns
+            r'may sunog sa ([\w\s]+?)[\!\.\?]',  # With ending punctuation
+            r'may baha sa ([\w\s]+?)[\!\.\?]',
+            r'may lindol sa ([\w\s]+?)[\!\.\?]'
         ]
         
         for pattern in emergency_location_patterns:
@@ -368,16 +390,14 @@ class DisasterSentimentBackend:
             if matches:
                 location = matches[0].strip()
                 if len(location) > 1:  # Make sure it's not just a single letter
-                    print(f"EMERGENCY LOCATION PATTERN MATCH: {location}")
                     return location.title()  # Return with Title Case
         
         # Also check for SA X! pattern - common Filipino emergency pattern
-        sa_pattern = r'\bsa\s+([a-zA-Z]+)!+'
+        sa_pattern = r'\bsa\s+([\w\s]+?)[\!\.\?]'  # Match location before punctuation
         sa_matches = re.findall(sa_pattern, text_lower)
         if sa_matches:
             location = sa_matches[0].strip()
             if len(location) > 1:  # Make sure it's not just a single letter
-                print(f"SA LOCATION! PATTERN MATCH: {location}")
                 return location.title()  # Return with Title Case
         
         # First, preprocess the text to handle common misspellings/shortcuts
@@ -477,7 +497,7 @@ class DisasterSentimentBackend:
             # Major Cities Outside NCR
             "Baguio", "Cebu", "Davao", "Iloilo", "Cagayan de Oro", "Zamboanga", "Bacolod",
             "General Santos", "Tacloban", "Angeles", "Olongapo", "Naga", "Butuan", "Cotabato",
-            "Dagupan", "Iligan", "Laoag", "Legazpi", "Lucena", "Puerto Princesa", "Roxas",
+            "Dagupan", "Iligan", "Laoag", "Legazpi", "Lucena", "Puerto Princesa", "Roxas", "Tipi",
             "Tagaytay", "Tagbilaran", "Tarlac", "Tuguegarao", "Vigan", "Cabanatuan", "Bago",
             "Batangas City", "Bayawan", "Calbayog", "Cauayan", "Dapitan", "Digos", "Dipolog",
             "Dumaguete", "El Salvador", "Gingoog", "Himamaylan", "Iriga", "Kabankalan", "Kidapawan",
@@ -1095,8 +1115,27 @@ class DisasterSentimentBackend:
                     "explanation": "Simple statement without emotional indicators - analyzing exactly what's in the text."
                 }
         
-        # First, check for very strong Filipino profanity - these DIRECTLY indicate Panic or anger
-        # These should take precedence over other patterns
+        # SPECIAL CASE #1: FILIPINO PROFANITY WITH MULTIPLE EXCLAMATION MARKS
+        # This should capture things like "PUTANG INA MO!!!!! GAGO KA!"
+        if re.search(r'(putang\s*ina|putangina|tangina|putang\s+ina|punyeta|gago|bobo|tang\s+ina|tanginamo|ulol).*?[!?]{2,}', text.lower()) or \
+           re.search(r'[!?]{2,}.*?(putang\s*ina|putangina|tangina|putang\s+ina|punyeta|gago|bobo|tang\s+ina|tanginamo|ulol)', text.lower()):
+            # Strong profanity with exclamations indicates extreme panic
+            return {
+                "sentiment": "Panic",
+                "confidence": 0.97,
+                "explanation": "Ang paggamit ng malakas na salita kasama ng maraming tandang padamdam ay nagpapahiwatig ng matinding pagkabahala o takot.",
+            }
+            
+        # SPECIAL CASE #2: ALL CAPS FILIPINO PROFANITY 
+        # "PUTANG INA MO" or "GAGO KA" in all caps
+        if re.search(r'PUTANG\s*INA|TANGINA|PUNYETA|GAGO|BOBO', text):
+            return {
+                "sentiment": "Panic",
+                "confidence": 0.96,
+                "explanation": "Ang paggamit ng malalaking titik sa mga malakas na salita ay nagpapahiwatig ng matinding pagkabahala o takot.",
+            }
+        
+        # SPECIAL CASE #3: Regular Filipino profanity - less confidence but still Panic
         if re.search(r'\b(putang\s*ina|putangina|tangina|putang ina|punyeta|gago|bobo|tang ina|tanginamo|ulol)\b', text.lower()):
             # Strong profanity typically indicates panic in emergency context
             return {
@@ -1105,7 +1144,7 @@ class DisasterSentimentBackend:
                 "explanation": "Ang teksto ay naglalaman ng matinding pagkapoot o pagkabahala na karaniwang ginagamit sa mga emergency situations sa Filipino context.",
             }
             
-        # Next, check for all-caps + profanity + exclamations - typical anger/panic pattern
+        # SPECIAL CASE #4: COMBINED all-caps + profanity + exclamations - typical anger/panic pattern
         if re.search(r'[A-Z]{5,}.*?(!{2,}|\?{2,})', text) and re.search(r'\b(putang\s*ina|tangina|punyeta|gago|bobo|tang ina)\b', text.lower()):
             return {
                 "sentiment": "Panic",
