@@ -6,6 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
+// Import tutorial images directly
+import uploadDataImg from '../assets/upload-disaster-data.png';
+import analyzeSentimentImg from '../assets/analyze-sentiment.png';
+import geographicAnalysisImg from '../assets/geographic-analysis.png';
+
 // Create a twinkling stars effect
 const TwinklingStars = () => {
   return (
@@ -293,25 +298,25 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
       title: "Upload Disaster Data",
       description: "Upload CSV files containing social media posts or messages about disasters to begin analysis.",
       icon: <FileText size={24} />,
-      image: "/images/tutorial/upload-disaster-data.png"
+      image: uploadDataImg
     },
     {
       title: "Analyze Sentiment",
       description: "The system automatically analyzes emotions and classifies each message using advanced AI models.",
       icon: <BarChart3 size={24} />,
-      image: "/images/tutorial/analyze-sentiment.png"
+      image: analyzeSentimentImg
     },
     {
       title: "Geographic Analysis",
       description: "View disaster locations plotted on interactive maps to identify affected areas.",
       icon: <MapPin size={24} />,
-      image: "/images/tutorial/geographic-analysis.png"
+      image: geographicAnalysisImg
     },
     {
       title: "Real-time Monitoring",
       description: "Monitor new disaster reports in real-time for faster emergency response and coordination.",
       icon: <Clock size={24} />,
-      image: "/images/PANICSENSE PH.png"
+      image: uploadDataImg // For now, we'll reuse the first image for this step
     }
   ];
   
