@@ -350,6 +350,7 @@ class DisasterSentimentBackend:
         # First, preprocess the text to handle common misspellings/shortcuts
         # Map of common misspellings and shortcuts to correct forms
         misspelling_map = {
+            # Metro Manila
             "maynila": "manila",
             "mnl": "manila", 
             "mnla": "manila",
@@ -359,22 +360,67 @@ class DisasterSentimentBackend:
             "q.c": "quezon city",
             "quiapo": "manila",
             "makate": "makati",
+            "makati city": "makati",
             "bgc": "taguig",
-            "baguio city": "baguio",
+            "taguig city": "taguig",
             "m.manila": "metro manila",
             "metromanila": "metro manila",
             "calocan": "caloocan",
             "kalookan": "caloocan",
             "kalokan": "caloocan",
+            "caloocan city": "caloocan",
             "pasay city": "pasay",
             "muntinlupa city": "muntinlupa",
             "valenzuela city": "valenzuela",
             "las pinas": "las piñas",
             "laspinas": "las piñas",
+            "laspiñas": "las piñas",
+            "marikina city": "marikina",
+            "paranaque": "parañaque",
+            "paranaque city": "parañaque",
+            "parañaque city": "parañaque",
             "sampaloc": "manila",
             "intramuros": "manila",
             "pandacan": "manila",
             "paco": "manila",
+            
+            # Major Cities & Provinces
+            "baguio city": "baguio",
+            "cebu city": "cebu",
+            "davao city": "davao",
+            "iloilo city": "iloilo",
+            "cdo": "cagayan de oro",
+            "cdeo": "cagayan de oro",
+            "zamboanga city": "zamboanga",
+            "bacolod city": "bacolod",
+            "gen san": "general santos",
+            "gensan": "general santos",
+            "tacloban city": "tacloban",
+            "legazpi": "legaspi",
+            "legaspi city": "legaspi",
+            "legazpi city": "legaspi",
+            "naga city": "naga",
+            "batangas city": "batangas",
+            "cavite city": "cavite",
+            "dagupan city": "dagupan",
+            "laoag city": "laoag",
+            "lucena city": "lucena",
+            "tagaytay city": "tagaytay",
+            "iligan city": "iligan",
+            "cotabato city": "cotabato",
+            "butuan city": "butuan",
+            "cainta": "rizal",
+            "antipolo": "rizal",
+            "taytay": "rizal",
+            "bayan ng taytay": "rizal",
+            "zambales province": "zambales",
+            "pangasinan province": "pangasinan",
+            "benguet province": "benguet",
+            "camarines sur": "camarines",
+            "camarines norte": "camarines",
+            "north cotabato": "cotabato",
+            "maguindanao del norte": "maguindanao",
+            "maguindanao del sur": "maguindanao",
         }
         
         # COMPREHENSIVE list of Philippine locations - regions, cities, municipalities
@@ -482,8 +528,23 @@ class DisasterSentimentBackend:
         # Step 5: Check for Philippine location patterns in the text
         # Common prepositions indicating locations
         place_patterns = [
-            r'(?:in|at|from|to|near)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)',  # English
-            r'(?:sa|ng|mula|papunta|malapit)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)'  # Filipino
+            # English prepositions
+            r'(?:in|at|from|to|near|around)\s+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)?)',
+            
+            # Filipino prepositions - expanded with more variants
+            r'(?:sa|ng|mula|papunta|malapit|dito sa|nangyari sa|galing sa)\s+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)?)',
+            
+            # Disaster-specific location patterns
+            r'(?:baha sa|lindol sa|sunog sa|bagyo sa|landslide sa|putok ng bulkan sa)\s+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)?)',
+            
+            # Direct mention patterns in English
+            r'(?:affected areas? (?:include|are|is))\s+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)?)',
+            
+            # Direct mention patterns in Filipino
+            r'(?:apektadong lugar)\s+(?:ay|ang)?\s+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)?)',
+            
+            # City/Municipality patterns
+            r'(?:city of|municipality of|town of|province of|bayan ng|lungsod ng|lalawigan ng)\s+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)?)'
         ]
 
         for pattern in place_patterns:
@@ -733,6 +794,28 @@ class DisasterSentimentBackend:
                     - KAKULANGAN ng emosyonal na indicators = NEUTRAL
                     - Ipinahahiwatig na aksyon: kailangan ng saklolo vs. nagbibigay ng saklolo
                     
+                    MGA EMOJI AT SIGAW NA INDICATORS (MAHALAGANG SURIIN):
+                    - MGA EMOJI NA INDICATORS:
+                      * 😱😨😰😥😓 = Malakas na nagpapahiwatig ng Fear/Anxiety
+                      * 😭😢😥😞 = Maaaring magpahiwatig ng Panic o Fear/Anxiety depende sa konteksto
+                      * 😂🤣😅😆😄 = Nagpapahiwatig ng Disbelief o humor kapag kasama ang salitang sakuna
+                      * 💪👍❤️🙏🤝 = Nagpapahiwatig ng Resilience o suporta
+                      * 👀👁️ = Kadalasang nagpapahiwatig ng Disbelief o nagmamasid (neutral observation)
+                      * 🔥💥⚡ = Kadalasang ginagamit upang bigyang-diin ang mga sitwasyon ng sakuna ngunit hindi nagpapahiwatig ng damdamin mismo
+                    
+                    - MGA SIGAW NA INDICATORS:
+                      * Maramihang marka ng sigaw (!!!) ay madalas na nagpapahiwatig ng malakas na emosyon
+                      * ALL CAPS + mga sigaw ("TULONG!!!") ay malakas na nagpapahiwatig ng Panic
+                      * Paulit-ulit na mga mensahe o salita ("tulong tulong tulong") ay nagpapahiwatig ng Panic
+                      * "OMG", "OH MY GOD", "WAAAA", "AHHH" = Fear/Anxiety o Panic depende sa konteksto
+                      * "GRABE", "GRABENG", "SOBRANG" = Mga marker ng intensity, kadalasang Fear/Anxiety
+                    
+                    - MGA HALO-HALONG SIGNALS:
+                      * Mga mensaheng naglalaman ng "HAHA", "LOL", nakakatawang emoji (😂🤣) + mga terminong sakuna ay nagpapahiwatig ng Disbelief, hindi tunay na pagkabahala
+                      * Mga mensaheng may nakakatawang emoji kasunod ng "TULONG" ay kadalasang nagpapahiwatig ng Disbelief o nagbibiro
+                      * Kapag ang mga emoji ay sumasalungat sa teksto (tulad ng 😂 + "TULONG"), unahin ang signal ng emosyon ng emoji
+                      * Ang mga emosyonal na contradiksyon ay kadalasang nagpapahiwatig ng Disbelief
+                    
                     Suriin din kung anong uri ng sakuna ang nabanggit STRICTLY sa listahang ito at may malaking letra sa unang titik:
                     - Flood
                     - Typhoon
@@ -780,11 +863,27 @@ class DisasterSentimentBackend:
                     - Perspective: personal danger vs. witnessing danger vs. recovery
                     - Implied action: need rescue vs. providing rescue
                     
-                    HUMOR & EMOJI INDICATORS (ESSENTIAL TO ANALYZE):
-                    - Messages containing "HAHA", "LOL", laughing emojis (😂🤣), or other humor markers indicate the speaker is not in actual distress
-                    - Messages with laughing emojis followed by "TULONG" are usually expressing 'Disbelief' or making a joke
-                    - When emojis contradict the text (like 😂 + "TULONG"), prioritize the emoji's emotional signal as it represents the sender's true feeling
-                    - Humor indicators (HAHA, emoji) almost always indicate the message is NOT expressing genuine panic or fear, but more likely disbelief
+                    EMOJI AND EXCLAMATION INDICATORS (ESSENTIAL TO ANALYZE):
+                    - EMOJI INDICATORS:
+                      * 😱😨😰😥😓 = Strongly indicate Fear/Anxiety
+                      * 😭😢😥😞 = May indicate Panic or Fear/Anxiety depending on context
+                      * 😂🤣😅😆😄 = Indicate Disbelief or humor when paired with disaster terms
+                      * 💪👍❤️🙏🤝 = Indicate Resilience or support
+                      * 👀👁️ = Often indicate Disbelief or witnessing (neutral observation)
+                      * 🔥💥⚡ = Often used to emphasize disaster situations but don't indicate sentiment alone
+                    
+                    - EXCLAMATION INDICATORS:
+                      * Multiple exclamation marks (!!!) often signal strong emotion, but require context
+                      * ALL CAPS + exclamations ("TULONG!!!") strongly indicate Panic
+                      * Repeated messages or words ("help help help") indicate Panic
+                      * "OMG", "OH MY GOD", "WAAAA", "AHHH" = Fear/Anxiety or Panic depending on context
+                      * "GRABE", "GRABENG", "SOBRANG" = Intensity markers, usually Fear/Anxiety
+                    
+                    - MIXED SIGNALS:
+                      * Messages containing "HAHA", "LOL", laughing emojis (😂🤣) + disaster terms indicate Disbelief, not real distress
+                      * Messages with laughing emojis followed by "TULONG" are usually expressing Disbelief or making a joke
+                      * When emojis contradict the text (like 😂 + "TULONG"), prioritize the emoji's emotional signal
+                      * Emotional contradictions usually indicate Disbelief
                     
                     Also identify what type of disaster is mentioned STRICTLY from this list with capitalized first letter:
                     - Flood
