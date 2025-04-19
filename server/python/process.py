@@ -1057,6 +1057,24 @@ class DisasterSentimentBackend:
                     "explanation": "Simple statement without emotional indicators - analyzing exactly what's in the text."
                 }
         
+        # First, check for very strong Filipino profanity - these DIRECTLY indicate Panic or anger
+        # These should take precedence over other patterns
+        if re.search(r'\b(putang\s*ina|putangina|tangina|putang ina|punyeta|gago|bobo|tang ina|tanginamo|ulol)\b', text.lower()):
+            # Strong profanity typically indicates panic in emergency context
+            return {
+                "sentiment": "Panic",
+                "confidence": 0.92,
+                "explanation": "Ang teksto ay naglalaman ng matinding pagkapoot o pagkabahala na karaniwang ginagamit sa mga emergency situations sa Filipino context.",
+            }
+            
+        # Next, check for all-caps + profanity + exclamations - typical anger/panic pattern
+        if re.search(r'[A-Z]{5,}.*?(!{2,}|\?{2,})', text) and re.search(r'\b(putang\s*ina|tangina|punyeta|gago|bobo|tang ina)\b', text.lower()):
+            return {
+                "sentiment": "Panic",
+                "confidence": 0.95,
+                "explanation": "Ang paggamit ng malalaking titik, profanity, at maraming tandang padamdam ay nagpapahiwatig ng matinding takot o pagkabahala.",
+            }
+            
         # Check specifically for laughing emoji + TULONG pattern first
         # This is a common Filipino pattern expressing disbelief or humor
         if ('😂' in text or '🤣' in text or '😆' in text or '😅' in text) and ('TULONG' in text.upper() or 'SAKLOLO' in text.upper() or 'HELP' in text.upper()):
