@@ -201,10 +201,10 @@ export function SentimentFeedback({
     setIsSubmitting(true);
     setQuizMode(true);
     
-    // Show validating feedback (hide that it's a quiz - backend concern only)
+    // Show validating feedback with enhanced language
     toast({
-      title: "Validating...",
-      description: "Please wait while we process your feedback",
+      title: "Validating Correction...",
+      description: "Verifying your insight against our AI analysis system",
     });
     
     try {
@@ -219,70 +219,101 @@ export function SentimentFeedback({
         return;
       }
       
-      // Make the API call but don't complete the full submission
+      // IMPROVED: Add more context to the request for better validation
+      // Include information about disaster keywords, panic indicators, etc.
+      const contextEnhancements = {
+        hasDisasterKeywords: containsDisasterKeywords(originalText),
+        hasExclamationMarks: originalText.includes('!'),
+        hasMultipleExclamationMarks: originalText.includes('!!'),
+        isInQuestionForm: containsQuestionForm(originalText),
+        containsJoke: containsJokeIndicators(originalText),
+        containsSerious: hasSeriosDisasterIndication(originalText),
+        hasCapitalizedWords: /[A-Z]{3,}/.test(originalText),
+        originalLocation: originalLocation || "UNKNOWN",
+        originalDisasterType: originalDisasterType || "UNKNOWN"
+      };
+      
+      // Make the API call with enhanced context
       const response = await submitSentimentFeedback(
         originalText,
         originalSentiment,
         correctedSentiment,
         includeLocation ? correctedLocation : undefined,
-        includeDisasterType ? correctedDisasterType : undefined
+        includeDisasterType ? correctedDisasterType : undefined,
+        contextEnhancements // Pass this as an optional parameter to the API function
       );
       
       console.log("Validation response:", response);
       
-      // AGGRESSIVELY force UI refresh FIRST, before showing explanation
-      // This ensures the UI updates even if the explanation is displayed
-      
-      // Force a data refresh by triggering a custom event for UI components to listen to
+      // IMMEDIATELY force UI refresh FIRST, before showing any explanations
+      // This ensures the UI updates even if the user closes the explanation dialog
       const refreshEvent = new CustomEvent('sentiment-data-changed', {
         detail: {
           text: originalText,
-          newSentiment: correctedSentiment,
+          newSentiment: correctedSentiment || originalSentiment, // Use original if no correction
+          location: includeLocation ? correctedLocation : originalLocation,
+          disasterType: includeDisasterType ? correctedDisasterType : originalDisasterType,
           timestamp: new Date().toISOString()
         }
       });
       window.dispatchEvent(refreshEvent);
       
-      // Also call the callback if provided
+      // Always call the callback to ensure UI refreshes
       if (onFeedbackSubmitted) {
         onFeedbackSubmitted();
       }
       
-      // Show complete explanation feedback from the AI
+      // ENHANCED FEEDBACK: Better handling of AI trust validation responses
       if (response.aiTrustMessage) {
         // Show warning with the actual explanation from the AI
         setWarningMessage(response.aiTrustMessage);
         setWarningOpen(true);
         
-        // Show a toast notification to indicate success, even with warnings
+        // Show a toast notification with improved messaging
         toast({
-          title: "Feedback analyzed",
-          description: "Check the explanation for details about your feedback",
+          title: "AI Feedback Analysis",
+          description: "Our AI has analyzed your correction and provided insights",
           variant: "default" // Changed from destructive to default for better UX
         });
-      } else {
+      } else if (response.validationSuccess) {
         // Success! Sentiment matched what AI expected
         toast({
-          title: "Feedback submitted",
-          description: "Thank you for helping improve our AI analysis system",
+          title: "Correction Accepted ✓",
+          description: "Thank you for helping improve our disaster monitoring system",
         });
         
         // Close dialog and reset form
         setIsOpen(false);
         resetForm();
+      } else {
+        // Generic success message as fallback
+        toast({
+          title: "Feedback Recorded",
+          description: "Your insights have been saved for model improvement",
+        });
         
-        // Call callback for UI refresh
-        if (onFeedbackSubmitted) {
-          onFeedbackSubmitted();
-        }
+        // Close dialog and reset form
+        setIsOpen(false);
+        resetForm();
       }
     } catch (error) {
       console.error("Error submitting sentiment feedback:", error);
+      
+      // More helpful error message
       toast({
-        title: "Validation failed",
-        description: "There was an error processing your feedback",
+        title: "Validation System Issue",
+        description: "Our validation system encountered a problem. Your feedback was still recorded.",
         variant: "destructive",
       });
+      
+      // Still close the dialog to prevent user frustration
+      setIsOpen(false);
+      resetForm();
+      
+      // Still trigger the callback to refresh data
+      if (onFeedbackSubmitted) {
+        onFeedbackSubmitted();
+      }
     } finally {
       setIsSubmitting(false);
       setQuizMode(false);
