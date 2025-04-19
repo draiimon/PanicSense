@@ -79,6 +79,7 @@
   object-position: top;
   transition: all 0.5s ease;
   border-radius: 0.75rem;
+  animation: image-shake 7s ease-in-out infinite;
 }
 
 @keyframes image-shake {
