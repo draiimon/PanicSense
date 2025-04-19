@@ -143,11 +143,16 @@ class UsageTracker {
    * @param count The number of rows processed
    */
   public incrementRowCount(count: number) {
-    // Always ensure count is a positive number
-    if (count <= 0) {
-      console.warn('Warning: Attempted to increment usage counter with invalid count:', count);
-      return; // Don't increment if count is invalid
+    // Always ensure count is a positive number and is valid
+    if (count <= 0 || isNaN(count) || !isFinite(count)) {
+      console.warn('⚠️ WARNING: Attempted to increment usage counter with invalid count:', count);
+      // Use a minimal value of 1 for invalid inputs to ensure all API calls are counted
+      count = 1;
+      console.log('📊 FIXED: Using minimum count of 1 instead of invalid value');
     }
+    
+    // Always use Math.floor to ensure whole numbers
+    count = Math.floor(count);
     
     const currentData = this.getUsageData();
     const currentDate = this.getCurrentDate();
@@ -157,15 +162,36 @@ class UsageTracker {
       currentData.date = currentDate;
       currentData.rowCount = count;
       currentData.lastReset = new Date().toISOString();
-      console.log(`Usage counter reset for new day (${currentDate}). Starting with count:`, count);
+      console.log(`📊 USAGE RESET: Counter reset for new day (${currentDate}). Starting with count:`, count);
     } else {
       const previousCount = currentData.rowCount;
-      currentData.rowCount += count;
-      console.log(`Incrementing usage counter by ${count} rows. Previous: ${previousCount}, New: ${currentData.rowCount}`);
+      
+      // Ensure we have a valid previous count
+      if (isNaN(previousCount) || !isFinite(previousCount) || previousCount < 0) {
+        console.warn('⚠️ WARNING: Previous count is invalid:', previousCount);
+        // Reset to this count only if previous was invalid
+        currentData.rowCount = count;
+        console.log(`📊 FIXED: Reset invalid previous count to current count: ${count}`);
+      } else {
+        // Normal increment
+        currentData.rowCount += count;
+        console.log(`📊 USAGE UPDATE: Incrementing by ${count} rows. Previous: ${previousCount}, New: ${currentData.rowCount}`);
+      }
+    }
+    
+    // Safety check - ensure the count doesn't exceed a reasonable maximum (e.g., 1 million)
+    // This prevents data corruption in case of an error
+    if (currentData.rowCount > 1000000) {
+      console.warn(`⚠️ WARNING: Usage count exceeds 1 million (${currentData.rowCount}). Capping at 1 million.`);
+      currentData.rowCount = 1000000;
     }
     
     // Ensure we properly save the updated count
     this.saveUsageData(currentData);
+    
+    // Log current usage after update (useful for debugging)
+    const usage = this.getUsageStats();
+    console.log(`📊 CURRENT USAGE: ${usage.used}/${usage.limit} (${usage.remaining} remaining). Resets: ${usage.resetAt}`);
   }
 }
 

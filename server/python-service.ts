@@ -971,10 +971,25 @@ export class PythonService {
       }
 
       // Update the usage tracker with the number of rows processed
-      usageTracker.incrementRowCount(data.results.length);
+      // Get current usage before increment for better logging
+      const beforeUsage = usageTracker.getUsageStats().used;
+      
+      // Make sure we have a valid count to increment by
+      const processedCount = data.results.length || 0;
+      if (processedCount > 0) {
+        log(`📊 USAGE TRACKING: Incrementing counter by ${processedCount} records`, 'python-service');
+        usageTracker.incrementRowCount(processedCount);
+      } else {
+        // If somehow we got here with zero results, still increment by 1 for the API call
+        log(`⚠️ USAGE TRACKING: No records processed, incrementing by 1 for API call`, 'python-service');
+        usageTracker.incrementRowCount(1);
+      }
+      
+      // Get updated usage after increment
+      const afterUsage = usageTracker.getUsageStats().used;
       
       log(`Successfully processed ${data.results.length} records from CSV`, 'python-service');
-      log(`Daily usage: ${usageTracker.getUsageStats().used}/${usageTracker.getUsageStats().limit} rows`, 'python-service');
+      log(`📊 USAGE TRACKING: Daily usage changed from ${beforeUsage} to ${afterUsage} (limit: ${usageTracker.getUsageStats().limit} rows)`, 'python-service');
 
       return {
         data,
@@ -1186,8 +1201,18 @@ export class PythonService {
       });
 
       // Increment usage by 1 for each individual text analysis
+      // Get current usage before increment for better logging
+      const beforeUsage = usageTracker.getUsageStats().used;
+      
+      // Increment by 1 for individual text analysis
       usageTracker.incrementRowCount(1);
-      log(`Daily usage: ${usageTracker.getUsageStats().used}/${usageTracker.getUsageStats().limit} rows`, 'python-service');
+      
+      // Get updated usage after increment
+      const afterUsage = usageTracker.getUsageStats().used;
+      
+      // Enhanced logging of usage changes
+      log(`📊 USAGE TRACKING: Single text analysis - incrementing by 1`, 'python-service');
+      log(`📊 USAGE TRACKING: Daily usage changed from ${beforeUsage} to ${afterUsage} (limit: ${usageTracker.getUsageStats().limit} rows)`, 'python-service');
 
       const analysisResult = JSON.parse(result);
 
