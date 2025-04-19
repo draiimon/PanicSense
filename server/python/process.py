@@ -788,6 +788,7 @@ class DisasterSentimentBackend:
         
         All sentiment analysis MUST go through this function to ensure consistency.
         """
+        import json  # Import json here to ensure it's available in this scope
         if not text or len(text.strip()) == 0:
             return {
                 "sentiment": "Neutral",
@@ -812,6 +813,7 @@ class DisasterSentimentBackend:
         # Check if we're being passed JSON feedback data - look for "feedback" field
         try:
             # Try to parse text as JSON - this would be when we train from feedback
+            import json  # Import json here to ensure it's available in this scope
             parsed_json = json.loads(text)
             if isinstance(parsed_json, dict) and parsed_json.get('feedback') == True:
                 # This is a feedback training request, not a normal text analysis
@@ -820,8 +822,9 @@ class DisasterSentimentBackend:
                     parsed_json.get('originalSentiment'),
                     parsed_json.get('correctedSentiment')
                 )
-        except json.JSONDecodeError:
-            # Not JSON data, continue with regular analysis
+        except Exception as e:
+            # Not JSON data or another error, continue with regular analysis
+            logging.info(f"JSON parsing skipped (expected for normal text): {str(e)}")
             pass
 
         # Check if this exact text has been trained before
@@ -2796,8 +2799,16 @@ Remember the context of Filipino/Taglish expressions and disaster-specific langu
                     try:
                         # Try to parse JSON directly from the content
                         if content:
-                            import json
-                            llama_result = json.loads(content)
+                            try:
+                                import json  # Import json here to ensure it's available in this scope
+                                llama_result = json.loads(content)
+                            except Exception as e:
+                                logging.error(f"Error parsing validation response as JSON: {str(e)}")
+                                # Fall back to rule-based analysis
+                                return {
+                                    "valid": True,  # Default to accepting user feedback
+                                    "reason": f"Technical error parsing validation response: {str(e)}"
+                                }
                             
                             # Check if this is a structured JSON response with the validation fields
                             if isinstance(llama_result, dict) and 'validation' in llama_result:
