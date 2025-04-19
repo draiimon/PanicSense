@@ -60,6 +60,9 @@ export function UploadProgressModal() {
     autoCloseDelay = 3000 // Default to 3 seconds for auto-close
   } = uploadProgress || {};
   
+  // Define processedCount variable using rawProcessed value
+  const processedCount = rawProcessed;
+  
   // Set up listener for nuclear cleanup broadcasts from other tabs
   // and automatic stability check
   useEffect(() => {
@@ -127,6 +130,27 @@ export function UploadProgressModal() {
       
       onUploadComplete: (progress) => {
         console.log('🏁 Received completion notification from another tab');
+        
+        // Verify this is a genuine completion and not a premature notification
+        // by checking if we've processed at least 95% of the total records
+        const total = progress.total || 100;
+        const processed = progress.processed || 0;
+        const processedThreshold = Math.floor(total * 0.95);
+        
+        if (processed < processedThreshold) {
+          console.log(`⚠️ Ignoring premature completion notification - only processed ${processed}/${total} records`);
+          return; // Don't process premature completions
+        }
+        
+        // Check if we've already handled completion recently to avoid duplicate handlers
+        const completionTimestamp = parseInt(localStorage.getItem('uploadCompletedTimestamp') || '0');
+        const now = Date.now();
+        const completionDebounce = 5000; // 5 seconds
+        
+        if (now - completionTimestamp < completionDebounce) {
+          console.log('⚠️ Ignoring duplicate completion event - already handled recently');
+          return;
+        }
         
         // Force this tab to show the upload modal if we're not already showing it
         if (!isUploading) {
@@ -439,7 +463,28 @@ export function UploadProgressModal() {
       // STRICT MATCH - only exact match with "Analysis complete"
       // NOT matching "Completed record X/Y" which causes false completion
       else if (stage === 'Analysis complete') {
-        // For completion, show success briefly (3 seconds)
+        // Check if it's a genuine completion by verifying we've processed enough records
+        // We use a threshold (95%) rather than exact match to account for any discrepancies
+        const processedThreshold = Math.floor(total * 0.95);
+        const isActuallyComplete = processedCount >= processedThreshold;
+        
+        if (!isActuallyComplete) {
+          console.log('⚠️ False "Analysis complete" detected - processed count too low:', 
+            processedCount, 'of', total, `(need at least ${processedThreshold})`);
+          return; // Don't handle as completion if we haven't processed enough records
+        }
+        
+        // Also check if we've already handled completion recently to avoid multiple handlers
+        const completionTimestamp = parseInt(localStorage.getItem('uploadCompletedTimestamp') || '0');
+        const now = Date.now();
+        const completionDebounce = 5000; // 5 seconds
+        
+        if (now - completionTimestamp < completionDebounce) {
+          console.log('⚠️ Ignoring duplicate completion event - already handled recently');
+          return;
+        }
+        
+        // For genuine completion, show success briefly (3 seconds)
         const completionDelay = autoCloseDelay || 3000; // Default to 3 seconds
         console.log(`🎯 Analysis complete - will auto-close after ${completionDelay}ms`);
         
@@ -452,6 +497,9 @@ export function UploadProgressModal() {
           currentSpeed: 0,
           timeRemaining: 0
         };
+        
+        // Add a message to the console
+        console.log('Upload operation completed, the modal will auto-close based on server instructions');
         
         // Use the synchronization manager to mark as complete and broadcast to other tabs
         markUploadCompleted(finalProgress);
@@ -469,7 +517,7 @@ export function UploadProgressModal() {
         console.log('⏳ Processing record detected, NOT a terminal state:', stage);
       }
     }
-  }, [isUploading, stage, total, uploadProgress, forceCloseModalMemo, cleanupAndClose, autoCloseDelay]);
+  }, [isUploading, stage, processedCount, total, uploadProgress, forceCloseModalMemo, cleanupAndClose, autoCloseDelay]);
 
   // Handle cancel button click with force option
   const handleCancel = async (forceCancel = false) => {
@@ -563,9 +611,6 @@ export function UploadProgressModal() {
                         
   // IMPROVED: Make initialization a higher priority state
   // This ensures the initialization UI is always shown during the early phases
-  
-  // Keep original server values for display
-  const processedCount = rawProcessed;
   
   // Basic state detection - clear, explicit flags
   const isPaused = stageLower.includes('pause between batches');
