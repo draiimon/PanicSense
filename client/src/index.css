@@ -564,6 +564,81 @@ section {
   }
 }
 
+/* Data flow animations for map */
+@keyframes data-flow {
+  0% {
+    stroke-dashoffset: 1000;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+.animate-data-flow {
+  stroke-dasharray: 10;
+  animation: data-flow 3s linear infinite;
+}
+
+.animate-data-flow.delay-300 {
+  animation-delay: 0.3s;
+}
+
+.animate-data-flow.delay-600 {
+  animation-delay: 0.6s;
+}
+
+/* Dashed line animations */
+@keyframes dash {
+  to {
+    stroke-dashoffset: 1000;
+  }
+}
+
+.animate-dash {
+  animation: dash 30s linear infinite;
+}
+
+.animate-dash-reverse {
+  animation: dash 30s linear infinite reverse;
+}
+
+/* Ping animation for map points */
+@keyframes ping-slow {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 2s ease-in-out infinite;
+}
+
+.delay-300 {
+  animation-delay: 0.3s;
+}
+
+.delay-600 {
+  animation-delay: 0.6s;
+}
+
+.delay-900 {
+  animation-delay: 0.9s;
+}
+
 /* Sentiment color classes */
 .sentiment-panic {
   @apply bg-red-100 text-red-600;

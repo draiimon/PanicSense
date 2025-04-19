@@ -36,18 +36,163 @@ const TwinklingStars = () => {
   );
 };
 
-// Animated globe component for background
-const AnimatedGlobe = () => {
+// Interactive Philippines Map Animation
+const AnimatedMap = () => {
   return (
-    <div className="absolute right-[-250px] top-[-150px] opacity-30 pointer-events-none">
-      <div className="w-[500px] h-[500px] rounded-full border-2 border-blue-400/20 border-dashed relative animate-spin-slow">
-        <div className="w-[450px] h-[450px] rounded-full border-2 border-indigo-500/20 border-dashed absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-spin-slower"></div>
-        <div className="w-[400px] h-[400px] rounded-full border-2 border-cyan-400/20 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-spin-reverse"></div>
-        <div className="w-4 h-4 rounded-full bg-blue-500 absolute top-0 left-1/2 transform -translate-x-1/2 shadow-glow-blue"></div>
-        <div className="w-4 h-4 rounded-full bg-indigo-500 absolute bottom-0 left-1/2 transform -translate-x-1/2 shadow-glow-indigo"></div>
-        <div className="w-4 h-4 rounded-full bg-cyan-500 absolute left-0 top-1/2 transform -translate-y-1/2 shadow-glow-cyan"></div>
-        <div className="w-4 h-4 rounded-full bg-purple-500 absolute right-0 top-1/2 transform -translate-y-1/2 shadow-glow-purple"></div>
+    <div className="absolute inset-0 w-full h-full opacity-20 pointer-events-none overflow-hidden">
+      {/* Philippines map outline */}
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <svg viewBox="0 0 800 800" width="1200" height="1200" className="opacity-30">
+          <path 
+            d="M400,120 C420,160 500,140 520,170 C540,200 550,250 530,270 C510,290 490,320 500,350 C510,380 540,400 520,430 C500,460 480,480 450,500 C420,520 400,550 380,540 C360,530 340,490 320,480 C300,470 280,450 270,420 C260,390 240,370 250,340 C260,310 280,280 310,260 C340,240 350,200 380,170 C410,140 380,80 400,120 Z" 
+            fill="none" 
+            stroke="url(#philippinesGradient)" 
+            strokeWidth="6"
+            className="animate-pulse-slow"
+          />
+          
+          {/* Islands and regions */}
+          <path 
+            d="M350,140 C360,150 380,130 390,150 C400,170 380,190 370,180 C360,170 340,130 350,140 Z" 
+            fill="rgba(59, 130, 246, 0.3)" 
+            stroke="rgba(59, 130, 246, 0.8)" 
+            strokeWidth="2"
+            className="animate-float-1"
+          />
+          
+          <path 
+            d="M420,220 C430,210 450,220 460,230 C470,240 480,260 470,270 C460,280 440,270 430,260 C420,250 410,230 420,220 Z" 
+            fill="rgba(99, 102, 241, 0.3)" 
+            stroke="rgba(99, 102, 241, 0.8)" 
+            strokeWidth="2"
+            className="animate-float-2"
+          />
+          
+          <path 
+            d="M380,300 C400,290 420,310 430,330 C440,350 430,380 410,390 C390,400 370,380 360,360 C350,340 360,310 380,300 Z" 
+            fill="rgba(79, 70, 229, 0.3)" 
+            stroke="rgba(79, 70, 229, 0.8)" 
+            strokeWidth="2"
+            className="animate-float-3"
+          />
+          
+          <path 
+            d="M330,400 C340,380 370,390 380,410 C390,430 380,460 360,470 C340,480 310,470 300,450 C290,430 320,420 330,400 Z" 
+            fill="rgba(147, 51, 234, 0.3)" 
+            stroke="rgba(147, 51, 234, 0.8)" 
+            strokeWidth="2"
+            className="animate-float-4"
+          />
+          
+          {/* Connection lines between islands */}
+          <g className="connection-lines">
+            <path 
+              d="M370,170 C390,210 410,250 400,280" 
+              fill="none" 
+              stroke="rgba(255, 255, 255, 0.3)" 
+              strokeWidth="1" 
+              strokeDasharray="5,5"
+              className="animate-dash"
+            />
+            
+            <path 
+              d="M440,240 C430,270 410,300 390,320" 
+              fill="none" 
+              stroke="rgba(255, 255, 255, 0.3)" 
+              strokeWidth="1" 
+              strokeDasharray="5,5"
+              className="animate-dash-reverse"
+            />
+            
+            <path 
+              d="M380,350 C360,380 340,410 330,430" 
+              fill="none" 
+              stroke="rgba(255, 255, 255, 0.3)" 
+              strokeWidth="1" 
+              strokeDasharray="5,5"
+              className="animate-dash"
+            />
+          </g>
+          
+          {/* Pulse locations (disaster areas) */}
+          <circle cx="370" cy="170" r="8" fill="rgba(239, 68, 68, 0.7)" className="animate-ping-slow" />
+          <circle cx="440" cy="240" r="6" fill="rgba(245, 158, 11, 0.7)" className="animate-ping-slow delay-300" />
+          <circle cx="380" cy="350" r="7" fill="rgba(59, 130, 246, 0.7)" className="animate-ping-slow delay-600" />
+          <circle cx="330" cy="430" r="5" fill="rgba(139, 92, 246, 0.7)" className="animate-ping-slow delay-900" />
+          
+          {/* Data flow animations */}
+          <g className="data-flow">
+            <path 
+              d="M370,170 Q420,200 440,240" 
+              fill="none" 
+              stroke="url(#dataFlow1)" 
+              strokeWidth="2" 
+              className="animate-data-flow"
+            />
+            
+            <path 
+              d="M440,240 Q410,290 380,350" 
+              fill="none" 
+              stroke="url(#dataFlow2)" 
+              strokeWidth="2" 
+              className="animate-data-flow delay-300"
+            />
+            
+            <path 
+              d="M380,350 Q355,390 330,430" 
+              fill="none" 
+              stroke="url(#dataFlow3)" 
+              strokeWidth="2" 
+              className="animate-data-flow delay-600"
+            />
+          </g>
+          
+          {/* Gradients for various elements */}
+          <defs>
+            <linearGradient id="philippinesGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#2563eb" />
+              <stop offset="50%" stopColor="#7c3aed" />
+              <stop offset="100%" stopColor="#db2777" />
+            </linearGradient>
+            
+            <linearGradient id="dataFlow1" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#2563eb">
+                <animate attributeName="offset" from="-1" to="1" dur="3s" repeatCount="indefinite" />
+              </stop>
+              <stop offset="100%" stopColor="transparent">
+                <animate attributeName="offset" from="0" to="2" dur="3s" repeatCount="indefinite" />
+              </stop>
+            </linearGradient>
+            
+            <linearGradient id="dataFlow2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#7c3aed">
+                <animate attributeName="offset" from="-1" to="1" dur="3s" repeatCount="indefinite" />
+              </stop>
+              <stop offset="100%" stopColor="transparent">
+                <animate attributeName="offset" from="0" to="2" dur="3s" repeatCount="indefinite" />
+              </stop>
+            </linearGradient>
+            
+            <linearGradient id="dataFlow3" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#db2777">
+                <animate attributeName="offset" from="-1" to="1" dur="3s" repeatCount="indefinite" />
+              </stop>
+              <stop offset="100%" stopColor="transparent">
+                <animate attributeName="offset" from="0" to="2" dur="3s" repeatCount="indefinite" />
+              </stop>
+            </linearGradient>
+          </defs>
+        </svg>
       </div>
+      
+      {/* Grid overlay for the tech feeling */}
+      <div className="absolute inset-0 bg-grid-pattern-white opacity-5"></div>
+      
+      {/* Floating data points */}
+      <div className="absolute top-1/4 left-1/3 h-2 w-2 rounded-full bg-blue-500 shadow-glow-blue animate-float-1"></div>
+      <div className="absolute top-1/3 right-1/4 h-3 w-3 rounded-full bg-indigo-500 shadow-glow-indigo animate-float-2"></div>
+      <div className="absolute bottom-1/4 left-1/4 h-2 w-2 rounded-full bg-purple-500 shadow-glow-purple animate-float-3"></div>
+      <div className="absolute bottom-1/3 right-1/3 h-2 w-2 rounded-full bg-cyan-500 shadow-glow-cyan animate-float-4"></div>
     </div>
   );
 };
@@ -443,6 +588,17 @@ export default function LandingPage() {
           {/* Background geometric elements */}
           <div className="absolute bottom-0 left-0 w-full h-1/3 bg-grid-dark-pattern opacity-[0.03] dark:opacity-[0.07]"></div>
           
+          {/* Add the Philippines map animation */}
+          <AnimatedMap />
+          
+          {/* Add more visual elements */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-[800px] h-[800px] border-[1px] border-blue-400/10 rounded-full animate-spin-slow"></div>
+            <div className="absolute w-[600px] h-[600px] border-[1px] border-indigo-500/10 rounded-full animate-spin-slower"></div>
+            <div className="absolute w-[400px] h-[400px] border-[1px] border-purple-500/10 rounded-full animate-spin-reverse"></div>
+          </div>
+          
+          {/* Animated floating bubbles */}
           <motion.div 
             className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"
             animate={{ 
@@ -470,7 +626,73 @@ export default function LandingPage() {
             }}
           />
           
-          <AnimatedGlobe />
+          {/* New animated elements */}
+          <motion.div 
+            className="absolute top-1/3 right-1/3 w-40 h-40 bg-cyan-500/10 rounded-full blur-2xl"
+            animate={{ 
+              x: [0, -30, 0],
+              y: [0, 20, 0],
+              scale: [1, 1.1, 1]
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 10,
+              ease: "easeInOut",
+              delay: 0.5
+            }}
+          />
+          
+          <motion.div 
+            className="absolute bottom-1/3 left-1/3 w-56 h-56 bg-pink-500/10 rounded-full blur-2xl"
+            animate={{ 
+              x: [0, 40, 0],
+              y: [0, -25, 0],
+              scale: [1, 1.05, 1]
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 12,
+              ease: "easeInOut",
+              delay: 1.5
+            }}
+          />
+          
+          {/* Particle effects */}
+          <div className="absolute inset-0">
+            {Array.from({ length: 15 }).map((_, i) => {
+              const size = Math.random() * 6 + 2;
+              const top = Math.random() * 100;
+              const left = Math.random() * 100;
+              const delay = Math.random() * 5;
+              const duration = Math.random() * 15 + 10;
+              
+              return (
+                <motion.div 
+                  key={i}
+                  className="absolute rounded-full bg-white/50 shadow-glow z-0"
+                  style={{ 
+                    width: size, 
+                    height: size, 
+                    top: `${top}%`, 
+                    left: `${left}%` 
+                  }}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ 
+                    y: [0, -100, 0],
+                    x: [0, Math.random() * 50 - 25, 0],
+                    scale: [0, 1, 0],
+                    opacity: [0, 0.5, 0]
+                  }}
+                  transition={{ 
+                    repeat: Infinity,
+                    duration,
+                    delay,
+                    ease: "easeInOut"
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
         
         <div className="max-w-7xl mx-auto px-6 relative z-10" ref={parallaxRef}>
@@ -582,7 +804,7 @@ export default function LandingPage() {
                   <Activity className="h-4 w-4 text-purple-500 mr-2" />
                   <h4 className="font-semibold">Advanced Analytics</h4>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">AI-powered sentiment analysis using state-of-the-art NLP models with Filipino language support.</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Advanced sentiment analysis using modern language processing with Filipino language support.</p>
               </motion.div>
               
               <div className="absolute -bottom-2 -right-2 z-20">
@@ -635,8 +857,8 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
-                title: "AI Sentiment Analysis",
-                description: "Automatically detect emotions and sentiment in disaster-related text using advanced AI models.",
+                title: "Sentiment Analysis",
+                description: "Automatically detect emotions and sentiment in disaster-related text using advanced processing models.",
                 icon: <BarChart3 />,
                 color: "blue",
                 delay: 0
@@ -735,7 +957,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { value: "95%", label: "Accuracy in Disaster Classification", icon: <Shield /> },
-              { value: "30+", label: "Government Agencies Connected", icon: <Users /> },
+              { value: "Fast", label: "Data Processing Speed", icon: <Users /> },
               { value: "24/7", label: "Real-time Monitoring Coverage", icon: <Clock /> },
               { value: "15min", label: "Average Response Time Reduction", icon: <BellRing /> }
             ].map((stat, index) => (
@@ -798,7 +1020,7 @@ export default function LandingPage() {
       </AnimatePresence>
       
       {/* Inject CSS for animations */}
-      <style jsx global>{`
+      <style>{`
         @keyframes shimmer {
           100% {
             transform: translateX(100%);
