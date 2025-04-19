@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'wouter';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
-import { ChevronRight, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Database, ArrowRight, Info, ExternalLink, Shield, Users, BellRing, Star, Award, Heart, Globe, Activity } from 'lucide-react';
+import { ChevronRight, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Database, ArrowRight, Info, ExternalLink, Shield, Users, BellRing, Star, Award, Heart, Globe, Activity, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import useEmblaCarousel from 'embla-carousel-react';
 
 // Create a twinkling stars effect
 const TwinklingStars = () => {
@@ -408,9 +409,9 @@ export default function LandingPage() {
           >
             <Link href="/dashboard">
               <Button 
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all animate-pulse"
               >
-                Sign in to Dashboard
+                Tutorial
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -498,14 +499,32 @@ export default function LandingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.6 }}
               >
-                <Button 
-                  size="lg"
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 px-8 py-6 text-lg"
+                <motion.div
+                  whileHover={{ 
+                    scale: 1.05,
+                    rotate: [0, 1, 0, -1, 0],
+                    transition: { duration: 0.3 }
+                  }}
+                  animate={{ 
+                    scale: [1, 1.03, 1],
+                    boxShadow: ["0px 0px 0px rgba(0,0,0,0.2)", "0px 10px 30px rgba(0,0,0,0.2)", "0px 0px 0px rgba(0,0,0,0.2)"]
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    duration: 2
+                  }}
                 >
                   <Link href="/dashboard">
-                    Get Started Now
+                    <Button 
+                      size="lg"
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xl transition-all px-10 py-8 text-xl font-bold tracking-wide"
+                    >
+                      Get Started Now
+                      <ArrowRight className="ml-2 h-5 w-5 animate-pulse" />
+                    </Button>
                   </Link>
-                </Button>
+                </motion.div>
                 
                 <Button 
                   variant="outline" 
@@ -513,39 +532,11 @@ export default function LandingPage() {
                   className="border-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all hover:scale-105 px-8 py-6 text-lg"
                   onClick={() => setShowTutorial(true)}
                 >
-                  Watch Tutorial
+                  Tutorial
                 </Button>
               </motion.div>
               
-              <motion.div 
-                className="mt-10 flex items-center space-x-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.8 }}
-              >
-                <div className="flex items-center space-x-2">
-                  <div className="flex -space-x-1">
-                    {[0, 1, 2].map((i) => (
-                      <motion.div 
-                        key={i}
-                        className={`w-8 h-8 rounded-full bg-gradient-to-br ${
-                          i === 0 ? 'from-blue-400 to-blue-600' : 
-                          i === 1 ? 'from-purple-400 to-purple-600' : 
-                          'from-indigo-400 to-indigo-600'
-                        } flex items-center justify-center border-2 border-white dark:border-gray-900 text-white text-xs font-bold`}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.8 + (i * 0.1) }}
-                      >
-                        {String.fromCharCode(65 + i)}
-                      </motion.div>
-                    ))}
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    <span className="text-blue-600 dark:text-blue-400 font-semibold">180+</span> emergency responders actively using PanicSense
-                  </div>
-                </div>
-              </motion.div>
+
             </div>
             
             <motion.div
@@ -766,85 +757,7 @@ export default function LandingPage() {
         </div>
       </section>
       
-      {/* Call to Action */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-black">
-          <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] dark:opacity-[0.07]"></div>
-        </div>
-        
-        <div className="max-w-5xl mx-auto px-6 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-12 md:p-16 text-center text-white shadow-2xl relative overflow-hidden"
-          >
-            <div className="absolute inset-0 overflow-hidden opacity-30">
-              <motion.div 
-                className="absolute top-0 -left-24 w-96 h-96 bg-gradient-to-r from-blue-500 to-transparent rounded-full blur-3xl"
-                animate={{
-                  y: [0, 50, 0],
-                  x: [0, 30, 0],
-                }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 10,
-                  ease: "easeInOut"
-                }}
-              />
-              <motion.div 
-                className="absolute bottom-0 -right-24 w-96 h-96 bg-gradient-to-l from-purple-500 to-transparent rounded-full blur-3xl"
-                animate={{
-                  y: [0, -50, 0],
-                  x: [0, -30, 0],
-                }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 10,
-                  delay: 0.5,
-                  ease: "easeInOut"
-                }}
-              />
-            </div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-            >
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 relative">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-100">
-                  Ready to start?
-                </span>
-              </h2>
-              
-              <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-                Explore our platform to see how advanced analytics can help improve disaster response and save lives.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-                <Link href="/dashboard">
-                  <Button size="lg" className="bg-white text-indigo-700 hover:bg-gray-100 text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                    Access Dashboard
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-                
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="border-white text-white hover:bg-white/10 text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all hover:scale-105"
-                  onClick={() => setShowTutorial(true)}
-                >
-                  Watch Tutorial
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
+
       
       {/* Footer - Matching main layout style */}
       <footer className="bg-white border-t border-slate-200 py-2 sm:py-4 z-50 relative">
