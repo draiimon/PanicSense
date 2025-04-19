@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'wouter';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
-import { ChevronRight, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Database, ArrowRight, Info, ExternalLink, Shield, Users, BellRing, Star, Award, Heart, Globe, Activity, ChevronLeft, Check, Sparkles } from 'lucide-react';
+import { ChevronRight, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Database, ArrowRight, Info, ExternalLink, Shield, Users, BellRing, Star, Award, Heart, Globe, Activity, ChevronLeft, Check, Sparkles, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -684,12 +684,7 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                         <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                       }
                       {currentStep === steps.length - 1 && (
-                        <>
-                          <Sparkles className="ml-2 h-4 w-4 animate-pulse" />
-                          <div className="absolute -right-10 transform rotate-45 animate-bounce">
-                            <ArrowUp className="h-5 w-5 text-yellow-300 drop-shadow-glow" />
-                          </div>
-                        </>
+                        <Sparkles className="ml-2 h-4 w-4 animate-pulse" />
                       )}
                     </span>
                   </Button>
