@@ -9,6 +9,8 @@ import { applyEmergencyFixes } from "./emergency-db-fix";
 import { simpleDbFix } from "./db-simple-fix";
 // Import Python service for shutdown handling
 import { pythonService } from "./python-service";
+// Import rate limiter middleware
+import { createRateLimiter, dailyUsageCheck } from "./middleware/rate-limiter";
 
 // Create a global server start timestamp for detecting restarts
 // This will be used by routes.ts to detect server restarts
@@ -53,6 +55,19 @@ export function cleanupAndExit(server: any): void {
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Increased limit for better performance
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Apply standard rate limiter to all API routes
+app.use('/api', createRateLimiter('standard'));
+
+// Apply specific rate limiters to heavy endpoints
+app.use('/api/upload-csv', createRateLimiter('upload'));
+app.use('/api/analyze-text', createRateLimiter('analysis'));
+app.use('/api/emergency-reset', createRateLimiter('admin'));
+app.use('/api/reset-upload-sessions', createRateLimiter('admin'));
+app.use('/api/delete-all-data', createRateLimiter('admin'));
+
+// Apply daily usage check to data processing endpoints
+app.use(['/api/upload-csv', '/api/analyze-text'], dailyUsageCheck);
 
 // Enhanced logging middleware with better performance metrics
 app.use((req, res, next) => {

@@ -11,6 +11,7 @@ import { nanoid } from 'nanoid';
 import { pythonService, pythonConsoleMessages } from "./python-service";
 import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts, uploadSessions, analyzedFiles, type SentimentPost } from "@shared/schema";
 import { usageTracker } from "./utils/usage-tracker";
+import { uploadSessionManager } from "./utils/upload-session-manager";
 import { EventEmitter } from 'events';
 
 // Extend global to support our connection counter
