@@ -991,8 +991,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get active upload session with stale check and server restart detection
   app.get('/api/active-upload-session', async (req: Request, res: Response) => {
     try {
-      // Add cache control headers to reduce polling frequency
-      res.set('Cache-Control', 'private, max-age=1');
+      // SUPER STRONG PERSISTENCE: Set shorter cache time to ensure more frequent checks
+      // This helps catch active uploads faster after a refresh
+      res.set('Cache-Control', 'private, max-age=0, must-revalidate');
       
       // Only log 5% of the time to reduce console spam
       const shouldLog = Math.random() < 0.05;
@@ -1000,9 +1001,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("⭐ Checking for active upload sessions...");
       }
       
+      // Get client-provided session ID from query param (if provided)
+      // This allows client to hint at active session in localStorage
+      const clientSessionId = req.query.sessionId as string | undefined;
+      
       // Import the SERVER_START_TIMESTAMP from server/index.ts
       const { SERVER_START_TIMESTAMP } = await import('./index');
 
+      // HYBRID VERIFICATION STRATEGY:
+      // 1. First check if there's an active Python process (most reliable)
+      // 2. Then check if the client-provided session exists and is active
+      // 3. Finally check for any active sessions in the database
+      
       // Before checking the database, check if there's an active Python process
       // This is the most reliable indicator of an active upload
       const activePythonSessions = pythonService.getActiveProcessSessions();

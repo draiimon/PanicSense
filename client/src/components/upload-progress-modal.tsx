@@ -292,22 +292,33 @@ export function UploadProgressModal() {
     const checkWithDatabaseBoss = async () => {
       try {
         // PRIORITY FOR VISIBILITY: LOCAL STORAGE > DATABASE
-        // First let's verify our localStorage state to make sure we should still show modal
-        const storageExpirationMinutes = 30; // EXTENDED from 2 to 30 minutes!
+        // ULTRA-RESILIENT REFRESH PERSISTENCE: First check localStorage with extended expiration
+        const storageExpirationMinutes = 45; // EXTENDED from 30 to 45 minutes for better persistence!
         const storedUploadProgress = localStorage.getItem('uploadProgress');
         const storedSessionId = localStorage.getItem('uploadSessionId');
         const storedIsUploading = localStorage.getItem('isUploading');
         
-        // If we have active state in localStorage, KEEP SHOWING even if database says no
+        // RESILIENT UPLOAD PERSISTENCE: If we have ANY active state in localStorage, always show modal first
         if (storedIsUploading === 'true' || storedSessionId) {
           console.log('🔒 LOCAL STORAGE HAS UPLOAD STATE - KEEPING MODAL VISIBLE', storedSessionId);
           
-          // Super strong persistence - force UI to match localStorage state
+          // Force UI to match localStorage state - this ensures persistence after page refresh
           if (!isUploading) {
             setIsUploading(true);
+            
+            // Also update progress from localStorage if available
+            if (storedUploadProgress) {
+              try {
+                const progress = JSON.parse(storedUploadProgress);
+                setUploadProgress(progress);
+              } catch (e) {
+                console.error('Failed to parse stored progress', e);
+              }
+            }
           }
           
-          // Now check with database - but just for data updates, not for visibility control
+          // Now check with database - but ONLY for data updates, not for visibility control
+          // This keeps the modal visible while we wait for database confirmation
           console.log('📊 Checking database for progress updates only (not for visibility control)');
           const response = await fetch('/api/active-upload-session');
         
@@ -319,6 +330,18 @@ export function UploadProgressModal() {
               // If we already have sessionId in localStorage, update it if different
               if (storedSessionId !== data.sessionId) {
                 localStorage.setItem('uploadSessionId', data.sessionId);
+              }
+              
+              // If server has progress data, update UI but keep modal visible
+              if (data.progress) {
+                try {
+                  const newProgress = typeof data.progress === 'string' 
+                    ? JSON.parse(data.progress) 
+                    : data.progress;
+                  setUploadProgress(newProgress);
+                } catch (e) {
+                  console.error('Failed to parse server progress', e);
+                }
               }
             }
           }

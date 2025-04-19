@@ -291,7 +291,14 @@ export async function checkForActiveSessions(): Promise<string | null> {
     
     // ALWAYS ask the database (boss) for the truth!
     console.log('📊 Asking database boss for active sessions');
-    const response = await apiRequest('GET', '/api/active-upload-session');
+    
+    // ENHANCED: Send the session ID from localStorage as a query parameter
+    // This allows the server to check specifically for this session
+    const endpoint = cachedSessionId 
+      ? `/api/active-upload-session?sessionId=${encodeURIComponent(cachedSessionId)}`
+      : '/api/active-upload-session';
+      
+    const response = await apiRequest('GET', endpoint);
     
     if (!response.ok) {
       throw new Error('Database check failed');
