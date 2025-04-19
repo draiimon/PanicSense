@@ -573,6 +573,29 @@ export async function uploadCSV(
 export async function analyzeText(text: string): Promise<{
   post: SentimentPost;
 }> {
+  // Clean up any upload-related localStorage items before text analysis
+  // This prevents the upload modal from appearing when analyzing text
+  if (localStorage.getItem('isUploading') || localStorage.getItem('uploadSessionId')) {
+    console.log('🧹 Cleaning up stale upload state before text analysis');
+    
+    // Clear upload-related localStorage items
+    localStorage.removeItem('isUploading');
+    localStorage.removeItem('uploadProgress');
+    localStorage.removeItem('uploadSessionId');
+    localStorage.removeItem('lastProgressTimestamp');
+    localStorage.removeItem('lastUIUpdateTimestamp');
+    localStorage.removeItem('serverRestartProtection');
+    localStorage.removeItem('serverRestartTimestamp');
+    
+    // Also try to clean up any error sessions on the server
+    try {
+      cleanupErrorSessions().catch(e => console.error('Error cleaning up sessions:', e));
+    } catch (e) {
+      console.error('Error initiating session cleanup:', e);
+    }
+  }
+  
+  // Make the API request with clean state
   const response = await apiRequest('POST', '/api/analyze-text', { text });
   return response.json();
 }
