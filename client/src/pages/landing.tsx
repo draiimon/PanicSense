@@ -193,7 +193,7 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="bg-card text-card-foreground rounded-xl shadow-2xl max-w-4xl w-full relative overflow-hidden"
+        className="bg-card text-card-foreground rounded-xl shadow-2xl max-w-md sm:max-w-lg md:max-w-3xl lg:max-w-4xl w-full relative overflow-hidden"
       >
         <div className="absolute top-0 left-0 w-full h-1">
           <div 
@@ -263,12 +263,12 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                     </motion.div>
                   </FloatingElement>
                   
-                  <h3 className="text-3xl font-bold mb-4">
-                    <AnimatedText text={steps[currentStep].title} delay={0.2} />
+                  <h3 className="text-2xl md:text-3xl font-bold mb-2 md:mb-4 break-words">
+                    {steps[currentStep].title}
                   </h3>
                   
-                  <p className="text-white/80 text-lg mb-8">
-                    <AnimatedText text={steps[currentStep].description} delay={0.3} />
+                  <p className="text-white/80 text-base md:text-lg mb-4 md:mb-8 break-words">
+                    {steps[currentStep].description}
                   </p>
                 </motion.div>
               </AnimatePresence>
@@ -520,22 +520,12 @@ export default function LandingPage() {
                     scale: 1.05,
                     transition: { duration: 0.3 }
                   }}
-                  animate={{ 
-                    y: [0, -5, 0],
-                    boxShadow: ["0px 5px 15px rgba(59, 130, 246, 0.3)", "0px 15px 30px rgba(59, 130, 246, 0.5)", "0px 5px 15px rgba(59, 130, 246, 0.3)"]
-                  }}
-                  transition={{
-                    repeat: Infinity,
-                    repeatType: "reverse",
-                    duration: 3
-                  }}
                 >
                   <Link href="/dashboard">
                     <Button 
                       size="lg"
-                      className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-12 py-8 text-xl font-bold tracking-wide rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
+                      className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-12 py-8 text-xl font-bold tracking-wide rounded-full"
                     >
-                      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-30 -translate-x-full animate-shimmer"/>
                       <span className="relative flex items-center">
                         Get Started Now
                         <ArrowRight className="ml-3 h-5 w-5" />
