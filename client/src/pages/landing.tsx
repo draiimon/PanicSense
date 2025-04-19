@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'wouter';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
-import { ChevronRight, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Database, ArrowRight, Info, ExternalLink, Shield, Users, BellRing, Star, Award, Heart, Globe, Activity, ChevronLeft, Check } from 'lucide-react';
+import { ChevronRight, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Database, ArrowRight, Info, ExternalLink, Shield, Users, BellRing, Star, Award, Heart, Globe, Activity, ChevronLeft, Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -886,14 +886,122 @@ export default function LandingPage() {
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 1.2, type: "spring" }}
                 >
-                  <Badge className="py-1.5 px-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg">
-                    <Award className="h-3.5 w-3.5 mr-1.5" />
-                    Premium Technology
+                  <Badge className="py-1.5 px-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg">
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                    Latest Updates
                   </Badge>
                 </motion.div>
               </div>
             </motion.div>
           </div>
+          
+          {/* Latest Updates Section inspired by dashboard */}
+          <motion.div 
+            className="mt-8 max-w-md mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.5, duration: 0.5 }}
+          >
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+              <div className="p-3 pb-2 border-b border-slate-200 flex items-center justify-between relative z-10">
+                <motion.div className="flex items-center gap-2">
+                  <motion.div
+                    className="p-1.5 rounded-md bg-indigo-100"
+                    animate={{
+                      boxShadow: [
+                        "0 0 0px rgba(79, 70, 229, 0.2)",
+                        "0 0 10px rgba(79, 70, 229, 0.5)",
+                        "0 0 0px rgba(79, 70, 229, 0.2)",
+                      ],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      repeatType: "reverse",
+                    }}
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                  </motion.div>
+                  <h3 className="text-sm font-medium text-slate-800 flex items-center gap-1.5">
+                    Latest Updates
+                    <motion.span
+                      className="inline-block"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3, delay: 2 }}
+                    >
+                      <div className="flex h-4 items-center justify-center rounded-full bg-green-500/20 px-1.5">
+                        <span className="text-[8px] font-semibold text-green-600">
+                          LIVE
+                        </span>
+                      </div>
+                    </motion.span>
+                  </h3>
+                </motion.div>
+              </div>
+              
+              <div className="space-y-1.5 p-3">
+                {[
+                  { 
+                    disaster: "Typhoon Amang", 
+                    sentiment: "Resilience", 
+                    location: "Cagayan Province",
+                    time: "Just now" 
+                  },
+                  { 
+                    disaster: "Floods", 
+                    sentiment: "Fear", 
+                    location: "Metro Manila",
+                    time: "5 mins ago" 
+                  },
+                  { 
+                    disaster: "Earthquake", 
+                    sentiment: "Disbelief", 
+                    location: "Batangas",
+                    time: "10 mins ago" 
+                  }
+                ].map((item, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ 
+                      duration: 0.3, 
+                      delay: 1.8 + (index * 0.2),
+                      ease: "easeOut"
+                    }}
+                    className="flex items-center justify-between bg-slate-50 p-1.5 rounded-md"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        item.sentiment === "Resilience" ? "bg-green-500" :
+                        item.sentiment === "Fear" ? "bg-orange-500" :
+                        item.sentiment === "Disbelief" ? "bg-purple-500" :
+                        item.sentiment === "Panic" ? "bg-red-500" : "bg-blue-500"
+                      }`} />
+                      <div>
+                        <p className="text-xs font-medium text-slate-800">{item.disaster}</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-slate-500">{item.location}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                        item.sentiment === "Resilience" ? "bg-green-100 text-green-700" :
+                        item.sentiment === "Fear" ? "bg-orange-100 text-orange-700" :
+                        item.sentiment === "Disbelief" ? "bg-purple-100 text-purple-700" :
+                        item.sentiment === "Panic" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
+                      }`}>
+                        {item.sentiment}
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">{item.time}</span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
       
