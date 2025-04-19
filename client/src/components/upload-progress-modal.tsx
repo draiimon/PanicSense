@@ -622,7 +622,9 @@ export function UploadProgressModal() {
     }
   }, [isUploading, stage, processedCount, total, uploadProgress, forceCloseModalMemo, cleanupAndClose, autoCloseDelay]);
 
-  // Handle cancel button click with improved UX
+  // Handle cancel button click with improved UX - uses gentle cancel by default
+  // forceCancel = false (default) uses the new gentle cancellation approach
+  // Only uses force cancel when explicitly set to true
   const handleCancel = async (forceCancel = false) => {
     if (isCancelling) return;
     
@@ -656,15 +658,15 @@ export function UploadProgressModal() {
         // If normal cancel failed, show option for force cancel
         if (!forceCancel) {
           toast({
-            title: 'Cancel Failed',
-            description: 'Server could not cancel the upload. Trying again...',
+            title: 'Gentle Cancel Failed',
+            description: 'Trying force cancel instead...',
             variant: 'destructive',
             action: (
               <ToastAction 
-                altText="Force Cancel" 
+                altText="Force Cancel Now" 
                 onClick={() => handleCancel(true)}
               >
-                Force Cancel
+                Force Cancel Now
               </ToastAction>
             ),
           });
@@ -693,15 +695,15 @@ export function UploadProgressModal() {
       } else {
         // For regular cancel errors, offer force cancel option
         toast({
-          title: 'Error',
-          description: 'Failed to cancel. Try Force Cancel instead.',
+          title: 'Cancel Error',
+          description: 'Gentle cancel failed. Trying force cancel...',
           variant: 'destructive',
           action: (
             <ToastAction 
-              altText="Force Cancel" 
+              altText="Force Cancel Now" 
               onClick={() => handleCancel(true)}
             >
-              Force Cancel
+              Force Cancel Now
             </ToastAction>
           ),
         });
