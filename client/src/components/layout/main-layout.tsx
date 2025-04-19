@@ -18,6 +18,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useDeviceCapability } from "@/hooks/use-device-capability";
+import { useTutorial } from "@/context/tutorial-context";
+import { TutorialGuide } from "@/components/dashboard/tutorial-guide";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -27,6 +29,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location] = useLocation();
   const { isCapableDevice } = useDeviceCapability();
+  const { showTutorial, closeTutorial, completeTutorial } = useTutorial();
 
   const menuItems = [
     {
@@ -396,6 +399,14 @@ export function MainLayout({ children }: MainLayoutProps) {
           </div>
         </main>
       </div>
+      
+      {/* Interactive Tutorial Guide */}
+      {showTutorial && (
+        <TutorialGuide 
+          onClose={closeTutorial}
+          onComplete={completeTutorial}
+        />
+      )}
 
       {/* Footer */}
       <footer
