@@ -104,6 +104,134 @@ const FloatingElement = ({ delay = 0, duration = 3, children, className = "" }) 
   );
 };
 
+// Feature carousel component
+const FeatureCarousel = () => {
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'center' });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
+
+  const scrollPrev = React.useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = React.useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
+  const scrollTo = React.useCallback(
+    (index: number) => emblaApi && emblaApi.scrollTo(index),
+    [emblaApi]
+  );
+
+  const onSelect = React.useCallback(() => {
+    if (!emblaApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi, setSelectedIndex]);
+
+  React.useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    setScrollSnaps(emblaApi.scrollSnapList());
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
+  }, [emblaApi, setScrollSnaps, onSelect]);
+
+  const features = [
+    {
+      title: "Sentiment Analysis",
+      description: "Accurately detect emotions in social media posts to understand disaster impact",
+      color: "from-blue-500 to-indigo-600",
+      icon: <BarChart3 className="h-8 w-8 text-white" />
+    },
+    {
+      title: "Geographic Tracking",
+      description: "View disaster events on interactive maps to coordinate response efforts",
+      color: "from-emerald-500 to-green-600",
+      icon: <MapPin className="h-8 w-8 text-white" />
+    },
+    {
+      title: "Real-time Monitoring",
+      description: "Receive instant updates when new disaster events are reported",
+      color: "from-orange-500 to-amber-600",
+      icon: <Clock className="h-8 w-8 text-white" />
+    },
+    {
+      title: "Multilingual Support",
+      description: "Process posts in Filipino, English, and other regional languages",
+      color: "from-purple-500 to-violet-600",
+      icon: <Info className="h-8 w-8 text-white" />
+    }
+  ];
+
+  return (
+    <div className="relative overflow-hidden py-16 bg-slate-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-slate-800">
+            Powerful <span className="text-blue-600">Features</span>
+          </h2>
+          <p className="text-slate-600 mt-2 max-w-2xl mx-auto">
+            Explore what makes PanicSense PH a cutting-edge disaster intelligence platform
+          </p>
+        </div>
+        
+        <div className="relative">
+          <div className="overflow-hidden" ref={emblaRef}>
+            <div className="flex">
+              {features.map((feature, index) => (
+                <div className="flex-[0_0_90%] sm:flex-[0_0_40%] md:flex-[0_0_30%] mx-4" key={index}>
+                  <motion.div 
+                    whileHover={{ y: -5 }}
+                    className="bg-white rounded-xl overflow-hidden shadow-xl h-full"
+                  >
+                    <div className={`bg-gradient-to-r ${feature.color} p-6 flex items-center justify-center`}>
+                      <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                        {feature.icon}
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <h3 className="font-bold text-xl mb-2">{feature.title}</h3>
+                      <p className="text-slate-600">{feature.description}</p>
+                    </div>
+                  </motion.div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <button 
+            className="absolute top-1/2 -translate-y-1/2 left-2 md:left-4 z-10 bg-white/80 hover:bg-white rounded-full p-2 shadow-md"
+            onClick={scrollPrev}
+          >
+            <ChevronLeft className="h-6 w-6 text-slate-800" />
+          </button>
+          
+          <button 
+            className="absolute top-1/2 -translate-y-1/2 right-2 md:right-4 z-10 bg-white/80 hover:bg-white rounded-full p-2 shadow-md"
+            onClick={scrollNext}
+          >
+            <ChevronRight className="h-6 w-6 text-slate-800" />
+          </button>
+        </div>
+        
+        <div className="flex justify-center mt-8 space-x-2">
+          {scrollSnaps.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => scrollTo(index)}
+              className={`w-3 h-3 rounded-full transition-colors ${
+                index === selectedIndex 
+                  ? 'bg-blue-600' 
+                  : 'bg-slate-300 hover:bg-slate-400'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Interactive Tutorial Component with better animations
 const Tutorial = ({ onClose }: { onClose: () => void }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -364,7 +492,7 @@ export default function LandingPage() {
   }, []);
   
   return (
-    <div className="min-h-screen overflow-hidden">
+    <div className="min-h-screen overflow-hidden bg-slate-50">
       {/* Header with same style as main pages */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-lg py-3 px-4">
         <div className="max-w-[2000px] mx-auto flex justify-between items-center">
@@ -407,21 +535,23 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="flex items-center space-x-4"
           >
-            <Link href="/dashboard">
-              <Button 
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all animate-pulse"
-              >
+            <Button 
+              onClick={() => setShowTutorial(true)}
+              className="relative overflow-hidden bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all rounded-xl px-5 py-2.5"
+            >
+              <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-30 -translate-x-full animate-shimmer"/>
+              <span className="relative flex items-center">
                 Tutorial
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+                <ChevronRight className="ml-1.5 h-4 w-4" />
+              </span>
+            </Button>
           </motion.div>
         </div>
       </header>
       
       {/* Hero Section with Animated Background */}
       <section className="relative min-h-screen flex items-center pt-20">
-        <div className="absolute inset-0 bg-gradient-to-b from-gray-100 to-white dark:from-gray-900 dark:to-slate-900 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-50 to-white dark:from-gray-900 dark:to-slate-900 overflow-hidden">
           <TwinklingStars />
           
           {/* Background geometric elements */}
@@ -502,38 +632,33 @@ export default function LandingPage() {
                 <motion.div
                   whileHover={{ 
                     scale: 1.05,
-                    rotate: [0, 1, 0, -1, 0],
                     transition: { duration: 0.3 }
                   }}
                   animate={{ 
-                    scale: [1, 1.03, 1],
-                    boxShadow: ["0px 0px 0px rgba(0,0,0,0.2)", "0px 10px 30px rgba(0,0,0,0.2)", "0px 0px 0px rgba(0,0,0,0.2)"]
+                    y: [0, -5, 0],
+                    boxShadow: ["0px 5px 15px rgba(59, 130, 246, 0.3)", "0px 15px 30px rgba(59, 130, 246, 0.5)", "0px 5px 15px rgba(59, 130, 246, 0.3)"]
                   }}
                   transition={{
                     repeat: Infinity,
                     repeatType: "reverse",
-                    duration: 2
+                    duration: 3
                   }}
                 >
                   <Link href="/dashboard">
                     <Button 
                       size="lg"
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xl transition-all px-10 py-8 text-xl font-bold tracking-wide"
+                      className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-12 py-8 text-xl font-bold tracking-wide rounded-xl"
                     >
-                      Get Started Now
-                      <ArrowRight className="ml-2 h-5 w-5 animate-pulse" />
+                      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-30 -translate-x-full animate-shimmer"/>
+                      <span className="relative flex items-center">
+                        Get Started Now
+                        <span className="ml-3 rounded-full bg-white/20 p-1.5">
+                          <ArrowRight className="h-5 w-5" />
+                        </span>
+                      </span>
                     </Button>
                   </Link>
                 </motion.div>
-                
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="border-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all hover:scale-105 px-8 py-6 text-lg"
-                  onClick={() => setShowTutorial(true)}
-                >
-                  Tutorial
-                </Button>
               </motion.div>
               
 
@@ -602,6 +727,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      
+      {/* Feature Carousel Section */}
+      <FeatureCarousel />
       
       {/* Features Section with Animated Cards */}
       <section className="py-24 bg-white dark:bg-gray-900 relative overflow-hidden">
@@ -798,6 +926,19 @@ export default function LandingPage() {
       
       {/* Inject CSS for animations */}
       <style jsx global>{`
+        @keyframes shimmer {
+          100% {
+            transform: translateX(100%);
+          }
+        }
+        
+        .animate-shimmer {
+          animation: shimmer 2s infinite;
+        }
+        
+        .skew-x-30 {
+          transform: skewX(30deg);
+        }
         @keyframes twinkling {
           0% { opacity: 0.3; }
           50% { opacity: 1; }
