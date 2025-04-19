@@ -175,16 +175,14 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ onClose, onComplet
       const tooltipHeight = isMobile ? window.innerHeight * 0.4 : 200;
       const padding = isMobile ? 8 : 16;
       
-      // For very small screens, center the tooltip
+      // For mobile screens, use fixed positioning from bottom to ensure buttons are always visible
       if (isMobile) {
         // Center horizontally
         left = (window.innerWidth - tooltipWidth) / 2;
         
-        // Position vertically in the visible area
-        const visibleHeight = window.innerHeight - 100; // Account for keyboard on mobile
-        if (top + tooltipHeight > visibleHeight) {
-          top = (visibleHeight - tooltipHeight) / 2;
-        }
+        // ALWAYS position from top part of screen on mobile for better visibility 
+        // and to ensure buttons are visible
+        top = 120; // Fixed position from top to ensure it's below the header but visible
       } else {
         // Desktop adjustments
         // Check right boundary

@@ -29,7 +29,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location] = useLocation();
   const { isCapableDevice } = useDeviceCapability();
-  const { showTutorial, closeTutorial, completeTutorial } = useTutorial();
+  const { showTutorial, closeTutorial, completeTutorial, startTutorial } = useTutorial();
 
   const menuItems = [
     {
@@ -407,6 +407,18 @@ export function MainLayout({ children }: MainLayoutProps) {
           onComplete={completeTutorial}
         />
       )}
+      
+      {/* Mobile-only fixed floating tutorial button - More visible */}
+      <button
+        onClick={startTutorial}
+        className="md:hidden fixed bottom-16 right-4 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full p-3 shadow-lg animate-pulse"
+        aria-label="Start tutorial"
+        style={{ 
+          boxShadow: '0 0 15px rgba(59, 130, 246, 0.5)'
+        }}
+      >
+        <HelpCircle className="h-6 w-6" />
+      </button>
 
       {/* Footer */}
       <footer
