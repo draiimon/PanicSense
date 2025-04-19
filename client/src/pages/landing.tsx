@@ -417,15 +417,15 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
           </div>
           
           <div className="flex flex-col md:flex-row items-center md:items-start md:gap-8 lg:gap-12">
-            {/* Tutorial Image - Column 1 */}
+            {/* Tutorial Image - Column 1 - Fixed aspect ratio for both mobile and desktop */}
             <div 
-              className="tutorial-image-container slide-up-animation video-style-effect w-full max-w-[300px] md:max-w-[400px] lg:max-w-[500px] mx-auto md:mx-0"
+              className="tutorial-image-container slide-up-animation video-style-effect w-full max-w-[300px] md:max-w-[350px] lg:max-w-[400px] mx-auto md:mx-0 md:aspect-square overflow-hidden"
             >
-              <div className="tutorial-dynamic-content">
+              <div className="tutorial-dynamic-content h-full">
                 <img 
                   src={steps[currentStep].image} 
                   alt={steps[currentStep].title} 
-                  className="tutorial-image"
+                  className="tutorial-image object-cover object-center w-full h-full"
                 />
                 <div className="video-moving-overlay-1"></div>
                 <div className="video-moving-overlay-2"></div>
@@ -480,9 +480,9 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                 className="mb-6 md:mb-8"
               >
                 <Badge className="mb-4 py-1.5 px-4 text-sm bg-indigo-500/20 text-indigo-200">
-                  {currentStep === 0 ? 'Step 1 - Data Collection' : 
-                   currentStep === 1 ? 'Step 2 - AI Analysis' :
-                   currentStep === 2 ? 'Step 3 - Geographic Mapping' : 'Step 4 - Real-time Monitoring'}
+                  {currentStep === 0 ? 'Data Collection' : 
+                   currentStep === 1 ? 'AI Analysis' :
+                   currentStep === 2 ? 'Geographic Mapping' : 'Real-time Monitoring'}
                 </Badge>
                 
                 <h2 className="text-2xl lg:text-3xl font-bold text-white mb-4">{steps[currentStep].title}</h2>
