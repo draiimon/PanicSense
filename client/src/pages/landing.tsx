@@ -366,7 +366,7 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="bg-card text-card-foreground rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md relative overflow-hidden"
+        className="bg-card text-card-foreground rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md md:max-w-3xl lg:max-w-5xl relative overflow-hidden"
       >
         <div className="absolute top-0 left-0 w-full h-1">
           <div 
@@ -377,11 +377,11 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
         
         {/* X button removed */}
         
-        {/* Mobile-optimized SINGLE column layout */}
-        <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-600 p-4">          
-          <div className="flex items-center justify-between mt-1 mb-4 px-2">
+        {/* Responsive layout - Single column for mobile, dual column for desktop */}
+        <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-600 p-4 md:p-6 lg:p-8">          
+          <div className="flex flex-wrap gap-2 items-center justify-center md:justify-start mt-1 mb-4 px-2">
             {steps.map((_, index) => {
-              // Randomize position styling for each number
+              // Randomize position styling for each number (for mobile)
               const positionClasses = [
                 "self-start", // Top position
                 "self-center", // Center position
@@ -404,22 +404,22 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                     setDirection(index > currentStep ? 1 : -1);
                     setCurrentStep(index);
                   }}
-                  className={`flex items-center justify-center rounded-full w-8 h-8 cursor-pointer transition-all ${randomPosition} ${
+                  className={`flex items-center justify-center rounded-full w-8 h-8 md:w-10 md:h-10 cursor-pointer transition-all ${randomPosition} md:self-auto ${
                     currentStep === index 
-                      ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold shadow-lg' 
-                      : 'bg-white/20 text-white/70'
+                      ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold shadow-lg md:shadow-xl' 
+                      : 'bg-white/20 text-white/70 hover:bg-white/30'
                   }`}
                 >
-                  {index + 1}
+                  <span className="text-sm md:text-base">{index + 1}</span>
                 </motion.div>
               );
             })}
           </div>
           
-          <div className="flex flex-col items-center">
-            {/* Tutorial Image - Now the main focus for mobile */}
+          <div className="flex flex-col md:flex-row items-center md:items-start md:gap-8 lg:gap-12">
+            {/* Tutorial Image - Column 1 */}
             <div 
-              className="tutorial-image-container slide-up-animation video-style-effect w-full max-w-[300px] mx-auto"
+              className="tutorial-image-container slide-up-animation video-style-effect w-full max-w-[300px] md:max-w-[400px] lg:max-w-[500px] mx-auto md:mx-0"
             >
               <div className="tutorial-dynamic-content">
                 <img 
@@ -449,24 +449,128 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                 <LiveTimeCounter />
               </div>
               
-              {/* Step badge removed */}
+              {/* Enhanced Desktop Content - visible on md screens and above */}
+              <div className="hidden md:block absolute -bottom-3 -right-3 transform rotate-3 z-30">
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 py-1 px-3 shadow-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="text-white/80 text-xs">Advanced Analytics</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Floating indicators - only for desktop */}
+              <div className="hidden md:block absolute left-0 top-1/4 -translate-x-3 z-20">
+                <motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ repeat: Infinity, duration: 3 }}
+                  className="bg-blue-500/30 backdrop-blur-sm rounded-lg border border-blue-500/20 p-2"
+                >
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                </motion.div>
+              </div>
+            </div>
+            
+            {/* Content Column - desktop only */}
+            <div className="hidden md:flex flex-col justify-center items-start mt-8 md:mt-0 text-left flex-1">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="mb-6 md:mb-8"
+              >
+                <Badge className="mb-4 py-1.5 px-4 text-sm bg-indigo-500/20 text-indigo-200">
+                  {currentStep === 0 ? 'Step 1 - Data Collection' : 
+                   currentStep === 1 ? 'Step 2 - AI Analysis' :
+                   currentStep === 2 ? 'Step 3 - Geographic Mapping' : 'Step 4 - Real-time Monitoring'}
+                </Badge>
+                
+                <h2 className="text-2xl lg:text-3xl font-bold text-white mb-4">{steps[currentStep].title}</h2>
+                <p className="text-white/70 lg:text-lg mb-6">{steps[currentStep].description}</p>
+                
+                {/* Extra details for desktop view */}
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                    <div className="flex items-center gap-2 mb-2">
+                      {steps[currentStep].icon}
+                      <span className="text-white font-medium">Key Features</span>
+                    </div>
+                    <ul className="text-white/60 text-sm space-y-1">
+                      {currentStep === 0 && (
+                        <>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Bulk CSV Processing</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Format Recognition</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Data Validation</li>
+                        </>
+                      )}
+                      {currentStep === 1 && (
+                        <>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Emotion Classification</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Confidence Scoring</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Multilingual Support</li>
+                        </>
+                      )}
+                      {currentStep === 2 && (
+                        <>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Interactive Maps</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Location Clustering</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Hotspot Analysis</li>
+                        </>
+                      )}
+                      {currentStep === 3 && (
+                        <>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Live Updates</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Alert System</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-blue-400 rounded-full"></div> Trend Detection</li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Award className="h-4 w-4 text-amber-300" />
+                      <span className="text-white font-medium">Benefits</span>
+                    </div>
+                    <ul className="text-white/60 text-sm space-y-1">
+                      {currentStep === 0 && (
+                        <>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Fast Processing</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Error Correction</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Automated Handling</li>
+                        </>
+                      )}
+                      {currentStep === 1 && (
+                        <>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Accurate Classification</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Language Detection</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Detailed Explanations</li>
+                        </>
+                      )}
+                      {currentStep === 2 && (
+                        <>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Visual Understanding</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Impacted Area Analysis</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Resource Planning</li>
+                        </>
+                      )}
+                      {currentStep === 3 && (
+                        <>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Real-time Response</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Proactive Detection</li>
+                          <li className="flex items-center gap-1.5"><div className="w-1 h-1 bg-amber-400 rounded-full"></div> Improved Coordination</li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </motion.div>
             </div>
           </div>
         </div>
         
-        {/* Bottom navigation */}
-        <div className="p-5 pt-4 pb-16 flex items-center justify-between">
-          <Button 
-            className={`rounded-full ${currentStep === 0 ? 'opacity-0' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
-            onClick={prevStep}
-            disabled={currentStep === 0}
-            size="sm"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="sr-only">Previous</span>
-          </Button>
-          
-          <div className="flex-1 px-4">
+        {/* Description for mobile view only */}
+        <div className="p-5 pt-4 pb-16 md:hidden">
+          <div className="px-4">
             <h3 className="font-bold text-center text-lg">
               {steps[currentStep].title}
             </h3>
@@ -474,45 +578,27 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
               {steps[currentStep].description}
             </p>
           </div>
-          
-          <Button 
-            className="rounded-full bg-blue-600 hover:bg-blue-700 text-white"
-            onClick={nextStep}
-            size="sm"
-          >
-            {currentStep === steps.length - 1 ? (
-              <>
-                <span className="sr-only">Finish</span>
-                <Check className="h-4 w-4" />
-              </>
-            ) : (
-              <>
-                <span className="sr-only">Next</span>
-                <ChevronRight className="h-4 w-4" />
-              </>
-            )}
-          </Button>
         </div>
         
-        {/* Fixed navigation buttons at bottom */}
+        {/* Only one set of navigation buttons at the bottom */}
         <div className="fixed left-0 right-0 bottom-0 flex justify-between py-4 px-6 bg-gradient-to-r from-blue-600/90 via-indigo-600/90 to-purple-600/90 backdrop-blur-sm">
           <Button 
-            className={`${currentStep === 0 ? 'opacity-0 pointer-events-none' : ''} bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center px-3`}
+            className={`${currentStep === 0 ? 'opacity-0 pointer-events-none' : ''} bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center px-4`}
             onClick={prevStep}
             disabled={currentStep === 0}
             size="sm"
           >
-            <ChevronLeft className="mr-1 h-3 w-3" />
+            <ChevronLeft className="mr-1.5 h-4 w-4" />
             <span>Previous</span>
           </Button>
           
           <Button 
             onClick={nextStep}
-            className="bg-white text-blue-600 hover:bg-white/90 hover:scale-105 transform transition-all shadow-lg rounded-full flex items-center px-3"
+            className="bg-white text-blue-600 hover:bg-white/90 hover:scale-105 transform transition-all shadow-lg rounded-full flex items-center px-4"
             size="sm"
           >
             <span>{currentStep === steps.length - 1 ? 'Get Started' : 'Next'}</span>
-            <ChevronRight className="ml-1 h-3 w-3" />
+            <ChevronRight className="ml-1.5 h-4 w-4" />
           </Button>
         </div>
       </motion.div>
