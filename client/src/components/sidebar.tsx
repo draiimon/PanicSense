@@ -16,7 +16,9 @@ import {
   User,
   LogOut,
   Globe,
+  HelpCircle,
 } from "lucide-react";
+import { useTutorial } from "@/context/tutorial-context";
 
 interface NavItem {
   href: string;
@@ -27,6 +29,7 @@ interface NavItem {
 export function Sidebar() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { startTutorial } = useTutorial();
 
   const navItems: NavItem[] = [
     {
@@ -137,8 +140,19 @@ export function Sidebar() {
           </div>
         </nav>
 
-        {/* Logout Button */}
-        <div className="p-4 border-t border-slate-700">
+        {/* Tutorial & Logout Buttons */}
+        <div className="p-4 border-t border-slate-700 space-y-2">
+          {/* Tutorial Button */}
+          <button
+            onClick={() => startTutorial()}
+            className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200"
+            id="tutorial-button"
+          >
+            <HelpCircle className="h-5 w-5 text-blue-400" />
+            <span>Interactive Guide</span>
+          </button>
+          
+          {/* Logout Button */}
           <button
             onClick={() => console.log("Logout clicked")}
             className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200"
@@ -202,8 +216,22 @@ export function Sidebar() {
               </div>
             </nav>
 
-            {/* Mobile Logout Button */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
+            {/* Mobile Tutorial & Logout Button */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700 space-y-2">
+              {/* Tutorial Button */}
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  startTutorial();
+                }}
+                className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200"
+                id="mobile-tutorial-button"
+              >
+                <HelpCircle className="h-5 w-5 text-blue-400" />
+                <span>Interactive Guide</span>
+              </button>
+              
+              {/* Logout Button */}
               <button
                 onClick={() => console.log("Logout clicked")}
                 className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200"
