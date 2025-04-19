@@ -417,15 +417,15 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
           </div>
           
           <div className="flex flex-col md:flex-row items-center md:items-start md:gap-8 lg:gap-12">
-            {/* Tutorial Image - Column 1 - Fixed aspect ratio for both mobile and desktop */}
+            {/* Tutorial Image - Column 1 - LARGER for web view */}
             <div 
-              className="tutorial-image-container slide-up-animation video-style-effect w-full max-w-[300px] md:max-w-[350px] lg:max-w-[400px] mx-auto md:mx-0 md:aspect-square overflow-hidden"
+              className="tutorial-image-container slide-up-animation video-style-effect w-full max-w-[300px] md:max-w-[400px] lg:max-w-[600px] mx-auto md:mx-0 md:aspect-square overflow-hidden"
             >
               <div className="tutorial-dynamic-content h-full">
                 <img 
                   src={steps[currentStep].image} 
                   alt={steps[currentStep].title} 
-                  className="tutorial-image object-cover object-center w-full h-full"
+                  className="tutorial-image object-contain md:object-cover object-center w-full h-full transform md:scale-110 transition-all duration-500"
                 />
                 <div className="video-moving-overlay-1"></div>
                 <div className="video-moving-overlay-2"></div>
