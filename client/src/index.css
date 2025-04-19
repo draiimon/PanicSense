@@ -66,9 +66,9 @@
   position: relative;
   border-radius: 1rem;
   overflow: hidden;
-  box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.3), 0 8px 10px -6px rgba(124, 58, 237, 0.2);
+  box-shadow: 0 5px 15px -5px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  height: 350px; /* Increased from 200px to show advanced elements */
+  height: 350px;
   width: 100%;
 }
 
@@ -79,7 +79,6 @@
   object-position: top;
   transition: all 0.5s ease;
   border-radius: 0.75rem;
-  animation: image-shake 7s ease-in-out infinite;
 }
 
 @keyframes image-shake {
@@ -515,12 +514,7 @@
 /* Mobile responsiveness for real-time monitoring UI */
 @media (max-width: 640px) {
   .tutorial-image-container {
-    height: 150px;
-  }
-  
-  .data-point-pulse {
-    width: 8px;
-    height: 8px;
+    height: 250px;
   }
 }
 

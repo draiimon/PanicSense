@@ -419,55 +419,14 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
           <div className="flex flex-col md:flex-row items-center md:items-start md:gap-8 lg:gap-12">
             {/* Tutorial Image - Column 1 - WIDER but with good height too */}
             <div 
-              className="tutorial-image-container slide-up-animation video-style-effect w-full max-w-[300px] md:max-w-[450px] lg:max-w-[500px] mx-auto md:mx-0 md:aspect-[4/3] overflow-hidden"
+              className="tutorial-image-container slide-up-animation w-full max-w-[300px] md:max-w-[450px] lg:max-w-[500px] mx-auto md:mx-0 md:aspect-[4/3] overflow-hidden"
             >
               <div className="tutorial-dynamic-content h-full">
                 <img 
                   src={steps[currentStep].image} 
                   alt={steps[currentStep].title} 
-                  className="tutorial-image object-contain md:object-cover object-center w-full h-full transform md:scale-110 transition-all duration-500"
+                  className="tutorial-image object-contain md:object-cover object-center w-full h-full transform transition-all duration-500"
                 />
-                <div className="video-moving-overlay-1"></div>
-                <div className="video-moving-overlay-2"></div>
-                <div className="video-moving-overlay-3"></div>
-              </div>
-              <div className="tutorial-image-blur"></div>
-              <div className="tutorial-image-glow"></div>
-              
-              <div className="video-scanlines"></div>
-              <div className="video-noise"></div>
-              
-              {/* Step-specific overlays based on content */}
-              {currentStep === 3 && (
-                <div className="realtime-alert-banner">
-                  <span className="realtime-alert-text">LIVE MONITORING</span>
-                </div>
-              )}
-              
-              {/* Time counter */}
-              <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full z-20">
-                <LiveTimeCounter />
-              </div>
-              
-              {/* Enhanced Desktop Content - visible on md screens and above */}
-              <div className="hidden md:block absolute -bottom-3 -right-3 transform rotate-3 z-30">
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 py-1 px-3 shadow-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <span className="text-white/80 text-xs">Advanced Analytics</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Floating indicators - only for desktop */}
-              <div className="hidden md:block absolute left-0 top-1/4 -translate-x-3 z-20">
-                <motion.div
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ repeat: Infinity, duration: 3 }}
-                  className="bg-blue-500/30 backdrop-blur-sm rounded-lg border border-blue-500/20 p-2"
-                >
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                </motion.div>
               </div>
             </div>
             
