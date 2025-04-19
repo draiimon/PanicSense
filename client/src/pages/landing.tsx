@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'wouter';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
-import { ChevronRight, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Database, ArrowRight, Info, ExternalLink, Shield, Users, BellRing, Star, Award, Heart } from 'lucide-react';
+import { ChevronRight, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Database, ArrowRight, Info, ExternalLink, Shield, Users, BellRing, Star, Award, Heart, Globe, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -297,13 +297,21 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                 animate={{ opacity: 1, scale: 1, rotateY: 0 }}
                 exit={{ opacity: 0, scale: 0.8, rotateY: -90 }}
                 transition={{ type: "spring", damping: 20 }}
-                className="relative z-10 bg-white dark:bg-gray-800 p-2 rounded-xl shadow-2xl"
+                className="relative z-10 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm"
               >
-                <img 
-                  src="/images/PANICSENSE PH.png" 
-                  alt={steps[currentStep].title}
-                  className="max-w-full max-h-[320px] rounded-lg"
-                />
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-8 rounded-lg mb-4">
+                  <div className="flex justify-center items-center w-20 h-20 mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full text-white text-3xl">
+                    {steps[currentStep].icon}
+                  </div>
+                </div>
+                
+                <h3 className="text-xl font-bold text-center mb-2 text-gray-900 dark:text-white">
+                  {steps[currentStep].title}
+                </h3>
+                
+                <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
+                  {steps[currentStep].description}
+                </p>
                 
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -515,61 +523,77 @@ export default function LandingPage() {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.8 }}
               >
-                <div className="flex -space-x-2">
-                  {['/images/drei.jpg', '/images/julia.jpg', '/images/van.jpg'].map((src, i) => (
-                    <motion.img 
-                      key={i}
-                      src={src}
-                      alt={`User ${i+1}`}
-                      className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-900"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.8 + (i * 0.1) }}
-                    />
-                  ))}
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold">180+</span> emergency responders actively using PanicSense
+                <div className="flex items-center space-x-2">
+                  <div className="flex -space-x-1">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div 
+                        key={i}
+                        className={`w-8 h-8 rounded-full bg-gradient-to-br ${
+                          i === 0 ? 'from-blue-400 to-blue-600' : 
+                          i === 1 ? 'from-purple-400 to-purple-600' : 
+                          'from-indigo-400 to-indigo-600'
+                        } flex items-center justify-center border-2 border-white dark:border-gray-900 text-white text-xs font-bold`}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.8 + (i * 0.1) }}
+                      >
+                        {String.fromCharCode(65 + i)}
+                      </motion.div>
+                    ))}
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">180+</span> emergency responders actively using PanicSense
+                  </div>
                 </div>
               </motion.div>
             </div>
             
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateY: 20 }}
-              animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.3, type: "spring" }}
-              className="rounded-2xl shadow-2xl overflow-hidden relative border border-gray-200 dark:border-gray-800"
+              className="rounded-2xl shadow-2xl overflow-hidden relative border border-gray-200 dark:border-gray-800 bg-gradient-to-br from-blue-50 to-indigo-50 p-8"
             >
-              <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 via-transparent to-purple-500/20"></div>
-              <img 
-                src="/images/PANICSENSE PH.png" 
-                alt="PanicSense PH Dashboard Preview" 
-                className="w-full h-auto relative z-10"
-              />
+              <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-transparent to-purple-500/10"></div>
               
-              {/* Animated elements on top of the image */}
               <motion.div 
-                className="absolute bottom-4 left-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-lg p-3 shadow-lg border border-gray-200 dark:border-gray-800 z-20 max-w-[200px]"
+                className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700 mb-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1 }}
+                transition={{ delay: 0.5 }}
               >
-                <div className="flex items-center">
+                <div className="flex items-center mb-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                  <h4 className="font-semibold text-sm">Live Alert</h4>
+                  <h4 className="font-semibold">Live Disaster Monitoring</h4>
                 </div>
-                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">Earthquake detected in Mindanao region. Severity: 5.2</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Real-time sentiment tracking for faster emergency response and coordination in the Philippines.</p>
               </motion.div>
               
-              <FloatingElement 
-                delay={0.5} 
-                className="absolute top-4 right-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-lg p-3 shadow-lg border border-gray-200 dark:border-gray-800 z-20"
+              <motion.div 
+                className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700 mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
               >
-                <div className="flex items-center">
-                  <BellRing className="h-4 w-4 text-blue-500 mr-2" />
-                  <span className="text-xs font-medium">Real-time analytics active</span>
+                <div className="flex items-center mb-2">
+                  <Globe className="h-4 w-4 text-blue-500 mr-2" />
+                  <h4 className="font-semibold">Geographic Analysis</h4>
                 </div>
-              </FloatingElement>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Visual mapping of disaster events across the Philippine archipelago for strategic response.</p>
+              </motion.div>
+              
+              <motion.div 
+                className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+              >
+                <div className="flex items-center mb-2">
+                  <Activity className="h-4 w-4 text-purple-500 mr-2" />
+                  <h4 className="font-semibold">Advanced Analytics</h4>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">AI-powered sentiment analysis using state-of-the-art NLP models with Filipino language support.</p>
+              </motion.div>
               
               <div className="absolute -bottom-2 -right-2 z-20">
                 <motion.div
@@ -823,112 +847,27 @@ export default function LandingPage() {
         </div>
       </section>
       
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-16 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 opacity-5">
-            <TwinklingStars />
+      {/* Footer - Matching main layout style */}
+      <footer className="bg-white border-t border-slate-200 py-2 sm:py-4 z-50 relative">
+        <div className="max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs sm:text-sm text-slate-600">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <img src="/favicon.png" alt="PanicSense PH Logo" className="h-5 w-5 sm:h-6 sm:w-6" />
+            <span>PanicSense PH © {new Date().getFullYear()}</span>
           </div>
-        </div>
-        
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-            <div className="col-span-1 md:col-span-2">
-              <motion.div 
-                className="flex items-center space-x-3 mb-6"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-              >
-                <img src="/images/PANICSENSE PH.png" alt="PanicSense PH Logo" className="h-12 rounded-lg" />
-                <div>
-                  <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-300">
-                    PanicSense PH
-                  </h3>
-                  <p className="text-sm text-gray-400">Disaster Intelligence Platform</p>
-                </div>
-              </motion.div>
-              
-              <motion.p 
-                className="text-gray-400 mb-6 max-w-md"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-              >
-                Advanced disaster monitoring and community resilience platform for the Philippines, leveraging cutting-edge AI to transform emergency response.
-              </motion.p>
-              
-              <motion.div
-                className="flex items-center space-x-4"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-              >
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <ExternalLink className="h-5 w-5" />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <Heart className="h-5 w-5" />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <Info className="h-5 w-5" />
-                </a>
-              </motion.div>
-            </div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <h4 className="font-semibold text-lg mb-4 text-white">Navigation</h4>
-              <ul className="space-y-3">
-                <li><Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">Dashboard</Link></li>
-                <li><Link href="/geographic-analysis" className="text-gray-400 hover:text-white transition-colors">Geographic Analysis</Link></li>
-                <li><Link href="/real-time" className="text-gray-400 hover:text-white transition-colors">Real-time Monitor</Link></li>
-                <li><Link href="/about" className="text-gray-400 hover:text-white transition-colors">About</Link></li>
-              </ul>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              <h4 className="font-semibold text-lg mb-4 text-white">Contact</h4>
-              <p className="text-gray-400 mb-3">Email: info@panicsenseph.com</p>
-              <p className="text-gray-400">Phone: +63 (2) 8123 4567</p>
-              
-              <Button 
-                className="mt-4 bg-white/10 hover:bg-white/20 text-white" 
-                size="sm"
-              >
-                <Link href="/dashboard">
-                  Contact Support
+          <div className="mt-1 sm:mt-0 flex flex-col sm:flex-row items-center gap-1 sm:gap-4">
+            <span>Advanced Disaster Sentiment Analysis Platform</span>
+            <div className="flex space-x-3">
+              {["Dashboard", "Geographic Analysis", "About"].map((item, index) => (
+                <Link 
+                  key={index} 
+                  href={item === "Dashboard" ? "/dashboard" : `/${item.toLowerCase().replace(/\s+/g, '-')}`}
+                  className="text-slate-500 hover:text-blue-600 transition-colors text-xs"
+                >
+                  {item}
                 </Link>
-              </Button>
-            </motion.div>
-          </div>
-          
-          <motion.div 
-            className="border-t border-gray-800 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-          >
-            <p className="text-gray-500 text-sm">© 2025 PanicSense PH. All rights reserved.</p>
-            <div className="mt-4 md:mt-0">
-              <p className="text-gray-500 text-sm">
-                Built with <span className="text-red-500">♥</span> by Team PanicSense PH
-              </p>
+              ))}
             </div>
-          </motion.div>
+          </div>
         </div>
       </footer>
       
