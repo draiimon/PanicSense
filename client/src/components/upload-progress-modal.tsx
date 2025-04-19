@@ -788,8 +788,8 @@ export function UploadProgressModal() {
     ? Math.min(100, Math.max(isProcessing ? 1 : 0, Math.round((processedCount / total) * 100)))
     : 0;
   
-  // Check for cancellation
-  const isCancelled = stageLower.includes('cancel');
+  // Check for cancellation state
+  const isCancelled = stageLower.includes('cancel') || stageLower === "upload canceled";
   
   // Calculate time remaining in human-readable format with improved batch-aware logic
   const formatTimeRemaining = (seconds: number): string => {
@@ -914,17 +914,89 @@ export function UploadProgressModal() {
                 <span className="text-sm text-white/70 mt-1">Setting up the processing system</span>
               </div>
             ) : isComplete ? (
-              <div className="py-6 flex flex-col items-center justify-center">
-                <CheckCircle className="h-14 w-14 text-white mb-3" />
-                <span className="text-lg font-medium text-white">Analysis Successfully Completed</span>
-                <span className="text-sm text-white/70 mt-1">You can now view the results</span>
-              </div>
+              <motion.div 
+                className="py-6 flex flex-col items-center justify-center"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+              >
+                <motion.div
+                  initial={{ scale: 0, rotate: -45 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 260 }}
+                >
+                  <div className="bg-white/20 p-4 rounded-full backdrop-blur-sm mb-3 shadow-lg">
+                    <CheckCircle className="h-14 w-14 text-white" />
+                  </div>
+                </motion.div>
+                <motion.span 
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-lg font-medium text-white"
+                >
+                  Analysis Successfully Completed
+                </motion.span>
+                <motion.span 
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.7 }}
+                  className="text-sm text-white/70 mt-1"
+                >
+                  You can now view the results
+                </motion.span>
+              </motion.div>
+            ) : isCancelled ? (
+              <motion.div 
+                className="py-6 flex flex-col items-center justify-center"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 260 }}
+                >
+                  <div className="bg-white/20 p-4 rounded-full backdrop-blur-sm mb-3 shadow-lg">
+                    <Trash2 className="h-14 w-14 text-white" />
+                  </div>
+                </motion.div>
+                <motion.span 
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-lg font-medium text-white"
+                >
+                  Upload Canceled
+                </motion.span>
+                <motion.span 
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="text-sm text-white/70 mt-1"
+                >
+                  You can upload again when ready
+                </motion.span>
+              </motion.div>
             ) : hasError ? (
-              <div className="py-5 flex flex-col items-center justify-center">
-                <XCircle className="h-12 w-12 text-white mb-3" />
+              <motion.div 
+                className="py-5 flex flex-col items-center justify-center"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.4, type: "spring" }}
+              >
+                <motion.div
+                  animate={{ rotate: [0, -5, 5, -5, 0] }}
+                  transition={{ repeat: 1, duration: 0.5 }}
+                >
+                  <div className="bg-red-500/30 p-3 rounded-full backdrop-blur-sm mb-3 shadow-inner">
+                    <XCircle className="h-12 w-12 text-white" />
+                  </div>
+                </motion.div>
                 <span className="text-lg font-medium text-white">Processing Error</span>
                 <span className="text-sm text-white/70 mt-1">{error || "An unexpected error occurred"}</span>
-              </div>
+              </motion.div>
             ) : serverRestartProtection ? (
               <div className="py-5 flex flex-col items-center justify-center">
                 <Server className="h-12 w-12 text-white mb-3" />
@@ -1110,7 +1182,9 @@ export function UploadProgressModal() {
                     variant="destructive"
                     size="sm"
                     className="gap-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white rounded-full px-6 py-5 font-medium shadow-md transition-all hover:shadow-lg hover-scale"
-                    onClick={() => handleCancel(true)}
+                    onClick={() => {
+                      setShowCancelDialog(true); // Show confirmation dialog instead of direct cancel
+                    }}
                     disabled={isCancelling}
                   >
                     {isCancelling ? (
