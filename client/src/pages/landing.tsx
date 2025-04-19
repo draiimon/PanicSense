@@ -467,7 +467,7 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
               >
                 {/* Image with blur effects and radius */}
                 <div 
-                  className={`tutorial-image-container mb-6 slide-up-animation ${currentStep === 3 ? 'realtime-video-effect' : ''}`}
+                  className={`tutorial-image-container mb-6 slide-up-animation video-style-effect`}
                 >
                   <img 
                     src={steps[currentStep].image} 
@@ -479,33 +479,71 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                   {/* Interactive glow effect */}
                   <div className="tutorial-image-glow"></div>
                   
-                  {/* Video effects for real-time monitoring */}
-                  {currentStep === 3 && (
-                    <>
-                      {/* CCTV-style recording indicator */}
-                      <div className="absolute top-3 left-3 flex items-center space-x-2 bg-black/40 rounded-full py-1 px-3 z-20">
-                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                        <span className="text-white text-xs font-medium">LIVE</span>
-                      </div>
-                      
-                      {/* Video scan lines */}
-                      <div className="video-scanlines"></div>
-                      
-                      {/* Video static noise */}
-                      <div className="video-noise"></div>
-                      
-                      {/* Data points animation */}
-                      <div className="data-point-pulse data-point-1"></div>
-                      <div className="data-point-pulse data-point-2"></div>
-                      <div className="data-point-pulse data-point-3"></div>
-                      <div className="data-point-pulse data-point-4"></div>
-                      
-                      {/* Time counter */}
-                      <div className="absolute bottom-3 right-3 bg-black/40 text-white text-xs py-1 px-2 rounded font-mono z-20">
-                        <LiveTimeCounter />
-                      </div>
-                    </>
-                  )}
+                  {/* Video effects for all tutorial steps */}
+                  <>
+                    {/* CCTV-style recording indicator */}
+                    <div className="absolute top-3 left-3 flex items-center space-x-2 bg-black/40 rounded-full py-1 px-3 z-20">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                      <span className="text-white text-xs font-medium">LIVE</span>
+                    </div>
+                    
+                    {/* Video scan lines */}
+                    <div className="video-scanlines"></div>
+                    
+                    {/* Video static noise */}
+                    <div className="video-noise"></div>
+                    
+                    {/* Additional step-specific effects */}
+                    {currentStep === 0 && (
+                      // Upload Disaster Data effects
+                      <>
+                        <div className="absolute bottom-4 left-4 bg-black/40 text-white text-xs py-1 px-2 rounded z-20">
+                          <span className="font-mono">UPLOAD CSV</span>
+                        </div>
+                        <div className="data-point-pulse upload-point-1"></div>
+                        <div className="data-point-pulse upload-point-2"></div>
+                      </>
+                    )}
+                    
+                    {currentStep === 1 && (
+                      // Analyze Sentiment effects
+                      <>
+                        <div className="absolute bottom-4 left-4 bg-black/40 text-white text-xs py-1 px-2 rounded z-20">
+                          <span className="font-mono">SENTIMENT: POSITIVE</span>
+                        </div>
+                        <div className="data-point-pulse sentiment-point-1"></div>
+                        <div className="data-point-pulse sentiment-point-2"></div>
+                        <div className="data-point-pulse sentiment-point-3"></div>
+                      </>
+                    )}
+                    
+                    {currentStep === 2 && (
+                      // Geographic Analysis effects
+                      <>
+                        <div className="absolute bottom-4 left-4 bg-black/40 text-white text-xs py-1 px-2 rounded z-20">
+                          <span className="font-mono">LAT: 14.5°N LON: 121.0°E</span>
+                        </div>
+                        <div className="data-point-pulse geo-point-1"></div>
+                        <div className="data-point-pulse geo-point-2"></div>
+                        <div className="data-point-pulse geo-point-3"></div>
+                      </>
+                    )}
+                    
+                    {currentStep === 3 && (
+                      // Real-time Monitoring special effects
+                      <>
+                        <div className="data-point-pulse data-point-1"></div>
+                        <div className="data-point-pulse data-point-2"></div>
+                        <div className="data-point-pulse data-point-3"></div>
+                        <div className="data-point-pulse data-point-4"></div>
+                      </>
+                    )}
+                    
+                    {/* Time counter on all images */}
+                    <div className="absolute bottom-3 right-3 bg-black/40 text-white text-xs py-1 px-2 rounded font-mono z-20">
+                      <LiveTimeCounter />
+                    </div>
+                  </>
                   
                   {/* Pulsing indicator */}
                   <div className="absolute top-4 right-4 flex items-center justify-center">
@@ -514,11 +552,11 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                   </div>
                 </div>
                 
-                <h3 className="text-xl font-bold text-center mb-2 text-gray-900 dark:text-white slide-up-animation" style={{animationDelay: '0.1s'}}>
+                <h3 className="text-xl font-bold text-center mb-2 text-gray-900 dark:text-white slide-up-animation bg-white/80 backdrop-blur-sm p-1 rounded-md" style={{animationDelay: '0.1s'}}>
                   {steps[currentStep].title}
                 </h3>
                 
-                <p className="text-center text-gray-500 dark:text-gray-400 text-sm slide-up-animation" style={{animationDelay: '0.2s'}}>
+                <p className="text-center text-gray-700 dark:text-gray-300 text-sm slide-up-animation bg-white/80 backdrop-blur-sm p-2 rounded-md" style={{animationDelay: '0.2s'}}>
                   {steps[currentStep].description}
                 </p>
                 
