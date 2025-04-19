@@ -79,6 +79,15 @@
   object-position: top;
   transition: all 0.5s ease;
   border-radius: 0.75rem;
+  animation: image-shake 7s ease-in-out infinite;
+}
+
+@keyframes image-shake {
+  0% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(-2px, 1px) scale(1.01); }
+  50% { transform: translate(0, -1px) scale(1); }
+  75% { transform: translate(2px, 1px) scale(1.01); }
+  100% { transform: translate(0, 0) scale(1); }
 }
 
 .tutorial-image-blur {
@@ -157,6 +166,60 @@
   pointer-events: none;
 }
 
+/* Dynamic content container */
+.tutorial-dynamic-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 0.75rem;
+}
+
+/* Video moving overlays for dynamic effect */
+.video-moving-overlay-1 {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: radial-gradient(circle at 30% 30%, transparent 50%, rgba(124, 58, 237, 0.05) 80%);
+  animation: overlay-move-1 15s infinite alternate ease-in-out;
+  pointer-events: none;
+}
+
+.video-moving-overlay-2 {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: radial-gradient(circle at 70% 60%, transparent 60%, rgba(59, 130, 246, 0.05) 90%);
+  animation: overlay-move-2 18s infinite alternate-reverse ease-in-out;
+  pointer-events: none;
+}
+
+.video-moving-overlay-3 {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: repeating-linear-gradient(45deg, transparent, transparent 200px, rgba(220, 38, 38, 0.03) 200px, rgba(220, 38, 38, 0.03) 300px);
+  animation: overlay-move-3 25s infinite linear;
+  pointer-events: none;
+}
+
+@keyframes overlay-move-1 {
+  0% { transform: translateX(-5%) translateY(-2%) scale(1.1); opacity: 0.3; }
+  50% { transform: translateX(2%) translateY(5%) scale(1); opacity: 0.8; }
+  100% { transform: translateX(5%) translateY(-5%) scale(1.1); opacity: 0.3; }
+}
+
+@keyframes overlay-move-2 {
+  0% { transform: translateX(3%) translateY(4%) scale(1.05); opacity: 0.5; }
+  50% { transform: translateX(-1%) translateY(-2%) scale(1); opacity: 0.7; }
+  100% { transform: translateX(-4%) translateY(3%) scale(1.05); opacity: 0.4; }
+}
+
+@keyframes overlay-move-3 {
+  0% { background-position: 0 0; }
+  100% { background-position: 500px 500px; }
+}
+
 /* Video scanlines effect */
 .video-scanlines {
   position: absolute;
@@ -189,17 +252,38 @@
   100% { opacity: 0.03; }
 }
 
-/* Video time counter */
-.video-time-counter {
+/* Video recording counter */
+.video-rec-counter {
   font-family: monospace;
   font-size: 0.7rem;
-  animation: time-counter 1s linear infinite;
+  animation: rec-blink 2s linear infinite;
+  display: inline-flex;
+  align-items: center;
 }
 
-@keyframes time-counter {
+.video-rec-counter::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  margin-right: 4px;
+  animation: rec-dot-blink 2s linear infinite;
+}
+
+@keyframes rec-blink {
   0% { opacity: 1; }
   50% { opacity: 1; }
   51% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+@keyframes rec-dot-blink {
+  0% { opacity: 1; }
+  40% { opacity: 1; }
+  50% { opacity: 0.5; }
+  60% { opacity: 1; }
   100% { opacity: 1; }
 }
 

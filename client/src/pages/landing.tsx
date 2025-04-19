@@ -469,11 +469,16 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                 <div 
                   className={`tutorial-image-container mb-6 slide-up-animation video-style-effect`}
                 >
-                  <img 
-                    src={steps[currentStep].image} 
-                    alt={steps[currentStep].title} 
-                    className="tutorial-image"
-                  />
+                  <div className="tutorial-dynamic-content">
+                    <img 
+                      src={steps[currentStep].image} 
+                      alt={steps[currentStep].title} 
+                      className="tutorial-image"
+                    />
+                    <div className="video-moving-overlay-1"></div>
+                    <div className="video-moving-overlay-2"></div>
+                    <div className="video-moving-overlay-3"></div>
+                  </div>
                   {/* Radial blur overlay */}
                   <div className="tutorial-image-blur"></div>
                   {/* Interactive glow effect */}
@@ -481,11 +486,7 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                   
                   {/* Video effects for all tutorial steps */}
                   <>
-                    {/* CCTV-style recording indicator */}
-                    <div className="absolute top-3 left-3 flex items-center space-x-2 bg-black/40 rounded-full py-1 px-3 z-20">
-                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                      <span className="text-white text-xs font-medium">LIVE</span>
-                    </div>
+
                     
                     {/* Video scan lines */}
                     <div className="video-scanlines"></div>
@@ -502,6 +503,8 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                         </div>
                         <div className="data-point-pulse upload-point-1"></div>
                         <div className="data-point-pulse upload-point-2"></div>
+                        <div className="data-point-pulse upload-point-3"></div>
+                        <div className="dynamic-progress-bar"></div>
                       </>
                     )}
                     
