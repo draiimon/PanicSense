@@ -96,13 +96,17 @@ class DisasterSentimentBackend:
             
             # If no environment keys, use the keys provided by the user
             if not api_key_list:
-                api_key_list = [
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
-                    "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",
+                # In production, we will use the GROQ_API_KEY_X variables from environment
+                # If no keys were found in the environment, check for legacy API_KEY variables
+                if not api_key_list:
+                    for i in range(1, 30):  # Try up to 30 keys
+                        env_key = os.getenv(f"API_KEY_{i}")
+                        if env_key:
+                            api_key_list.append(env_key)
+                
+                # Final fallback - check for a single API_KEY environment variable
+                if not api_key_list and os.getenv("API_KEY"):
+                    api_key_list.append(os.getenv("API_KEY"))
                     "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",
                     "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",
                     "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",
