@@ -388,6 +388,7 @@ class DisasterSentimentBackend:
             # NCR Cities and Municipalities
             "Manila", "Quezon City", "Makati", "Taguig", "Pasig", "Mandaluyong", "Pasay",
             "Caloocan", "Parañaque", "Las Piñas", "Muntinlupa", "Marikina", "Valenzuela",
+            "TIP", "Technological Institute of the Philippines", "TIP QC", "TIP Manila",
             "Malabon", "Navotas", "San Juan", "Pateros",
             
             # Major Cities Outside NCR
@@ -421,6 +422,12 @@ class DisasterSentimentBackend:
 
         ph_locations.extend(provinces)
         
+        # CRITICAL STEP: Special case for TIP (Technological Institute of the Philippines)
+        if "tip" in text_lower or "t.i.p" in text_lower or "t.i.p." in text_lower:
+            # Special direct handling for TIP to ensure proper detection
+            print("Found special location: TIP (Technological Institute of the Philippines)")
+            return "TIP"
+                        
         # Step 1: Check if any known misspellings are in the text
         for misspelling, correct in misspelling_map.items():
             if misspelling in text_lower:
