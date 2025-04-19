@@ -282,14 +282,23 @@ export const runAutoCleanupWhenNeeded = (): void => {
       if (progressData && isUploading) {
         try {
           const progress = JSON.parse(progressData);
+          
+          // MUCH STRICTER terminal state detection - ONLY consider "Analysis complete" as terminal
+          // NOT "Completed record X/Y" which is a common source of false positives
+          const isStrictlyAnalysisComplete = progress.stage && 
+            progress.stage.toLowerCase() === 'analysis complete';
+            
+          const isError = progress.stage && 
+            progress.stage.toLowerCase().includes('error');
+            
           // If in terminal state for over 10 seconds, this is a stuck UI
           if (
-            (progress.stage?.toLowerCase().includes('complete') || 
-             progress.stage?.toLowerCase().includes('error')) && 
+            (isStrictlyAnalysisComplete || isError) && 
             progress.savedAt && 
             Date.now() - progress.savedAt > 10000
           ) {
             console.log('🚨 Terminal state detected but still showing after 10 seconds');
+            console.log('🚨 Stage was:', progress.stage);
             return true;
           }
         } catch (e) {

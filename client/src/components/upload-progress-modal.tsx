@@ -415,6 +415,11 @@ export function UploadProgressModal() {
   useEffect(() => {
     // INSTANT CLOSE FOR ERRORS, brief delay for completion
     if (isUploading) {
+      // Debug logging for testing the stage
+      if (stage?.toLowerCase().includes('complete')) {
+        console.log('🔍 Terminal state check in effect:', stage);
+      }
+      
       if (stage === 'Upload Error') {
         // INSTANT CLEANUP FOR ERRORS - close immediately with tiny delay
         console.log(`🚨 ERROR DETECTED - CLOSING IMMEDIATELY`);
@@ -431,6 +436,8 @@ export function UploadProgressModal() {
         
         return () => clearTimeout(closeTimerId);
       }
+      // STRICT MATCH - only exact match with "Analysis complete"
+      // NOT matching "Completed record X/Y" which causes false completion
       else if (stage === 'Analysis complete') {
         // For completion, show success briefly (3 seconds)
         const completionDelay = autoCloseDelay || 3000; // Default to 3 seconds
@@ -456,6 +463,10 @@ export function UploadProgressModal() {
         }, completionDelay);
         
         return () => clearTimeout(closeTimerId);
+      } 
+      // Explicitly detect in-progress "Completed record X/Y" states to avoid false completion
+      else if (stage?.toLowerCase().includes('completed record')) {
+        console.log('⏳ Processing record detected, NOT a terminal state:', stage);
       }
     }
   }, [isUploading, stage, total, uploadProgress, forceCloseModalMemo, cleanupAndClose, autoCloseDelay]);
