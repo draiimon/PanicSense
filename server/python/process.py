@@ -930,7 +930,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                         llama_url,
                         headers=headers,
                         json={
-                            "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
+                            "model": "deepseek-r1-distill-llama-70b",
                             "messages": [
                                 {"role": "system", "content": system_message},
                                 {"role": "user", "content": f"Please analyze this disaster-related text: \"{text}\""}
@@ -952,7 +952,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                 # Make sure we have all required fields
                                 sentiment = llama_result.get('sentiment')
                                 confidence = float(llama_result.get('confidence', 0.85))
-                                explanation = llama_result.get('explanation', 'Analysis via Llama 4 Maverick')
+                                explanation = llama_result.get('explanation', 'Analysis via DeepSeek R1 Distill Llama 70B')
                                 disaster_type = llama_result.get('disasterType')
                                 location = llama_result.get('location')
                                 
@@ -971,10 +971,10 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                     }
                                     sentiment = sentiment_map.get(sentiment.upper(), "Neutral")
                                 
-                                # If successful return Meta Llama 4 Maverick result
-                                logging.info(f"Llama 4 Maverick real-time analysis successful: {sentiment} [{confidence:.2f}]")
+                                # If successful return DeepSeek result
+                                logging.info(f"DeepSeek R1 Distill Llama 70B real-time analysis successful: {sentiment} [{confidence:.2f}]")
                                 
-                                # Return the Llama 4 Maverick result - don't include language here to match format
+                                # Return the DeepSeek result - don't include language here to match format
                                 return {
                                     "sentiment": sentiment,
                                     "confidence": min(0.97, confidence),  # Cap at 0.97 for safety
@@ -984,14 +984,14 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                     "language": language
                                 }
                     
-                    # If reaching here, Llama 4 analysis failed, fall back to regular method
-                    logging.warning("Llama 4 Maverick analysis failed - falling back to regular method")
+                    # If reaching here, DeepSeek analysis failed, fall back to regular method
+                    logging.warning("DeepSeek R1 Distill Llama 70B analysis failed - falling back to regular method")
                     
                 except Exception as e:
-                    logging.error(f"Error using Llama 4 Maverick for real-time analysis: {str(e)}")
+                    logging.error(f"Error using DeepSeek R1 Distill Llama 70B for real-time analysis: {str(e)}")
                     # Fall through to regular analysis
         
-        # If not real-time or Llama 4 failed, use regular API-based analysis
+        # If not real-time or DeepSeek failed, use regular API-based analysis
         result = self.get_api_sentiment_analysis(text, language)
 
         # Add additional metadata
@@ -2752,15 +2752,15 @@ IMPORTANT CONTEXTUAL GUIDELINES:
 
 Analyze the provided text and describe in a clear, structured way which sentiment category is most appropriate."""
                 
-                # Use Meta Llama 4 Maverick 17B model for validation as specifically requested
-                # For Meta Llama models we need to use the correct base URL
+                # Use DeepSeek R1 Distill Llama 70B model for validation as specifically requested
+                # For DeepSeek models we need to use the correct base URL
                 llama_url = "https://api.groq.com/openai/v1/chat/completions"
                 
                 response = requests.post(
                     llama_url,
                     headers=headers,
                     json={
-                        "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
+                        "model": "deepseek-r1-distill-llama-70b",
                         "messages": [
                             {"role": "system", "content": system_message},
                             {"role": "user", "content": f"""Please analyze this disaster-related text: "{text}"
@@ -2787,8 +2787,8 @@ Remember the context of Filipino/Taglish expressions and disaster-specific langu
                 if response.status_code == 200:
                     response_data = response.json()
                     
-                    # Check if we're using Llama 4 Maverick and got back a JSON response
-                    logging.info(f"Using Llama 4 Maverick for validation")
+                    # Check if we're using DeepSeek and got back a JSON response
+                    logging.info(f"Using DeepSeek R1 Distill Llama 70B for validation")
                     
                     # Extract the response content
                     content = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
@@ -2801,14 +2801,14 @@ Remember the context of Filipino/Taglish expressions and disaster-specific langu
                             
                             # Check if this is a structured JSON response with the validation fields
                             if isinstance(llama_result, dict) and 'validation' in llama_result:
-                                # Use the Llama 4 Maverick validation result directly
-                                logging.info(f"Llama 4 Maverick validation result: {llama_result}")
+                                # Use the DeepSeek validation result directly
+                                logging.info(f"DeepSeek R1 Distill Llama 70B validation result: {llama_result}")
                                 
                                 # The model directly tells us whether the correction is valid
                                 validation_result = llama_result.get('validation', 'valid')
                                 is_valid = validation_result.lower() == 'valid'
                                 
-                                # Create a result object directly from the Llama response
+                                # Create a result object directly from the DeepSeek response
                                 return {
                                     "valid": is_valid,
                                     "reason": llama_result.get('reason', llama_result.get('explanation', ''))
