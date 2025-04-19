@@ -639,6 +639,103 @@ section {
   animation-delay: 0.9s;
 }
 
+/* Tutorial image effects */
+.tutorial-image-container {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.tutorial-image-container:hover {
+  transform: translateY(-5px);
+  box-shadow: 0px 12px 28px rgba(0, 0, 0, 0.25);
+}
+
+.tutorial-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 24px;
+  transition: all 0.5s ease;
+}
+
+.tutorial-image-blur {
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  background: radial-gradient(
+    circle at center,
+    transparent 60%,
+    rgba(59, 130, 246, 0.15) 80%,
+    rgba(79, 70, 229, 0.3) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tutorial-image-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  background: radial-gradient(
+    circle at center,
+    transparent 70%, 
+    rgba(59, 130, 246, 0.1) 80%,
+    rgba(99, 102, 241, 0.2) 100%
+  );
+  filter: blur(12px);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tutorial-image-container:hover .tutorial-image-glow {
+  opacity: 1;
+}
+
+.tutorial-image-container:hover .tutorial-image {
+  transform: scale(1.05);
+}
+
+/* Tutorial step transition effects */
+@keyframes slide-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up-animation {
+  animation: slide-up 0.5s ease forwards;
+}
+
+/* Pulse animation for tutorial indicators */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+}
+
+.tutorial-pulse-ring {
+  animation: pulse-ring 2s infinite;
+}
+
 /* Sentiment color classes */
 .sentiment-panic {
   @apply bg-red-100 text-red-600;

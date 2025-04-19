@@ -293,19 +293,19 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
       title: "Upload Disaster Data",
       description: "Upload CSV files containing social media posts or messages about disasters to begin analysis.",
       icon: <FileText size={24} />,
-      image: "/images/PANICSENSE PH.png"
+      image: "/images/tutorial/upload-disaster-data.png"
     },
     {
       title: "Analyze Sentiment",
       description: "The system automatically analyzes emotions and classifies each message using advanced AI models.",
       icon: <BarChart3 size={24} />,
-      image: "/images/PANICSENSE PH.png"
+      image: "/images/tutorial/analyze-sentiment.png"
     },
     {
       title: "Geographic Analysis",
       description: "View disaster locations plotted on interactive maps to identify affected areas.",
       icon: <MapPin size={24} />,
-      image: "/images/PANICSENSE PH.png"
+      image: "/images/tutorial/geographic-analysis.png"
     },
     {
       title: "Real-time Monitoring",
@@ -437,17 +437,30 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
                 transition={{ type: "spring", damping: 20 }}
                 className="relative z-10 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm"
               >
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-8 rounded-lg mb-4">
-                  <div className="flex justify-center items-center w-20 h-20 mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full text-white text-3xl">
-                    {steps[currentStep].icon}
+                {/* Image with blur effects and radius */}
+                <div className="tutorial-image-container mb-6 slide-up-animation">
+                  <img 
+                    src={steps[currentStep].image} 
+                    alt={steps[currentStep].title} 
+                    className="tutorial-image"
+                  />
+                  {/* Radial blur overlay */}
+                  <div className="tutorial-image-blur"></div>
+                  {/* Interactive glow effect */}
+                  <div className="tutorial-image-glow"></div>
+                  
+                  {/* Pulsing indicator */}
+                  <div className="absolute top-4 right-4 flex items-center justify-center">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <div className="absolute inset-0 w-8 h-8 rounded-full border-2 border-blue-500/40 tutorial-pulse-ring"></div>
                   </div>
                 </div>
                 
-                <h3 className="text-xl font-bold text-center mb-2 text-gray-900 dark:text-white">
+                <h3 className="text-xl font-bold text-center mb-2 text-gray-900 dark:text-white slide-up-animation" style={{animationDelay: '0.1s'}}>
                   {steps[currentStep].title}
                 </h3>
                 
-                <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
+                <p className="text-center text-gray-500 dark:text-gray-400 text-sm slide-up-animation" style={{animationDelay: '0.2s'}}>
                   {steps[currentStep].description}
                 </p>
                 
