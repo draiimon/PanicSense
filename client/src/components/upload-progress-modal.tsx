@@ -592,22 +592,40 @@ export function UploadProgressModal() {
   // Check for cancellation
   const isCancelled = stageLower.includes('cancel');
   
-  // Calculate time remaining in human-readable format
+  // Calculate time remaining in human-readable format with improved batch-aware logic
   const formatTimeRemaining = (seconds: number): string => {
     if (!seconds || seconds <= 0) return 'calculating...';
     
-    // Calculate a realistic time remaining based on processed records and speed
+    // Calculate a realistic time remaining based on processed records, speed, and batch cooldowns
     // This ensures we're showing updated time even if server doesn't update timeRemaining
     let calculatedTimeRemaining = seconds;
-    if (currentSpeed > 0 && total > processedCount) {
-      // Calculate time remaining based on current speed and records left
+    
+    // If we're in a batch pause state, adjust calculation method
+    if (isPaused && cooldownTime !== null) {
+      // Use the cooldown time directly if available
+      return `${cooldownTime} sec cooldown`;
+    } else if (currentSpeed > 0 && total > processedCount) {
+      // For normal processing, calculate based on current speed and records left
       const recordsRemaining = total - processedCount;
-      calculatedTimeRemaining = recordsRemaining / currentSpeed;
+      const processingTime = recordsRemaining / currentSpeed;
+      
+      // Add batch cooldown estimation - for every 30 records, add 60 seconds of cooldown
+      // Only if we have multiple batches
+      let cooldownEstimate = 0;
+      if (totalBatches > 1) {
+        const remainingBatches = Math.ceil(recordsRemaining / 30);
+        if (remainingBatches > 0) {
+          cooldownEstimate = (remainingBatches - 1) * 60; // 60 sec cooldown between batches
+        }
+      }
+      
+      // Combine processing time and cooldown time
+      calculatedTimeRemaining = processingTime + cooldownEstimate;
     }
     
-    // Use the smaller of the two values to be more accurate
-    // This prevents stale timeRemaining values from server
-    const actualSeconds = Math.min(calculatedTimeRemaining, seconds);
+    // Use the smaller of the two values but only if server-provided time is reasonable
+    // If server time is much lower, it might be missing cooldown estimates
+    const actualSeconds = seconds > 10 ? Math.min(calculatedTimeRemaining, seconds) : calculatedTimeRemaining;
     
     // Less than a minute
     if (actualSeconds < 60) return `${Math.ceil(actualSeconds)} sec`;
@@ -639,8 +657,8 @@ export function UploadProgressModal() {
       transition={{ duration: 0.2 }}
       className="fixed inset-0 flex items-center justify-center z-[9999]"
     >
-      {/* Modern blur backdrop */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-indigo-600/10 to-purple-600/20 backdrop-blur-lg"></div>
+      {/* Simple backdrop */}
+      <div className="absolute inset-0 bg-black/60"></div>
 
       {/* Content Container */}
       <motion.div
@@ -648,19 +666,11 @@ export function UploadProgressModal() {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
-        className="relative bg-white/90 dark:bg-gray-900/90 rounded-2xl overflow-hidden w-full max-w-sm mx-4 shadow-2xl border border-white/20 backdrop-blur"
-        style={{
-          background: "rgba(255, 255, 255, 0.95)",
-          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1)",
-        }}
+        className="relative bg-white dark:bg-gray-900 rounded-xl overflow-hidden w-full max-w-md mx-4 shadow-xl border border-gray-200 dark:border-gray-800"
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-5 text-white relative overflow-hidden">
-          {/* Background pattern */}
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute right-0 top-0 w-32 h-32 bg-white/20 rounded-full -mr-16 -mt-16"></div>
-            <div className="absolute left-0 bottom-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
-          </div>
+        <div className="bg-blue-600 p-4 text-white">
+          {/* Simple header content */}
           
           {/* Title */}
           <h3 className="text-xl font-bold text-center mb-4 relative">
