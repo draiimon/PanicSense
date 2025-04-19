@@ -546,7 +546,7 @@ export default function LandingPage() {
                 }}
               />
               <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                <img src="/favicon.png" alt="PanicSense PH Logo" className="w-7 h-7 sm:w-9 sm:h-9 drop-shadow" />
+                <img src="@assets/Untitled (200 x 200 px).png" alt="PanicSense PH Logo" className="w-8 h-8 sm:w-10 sm:h-10 drop-shadow-lg" />
               </div>
             </div>
             
@@ -710,17 +710,35 @@ export default function LandingPage() {
                 </Badge>
               </motion.div>
               
-              <motion.h1 
-                className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white leading-none mb-6"
+              <motion.div
+                className="flex items-center gap-4 mb-4"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
-                <span className="block">Advanced Disaster</span>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500">
-                  Monitoring & Analysis
-                </span>
-              </motion.h1>
+                <motion.img 
+                  src="@assets/Untitled (200 x 200 px).png" 
+                  alt="PanicSense PH Logo" 
+                  className="w-20 h-20 sm:w-24 sm:h-24 drop-shadow-2xl"
+                  animate={{ 
+                    scale: [1, 1.05, 1],
+                    rotate: [0, 3, 0, -3, 0],
+                  }}
+                  transition={{ 
+                    duration: 5,
+                    repeat: Infinity,
+                    repeatType: "reverse"
+                  }}
+                />
+                <motion.h1 
+                  className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white leading-none"
+                >
+                  <span className="block">Advanced Disaster</span>
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500">
+                    Monitoring & Analysis
+                  </span>
+                </motion.h1>
+              </motion.div>
               
               <motion.p 
                 className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-xl"
@@ -986,7 +1004,7 @@ export default function LandingPage() {
       <footer className="bg-white border-t border-slate-200 py-2 sm:py-4 z-50 relative">
         <div className="max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs sm:text-sm text-slate-600">
           <div className="flex items-center gap-1 sm:gap-2">
-            <img src="/favicon.png" alt="PanicSense PH Logo" className="h-5 w-5 sm:h-6 sm:w-6" />
+            <img src="@assets/Untitled (200 x 200 px).png" alt="PanicSense PH Logo" className="h-6 w-6 sm:h-7 sm:w-7" />
             <span>PanicSense PH © {new Date().getFullYear()}</span>
           </div>
           <div className="mt-1 sm:mt-0 flex flex-col sm:flex-row items-center gap-1 sm:gap-4">
