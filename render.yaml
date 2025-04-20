@@ -5,14 +5,16 @@ services:
     env: node
     plan: starter
     buildCommand: |
-      # Update package.json to fix CommonJS compatibility issue
-      node render-update-package.js
       # Install dependencies
       npm install
       # Build the frontend
       npx vite build
-    # Use our pure CommonJS implementation with NO top-level await
-    startCommand: NODE_ENV=production node index.js
+      # Make the build.sh script executable
+      chmod +x build.sh
+      # Run our build script that fixes CommonJS compatibility 
+      ./build.sh
+    # Use the standard start command to use dist/index.js - now it will be our CommonJS version
+    startCommand: NODE_ENV=production node dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
