@@ -165,23 +165,13 @@ export class UploadSessionManager {
    */
   async cleanupSessions() {
     try {
-      // Calculate timestamp for stale sessions (30 minutes old)
-      const staleTimestamp = new Date(Date.now() - this.STALE_SESSION_THRESHOLD);
+      // Use direct SQL to avoid schema issues with column names
+      const result = await db.execute(sql`
+        SELECT * FROM upload_sessions 
+        WHERE status = 'error' OR status = 'canceled'
+      `);
       
-      // Find sessions that are:
-      // 1. In 'error' or 'canceled' status OR
-      // 2. Were not updated within the last 30 minutes OR
-      // 3. Are from a previous server instance (restart detection)
-      const sessionsToClean = await db.select().from(uploadSessions)
-        .where(
-          or(
-            eq(uploadSessions.status, 'error'),
-            eq(uploadSessions.status, 'canceled'),
-            lt(uploadSessions.updatedAt, staleTimestamp),
-            // Temporarily disabled server start timestamp check until column is fully available
-            eq(uploadSessions.status, 'error')
-          )
-        );
+      const sessionsToClean = result.rows || [];
       
       // Delete all sessions that need cleaning
       if (sessionsToClean.length > 0) {
