@@ -3,10 +3,10 @@ services:
   - type: web
     name: panicsense-ph
     env: docker
-    region: singapore  # Choose the appropriate region
-    plan: starter      # Or choose another plan based on your needs
-    buildCommand: "" # Docker images are pre-built
-    startCommand: "./render-setup.sh && npm run startRender" # Run migrations and then start app
+    region: singapore
+    plan: starter
+    buildCommand: ""
+    startCommand: "chmod +x ./render-setup.sh && ./render-setup.sh && npm run startRender"
     healthCheckPath: /api/health
     dockerfilePath: ./Dockerfile
     numInstances: 1
@@ -15,12 +15,7 @@ services:
       name: panicsense-data
       mountPath: /data
       sizeGB: 1
-    # Use Postgres as the database
     envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: panicsense-db
-          property: connectionString
       - key: NODE_ENV
         value: production
       - key: PORT
@@ -29,16 +24,6 @@ services:
         value: python3
       - key: SESSION_SECRET
         generateValue: true
-      # Add any additional environment variables your application needs
-      # For example, if you need OpenAI API key:
-      # - key: OPENAI_API_KEY
-      #   sync: false # This means it's a secret that you'll set manually
-
-databases:
-  # Create a Postgres database
-  - type: postgres
-    name: panicsense-db
-    plan: free
-    region: singapore
-    postgresMajorVersion: 15
-    ipAllowList: [] # Allow all IPs during development
+      # NOTE: DATABASE_URL will be set manually in the Render Dashboard
+      # Use the following connection string:
+      # postgresql://neondb_owner:npg_N5MsSKHuk1Qf@ep-silent-sun-a1u48xwz-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
