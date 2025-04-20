@@ -56,3 +56,11 @@ tmp/
 *~
 *.bak
 *.tmp
+
+# Local database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+.sqlite*
+.drizzle/
