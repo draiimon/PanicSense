@@ -670,8 +670,9 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUploadSession(sessionId: string): Promise<void> {
     try {
-      await db.delete(uploadSessions)
-        .where(eq(uploadSessions.sessionId, sessionId));
+      await pool.query(`
+        DELETE FROM upload_sessions WHERE session_id = $1
+      `, [sessionId]);
     } catch (error) {
       console.error("Error in deleteUploadSession (table may not exist):", error);
       // Just log the error, no need to throw
