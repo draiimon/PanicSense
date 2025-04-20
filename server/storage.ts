@@ -545,13 +545,26 @@ export class DatabaseStorage implements IStorage {
 
   async createUploadSession(session: InsertUploadSession): Promise<UploadSession> {
     try {
+      // Import SERVER_START_TIMESTAMP or use fallback value
+      let serverTimestamp = session.serverStartTimestamp;
+      if (!serverTimestamp) {
+        try {
+          const { SERVER_START_TIMESTAMP } = await import('./index');
+          serverTimestamp = SERVER_START_TIMESTAMP.toString();
+        } catch (e) {
+          // Fallback if import fails
+          serverTimestamp = Date.now().toString();
+        }
+      }
+
       const [result] = await db.insert(uploadSessions)
         .values({
           sessionId: session.sessionId,
           status: session.status || 'active',
           progress: JSON.stringify(session.progress || null),
           fileId: session.fileId || null,  // Ensure fileId is null if undefined
-          userId: session.userId || null   // Ensure userId is null if undefined
+          userId: session.userId || null,   // Ensure userId is null if undefined
+          serverStartTimestamp: serverTimestamp // Add the timestamp
         })
         .returning();
       return result;
@@ -574,11 +587,22 @@ export class DatabaseStorage implements IStorage {
 
   async updateUploadSession(sessionId: string, status: string, progress: any): Promise<UploadSession | undefined> {
     try {
+      // Get the server timestamp 
+      let serverTimestamp;
+      try {
+        const { SERVER_START_TIMESTAMP } = await import('./index');
+        serverTimestamp = SERVER_START_TIMESTAMP.toString();
+      } catch (e) {
+        // Fallback if import fails
+        serverTimestamp = Date.now().toString();
+      }
+
       const [result] = await db.update(uploadSessions)
         .set({
           status,
           progress: JSON.stringify(progress || null),
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          serverStartTimestamp: serverTimestamp // Add the timestamp
         })
         .where(eq(uploadSessions.sessionId, sessionId))
         .returning();
