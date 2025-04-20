@@ -8,15 +8,18 @@ services:
       python3 -m venv /app/venv
       . /app/venv/bin/activate
       pip install --upgrade pip
+      pip install -r python-requirements.txt
+      python3 -m nltk.downloader -d /usr/share/nltk_data punkt vader_lexicon stopwords wordnet
+      
+      # Install dependencies
       npm ci
-      chmod +x render-setup.sh
-      ./render-setup.sh
-    startCommand: |
-      if [ -f dist/wrapper.js ]; then
-        NODE_ENV=production node --experimental-modules dist/wrapper.js
-      else
-        NODE_ENV=production node --experimental-modules dist/index.js
-      fi
+      
+      # Run our special Render build script
+      node render-build.js
+      
+      # Run database migrations
+      NODE_ENV=production npm run db:push
+    startCommand: NODE_ENV=production node dist/bootstrap.js
     autoDeploy: true
     healthCheckPath: /api/health
     envVars:
