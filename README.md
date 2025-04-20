@@ -10,22 +10,34 @@ The project is already configured to run on Replit. Simply click the "Run" butto
 
 This application is configured for deployment on Render.com with PostgreSQL database integration.
 
-### Deployment Steps
+### Deployment Steps with Neon Database
 
 1. Push this repository to GitHub
 2. Log in to [Render](https://render.com)
 3. Click "New +" and select "Blueprint"
 4. Connect to your GitHub repository
-5. Render will automatically detect the `render.yaml` file and set up the services
+5. Render will detect the `render.yaml` file and set up the web service
+6. **Add your Neon Database:**
+   - Go to your Neon dashboard and copy your database connection string
+   - In Render dashboard, go to your disaster-monitoring-platform service
+   - Go to "Environment" tab
+   - Add a new environment variable:
+     - Key: `DATABASE_URL`
+     - Value: Your Neon database connection string (`postgresql://username:password@hostname:port/database_name?sslmode=require`)
+   - Click "Save Changes"
+7. **Add Other Required Secrets:**
+   - If using Python services for AI, add:
+     - Key: `PYTHON_API_KEYS`
+     - Value: Your API keys (comma-separated)
+8. Click "Manual Deploy" > "Deploy latest commit"
 
 ### Manual Deployment (Alternative)
 
-If you prefer to set up services manually:
+If you prefer to set up services without the Blueprint:
 
-1. **Create a PostgreSQL Database:**
-   - In Render dashboard, select "New +" > "PostgreSQL"
-   - Configure your database (name: `disasterdb`, user: `disastermonitor`)
-   - Note the internal connection string
+1. **Prepare Your Neon Database:**
+   - Make sure you have your Neon database connection string ready
+   - Format should be: `postgresql://username:password@hostname:port/database_name?sslmode=require`
 
 2. **Create a Web Service:**
    - In Render dashboard, select "New +" > "Web Service"
@@ -37,7 +49,8 @@ If you prefer to set up services manually:
      - **Start Command:** `./render-start.sh`
    - Add the environment variables:
      - `NODE_ENV`: `production`
-     - `DATABASE_URL`: (Your database connection string from step 1)
+     - `DATABASE_URL`: Your Neon database connection string
+     - `PYTHON_API_KEYS`: (If using AI features) Your API keys
 
 ### Environment Variables
 

@@ -2,11 +2,16 @@ services:
   - type: web
     name: disaster-monitoring-platform
     env: node
+    plan: free
     buildCommand: ./render-build.sh
     startCommand: ./render-start.sh
+    # Make sure Python is available for AI functions
+    runtime: node
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PYTHONPATH
+        value: /opt/render/project/src:/opt/render/project/src/python
       # For using your existing Neon database, add the DATABASE_URL as a secret in Render dashboard
       # - key: DATABASE_URL
       #   sync: false # This will be added manually as a secret
@@ -15,6 +20,15 @@ services:
       #   fromDatabase:
       #     name: disaster-db
       #     property: connectionString
+    
+    # Ensure our service is accessible and serves data
+    healthCheckPath: /api/health
+    
+    # Use HTTPS and automatic scaling
+    autoDeploy: true
+    domains:
+      - type: PRIMARY
+        domain: disaster-monitoring-platform.onrender.com
 
 # If using Render's own managed database instead of Neon, uncomment this section:
 # databases:
