@@ -22,24 +22,24 @@ const parser = new Parser({
 // List of Philippines news sources with disaster-related content
 const NEWS_SOURCES = [
   {
-    name: 'GMA News - Nation',
-    url: 'https://www.gmanetwork.com/news/rss/news/nation/',
-    source: 'GMA News'
+    name: 'CNN Philippines',
+    url: 'https://www.cnnphilippines.com/feed/rss/news',
+    source: 'CNN Philippines'
   },
   {
-    name: 'Manila Bulletin - NDRRMC',
-    url: 'https://mb.com.ph/category/news/national/ndrrmc/feed/',
-    source: 'Manila Bulletin'
+    name: 'PhilStar Nation',
+    url: 'https://www.philstar.com/rss/nation',
+    source: 'PhilStar'
   },
   {
-    name: 'Philippine News Agency',
-    url: 'https://www.pna.gov.ph/feed/all',
-    source: 'PNA'
+    name: 'Inquirer Feed',
+    url: 'https://www.inquirer.net/fullfeed',
+    source: 'Inquirer'
   },
   {
-    name: 'ReliefWeb Philippines',
-    url: 'https://reliefweb.int/country/phl/rss.xml',
-    source: 'ReliefWeb'
+    name: 'ABS-CBN News',
+    url: 'https://news.abs-cbn.com/rss/news',
+    source: 'ABS-CBN'
   }
 ];
 
