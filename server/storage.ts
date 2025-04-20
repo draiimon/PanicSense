@@ -546,60 +546,24 @@ export class DatabaseStorage implements IStorage {
 
   async createUploadSession(session: InsertUploadSession): Promise<UploadSession> {
     try {
-      // Import SERVER_START_TIMESTAMP or use fallback value
-      let serverTimestamp = session.serverStartTimestamp;
-      if (!serverTimestamp) {
-        try {
-          const { SERVER_START_TIMESTAMP } = await import('./index');
-          serverTimestamp = SERVER_START_TIMESTAMP.toString();
-        } catch (e) {
-          // Fallback if import fails
-          serverTimestamp = Date.now().toString();
-        }
-      }
+      // Using simplest approach - no server_start_timestamp
+      const result = await pool.query(`
+        INSERT INTO upload_sessions 
+          (session_id, status, progress, file_id, user_id, created_at, updated_at)
+        VALUES 
+          ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *
+      `, [
+        session.sessionId,
+        session.status || 'active',
+        session.progress ? JSON.stringify(session.progress) : null,
+        session.fileId || null,
+        session.userId || null,
+        new Date(),
+        new Date()
+      ]);
 
-      try {
-        // Try using SQL instead of Drizzle to avoid column issues
-        const result = await pool.query(`
-          INSERT INTO upload_sessions 
-            (session_id, status, progress, file_id, user_id, server_start_timestamp, created_at, updated_at)
-          VALUES 
-            ($1, $2, $3, $4, $5, $6, $7, $8)
-          RETURNING *
-        `, [
-          session.sessionId,
-          session.status || 'active',
-          session.progress ? JSON.stringify(session.progress) : null,
-          session.fileId || null,
-          session.userId || null,
-          serverTimestamp,
-          new Date(),
-          new Date()
-        ]);
-
-        return result.rows[0];
-      } catch (innerError) {
-        console.error("Error in direct SQL insert, trying without server_start_timestamp:", innerError);
-        
-        // Fallback: try inserting without server_start_timestamp if it doesn't exist
-        const result = await pool.query(`
-          INSERT INTO upload_sessions 
-            (session_id, status, progress, file_id, user_id, created_at, updated_at)
-          VALUES 
-            ($1, $2, $3, $4, $5, $6, $7)
-          RETURNING *
-        `, [
-          session.sessionId,
-          session.status || 'active',
-          session.progress ? JSON.stringify(session.progress) : null,
-          session.fileId || null,
-          session.userId || null,
-          new Date(),
-          new Date()
-        ]);
-
-        return result.rows[0];
-      }
+      return result.rows[0];
     } catch (error) {
       console.error("Error in createUploadSession (table may not exist):", error);
       // Return a mock session since the table might not exist
@@ -619,49 +583,20 @@ export class DatabaseStorage implements IStorage {
 
   async updateUploadSession(sessionId: string, status: string, progress: any): Promise<UploadSession | undefined> {
     try {
-      // Get the server timestamp 
-      let serverTimestamp;
-      try {
-        const { SERVER_START_TIMESTAMP } = await import('./index');
-        serverTimestamp = SERVER_START_TIMESTAMP.toString();
-      } catch (e) {
-        // Fallback if import fails
-        serverTimestamp = Date.now().toString();
-      }
-
-      try {
-        const result = await pool.query(`
-          UPDATE upload_sessions
-          SET status = $1, progress = $2, updated_at = $3, server_start_timestamp = $4
-          WHERE session_id = $5
-          RETURNING *
-        `, [
-          status,
-          progress ? JSON.stringify(progress) : null,
-          new Date(),
-          serverTimestamp,
-          sessionId
-        ]);
-        
-        return result.rows[0];
-      } catch (innerError) {
-        console.error("Error in direct SQL update, trying without server_start_timestamp:", innerError);
-        
-        // Fallback: try updating without server_start_timestamp
-        const result = await pool.query(`
-          UPDATE upload_sessions
-          SET status = $1, progress = $2, updated_at = $3
-          WHERE session_id = $4
-          RETURNING *
-        `, [
-          status,
-          progress ? JSON.stringify(progress) : null,
-          new Date(),
-          sessionId
-        ]);
-        
-        return result.rows[0];
-      }
+      // Use the simple, reliable update without server_start_timestamp
+      const result = await pool.query(`
+        UPDATE upload_sessions
+        SET status = $1, progress = $2, updated_at = $3
+        WHERE session_id = $4
+        RETURNING *
+      `, [
+        status,
+        progress ? JSON.stringify(progress) : null,
+        new Date(),
+        sessionId
+      ]);
+      
+      return result.rows[0];
     } catch (error) {
       console.error("Error in updateUploadSession (table may not exist):", error);
       return undefined;
