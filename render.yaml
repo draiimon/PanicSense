@@ -4,8 +4,8 @@ services:
     name: disaster-monitoring-platform
     env: node
     plan: starter
-    buildCommand: node render-deploy.js
-    startCommand: node dist/index.js
+    buildCommand: ./render-build.sh
+    startCommand: ./render-start.sh
     envVars:
       - key: NODE_ENV
         value: production
