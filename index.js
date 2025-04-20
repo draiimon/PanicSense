@@ -1,17 +1,21 @@
 /**
  * PRODUCTION ENTRY POINT FOR RENDER.COM
  * 
- * This is a pure CommonJS file that will work in any Node.js environment
- * without requiring any TypeScript compilation
+ * This is now an ES Module file to match the package.json "type": "module" setting
  */
 
-// Use CommonJS syntax for maximum compatibility
-const express = require('express');
-const { Pool } = require('pg');
-const http = require('http');
-const path = require('path');
-const fs = require('fs');
-const { WebSocketServer } = require('ws');
+// Use ES Module syntax for compatibility with package.json type: module
+import express from 'express';
+import pg from 'pg';
+import http from 'http';
+import path from 'path';
+import fs from 'fs';
+import { WebSocketServer } from 'ws';
+import { fileURLToPath } from 'url';
+
+const { Pool } = pg;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Create Express app
 const app = express();
