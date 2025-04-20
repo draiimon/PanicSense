@@ -25,6 +25,8 @@ export interface IStorage {
   // Sentiment Analysis
   getSentimentPosts(): Promise<SentimentPost[]>;
   getSentimentPostsByFileId(fileId: number): Promise<SentimentPost[]>;
+  getSentimentPostById(id: number): Promise<SentimentPost | undefined>;
+  getRecentSentimentPosts(limit?: number): Promise<SentimentPost[]>;
   createSentimentPost(post: InsertSentimentPost): Promise<SentimentPost>;
   createManySentimentPosts(posts: InsertSentimentPost[]): Promise<SentimentPost[]>;
   deleteSentimentPost(id: number): Promise<void>;
@@ -196,6 +198,88 @@ export class DatabaseStorage implements IStorage {
         ...post,
         aiTrustMessage: null
       })) as SentimentPost[];
+    }
+  }
+  
+  async getSentimentPostById(id: number): Promise<SentimentPost | undefined> {
+    try {
+      const [post] = await db.select().from(sentimentPosts).where(eq(sentimentPosts.id, id));
+      return post;
+    } catch (error) {
+      console.error("Error in getSentimentPostById:", error);
+      
+      // Fallback to raw SQL
+      try {
+        const result = await db.execute(sql`
+          SELECT * FROM sentiment_posts WHERE id = ${id} LIMIT 1
+        `);
+        
+        if (!result.rows || result.rows.length === 0) {
+          return undefined;
+        }
+        
+        // Convert database column names to JavaScript field names
+        const post = {
+          id: result.rows[0].id,
+          text: result.rows[0].text,
+          timestamp: new Date(result.rows[0].timestamp as string),
+          source: result.rows[0].source,
+          language: result.rows[0].language,
+          sentiment: result.rows[0].sentiment,
+          confidence: result.rows[0].confidence,
+          location: result.rows[0].location,
+          disasterType: result.rows[0].disaster_type,
+          fileId: result.rows[0].file_id,
+          explanation: result.rows[0].explanation,
+          processedBy: result.rows[0].processed_by,
+          aiTrustMessage: result.rows[0].ai_trust_message
+        };
+        return post as SentimentPost;
+      } catch (fallbackError) {
+        console.error("Fallback in getSentimentPostById also failed:", fallbackError);
+        return undefined;
+      }
+    }
+  }
+  
+  async getRecentSentimentPosts(limit: number = 20): Promise<SentimentPost[]> {
+    try {
+      // Try to get the latest posts with drizzle
+      return db.select()
+        .from(sentimentPosts)
+        .orderBy(sql`${sentimentPosts.timestamp} DESC`)
+        .limit(limit) as Promise<SentimentPost[]>;
+    } catch (error) {
+      console.error("Error in getRecentSentimentPosts:", error);
+      
+      // Fallback to raw SQL
+      try {
+        const result = await db.execute(sql`
+          SELECT * FROM sentiment_posts 
+          ORDER BY timestamp DESC 
+          LIMIT ${limit}
+        `);
+        
+        // Convert database column names to JavaScript field names
+        return result.rows.map(row => ({
+          id: row.id,
+          text: row.text,
+          timestamp: new Date(row.timestamp as string),
+          source: row.source,
+          language: row.language,
+          sentiment: row.sentiment,
+          confidence: row.confidence,
+          location: row.location,
+          disasterType: row.disaster_type,
+          fileId: row.file_id,
+          explanation: row.explanation,
+          processedBy: row.processed_by,
+          aiTrustMessage: row.ai_trust_message
+        })) as SentimentPost[];
+      } catch (fallbackError) {
+        console.error("Fallback in getRecentSentimentPosts also failed:", fallbackError);
+        return [];
+      }
     }
   }
 
