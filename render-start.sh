@@ -14,19 +14,25 @@ fi
 echo "Checking database schema and applying necessary fixes..."
 if [ -f "server/db-simple-fix.js" ]; then
   # This will create any missing tables
-  node -e "require('./server/db-simple-fix.js').simpleDbFix().then(result => console.log('Database fix result:', result));"
+  node -e "import('./server/db-simple-fix.js').then(module => module.simpleDbFix().then(result => console.log('Database fix result:', result)));"
 fi
 
 # Setup Python environment if needed (for AI analysis)
-if [ -d "python" ]; then
+if [ -d "server/python" ]; then
   echo "Setting up Python environment..."
-  export PYTHONPATH=$PYTHONPATH:$(pwd)
+  export PYTHONPATH=$PYTHONPATH:$(pwd):$(pwd)/server
+  
   # Install Python dependencies if needed
-  if [ -f "python/requirements.txt" ]; then
-    pip install -r python/requirements.txt
+  if [ -f "server/python/requirements.txt" ]; then
+    echo "Installing Python requirements from server/python/requirements.txt"
+    pip install -r server/python/requirements.txt
   fi
 fi
 
+# Create uploads directory if it doesn't exist
+mkdir -p uploads/temp
+chmod -R 755 uploads
+
 # Start the server with all necessary environment variables
 echo "Starting main application server..."
-NODE_ENV=production node server.js
+NODE_ENV=production node dist/index.js
