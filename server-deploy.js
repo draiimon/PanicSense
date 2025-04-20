@@ -4,7 +4,8 @@
  */
 
 import express from 'express';
-import { Pool } from 'pg';
+import pkg from 'pg';
+const { Pool } = pkg;
 import http from 'http';
 import path from 'path';
 import fs from 'fs';
@@ -49,19 +50,42 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Serve static files
-const clientDir = path.join(__dirname, 'client/dist');
-if (fs.existsSync(clientDir)) {
-  console.log(`Serving static files from ${clientDir}`);
-  app.use(express.static(clientDir));
+// Try multiple possible static file locations
+const possibleDirs = [
+  path.join(__dirname, 'public'),             // dist/public when built
+  path.join(__dirname, '../public'),          // /public
+  path.join(__dirname, '../dist/public'),     // /dist/public 
+  path.join(__dirname, 'client/dist'),        // original location
+  path.join(__dirname, '../client/dist')      // /client/dist
+];
+
+let staticDir = null;
+
+// Find the first directory that exists
+for (const dir of possibleDirs) {
+  if (fs.existsSync(dir)) {
+    staticDir = dir;
+    console.log(`Found static files in: ${dir}`);
+    break;
+  }
+}
+
+if (staticDir) {
+  console.log(`Serving static files from ${staticDir}`);
+  app.use(express.static(staticDir));
   
   // SPA fallback
   app.get('*', (req, res) => {
-    res.sendFile(path.join(clientDir, 'index.html'));
+    if (fs.existsSync(path.join(staticDir, 'index.html'))) {
+      res.sendFile(path.join(staticDir, 'index.html'));
+    } else {
+      res.send('Application is running but index.html not found');
+    }
   });
 } else {
-  console.warn(`Static directory ${clientDir} not found`);
+  console.warn(`No static directory found. Tried: ${possibleDirs.join(', ')}`);
   app.get('*', (req, res) => {
-    res.send('Application is running but frontend is not built correctly');
+    res.send('Application is running but frontend static files were not found');
   });
 }
 
