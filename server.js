@@ -42,10 +42,15 @@ wss.on('connection', (ws) => {
 let pool;
 if (process.env.DATABASE_URL) {
   console.log('Connecting to PostgreSQL database...');
+  
+  // Configure PostgreSQL client with SSL for Render or other cloud platforms
+  const isProduction = process.env.NODE_ENV === 'production';
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: isProduction ? { rejectUnauthorized: false } : false
   });
+  
+  console.log(`Database connection initialized in ${isProduction ? 'production' : 'development'} mode`);
 } else {
   console.warn('No DATABASE_URL provided, database features will be disabled');
 }

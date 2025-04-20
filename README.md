@@ -1,67 +1,68 @@
 # Disaster Monitoring Platform
 
-An advanced AI-powered disaster monitoring and community resilience platform for the Philippines.
+An advanced AI-powered disaster monitoring and community resilience platform for the Philippines, leveraging cutting-edge technology to enhance emergency response and community preparedness.
 
-## Deployment Instructions for Render
+## Running on Replit
 
-This application is configured for deployment on Render.com with automated CI/CD from GitHub.
+The project is already configured to run on Replit. Simply click the "Run" button in the Replit interface to start the server. The application will be available at the provided Replit URL.
 
-### Automated Deployment from GitHub
+## Deployment on Render
 
-When you push to the main branch, the application will automatically deploy to Render. This is configured using GitHub Actions.
+This application is configured for deployment on Render.com with PostgreSQL database integration.
 
-To set up automated deployments:
+### Deployment Steps
 
-1. Go to your GitHub repository settings
-2. Add the following secrets:
-   - `RENDER_SERVICE_ID`: Your Render service ID (found in your service URL or settings)
-   - `RENDER_API_KEY`: Your Render API key (generated in Render dashboard)
+1. Push this repository to GitHub
+2. Log in to [Render](https://render.com)
+3. Click "New +" and select "Blueprint"
+4. Connect to your GitHub repository
+5. Render will automatically detect the `render.yaml` file and set up the services
 
-### Deployment Configuration
+### Manual Deployment (Alternative)
 
-- The `render.yaml` file defines the web service and database configuration
-- `render-build.sh` is executed during the build phase
-- `render-start.sh` is executed to start the application
-- `.github/workflows/render-deploy.yml` handles the GitHub Actions workflow
-- `Dockerfile` and `docker-compose.yml` provide containerization support
+If you prefer to set up services manually:
 
-### Manual Deployment Steps
+1. **Create a PostgreSQL Database:**
+   - In Render dashboard, select "New +" > "PostgreSQL"
+   - Configure your database (name: `disasterdb`, user: `disastermonitor`)
+   - Note the internal connection string
 
-1. Log in to Render.com
-2. Create a new Web Service
-3. Connect your repository
-4. Use the following settings:
-   - **Build Command**: `./render-build.sh`
-   - **Start Command**: `./render-start.sh`
-   - **Environment Variables**:
+2. **Create a Web Service:**
+   - In Render dashboard, select "New +" > "Web Service"
+   - Connect to your GitHub repository
+   - Configure the service:
+     - **Name:** disaster-monitoring-platform
+     - **Environment:** Node
+     - **Build Command:** `./render-build.sh`
+     - **Start Command:** `./render-start.sh`
+   - Add the environment variables:
      - `NODE_ENV`: `production`
-     - `PORT`: Leave this to Render (it will be set automatically)
-     - `DATABASE_URL`: Connect to your Render PostgreSQL database
+     - `DATABASE_URL`: (Your database connection string from step 1)
 
-### Database Setup
+### Environment Variables
 
-1. Create a PostgreSQL database in Render
-2. Link it to your web service by setting the `DATABASE_URL` environment variable
-3. The application will automatically create the required tables on first run
+- `NODE_ENV`: Set to `production` for production environment
+- `DATABASE_URL`: PostgreSQL connection string - if using Neon database, get this from your Neon dashboard
+- `PYTHON_API_KEYS`: Required for AI sentiment analysis functionality (if used)
 
-## Local Development
+## Key Features
 
-### Using NPM
+- Advanced multilingual NLP processing
+- Real-time social media and event monitoring
+- Specialized Filipino language support
+- Responsive mobile-first design with adaptive UI elements
+- Interactive geospatial mapping capabilities
+
+## Development
 
 To run the application locally:
 
 ```bash
+# Install dependencies
+npm install
+
+# Start the development server
 npm run dev
 ```
 
 This will start both the backend and frontend development servers.
-
-### Using Docker
-
-You can also run the application using Docker:
-
-```bash
-docker compose up
-```
-
-This will start the application and a PostgreSQL database in containers.
