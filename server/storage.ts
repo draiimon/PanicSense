@@ -533,10 +533,11 @@ export class DatabaseStorage implements IStorage {
   // Upload Sessions Management
   async getUploadSession(sessionId: string): Promise<UploadSession | undefined> {
     try {
-      const [session] = await db.select()
-        .from(uploadSessions)
-        .where(eq(uploadSessions.sessionId, sessionId));
-      return session;
+      const result = await pool.query(`
+        SELECT * FROM upload_sessions WHERE session_id = $1
+      `, [sessionId]);
+      
+      return result.rows[0];
     } catch (error) {
       console.error("Error in getUploadSession (table may not exist):", error);
       return undefined;
@@ -557,21 +558,48 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // Use Drizzle ORM
-      const [result] = await db.insert(uploadSessions)
-        .values({
-          sessionId: session.sessionId,
-          status: session.status || 'active',
-          progress: session.progress ? JSON.stringify(session.progress) : null, 
-          fileId: session.fileId || null,
-          userId: session.userId || null,
-          serverStartTimestamp: serverTimestamp,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning();
+      try {
+        // Try using SQL instead of Drizzle to avoid column issues
+        const result = await pool.query(`
+          INSERT INTO upload_sessions 
+            (session_id, status, progress, file_id, user_id, server_start_timestamp, created_at, updated_at)
+          VALUES 
+            ($1, $2, $3, $4, $5, $6, $7, $8)
+          RETURNING *
+        `, [
+          session.sessionId,
+          session.status || 'active',
+          session.progress ? JSON.stringify(session.progress) : null,
+          session.fileId || null,
+          session.userId || null,
+          serverTimestamp,
+          new Date(),
+          new Date()
+        ]);
+
+        return result.rows[0];
+      } catch (innerError) {
+        console.error("Error in direct SQL insert, trying without server_start_timestamp:", innerError);
         
-      return result;
+        // Fallback: try inserting without server_start_timestamp if it doesn't exist
+        const result = await pool.query(`
+          INSERT INTO upload_sessions 
+            (session_id, status, progress, file_id, user_id, created_at, updated_at)
+          VALUES 
+            ($1, $2, $3, $4, $5, $6, $7)
+          RETURNING *
+        `, [
+          session.sessionId,
+          session.status || 'active',
+          session.progress ? JSON.stringify(session.progress) : null,
+          session.fileId || null,
+          session.userId || null,
+          new Date(),
+          new Date()
+        ]);
+
+        return result.rows[0];
+      }
     } catch (error) {
       console.error("Error in createUploadSession (table may not exist):", error);
       // Return a mock session since the table might not exist
@@ -601,16 +629,39 @@ export class DatabaseStorage implements IStorage {
         serverTimestamp = Date.now().toString();
       }
 
-      const [result] = await db.update(uploadSessions)
-        .set({
+      try {
+        const result = await pool.query(`
+          UPDATE upload_sessions
+          SET status = $1, progress = $2, updated_at = $3, server_start_timestamp = $4
+          WHERE session_id = $5
+          RETURNING *
+        `, [
           status,
-          progress: JSON.stringify(progress || null),
-          updatedAt: new Date(),
-          serverStartTimestamp: serverTimestamp // Add the timestamp
-        })
-        .where(eq(uploadSessions.sessionId, sessionId))
-        .returning();
-      return result;
+          progress ? JSON.stringify(progress) : null,
+          new Date(),
+          serverTimestamp,
+          sessionId
+        ]);
+        
+        return result.rows[0];
+      } catch (innerError) {
+        console.error("Error in direct SQL update, trying without server_start_timestamp:", innerError);
+        
+        // Fallback: try updating without server_start_timestamp
+        const result = await pool.query(`
+          UPDATE upload_sessions
+          SET status = $1, progress = $2, updated_at = $3
+          WHERE session_id = $4
+          RETURNING *
+        `, [
+          status,
+          progress ? JSON.stringify(progress) : null,
+          new Date(),
+          sessionId
+        ]);
+        
+        return result.rows[0];
+      }
     } catch (error) {
       console.error("Error in updateUploadSession (table may not exist):", error);
       return undefined;
