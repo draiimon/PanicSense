@@ -4,7 +4,7 @@ services:
     name: disaster-monitoring-platform
     env: node
     plan: starter
-    buildCommand: node render-build.js && npm run build
+    buildCommand: node render-deploy.js
     startCommand: node dist/index.js
     envVars:
       - key: NODE_ENV
