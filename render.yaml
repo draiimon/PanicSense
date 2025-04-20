@@ -4,8 +4,9 @@ services:
     name: panicsense
     env: node
     plan: free
-    buildCommand: npm install && npx vite build
+    buildCommand: npm install
     startCommand: node server-deploy.js
+    region: singapore
     envVars:
       - key: NODE_ENV
         value: production
@@ -17,3 +18,4 @@ services:
 databases:
   - name: panicsense-db
     plan: free
+    region: singapore
