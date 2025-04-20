@@ -1,7 +1,6 @@
 /**
- * PRODUCTION SERVER FOR RENDER DEPLOYMENT
- * This file has ZERO TypeScript dependencies and NO top-level await
- * It implements the core functionality of the app for deployment
+ * PRODUCTION SERVER
+ * Simple Node.js server for production deployment
  */
 
 const express = require('express');
@@ -15,7 +14,7 @@ const multer = require('multer');
 // Create Express app and HTTP server
 const app = express();
 const server = http.createServer(app);
-const port = process.env.PORT || 10000;
+const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(express.json({ limit: '50mb' }));
@@ -31,14 +30,11 @@ const upload = multer({
 const wss = new WebSocketServer({ server, path: '/ws' });
 wss.on('connection', (ws) => {
   console.log('WebSocket client connected');
-  
-  // Send initial message
   ws.send(JSON.stringify({
     type: 'connection_established',
     message: 'Connected to server',
     timestamp: Date.now()
   }));
-  
   ws.on('close', () => console.log('WebSocket client disconnected'));
 });
 
@@ -48,7 +44,7 @@ if (process.env.DATABASE_URL) {
   console.log('Connecting to PostgreSQL database...');
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    ssl: { rejectUnauthorized: false }
   });
 } else {
   console.warn('No DATABASE_URL provided, database features will be disabled');
@@ -57,7 +53,7 @@ if (process.env.DATABASE_URL) {
 // Create simple broadcast function for WebSocket
 function broadcastUpdate(data) {
   wss.clients.forEach((client) => {
-    if (client.readyState === 1) { // WebSocketServer.OPEN
+    if (client.readyState === 1) {
       client.send(JSON.stringify({
         ...data,
         timestamp: Date.now()
@@ -78,15 +74,13 @@ async function registerRoutes() {
         res.json({ 
           status: 'ok', 
           database: 'connected', 
-          timestamp: new Date().toISOString(),
-          mode: process.env.NODE_ENV || 'development'
+          timestamp: new Date().toISOString()
         });
       } else {
         res.json({ 
           status: 'ok', 
           database: 'not configured', 
-          timestamp: new Date().toISOString(),
-          mode: process.env.NODE_ENV || 'development'
+          timestamp: new Date().toISOString()
         });
       }
     } catch (err) {
@@ -94,16 +88,7 @@ async function registerRoutes() {
     }
   });
 
-  // Echo route for testing
-  app.get('/api/echo', (req, res) => {
-    res.json({
-      message: 'Server is running',
-      timestamp: new Date().toISOString(),
-      mode: process.env.NODE_ENV || 'development'
-    });
-  });
-
-  // Core API routes (simplified for deployment)
+  // Core API routes
   app.get('/api/disaster-events', async (req, res) => {
     try {
       if (!pool) return res.json([]);
@@ -137,8 +122,8 @@ async function registerRoutes() {
     }
   });
 
-  // Serve static files
-  const distDir = path.join(__dirname, 'client/dist');
+  // Serve static files from the dist directory
+  const distDir = path.join(__dirname, 'dist/public');
   if (fs.existsSync(distDir)) {
     app.use(express.static(distDir));
     console.log(`Serving static files from ${distDir}`);
@@ -154,7 +139,7 @@ async function registerRoutes() {
     app.get('*', (req, res) => {
       res.send(`
         <html>
-          <head><title>Disaster Monitoring Platform</title></head>
+          <head><title>PanicSense</title></head>
           <body>
             <h1>Server is running but frontend is not built</h1>
             <p>API endpoints are available but the frontend was not properly built.</p>
@@ -220,10 +205,9 @@ process.on('SIGTERM', () => {
   });
 });
 
-// Start without any top-level await
+// Start server
 startServer().catch(err => {
   console.error('Error during startup:', err);
-  // Still start the server even if there's an error
   server.listen(port, '0.0.0.0', () => {
     console.log(`Server running on port ${port} (startup error occurred)`);
   });

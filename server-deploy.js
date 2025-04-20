@@ -1,13 +1,11 @@
 /**
- * SIMPLE PRODUCTION SERVER FOR RENDER DEPLOYMENT
- * Using ES modules for compatibility with package.json "type": "module"
+ * PRODUCTION SERVER
+ * Simple Express server to serve the built app in production
  */
 
 import express from 'express';
-// Fix for pg ESM import
 import pg from 'pg';
 const { Pool } = pg;
-import http from 'http';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -18,7 +16,7 @@ const __dirname = path.dirname(__filename);
 
 // Create Express app
 const app = express();
-const port = process.env.PORT || 10000;
+const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(express.json());
@@ -34,7 +32,7 @@ if (process.env.DATABASE_URL) {
   console.log('Database connection initialized');
 }
 
-// API routes
+// API health check route
 app.get('/api/health', async (req, res) => {
   try {
     if (pool) {
@@ -51,41 +49,23 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Serve static files
-const publicDir = path.join(__dirname, '../dist/public');
-
-// Check if the directory exists and serve it
+const publicDir = path.join(__dirname, 'dist/public');
 if (fs.existsSync(publicDir)) {
   console.log(`Serving static files from ${publicDir}`);
   app.use(express.static(publicDir));
   
   // SPA fallback
   app.get('*', (req, res) => {
-    const indexHtml = path.join(publicDir, 'index.html');
-    if (fs.existsSync(indexHtml)) {
-      res.sendFile(indexHtml);
-    } else {
-      console.error('Error: index.html not found in', publicDir);
-      res.send('Application is running but index.html not found. Check server logs.');
-    }
+    res.sendFile(path.join(publicDir, 'index.html'));
   });
 } else {
-  console.error(`Error: Static directory not found at ${publicDir}`);
-  // List all directories to debug
-  console.log('Available directories:');
-  try {
-    const rootDir = path.join(__dirname, '..');
-    const dirs = fs.readdirSync(rootDir);
-    console.log(dirs);
-  } catch (err) {
-    console.error('Error listing directories:', err);
-  }
-  
+  console.error(`Static directory not found at ${publicDir}`);
   app.get('*', (req, res) => {
-    res.send('Application is running but static files directory not found. Check server logs.');
+    res.send('Application is running but static files are not built. Please run npm run build first.');
   });
 }
 
 // Start server
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`Production server running on port ${port}`);
 });
