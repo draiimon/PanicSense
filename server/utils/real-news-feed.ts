@@ -21,11 +21,7 @@ const parser = new Parser({
 
 // List of Philippines news sources with disaster-related content
 const NEWS_SOURCES = [
-  {
-    name: 'CNN Philippines',
-    url: 'https://www.cnnphilippines.com/feed/rss/news',
-    source: 'CNN Philippines'
-  },
+  // These sources are working:
   {
     name: 'PhilStar Nation',
     url: 'https://www.philstar.com/rss/nation',
@@ -36,10 +32,21 @@ const NEWS_SOURCES = [
     url: 'https://www.inquirer.net/fullfeed',
     source: 'Inquirer'
   },
+  // Additional backup sources:
   {
-    name: 'ABS-CBN News',
-    url: 'https://news.abs-cbn.com/rss/news',
-    source: 'ABS-CBN'
+    name: 'Manila Times',
+    url: 'https://www.manilatimes.net/news/feed',
+    source: 'Manila Times'
+  },
+  {
+    name: 'Manila Standard',
+    url: 'https://manilastandard.net/feed/',
+    source: 'Manila Standard'
+  },
+  {
+    name: 'BusinessWorld',
+    url: 'https://www.bworldonline.com/feed/',
+    source: 'BusinessWorld'
   }
 ];
 
