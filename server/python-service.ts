@@ -1224,13 +1224,13 @@ export class PythonService {
         log(`Adjusted confidence from ${baseConfidence.toFixed(3)} to ${adjustedConfidence.toFixed(3)}`, 'python-service');
       }
 
-      // Make sure None values are converted to "UNKNOWN"
-      if (!analysisResult.disasterType || analysisResult.disasterType === "None") {
-        analysisResult.disasterType = "UNKNOWN";
+      // Make sure None values are converted to user-friendly "Unknown" values
+      if (!analysisResult.disasterType || analysisResult.disasterType === "None" || analysisResult.disasterType === "UNKNOWN") {
+        analysisResult.disasterType = "Unknown Disaster";
       }
       
-      if (!analysisResult.location || analysisResult.location === "None") {
-        analysisResult.location = "UNKNOWN";
+      if (!analysisResult.location || analysisResult.location === "None" || analysisResult.location === "UNKNOWN") {
+        analysisResult.location = "Unknown Location";
       }
       
       return analysisResult;

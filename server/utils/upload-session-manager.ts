@@ -182,7 +182,8 @@ export class UploadSessionManager {
             eq(uploadSessions.status, 'error'),
             eq(uploadSessions.status, 'canceled'),
             lt(uploadSessions.updatedAt, staleTimestamp),
-            sql`${uploadSessions.serverStartTimestamp} != ${SERVER_START_TIMESTAMP.toString()}`
+            // Temporarily disabled server start timestamp check until column is fully available
+            eq(uploadSessions.status, 'error')
           )
         );
       
