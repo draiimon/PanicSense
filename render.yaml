@@ -1,27 +1,11 @@
+# render.yaml - Configuration for Render deployment
 services:
   - type: web
-    name: disaster-sentiment-analysis
+    name: disaster-monitoring-platform
     env: node
-    buildCommand: |
-      apt-get update && apt-get install -y python3 python3-pip python3-venv python3-full build-essential
-      mkdir -p /usr/share/nltk_data
-      python3 -m venv /app/venv
-      . /app/venv/bin/activate
-      pip install --upgrade pip
-      pip install -r python-requirements.txt
-      python3 -m nltk.downloader -d /usr/share/nltk_data punkt vader_lexicon stopwords wordnet
-      
-      # Install dependencies
-      npm ci
-      
-      # Run our special Render build script
-      node render-build.js
-      
-      # Run database migrations
-      NODE_ENV=production npm run db:push
-    startCommand: NODE_ENV=production node dist/index.js
-    autoDeploy: true
-    healthCheckPath: /api/health
+    plan: starter
+    buildCommand: node render-build.js && npm run build
+    startCommand: node dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -29,11 +13,9 @@ services:
         value: 10000
       - key: DATABASE_URL
         fromDatabase:
-          name: disaster-sentiment-db
+          name: disaster-monitoring-db
           property: connectionString
 
 databases:
-  - name: disaster-sentiment-db
-    databaseName: disaster_sentiment
-    user: disaster_sentiment_user
-    plan: free
+  - name: disaster-monitoring-db
+    plan: starter
