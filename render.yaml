@@ -1,4 +1,4 @@
-# render.yaml - Simple configuration for Render deployment with CommonJS fix
+# Simple Render configuration that works without TypeScript dependencies
 services:
   - type: web
     name: disaster-monitoring-platform
@@ -7,14 +7,10 @@ services:
     buildCommand: |
       # Install dependencies
       npm install
-      # Build the frontend
+      # Build the frontend only
       npx vite build
-      # Make the build.sh script executable
-      chmod +x build.sh
-      # Run our build script that fixes CommonJS compatibility 
-      ./build.sh
-    # Use the standard start command to use dist/index.js - now it will be our CommonJS version
-    startCommand: NODE_ENV=production node dist/index.js
+    # Use our pure CommonJS server implementation directly
+    startCommand: NODE_ENV=production node server.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -22,6 +18,8 @@ services:
         fromDatabase:
           name: disaster-monitoring-db
           property: connectionString
+      - key: PORT
+        value: 10000
 
 databases:
   - name: disaster-monitoring-db
