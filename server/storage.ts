@@ -9,7 +9,7 @@ import { users, type User, type InsertUser,
   uploadSessions, type UploadSession, type InsertUploadSession
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -199,10 +199,10 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createSentimentPost(post: InsertSentimentPost): Promise<SentimentPost> {
+  async createSentimentPost(sentimentPost: InsertSentimentPost): Promise<SentimentPost> {
     try {
       // Create timestamp as ISO string for proper formatting in the query
-      const timestamp = post.timestamp instanceof Date ? post.timestamp.toISOString() : post.timestamp;
+      const timestamp = sentimentPost.timestamp instanceof Date ? sentimentPost.timestamp.toISOString() : sentimentPost.timestamp;
       
       // Use direct SQL query to avoid potential column name issues
       const result = await db.execute(sql`
@@ -219,17 +219,17 @@ export class DatabaseStorage implements IStorage {
           explanation, 
           processed_by
         ) VALUES (
-          ${post.text},
+          ${sentimentPost.text},
           ${timestamp},
-          ${post.source || null},
-          ${post.language || null},
-          ${post.sentiment},
-          ${post.confidence},
-          ${post.location || null},
-          ${post.disasterType || null},
-          ${post.fileId || null},
-          ${post.explanation || null},
-          ${post.processedBy || null}
+          ${sentimentPost.source || null},
+          ${sentimentPost.language || null},
+          ${sentimentPost.sentiment},
+          ${sentimentPost.confidence},
+          ${sentimentPost.location || null},
+          ${sentimentPost.disasterType || null},
+          ${sentimentPost.fileId || null},
+          ${sentimentPost.explanation || null},
+          ${sentimentPost.processedBy || null}
         )
         RETURNING *
       `);
@@ -239,7 +239,23 @@ export class DatabaseStorage implements IStorage {
       }
       
       console.log(`Sentiment post saved with ID: ${result.rows[0].id}`);
-      return result.rows[0];
+      // Convert database column names to JavaScript field names
+      const post = {
+        id: result.rows[0].id,
+        text: result.rows[0].text,
+        timestamp: new Date(result.rows[0].timestamp as string),
+        source: result.rows[0].source,
+        language: result.rows[0].language,
+        sentiment: result.rows[0].sentiment,
+        confidence: result.rows[0].confidence,
+        location: result.rows[0].location,
+        disasterType: result.rows[0].disaster_type,
+        fileId: result.rows[0].file_id,
+        explanation: result.rows[0].explanation,
+        processedBy: result.rows[0].processed_by,
+        aiTrustMessage: result.rows[0].ai_trust_message
+      };
+      return post as SentimentPost;
     } catch (error) {
       console.error("Error in createSentimentPost:", error);
       
@@ -254,18 +270,34 @@ export class DatabaseStorage implements IStorage {
             sentiment, 
             confidence
           ) VALUES (
-            ${post.text},
-            ${post.timestamp instanceof Date ? post.timestamp.toISOString() : (post.timestamp || new Date().toISOString())},
-            ${post.source || 'Unknown'},
-            ${post.language || 'Unknown'},
-            ${post.sentiment},
-            ${post.confidence}
+            ${sentimentPost.text},
+            ${sentimentPost.timestamp instanceof Date ? sentimentPost.timestamp.toISOString() : (typeof sentimentPost.timestamp === 'string' ? sentimentPost.timestamp : new Date().toISOString())},
+            ${sentimentPost.source || 'Unknown'},
+            ${sentimentPost.language || 'Unknown'},
+            ${sentimentPost.sentiment},
+            ${sentimentPost.confidence}
           )
           RETURNING *
         `);
         
         console.log(`Fallback sentiment post saved with ID: ${result.rows[0].id}`);
-        return result.rows[0];
+        // Convert database column names to JavaScript field names for the fallback case
+        const fallbackPost = {
+          id: result.rows[0].id,
+          text: result.rows[0].text,
+          timestamp: new Date(result.rows[0].timestamp as string),
+          source: result.rows[0].source,
+          language: result.rows[0].language,
+          sentiment: result.rows[0].sentiment,
+          confidence: result.rows[0].confidence,
+          location: null,
+          disasterType: null,
+          fileId: null,
+          explanation: null,
+          processedBy: null,
+          aiTrustMessage: null
+        };
+        return fallbackPost as SentimentPost;
       } catch (fallbackError) {
         console.error("Fallback insertion also failed:", fallbackError);
         throw fallbackError; // Re-throw after logging
