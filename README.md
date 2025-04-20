@@ -1,57 +1,42 @@
-# PanicSense - Disaster Monitoring Platform
+# Disaster Monitoring Platform
 
-A sophisticated disaster monitoring platform for the Philippines that leverages advanced AI sentiment analysis to capture nuanced emotional responses during crisis situations.
+An advanced AI-powered disaster monitoring and community resilience platform for the Philippines.
 
 ## Deployment Instructions for Render
 
-### Environment Variables Required
+This application is configured for deployment on Render.com. The configuration files are already set up for a smooth deployment.
 
-Set the following environment variables in your Render dashboard:
+### Deployment Configuration
 
-- `PORT`: 10000 (default)
-- `NODE_ENV`: production
-- `NODE_OPTIONS`: --max-old-space-size=512
-- `DATABASE_URL`: Your PostgreSQL connection string
+- The `render.yaml` file defines the web service and database configuration
+- `render-build.sh` is executed during the build phase
+- `render-start.sh` is executed to start the application
 
-### Deployment Steps
+### Manual Deployment Steps
 
-1. Connect your GitHub repository to Render.
-2. Create a new Web Service.
-3. Select "Docker" as the environment.
-4. Configure the environment variables listed above.
-5. Deploy! Render will automatically use the Dockerfile in this repo.
+1. Log in to Render.com
+2. Create a new Web Service
+3. Connect your repository
+4. Use the following settings:
+   - **Build Command**: `./render-build.sh`
+   - **Start Command**: `./render-start.sh`
+   - **Environment Variables**:
+     - `NODE_ENV`: `production`
+     - `PORT`: Leave this to Render (it will be set automatically)
+     - `DATABASE_URL`: Connect to your Render PostgreSQL database
 
-## Local Development with Docker
+### Database Setup
 
-To run this application locally using Docker:
+1. Create a PostgreSQL database in Render
+2. Link it to your web service by setting the `DATABASE_URL` environment variable
+3. The application will automatically create the required tables on first run
 
-```bash
-# Build the Docker image
-docker build -t panicsense .
+## Local Development
 
-# Run the container
-docker run -p 10000:10000 \
-  -e PORT=10000 \
-  -e NODE_ENV=production \
-  -e DATABASE_URL=your_database_url \
-  panicsense
-```
-
-Alternatively, use Docker Compose:
+To run the application locally:
 
 ```bash
-# Create a .env file with your environment variables
-echo "DATABASE_URL=your_database_url" > .env
-
-# Run with Docker Compose
-docker-compose up
+npm run dev
 ```
 
-## Key Technologies
-
-- Node.js/React frontend with TypeScript
-- PostgreSQL database with Drizzle ORM
-- Advanced multi-level sentiment detection (panic, fear, resilience, neutral, disbelief)
-- Context-aware AI sentiment analysis
-- Multi-source social media event integration
-- Machine learning predictive analytics for disaster response
+This will start both the backend and frontend development servers.
