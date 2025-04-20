@@ -358,18 +358,18 @@ export function DataTable({
                         ) : (
                           <span className="inline-flex items-center text-slate-400 text-xs sm:text-sm">
                             <span className="h-1.5 w-1.5 rounded-full bg-slate-300 mr-1 sm:mr-1.5 flex-shrink-0"></span>
-                            <span className="truncate">Unknown</span>
+                            <span className="truncate">UNKNOWN</span>
                           </span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-slate-600">
-                      {item.disasterType ? (
+                      {item.disasterType && item.disasterType !== "UNKNOWN" ? (
                         <div className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded shadow-sm text-xs ${getDisasterTypeStyles(item.disasterType)} truncate max-w-full`}>
                           {item.disasterType}
                         </div>
                       ) : (
-                        <span className="text-slate-400 text-xs sm:text-sm">Not Specified</span>
+                        <span className="text-slate-400 text-xs sm:text-sm">UNKNOWN</span>
                       )}
                     </TableCell>
                     <TableCell>

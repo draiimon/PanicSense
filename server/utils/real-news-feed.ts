@@ -216,6 +216,9 @@ async function processNewsItem(item: any): Promise<any> {
     // Analyze the sentiment of the news item
     const result = await pythonService.analyzeSentiment(postText);
     
+    // Get actual timestamp from post if available
+    const postTimestamp = item.isoDate || item.pubDate ? new Date(item.isoDate || item.pubDate) : new Date();
+    
     // Create and save the post
     const newPost = await storage.createSentimentPost({
       text: postText,
@@ -223,9 +226,10 @@ async function processNewsItem(item: any): Promise<any> {
       confidence: result.confidence,
       source: item.sourceName || "Philippine News",
       language: result.language || "en",
-      location: result.location || null,
-      disasterType: result.disasterType || null,
-      explanation: result.explanation
+      location: result.location || "UNKNOWN",
+      disasterType: result.disasterType || "UNKNOWN",
+      explanation: result.explanation,
+      timestamp: postTimestamp
     });
     
     // Get the complete post with ID from the database

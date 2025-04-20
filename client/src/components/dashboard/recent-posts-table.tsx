@@ -89,14 +89,14 @@ export function RecentPostsTable({
                 <span>{format(new Date(post.timestamp), 'MMM d, yyyy h:mm a')}</span>
               </div>
               
-              {post.location && (
+              {post.location && post.location !== "UNKNOWN" && (
                 <div className="flex items-center gap-1">
                   <MapPin className="h-3 w-3 text-slate-400" />
                   <span>{post.location}</span>
                 </div>
               )}
               
-              {post.disasterType && (
+              {post.disasterType && post.disasterType !== "UNKNOWN" && (
                 <div className="flex items-center gap-1">
                   <div className="h-2 w-2 rounded-full" style={{ backgroundColor: getDisasterTypeColor(post.disasterType) }}></div>
                   <span>{post.disasterType}</span>
