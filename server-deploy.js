@@ -1,13 +1,18 @@
 /**
  * SIMPLE PRODUCTION SERVER FOR RENDER DEPLOYMENT
- * No TypeScript, no top-level await, just plain Node.js
+ * Using ES modules for compatibility with package.json "type": "module"
  */
 
-const express = require('express');
-const { Pool } = require('pg');
-const http = require('http');
-const path = require('path');
-const fs = require('fs');
+import express from 'express';
+import { Pool } from 'pg';
+import http from 'http';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+// ES module equivalent for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Create Express app
 const app = express();
