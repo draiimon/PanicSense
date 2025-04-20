@@ -11,7 +11,8 @@ npm ci
 
 # Build the frontend
 echo "Building frontend assets..."
-npm run build
+# Using npx to call vite and esbuild directly, avoiding the 'vite not found' error
+npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
 
 # Install Python dependencies if needed
 if [ -d "server/python" ]; then

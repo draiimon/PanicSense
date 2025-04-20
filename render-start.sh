@@ -20,7 +20,9 @@ fi
 # Setup Python environment if needed (for AI analysis)
 if [ -d "server/python" ]; then
   echo "Setting up Python environment..."
-  export PYTHONPATH=$PYTHONPATH:$(pwd):$(pwd)/server
+  # Use the specific PYTHONPATH for Render deployment
+  export PYTHONPATH="/opt/render/project/src:/opt/render/project/src/server:/opt/render/project/src/server/python"
+  echo "PYTHONPATH set to: $PYTHONPATH"
   
   # Install Python dependencies if needed
   if [ -f "server/python/requirements.txt" ]; then

@@ -11,7 +11,9 @@ services:
       - key: NODE_ENV
         value: production
       - key: PYTHONPATH
-        value: /opt/render/project/src:/opt/render/project/src/python
+        value: /opt/render/project/src:/opt/render/project/src/server:/opt/render/project/src/server/python
+      - key: SESSION_SECRET
+        generateValue: true
       # For using your existing Neon database, add the DATABASE_URL as a secret in Render dashboard
       # - key: DATABASE_URL
       #   sync: false # This will be added manually as a secret
