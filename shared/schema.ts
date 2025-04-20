@@ -111,7 +111,7 @@ export const uploadSessions = pgTable("upload_sessions", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   userId: integer("user_id").references(() => users.id),
-  serverStartTimestamp: text("server_start_timestamp"), // Store server start timestamp to detect restarts
+  serverStartTimestamp: text("server_start_timestamp"), // Store server start timestamp to detect restarts (stored as string)
 });
 
 export const insertSentimentFeedbackSchema = createInsertSchema(sentimentFeedback).pick({

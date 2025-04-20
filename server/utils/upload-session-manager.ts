@@ -3,6 +3,34 @@ import { eq, and, or, lt, gt, sql } from 'drizzle-orm';
 import { uploadSessions } from '@shared/schema';
 import { SERVER_START_TIMESTAMP } from '../index';
 
+// Helper function to ensure timestamp is always a string
+function normalizeTimestamp(timestamp: string | number | Date | unknown): string {
+  if (timestamp === null || timestamp === undefined) {
+    return Date.now().toString(); // Default to current time
+  }
+  
+  if (typeof timestamp === 'number') {
+    return timestamp.toString();
+  }
+  
+  if (timestamp instanceof Date) {
+    return timestamp.getTime().toString();
+  }
+  
+  // If it's already a string, return it
+  if (typeof timestamp === 'string') {
+    return timestamp;
+  }
+  
+  // For any other types, convert to string safely
+  try {
+    return String(timestamp);
+  } catch (e) {
+    console.warn('Failed to normalize timestamp, using current time', e);
+    return Date.now().toString();
+  }
+}
+
 /**
  * Enhanced upload session manager to ensure clean uploads and prevent orphaned sessions
  */
@@ -63,7 +91,7 @@ export class UploadSessionManager {
         fileId,
         createdAt: now,
         updatedAt: now,
-        serverStartTimestamp: SERVER_START_TIMESTAMP.toString(),
+        serverStartTimestamp: normalizeTimestamp(SERVER_START_TIMESTAMP),
         progress: JSON.stringify({
           processed: 0,
           total: 0,
@@ -100,7 +128,7 @@ export class UploadSessionManager {
           status,
           progress: progressStr,
           updatedAt: new Date(),
-          serverStartTimestamp: SERVER_START_TIMESTAMP.toString()
+          serverStartTimestamp: normalizeTimestamp(SERVER_START_TIMESTAMP)
         })
         .where(eq(uploadSessions.sessionId, sessionId));
       
