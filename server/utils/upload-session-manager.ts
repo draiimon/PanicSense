@@ -43,11 +43,14 @@ export class UploadSessionManager {
    */
   async getSessionById(sessionId: string) {
     try {
-      const session = await db.select().from(uploadSessions)
-        .where(eq(uploadSessions.sessionId, sessionId))
-        .limit(1);
+      // Use direct SQL query to avoid potential column name issues
+      const result = await db.execute(sql`
+        SELECT * FROM upload_sessions
+        WHERE session_id = ${sessionId}
+        LIMIT 1
+      `);
       
-      return session.length > 0 ? session[0] : null;
+      return result.rows && result.rows.length > 0 ? result.rows[0] : null;
     } catch (error) {
       console.error('Error getting upload session:', error);
       return null;
@@ -83,22 +86,35 @@ export class UploadSessionManager {
    */
   async createSession(sessionId: string, fileId: number | null = null) {
     try {
-      const now = new Date();
-      
-      await db.insert(uploadSessions).values({
-        sessionId,
-        status: 'processing',
-        fileId,
-        createdAt: now,
-        updatedAt: now,
-        serverStartTimestamp: normalizeTimestamp(SERVER_START_TIMESTAMP),
-        progress: JSON.stringify({
-          processed: 0,
-          total: 0,
-          stage: 'Initializing...',
-          timestamp: Date.now()
-        })
+      const now = new Date().toISOString();
+      const timestamp = normalizeTimestamp(SERVER_START_TIMESTAMP);
+      const initialProgress = JSON.stringify({
+        processed: 0,
+        total: 0,
+        stage: 'Initializing...',
+        timestamp: Date.now()
       });
+      
+      // Use raw SQL to avoid any column name issues
+      await db.execute(sql`
+        INSERT INTO upload_sessions (
+          session_id, 
+          status, 
+          file_id, 
+          created_at, 
+          updated_at, 
+          server_start_timestamp,
+          progress
+        ) VALUES (
+          ${sessionId},
+          'processing',
+          ${fileId},
+          ${now},
+          ${now},
+          ${timestamp},
+          ${initialProgress}
+        )
+      `);
       
       return true;
     } catch (error) {
@@ -122,15 +138,20 @@ export class UploadSessionManager {
       const progressStr = typeof progress === 'object' 
         ? JSON.stringify(progress)
         : progress;
+        
+      const now = new Date().toISOString();
+      const timestamp = normalizeTimestamp(SERVER_START_TIMESTAMP);
       
-      await db.update(uploadSessions)
-        .set({
-          status,
-          progress: progressStr,
-          updatedAt: new Date(),
-          serverStartTimestamp: normalizeTimestamp(SERVER_START_TIMESTAMP)
-        })
-        .where(eq(uploadSessions.sessionId, sessionId));
+      // Use raw SQL to avoid any column name issues
+      await db.execute(sql`
+        UPDATE upload_sessions
+        SET 
+          status = ${status},
+          progress = ${progressStr},
+          updated_at = ${now},
+          server_start_timestamp = ${timestamp}
+        WHERE session_id = ${sessionId}
+      `);
       
       return true;
     } catch (error) {
@@ -177,8 +198,11 @@ export class UploadSessionManager {
    */
   async deleteSession(sessionId: string) {
     try {
-      await db.delete(uploadSessions)
-        .where(eq(uploadSessions.sessionId, sessionId));
+      // Use raw SQL to avoid any column name issues
+      await db.execute(sql`
+        DELETE FROM upload_sessions
+        WHERE session_id = ${sessionId}
+      `);
       
       return true;
     } catch (error) {
@@ -203,12 +227,16 @@ export class UploadSessionManager {
       
       // Delete all sessions that need cleaning
       if (sessionsToClean.length > 0) {
-        const sessionIds = sessionsToClean.map(s => s.sessionId);
+        // Use sessionId or session_id based on what's in the result
+        const sessionIds = sessionsToClean.map(s => s.sessionId || s.session_id);
         
-        await db.delete(uploadSessions)
-          .where(
-            sql`${uploadSessions.sessionId} IN (${sessionIds.join(',')})` as any
-          );
+        // Use raw SQL to avoid any column name issues
+        for (const id of sessionIds) {
+          await db.execute(sql`
+            DELETE FROM upload_sessions
+            WHERE session_id = ${id}
+          `);
+        }
         
         console.log(`Cleaned up ${sessionsToClean.length} stale or error upload sessions`);
       }
