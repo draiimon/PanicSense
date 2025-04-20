@@ -14,9 +14,17 @@ mkdir -p uploads
 touch uploads/.gitkeep
 
 # Run database migrations
-pnpm run db:push
+npm run db:push
 
 # Build the application
-pnpm run build
+npm run build
+
+# Fix ES module issue in package.json (if needed)
+if grep -q '"type": "module"' package.json; then
+  echo "Ensuring package is properly set for ES modules..."
+  echo -e '#!/usr/bin/env node\n\nimport("./index.js");' > dist/wrapper.js
+  chmod +x dist/wrapper.js
+  echo "Created ES module wrapper"
+fi
 
 echo "Render setup completed successfully!"
