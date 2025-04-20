@@ -1,29 +1,27 @@
 services:
-  # A Docker web service
   - type: web
-    name: panicsense-ph
-    env: docker
-    region: singapore
-    plan: starter
-    buildCommand: ""
-    startCommand: "chmod +x ./render-setup.sh && ./render-setup.sh && npm run startRender"
-    healthCheckPath: /api/health
-    dockerfilePath: ./Dockerfile
-    numInstances: 1
-    autoDeploy: true
-    disk:
-      name: panicsense-data
-      mountPath: /data
-      sizeGB: 1
+    name: panic-sense-ph
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run startRender
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: "5000"
-      - key: PYTHON_PATH
-        value: python3
-      - key: SESSION_SECRET
-        generateValue: true
-      # NOTE: DATABASE_URL will be set manually in the Render Dashboard
-      # Use the following connection string:
-      # postgresql://neondb_owner:npg_N5MsSKHuk1Qf@ep-silent-sun-a1u48xwz-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+      - key: NEON_DATABASE_URL
+        sync: false
+    
+    healthCheckPath: /api/health
+    buildFilter:
+      paths:
+        - client/**
+        - server/**
+        - shared/**
+        - index.js
+        - vite.config.ts
+        - render-setup.sh
+        - Procfile
+        - package.json
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1

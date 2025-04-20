@@ -17,7 +17,14 @@ echo "Checking database connection..."
 max_retries=10
 retry_count=0
 while [ $retry_count -lt $max_retries ]; do
-  if node -e "import pg from 'pg'; const { Pool } = pg; const pool = new Pool({ connectionString: process.env.DATABASE_URL }); pool.query('SELECT NOW()', (err, res) => { if (err) { process.exit(1); } else { process.exit(0); } })" --input-type=module; then
+  # Remove DATABASE_URL= prefix if present
+  DB_URL="${NEON_DATABASE_URL:-$DATABASE_URL}"
+  if [[ "$DB_URL" == DATABASE_URL=* ]]; then
+    DB_URL="${DB_URL#DATABASE_URL=}"
+    echo "Fixed database URL format by removing prefix"
+  fi
+  
+  if node -e "import pg from 'pg'; const { Pool } = pg; const pool = new Pool({ connectionString: '$DB_URL', ssl: { rejectUnauthorized: false } }); pool.query('SELECT NOW()', (err, res) => { if (err) { console.error(err); process.exit(1); } else { process.exit(0); } })" --input-type=module; then
     echo "Database connection successful!"
     break
   else

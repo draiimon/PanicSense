@@ -43,14 +43,22 @@ wss.on('connection', (ws) => {
 
 // Connect to PostgreSQL database
 let pool;
-if (process.env.DATABASE_URL) {
-  console.log('Connecting to PostgreSQL database...');
+let databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+
+// Remove DATABASE_URL= prefix if present
+if (databaseUrl && databaseUrl.startsWith('DATABASE_URL=')) {
+  databaseUrl = databaseUrl.substring('DATABASE_URL='.length);
+  console.log('Fixed database URL format by removing prefix');
+}
+
+if (databaseUrl) {
+  console.log(`Connecting to PostgreSQL database... (${databaseUrl.split(':')[0]} type)`);
   pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    connectionString: databaseUrl,
+    ssl: { rejectUnauthorized: false } // Always use SSL for Neon
   });
 } else {
-  console.warn('No DATABASE_URL provided, database features will be disabled');
+  console.warn('No DATABASE_URL or NEON_DATABASE_URL provided, database features will be disabled');
 }
 
 // Create simple broadcast function for WebSocket

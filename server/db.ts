@@ -6,7 +6,7 @@ import * as schema from "@shared/schema";
 neonConfig.webSocketConstructor = ws;
 
 // Prioritize Neon database URL if available, fall back to regular DATABASE_URL
-const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+let databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error(
@@ -14,7 +14,12 @@ if (!databaseUrl) {
   );
 }
 
-console.log(`Using database connection: ${databaseUrl.substring(0, databaseUrl.indexOf('@'))}`);
+// Remove the 'DATABASE_URL=' prefix if it exists
+if (databaseUrl.startsWith('DATABASE_URL=')) {
+  databaseUrl = databaseUrl.substring('DATABASE_URL='.length);
+}
+
+console.log(`Using database connection type: ${databaseUrl.split(':')[0]}`);
 
 export const pool = new Pool({ 
   connectionString: databaseUrl,
