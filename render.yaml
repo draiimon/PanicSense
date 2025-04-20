@@ -6,11 +6,13 @@ services:
     region: singapore  # Choose the appropriate region
     plan: starter      # Or choose another plan based on your needs
     buildCommand: "" # Docker images are pre-built
-    startCommand: "" # CMD is specified in Dockerfile
+    startCommand: "./render-setup.sh && npm run startRender" # Run migrations and then start app
     healthCheckPath: /api/health
     dockerfilePath: ./Dockerfile
+    numInstances: 1
+    autoDeploy: true
     disk:
-      name: data-volume
+      name: panicsense-data
       mountPath: /data
       sizeGB: 1
     # Use Postgres as the database
@@ -24,7 +26,9 @@ services:
       - key: PORT
         value: "5000"
       - key: PYTHON_PATH
-        value: "/venv/bin/python3"
+        value: python3
+      - key: SESSION_SECRET
+        generateValue: true
       # Add any additional environment variables your application needs
       # For example, if you need OpenAI API key:
       # - key: OPENAI_API_KEY
@@ -32,7 +36,9 @@ services:
 
 databases:
   # Create a Postgres database
-  - name: panicsense-db
+  - type: postgres
+    name: panicsense-db
     plan: free
     region: singapore
-    postgresMajorVersion: 15 # Specify PostgreSQL major version
+    postgresMajorVersion: 15
+    ipAllowList: [] # Allow all IPs during development

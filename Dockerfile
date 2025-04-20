@@ -1,53 +1,65 @@
-FROM node:20.19.0-bullseye-slim
+# STAGE 1: Install Node dependencies and build app
+FROM node:20.19.0 AS node-builder
+WORKDIR /app
 
-# Install Python 3.11 and required dependencies
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm ci
+
+# Copy source files and build
+COPY client ./client
+COPY server ./server
+COPY shared ./shared
+COPY public ./public
+COPY drizzle.config.ts tailwind.config.ts tsconfig.json vite.config.ts theme.json ./
+
+# Build the application
+RUN npm run build
+
+# STAGE 2: Final image with Python + Node
+FROM python:3.11-slim
+
+# Install Node.js and other dependencies
 RUN apt-get update && apt-get install -y \
-    python3.11 \
-    python3.11-venv \
-    python3.11-dev \
-    python3-pip \
-    build-essential \
-    pkg-config \
-    libpq-dev \
-    gcc \
-    g++ \
-    git \
     curl \
+    gnupg \
+    build-essential \
+    libpq-dev \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy built files from node-builder
+COPY --from=node-builder /app/dist ./dist
+COPY --from=node-builder /app/node_modules ./node_modules
+
+# Copy package files
 COPY package*.json ./
 
-# Install Node.js dependencies
-RUN npm ci
-
-# Set up Python virtual environment
-RUN python3.11 -m venv /venv
-ENV PATH="/venv/bin:$PATH"
-
-# Copy Python requirements
+# Copy Python requirements and install
 COPY server/python/requirements.txt ./server/python/
+RUN pip install --no-cache-dir torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir -r server/python/requirements.txt
 
-# Install PyTorch CPU version specifically
-RUN pip3 install --no-cache-dir torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu
+# Copy only needed files for runtime
+COPY migrations ./migrations
+COPY server ./server
+COPY shared ./shared
+COPY index.js render-setup.sh ./
 
-# Install other Python dependencies
-RUN pip3 install --no-cache-dir -r server/python/requirements.txt
+# Make setup script executable
+RUN chmod +x render-setup.sh
 
-# Copy application files
-COPY . .
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=5000
+ENV PYTHON_PATH=python3
 
-# Build the application
-RUN npm run build
-
-# Perform database migrations
-RUN npm run db:push
-
-# Expose the port the app runs on
+# Expose the port
 EXPOSE 5000
 
-# Start the application
+# The CMD is overridden by Render's startCommand in render.yaml
 CMD ["npm", "run", "startRender"]
