@@ -261,6 +261,8 @@ export class DatabaseStorage implements IStorage {
       
       // Fallback to basic insert with only essential fields using raw SQL
       try {
+        // Always include location, disaster_type, and file_id in the fallback
+        // This is critical for CSV uploads to work properly
         const result = await db.execute(sql`
           INSERT INTO sentiment_posts (
             text, 
@@ -268,20 +270,29 @@ export class DatabaseStorage implements IStorage {
             source, 
             language, 
             sentiment, 
-            confidence
+            confidence,
+            location,
+            disaster_type,
+            file_id,
+            explanation
           ) VALUES (
             ${sentimentPost.text},
             ${sentimentPost.timestamp instanceof Date ? sentimentPost.timestamp.toISOString() : (typeof sentimentPost.timestamp === 'string' ? sentimentPost.timestamp : new Date().toISOString())},
             ${sentimentPost.source || 'Unknown'},
             ${sentimentPost.language || 'Unknown'},
             ${sentimentPost.sentiment},
-            ${sentimentPost.confidence}
+            ${sentimentPost.confidence},
+            ${sentimentPost.location || null},
+            ${sentimentPost.disasterType || null},
+            ${sentimentPost.fileId || null},
+            ${sentimentPost.explanation || "Direct DB insertion"}
           )
           RETURNING *
         `);
         
         console.log(`Fallback sentiment post saved with ID: ${result.rows[0].id}`);
         // Convert database column names to JavaScript field names for the fallback case
+        // Make sure to include location and disaster_type from the database result
         const fallbackPost = {
           id: result.rows[0].id,
           text: result.rows[0].text,
@@ -290,10 +301,10 @@ export class DatabaseStorage implements IStorage {
           language: result.rows[0].language,
           sentiment: result.rows[0].sentiment,
           confidence: result.rows[0].confidence,
-          location: null,
-          disasterType: null,
-          fileId: null,
-          explanation: null,
+          location: result.rows[0].location || null,
+          disasterType: result.rows[0].disaster_type || null,
+          fileId: result.rows[0].file_id || null,
+          explanation: result.rows[0].explanation || null,
           processedBy: null,
           aiTrustMessage: null
         };

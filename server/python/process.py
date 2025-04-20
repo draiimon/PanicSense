@@ -164,8 +164,8 @@ class DisasterSentimentBackend:
                     api_key_list = [
                         "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",
                         "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",
-                        "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",	
-                        "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",	
+                        "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",     
+                        "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",     
                         "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",
                         "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",
                         "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",
@@ -1877,16 +1877,66 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
 
             # Load the CSV file
             report_progress(0, "Loading CSV file")
+            
+            # First check if file contains any data
+            with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+                sample_lines = [next(f, '') for _ in range(5)]
+                has_content = any(line.strip() for line in sample_lines)
+                if not has_content:
+                    report_progress(100, "No records found in empty CSV", 0)
+                    return []
+            
+            # Try loading as standard CSV first
             try:
-                df = pd.read_csv(file_path, encoding='utf-8')
-            except UnicodeDecodeError:
-                # Try with different encoding if utf-8 fails
-                df = pd.read_csv(file_path, encoding='latin1')
-
+                # Try with default parameters first
+                try:
+                    df = pd.read_csv(file_path, encoding='utf-8')
+                except UnicodeDecodeError:
+                    # Try with different encoding if utf-8 fails
+                    df = pd.read_csv(file_path, encoding='latin1')
+                    
+                # Special handling for messy/random CSVs with empty cells
+                if len(df.columns) == 1 and all(c.count(',') > 3 for c in df.iloc[:5, 0].astype(str)):
+                    # This is a CSV that pandas couldn't parse correctly - try again with explicit parameters
+                    logging.info("CSV appears to be malformed - trying alternate parsing method")
+                    df = pd.read_csv(file_path, encoding='utf-8', header=0, on_bad_lines='skip', 
+                                    low_memory=False, skipinitialspace=True)
+                
+                # Check if the CSV has a single column with many commas - may need special handling
+                if len(df.columns) == 1:
+                    logging.info("Single-column CSV detected - attempting to parse manually")
+                    # Try to parse manually by reading the file directly
+                    rows = []
+                    with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+                        for line in f:
+                            if line.strip():  # Skip empty lines
+                                rows.append(line.strip().split(','))
+                    
+                    # If we have data, convert to DataFrame
+                    if rows:
+                        # Use first row as header or generate generic headers if needed
+                        if len(rows) > 1:
+                            headers = rows[0]
+                            data = rows[1:]
+                            # Generate empty headers if none present
+                            if len(headers) < max(len(row) for row in data):
+                                headers = [f"col_{i}" for i in range(max(len(row) for row in data))]
+                            df = pd.DataFrame(data, columns=headers)
+            
+            except Exception as e:
+                # If all else fails, try to parse as a simple structured CSV with no headers
+                logging.warning(f"Standard CSV parsing failed: {e}. Attempting fallback method.")
+                try:
+                    # Last resort - try to read with no header
+                    df = pd.read_csv(file_path, encoding='utf-8', header=None, prefix='col_')
+                except Exception as fallback_error:
+                    logging.error(f"Fallback CSV parsing also failed: {fallback_error}")
+                    df = pd.DataFrame()  # Empty DataFrame as a last resort
+            
             # Get total number of records for progress reporting
             total_records = len(df)
             report_progress(0, "CSV file loaded", total_records)
-
+            
             if total_records == 0:
                 report_progress(100, "No records found in CSV", 0)
                 return []
@@ -1994,6 +2044,75 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
             sentiment_col = identified_columns.get("sentiment")
             confidence_col = identified_columns.get("confidence")
             language_col = identified_columns.get("language")
+            
+            # Special handling for "MAGULONG DATA" style CSVs - with many empty columns and specific positions
+            # Examine first few rows to check for pattern
+            first_rows = df.head(5)
+            first_rows_string = first_rows.to_string()
+            logging.info(f"First rows sample for analysis: {first_rows_string[:200]}")
+            
+            # Check if this is a CSV with many columns but only a few have values
+            if len(df.columns) > 10:
+                # Check for patterns in the data
+                empty_columns = []
+                valuable_columns = []
+                
+                for col in df.columns:
+                    # Check if column is mostly empty
+                    empty_ratio = df[col].isna().mean()
+                    if empty_ratio > 0.8:  # 80% or more values are NaN
+                        empty_columns.append(col)
+                    else:
+                        valuable_columns.append(col)
+                
+                logging.info(f"Found {len(empty_columns)} mostly empty columns and {len(valuable_columns)} valuable columns")
+                
+                # If we have a messy CSV with lots of empty columns, manually map important columns
+                if len(empty_columns) > 5 and len(valuable_columns) < 5:
+                    logging.info("Detected messy CSV with many empty columns - attempting to identify critical columns by position")
+                    
+                    # Special mapping for CSV files with empty columns but values at specific positions
+                    # Analyze first 5 rows to find patterns
+                    column_values = {col: df[col].dropna().astype(str).tolist()[:5] for col in df.columns}
+                    
+                    # Try to identify specific columns by content patterns
+                    for col, values in column_values.items():
+                        if not values:
+                            continue
+                            
+                        # Check for timestamps (date-like values with numbers and separators)
+                        if any(re.search(r'\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}|\d{1,2}[-:]\d{2}', v) for v in values):
+                            logging.info(f"Identified timestamp column by pattern: {col}")
+                            timestamp_col = col
+                        
+                        # Check for location names (cities in Philippines)
+                        ph_cities = ['Manila', 'Quezon City', 'Cebu', 'Davao', 'Tacloban', 'Legazpi', 'Baguio', 'Iloilo', 'Cagayan']
+                        if any(city in v for v in values for city in ph_cities):
+                            logging.info(f"Identified location column by city names: {col}")
+                            location_col = col
+                        
+                        # Check for social media sources
+                        social_media = ['Facebook', 'Twitter', 'Instagram', 'TikTok', 'YouTube']
+                        if any(platform in v for v in values for platform in social_media):
+                            logging.info(f"Identified source column by social media platform names: {col}")
+                            source_col = col
+                    
+                    # If we still don't have text column identified correctly, use the first column with actual text content
+                    if text_col is None or df[text_col].isna().mean() > 0.5:
+                        # Find the column with longest text content
+                        text_lengths = {}
+                        for col in df.columns:
+                            sample_texts = df[col].dropna().astype(str).tolist()[:5]
+                            if sample_texts:
+                                avg_len = sum(len(t) for t in sample_texts) / len(sample_texts) if sample_texts else 0
+                                text_lengths[col] = avg_len
+                        
+                        if text_lengths:
+                            text_col = max(text_lengths.items(), key=lambda x: x[1])[0]
+                            logging.info(f"Identified text column by content length: {text_col}")
+                    
+                    # Debug log
+                    logging.info(f"After special handling, columns are: text={text_col}, timestamp={timestamp_col}, location={location_col}, source={source_col}")
 
             # Process all records without limitation
             sample_size = len(df)
@@ -2079,7 +2198,13 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                             if detected_source != "Unknown Social Media":
                                 source = detected_source
 
-                        # Extract location and disaster type from CSV if available
+                        # Extract location directly from the text first (same as real-time analysis)
+                        detected_location = self.extract_location(text)
+                        
+                        # Extract disaster type directly from the text first (same as real-time analysis)
+                        detected_disaster = self.extract_disaster_type(text)
+                        
+                        # Try to extract from CSV columns if available
                         csv_location = str(row.get(
                             location_col, "")) if location_col else None
                         csv_disaster = str(row.get(
@@ -2097,6 +2222,14 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                 "nan", "none", ""
                         ]:
                             csv_disaster = None
+                            
+                        # Always prioritize detection from text if CSV values are missing
+                        # This ensures CSV handling works like real-time analysis
+                        if not csv_location or csv_location.lower() in ["nan", "none", ""]:
+                            csv_location = detected_location
+                            
+                        if not csv_disaster or csv_disaster.lower() in ["nan", "none", ""]:
+                            csv_disaster = detected_disaster
 
                         # Check if disaster column contains full text (common error)
                         if csv_disaster and len(
