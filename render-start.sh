@@ -37,4 +37,17 @@ chmod -R 755 uploads
 
 # Start the server with all necessary environment variables
 echo "Starting main application server..."
-NODE_ENV=production node dist/index.js
+# Try multiple possible entry points
+if [ -f "dist/index.js" ]; then
+  echo "Starting from dist/index.js..."
+  NODE_ENV=production node dist/index.js
+elif [ -f "server.js" ]; then
+  echo "Starting from server.js..."
+  NODE_ENV=production node server.js
+elif [ -f "index.js" ]; then
+  echo "Starting from index.js..."
+  NODE_ENV=production node index.js
+else
+  echo "ERROR: No valid entry point found!"
+  exit 1
+fi
