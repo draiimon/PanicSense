@@ -61,13 +61,12 @@ export async function simpleDbFix() {
         CREATE TABLE IF NOT EXISTS "disaster_events" (
           "id" serial PRIMARY KEY,
           "name" varchar(255) NOT NULL,
-          "type" varchar(50),
-          "start_date" timestamp,
-          "end_date" timestamp,
-          "location" varchar(255),
           "description" text,
-          "impact_level" varchar(50),
-          "created_at" timestamp DEFAULT now()
+          "timestamp" timestamp DEFAULT now() NOT NULL,
+          "location" varchar(255),
+          "type" varchar(50) NOT NULL,
+          "sentiment_impact" varchar(50),
+          "created_by" integer REFERENCES "users"("id")
         )
       `),
       

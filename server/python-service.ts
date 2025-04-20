@@ -1133,8 +1133,8 @@ export class PythonService {
             confidence: adjustedConfidence,
             explanation: explanation,
             language: trainingExample.language,
-            disasterType: this.extractDisasterTypeFromText(text) || "UNKNOWN",
-            location: this.extractLocationFromText(text) || "UNKNOWN"
+            disasterType: this.extractDisasterTypeFromText(text) || "Unknown Disaster",
+            location: this.extractLocationFromText(text) || "Unknown Location"
           };
         }
       } catch (dbError) {
