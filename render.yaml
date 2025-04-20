@@ -1,11 +1,17 @@
-# render.yaml - Simple configuration for Render deployment
+# render.yaml - Simple configuration for Render deployment with CommonJS fix
 services:
   - type: web
     name: disaster-monitoring-platform
     env: node
     plan: starter
-    buildCommand: npm install && npx vite build
-    # Use our pure JavaScript file with NO top-level await
+    buildCommand: |
+      # Update package.json to fix CommonJS compatibility issue
+      node render-update-package.js
+      # Install dependencies
+      npm install
+      # Build the frontend
+      npx vite build
+    # Use our pure CommonJS implementation with NO top-level await
     startCommand: NODE_ENV=production node index.js
     envVars:
       - key: NODE_ENV

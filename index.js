@@ -1,103 +1,151 @@
 /**
- * Main entry point for the application on Render.com
- * This is a pure JavaScript file with no top-level await
+ * PRODUCTION ENTRY POINT FOR RENDER.COM
+ * 
+ * This is a pure CommonJS file that will work in any Node.js environment
+ * without requiring any TypeScript compilation
  */
 
-import express from 'express';
-import { createServer } from 'http';
-import path from 'path';
-import { WebSocketServer } from 'ws';
-import { fileURLToPath } from 'url';
-import pg from 'pg';
-
-// Get directory path
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const distDir = path.join(__dirname, 'client/dist');
+// Use CommonJS syntax for maximum compatibility
+const express = require('express');
+const { Pool } = require('pg');
+const http = require('http');
+const path = require('path');
+const fs = require('fs');
+const { WebSocketServer } = require('ws');
 
 // Create Express app
 const app = express();
+const port = process.env.PORT || 10000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Create server
-const server = createServer(app);
+// Create HTTP server
+const server = http.createServer(app);
 
 // Create WebSocket server
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server, path: '/ws' });
 wss.on('connection', (ws) => {
   console.log('WebSocket client connected');
+  
+  // Send initial message
+  ws.send(JSON.stringify({
+    type: 'connection_established',
+    message: 'Connected to server',
+    timestamp: Date.now()
+  }));
+  
   ws.on('close', () => console.log('WebSocket client disconnected'));
 });
 
 // Connect to PostgreSQL database
 let pool;
 if (process.env.DATABASE_URL) {
-  pool = new pg.Pool({
+  console.log('Connecting to PostgreSQL database...');
+  pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
   });
+} else {
+  console.warn('No DATABASE_URL provided, database features will be disabled');
 }
 
-// Initialize database
-async function initDatabase() {
-  if (!pool) {
-    console.warn('No DATABASE_URL provided, skipping database initialization');
-    return;
-  }
-  
-  try {
-    const client = await pool.connect();
-    console.log('✅ Successfully connected to PostgreSQL database');
-    client.release();
-  } catch (err) {
-    console.error('❌ Failed to connect to PostgreSQL database:', err);
-  }
-}
-
-// Setup static file serving and routes
-app.use(express.static(distDir));
-
-// Health check route
-app.get('/api/health', async (req, res) => {
-  try {
-    if (pool) {
-      const client = await pool.connect();
-      await client.query('SELECT NOW()');
-      client.release();
-      res.json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
-    } else {
-      res.json({ status: 'ok', database: 'not configured', timestamp: new Date().toISOString() });
+// Create simple broadcast function for WebSocket
+function broadcastUpdate(data) {
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) { // WebSocketServer.OPEN
+      client.send(JSON.stringify({
+        ...data,
+        timestamp: Date.now()
+      }));
     }
+  });
+}
+
+// Initialize database and start server
+async function startServer() {
+  try {
+    console.log('========================================');
+    console.log(`Starting server in ${process.env.NODE_ENV || 'development'} mode`);
+    console.log('========================================');
+    
+    // Test database connection
+    if (pool) {
+      try {
+        const client = await pool.connect();
+        console.log('✅ Successfully connected to PostgreSQL database');
+        client.release();
+      } catch (err) {
+        console.error('❌ Failed to connect to PostgreSQL database:', err);
+      }
+    }
+    
+    // Setup static file serving
+    const distDir = path.join(__dirname, 'client/dist');
+    if (fs.existsSync(distDir)) {
+      app.use(express.static(distDir));
+      console.log(`Serving static files from ${distDir}`);
+    } else {
+      console.warn(`Static directory ${distDir} not found`);
+    }
+    
+    // Add health check route
+    app.get('/api/health', async (req, res) => {
+      try {
+        if (pool) {
+          const client = await pool.connect();
+          await client.query('SELECT NOW()');
+          client.release();
+          res.json({ 
+            status: 'ok', 
+            database: 'connected', 
+            timestamp: new Date().toISOString(),
+            mode: process.env.NODE_ENV || 'development'
+          });
+        } else {
+          res.json({ 
+            status: 'ok', 
+            database: 'not configured', 
+            timestamp: new Date().toISOString(),
+            mode: process.env.NODE_ENV || 'development'
+          });
+        }
+      } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+      }
+    });
+    
+    // Simple routes for live check
+    app.get('/api/echo', (req, res) => {
+      res.json({
+        message: 'Server is running',
+        timestamp: new Date().toISOString(),
+        mode: process.env.NODE_ENV || 'development'
+      });
+    });
+    
+    // Fallback route for SPA
+    app.get('*', (req, res) => {
+      if (fs.existsSync(path.join(distDir, 'index.html'))) {
+        res.sendFile(path.join(distDir, 'index.html'));
+      } else {
+        res.status(404).send('Application not properly built. Static files missing.');
+      }
+    });
+    
+    // Start the server
+    server.listen(port, '0.0.0.0', () => {
+      console.log(`========================================`);
+      console.log(`🚀 Server running on port ${port}`);
+      console.log(`Server listening at: http://0.0.0.0:${port}`);
+      console.log(`Server ready at: ${new Date().toISOString()}`);
+      console.log(`========================================`);
+    });
+    
   } catch (err) {
-    res.status(500).json({ status: 'error', message: err.message });
+    console.error('FATAL ERROR during startup:', err);
+    process.exit(1);
   }
-});
-
-// Fallback route for SPA
-app.get('*', (req, res) => {
-  res.sendFile(path.join(distDir, 'index.html'));
-});
-
-// Start the server (no top-level await)
-const port = process.env.PORT || 10000;
-
-// Initialize database and start server without top-level await
-initDatabase().then(() => {
-  server.listen(port, '0.0.0.0', () => {
-    console.log(`========================================`);
-    console.log(`Server running on port ${port}`);
-    console.log(`Server listening at: http://0.0.0.0:${port}`);
-    console.log(`Server ready at: ${new Date().toISOString()}`);
-    console.log(`========================================`);
-  });
-}).catch(err => {
-  console.error('Error during startup:', err);
-  // Still start the server even if database fails
-  server.listen(port, '0.0.0.0', () => {
-    console.log(`Server running on port ${port} (database connection failed)`);
-  });
-});
+}
 
 // Handle graceful shutdown
 process.on('SIGTERM', () => {
@@ -108,9 +156,18 @@ process.on('SIGTERM', () => {
       pool.end().then(() => {
         console.log('Database pool closed');
         process.exit(0);
-      });
+      }).catch(() => process.exit(1));
     } else {
       process.exit(0);
     }
+  });
+});
+
+// Start without any top-level await
+startServer().catch(err => {
+  console.error('Error during startup:', err);
+  // Still start the server even if there's an error
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port ${port} (startup error occurred)`);
   });
 });
