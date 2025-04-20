@@ -21,7 +21,7 @@ try {
   
   // Add special render build script if it doesn't exist
   if (!packageJson.scripts.renderBuild) {
-    packageJson.scripts.renderBuild = "tsc --project tsconfig.render.json";
+    packageJson.scripts.renderBuild = "tsc --project tsconfig.render.json && cp -r client/public dist/client/";
   }
   
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
@@ -36,7 +36,7 @@ try {
   console.log('Creating special tsconfig for Render...');
   const tsConfig = {
     "include": ["server/**/*", "shared/**/*"],
-    "exclude": ["node_modules", "build", "client", "**/*.test.ts"],
+    "exclude": ["node_modules", "build", "client/src", "**/*.test.ts"],
     "compilerOptions": {
       "target": "ES2018",
       "module": "CommonJS",
@@ -48,6 +48,8 @@ try {
       "skipLibCheck": true,
       "forceConsistentCasingInFileNames": true,
       "baseUrl": ".",
+      "allowSyntheticDefaultImports": true,
+      "resolveJsonModule": true,
       "paths": {
         "@shared/*": ["./shared/*"]
       }
@@ -64,7 +66,28 @@ try {
   process.exit(1);
 }
 
-// Step 3: Run the build
+// Step 3: Rename server/index-wrapper.ts to server/index.ts temporarily
+try {
+  console.log('Temporarily swapping index-wrapper.ts to index.ts for build...');
+  // First backup original index.ts
+  fs.copyFileSync(
+    path.join(process.cwd(), 'server', 'index.ts'),
+    path.join(process.cwd(), 'server', 'index.ts.bak')
+  );
+  
+  // Then copy index-wrapper.ts to index.ts
+  fs.copyFileSync(
+    path.join(process.cwd(), 'server', 'index-wrapper.ts'),
+    path.join(process.cwd(), 'server', 'index.ts')
+  );
+  
+  console.log('Successfully swapped index files');
+} catch (err) {
+  console.error('Failed to swap index files:', err);
+  process.exit(1);
+}
+
+// Step 4: Run the build
 try {
   console.log('Running Render-specific build...');
   execSync('npm run renderBuild', { stdio: 'inherit' });
@@ -72,22 +95,42 @@ try {
 } catch (err) {
   console.error('Build failed:', err);
   process.exit(1);
+} finally {
+  // Restore original index.ts
+  try {
+    fs.copyFileSync(
+      path.join(process.cwd(), 'server', 'index.ts.bak'),
+      path.join(process.cwd(), 'server', 'index.ts')
+    );
+    fs.unlinkSync(path.join(process.cwd(), 'server', 'index.ts.bak'));
+    console.log('Successfully restored original index.ts');
+  } catch (restoreErr) {
+    console.error('Warning: Failed to restore original index.ts:', restoreErr);
+  }
 }
 
-// Step 4: Create a CommonJS bootstrap file
+// Step 5: Create a production entry point
 try {
-  console.log('Creating CommonJS bootstrap file...');
-  const bootstrapContent = `// CommonJS bootstrap for Render deployment
-const { app, server } = require('./dist/server/index.js');
+  console.log('Creating production entry point...');
+  const entryContent = `// Production entry point - no top-level await
+// This file was auto-generated during the build process
 
-// Export for Render to use
-module.exports = { app, server };
+console.log('Starting production server (CommonJS version)');
+
+// Use require syntax for CommonJS compatibility
+const serverModule = require('./server/index.js');
+
+// Export the app and server for Render to use
+module.exports = {
+  app: serverModule.app,
+  server: serverModule.server
+};
 `;
   
-  fs.writeFileSync(path.join(process.cwd(), 'dist', 'bootstrap.js'), bootstrapContent);
-  console.log('Successfully created bootstrap.js');
+  fs.writeFileSync(path.join(process.cwd(), 'dist', 'index.js'), entryContent);
+  console.log('Successfully created production entry point');
 } catch (err) {
-  console.error('Failed to create bootstrap.js:', err);
+  console.error('Failed to create production entry point:', err);
   process.exit(1);
 }
 

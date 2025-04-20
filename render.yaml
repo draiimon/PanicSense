@@ -19,7 +19,7 @@ services:
       
       # Run database migrations
       NODE_ENV=production npm run db:push
-    startCommand: NODE_ENV=production node dist/bootstrap.js
+    startCommand: NODE_ENV=production node dist/index.js
     autoDeploy: true
     healthCheckPath: /api/health
     envVars:
