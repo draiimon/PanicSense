@@ -286,9 +286,22 @@ export class DatabaseStorage implements IStorage {
   async createSentimentPost(sentimentPost: InsertSentimentPost): Promise<SentimentPost> {
     try {
       // Create timestamp as ISO string for proper formatting in the query
-      const timestamp = sentimentPost.timestamp instanceof Date ? sentimentPost.timestamp.toISOString() : sentimentPost.timestamp;
+      const timestamp = sentimentPost.timestamp instanceof Date ? 
+        sentimentPost.timestamp.toISOString() : 
+        (typeof sentimentPost.timestamp === 'string' ? sentimentPost.timestamp : new Date().toISOString());
       
-      // Use direct SQL query to avoid potential column name issues
+      // Sanitize all inputs for SQL safety
+      const safeText = sentimentPost.text ? sentimentPost.text.replace(/'/g, "''") : "No text provided";
+      const safeSource = sentimentPost.source ? sentimentPost.source.replace(/'/g, "''") : null;
+      const safeLanguage = sentimentPost.language ? sentimentPost.language.replace(/'/g, "''") : null;
+      const safeSentiment = sentimentPost.sentiment ? sentimentPost.sentiment.replace(/'/g, "''") : "Unknown";
+      const safeConfidence = typeof sentimentPost.confidence === 'number' ? sentimentPost.confidence : 0.5;
+      const safeLocation = sentimentPost.location ? sentimentPost.location.replace(/'/g, "''") : null;
+      const safeDisasterType = sentimentPost.disasterType ? sentimentPost.disasterType.replace(/'/g, "''") : null;
+      const safeExplanation = sentimentPost.explanation ? sentimentPost.explanation.replace(/'/g, "''") : null;
+      const safeProcessedBy = sentimentPost.processedBy ? sentimentPost.processedBy.replace(/'/g, "''") : null;
+      
+      // Use direct SQL query with sanitized inputs
       const result = await db.execute(sql`
         INSERT INTO sentiment_posts (
           text, 
@@ -303,17 +316,17 @@ export class DatabaseStorage implements IStorage {
           explanation, 
           processed_by
         ) VALUES (
-          ${sentimentPost.text},
+          ${safeText},
           ${timestamp},
-          ${sentimentPost.source || null},
-          ${sentimentPost.language || null},
-          ${sentimentPost.sentiment},
-          ${sentimentPost.confidence},
-          ${sentimentPost.location || null},
-          ${sentimentPost.disasterType || null},
+          ${safeSource},
+          ${safeLanguage},
+          ${safeSentiment},
+          ${safeConfidence},
+          ${safeLocation},
+          ${safeDisasterType},
           ${sentimentPost.fileId || null},
-          ${sentimentPost.explanation || null},
-          ${sentimentPost.processedBy || null}
+          ${safeExplanation},
+          ${safeProcessedBy}
         )
         RETURNING *
       `);
@@ -347,6 +360,21 @@ export class DatabaseStorage implements IStorage {
       try {
         // Always include location, disaster_type, and file_id in the fallback
         // This is critical for CSV uploads to work properly
+        // Add another fallback for extreme reliability
+        // Handle text input to ensure SQL safety
+        const safeText = sentimentPost.text ? sentimentPost.text.replace(/'/g, "''") : "No text provided";
+        const safeTimestamp = sentimentPost.timestamp instanceof Date ? 
+          sentimentPost.timestamp.toISOString() : 
+          (typeof sentimentPost.timestamp === 'string' ? sentimentPost.timestamp : new Date().toISOString());
+        const safeSource = sentimentPost.source ? sentimentPost.source.replace(/'/g, "''") : "Unknown";
+        const safeLanguage = sentimentPost.language ? sentimentPost.language.replace(/'/g, "''") : "Unknown";
+        const safeSentiment = sentimentPost.sentiment ? sentimentPost.sentiment.replace(/'/g, "''") : "Unknown";
+        const safeConfidence = typeof sentimentPost.confidence === 'number' ? sentimentPost.confidence : 0.5;
+        const safeLocation = sentimentPost.location ? sentimentPost.location.replace(/'/g, "''") : null;
+        const safeDisasterType = sentimentPost.disasterType ? sentimentPost.disasterType.replace(/'/g, "''") : null;
+        const safeExplanation = sentimentPost.explanation ? sentimentPost.explanation.replace(/'/g, "''") : "Direct DB insertion";
+        
+        // Use raw SQL with parametrized queries for maximum stability
         const result = await db.execute(sql`
           INSERT INTO sentiment_posts (
             text, 
@@ -360,16 +388,16 @@ export class DatabaseStorage implements IStorage {
             file_id,
             explanation
           ) VALUES (
-            ${sentimentPost.text},
-            ${sentimentPost.timestamp instanceof Date ? sentimentPost.timestamp.toISOString() : (typeof sentimentPost.timestamp === 'string' ? sentimentPost.timestamp : new Date().toISOString())},
-            ${sentimentPost.source || 'Unknown'},
-            ${sentimentPost.language || 'Unknown'},
-            ${sentimentPost.sentiment},
-            ${sentimentPost.confidence},
-            ${sentimentPost.location || null},
-            ${sentimentPost.disasterType || null},
+            ${safeText},
+            ${safeTimestamp},
+            ${safeSource},
+            ${safeLanguage},
+            ${safeSentiment},
+            ${safeConfidence},
+            ${safeLocation},
+            ${safeDisasterType},
             ${sentimentPost.fileId || null},
-            ${sentimentPost.explanation || "Direct DB insertion"}
+            ${safeExplanation}
           )
           RETURNING *
         `);

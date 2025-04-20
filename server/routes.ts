@@ -13,6 +13,8 @@ import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFee
 import { usageTracker } from "./utils/usage-tracker";
 import { uploadSessionManager } from "./utils/upload-session-manager";
 import { EventEmitter } from 'events';
+import { registerRealTimeFeedRoutes } from "./routes/real-time-feeds";
+import { startAutoPostGenerator } from "./utils/auto-post-generator";
 
 // Extend global to support our connection counter
 declare global {
@@ -166,6 +168,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     server: httpServer,
     path: '/ws'  
   });
+  
+  // Register real-time feed routes
+  registerRealTimeFeedRoutes(app, wss);
+  
+  // Start the auto-post generator for real-time feed
+  startAutoPostGenerator();
 
   // WebSocket connection handler
   wss.on('connection', (ws: WebSocket) => {
