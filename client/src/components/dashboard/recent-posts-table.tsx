@@ -73,7 +73,7 @@ export function RecentPostsTable({
         >
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-3">
-              <p className="text-sm text-slate-700 line-clamp-2 flex-grow">{post.text}</p>
+              <p className="text-sm text-slate-700 flex-grow">{post.text}</p>
               <div className="flex-shrink-0">
                 <Badge 
                   className={`${getSentimentBadgeClasses(post.sentiment)} text-xs whitespace-nowrap`}
