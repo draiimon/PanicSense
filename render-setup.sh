@@ -17,7 +17,7 @@ echo "Checking database connection..."
 max_retries=10
 retry_count=0
 while [ $retry_count -lt $max_retries ]; do
-  if node -e "const { Pool } = require('pg'); const pool = new Pool({ connectionString: process.env.DATABASE_URL }); pool.query('SELECT NOW()', (err, res) => { if (err) { process.exit(1); } else { process.exit(0); } })"; then
+  if node -e "import pg from 'pg'; const { Pool } = pg; const pool = new Pool({ connectionString: process.env.DATABASE_URL }); pool.query('SELECT NOW()', (err, res) => { if (err) { process.exit(1); } else { process.exit(0); } })" --input-type=module; then
     echo "Database connection successful!"
     break
   else
