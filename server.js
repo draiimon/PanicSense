@@ -1,6 +1,6 @@
 /**
- * PRODUCTION SERVER
- * Simple Node.js server for production deployment
+ * SERVER
+ * Simple Node.js server for the application
  */
 
 const express = require('express');
