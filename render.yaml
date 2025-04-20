@@ -1,13 +1,12 @@
-# render.yaml - COMPLETELY REFACTORED FOR RENDER DEPLOYMENT
+# render.yaml - Simple configuration for Render deployment
 services:
   - type: web
     name: disaster-monitoring-platform
     env: node
     plan: starter
-    # Use our special deployment script that handles everything
-    buildCommand: ./render-deploy.sh
-    # Use our launcher script that avoids TypeScript completely
-    startCommand: node start.js
+    buildCommand: npm install && npx vite build
+    # Use our pure JavaScript file with NO top-level await
+    startCommand: NODE_ENV=production node index.js
     envVars:
       - key: NODE_ENV
         value: production
