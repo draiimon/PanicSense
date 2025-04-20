@@ -45,11 +45,14 @@ export async function simpleDbFix() {
           "timestamp" timestamp DEFAULT now(),
           "source" varchar(255),
           "language" varchar(50),
-          "sentiment" varchar(50),
-          "confidence" double precision DEFAULT 0,
-          "file_id" integer,
+          "sentiment" varchar(50) NOT NULL,
+          "confidence" real NOT NULL,
+          "location" varchar(255),
           "disaster_type" varchar(255),
-          "location" varchar(255)
+          "file_id" integer,
+          "explanation" text,
+          "processed_by" integer REFERENCES "users"("id"),
+          "ai_trust_message" text
         )
       `),
       
@@ -72,18 +75,12 @@ export async function simpleDbFix() {
       db.execute(sql`
         CREATE TABLE IF NOT EXISTS "analyzed_files" (
           "id" serial PRIMARY KEY,
-          "filename" varchar(255) NOT NULL,
-          "original_filename" varchar(255),
-          "file_size" integer,
+          "original_name" varchar(255) NOT NULL,
+          "stored_name" varchar(255) NOT NULL,
+          "timestamp" timestamp DEFAULT now(),
           "record_count" integer,
-          "processed_count" integer,
-          "success_count" integer,
-          "error_count" integer,
-          "source_type" varchar(50),
-          "upload_date" timestamp DEFAULT now(),
-          "processing_time" integer,
-          "status" varchar(50),
-          "user_id" integer,
+          "evaluation_metrics" jsonb,
+          "uploaded_by" integer,
           "metrics" jsonb
         )
       `),
@@ -92,12 +89,17 @@ export async function simpleDbFix() {
       db.execute(sql`
         CREATE TABLE IF NOT EXISTS "sentiment_feedback" (
           "id" serial PRIMARY KEY,
-          "text" text NOT NULL,
-          "original_sentiment" varchar(50),
-          "corrected_sentiment" varchar(50),
-          "submitted_at" timestamp DEFAULT now(),
-          "user_id" integer,
-          "trained" boolean DEFAULT false
+          "original_post_id" integer REFERENCES "sentiment_posts"("id") ON DELETE CASCADE,
+          "original_text" text NOT NULL,
+          "original_sentiment" varchar(50) NOT NULL,
+          "corrected_sentiment" varchar(50) DEFAULT '',
+          "corrected_location" varchar(255),
+          "corrected_disaster_type" varchar(255),
+          "trained_on" boolean DEFAULT false,
+          "created_at" timestamp DEFAULT now(),
+          "user_id" integer REFERENCES "users"("id"),
+          "ai_trust_message" text,
+          "possible_trolling" boolean DEFAULT false
         )
       `),
       
@@ -105,11 +107,13 @@ export async function simpleDbFix() {
       db.execute(sql`
         CREATE TABLE IF NOT EXISTS "training_examples" (
           "id" serial PRIMARY KEY,
-          "text" text NOT NULL,
+          "text" text NOT NULL UNIQUE,
+          "text_key" text NOT NULL UNIQUE,
           "sentiment" varchar(50) NOT NULL,
-          "language" varchar(50),
+          "language" varchar(50) NOT NULL,
+          "confidence" real DEFAULT 0.95 NOT NULL,
           "created_at" timestamp DEFAULT now(),
-          "source" varchar(255)
+          "updated_at" timestamp DEFAULT now()
         )
       `),
       
@@ -120,6 +124,8 @@ export async function simpleDbFix() {
           "session_id" varchar(255) NOT NULL UNIQUE,
           "status" varchar(50) NOT NULL,
           "progress" jsonb,
+          "server_start_timestamp" varchar(255),
+          "file_id" integer,
           "created_at" timestamp DEFAULT now(),
           "updated_at" timestamp DEFAULT now(),
           "user_id" integer
@@ -130,11 +136,11 @@ export async function simpleDbFix() {
       db.execute(sql`
         CREATE TABLE IF NOT EXISTS "profile_images" (
           "id" serial PRIMARY KEY,
-          "filename" varchar(255) NOT NULL,
-          "original_filename" varchar(255),
-          "file_size" integer,
-          "upload_date" timestamp DEFAULT now(),
-          "user_id" integer
+          "name" varchar(255) NOT NULL,
+          "role" varchar(255) NOT NULL,
+          "image_url" varchar(255) NOT NULL,
+          "description" text,
+          "created_at" timestamp DEFAULT now()
         )
       `)
     ];
