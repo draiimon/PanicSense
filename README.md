@@ -11,20 +11,17 @@ An advanced AI-powered disaster monitoring and community resilience platform spe
 git clone https://github.com/yourusername/panicsense-ph.git
 cd panicsense-ph
 
-# Copy environment variables template and set up your variables
-cp .env.example .env
-
-# Install dependencies
-npm install
-
-# Set up the database
-npm run db:push
+# The first-time setup script will run automatically after clone
+# If it doesn't, run it manually:
+./firstrun.sh
 
 # Start the application in development mode
 npm run dev
 ```
 
-> **First-time setup:** When you first run the application, a setup script will automatically check if your environment is properly configured and guide you through the setup process.
+> **First-time setup:** The repository includes Git hooks that automatically run the setup script after cloning. This guides you through configuring environment variables, installing dependencies, and setting up the database. If the automatic setup doesn't trigger, just run `./firstrun.sh` manually.
+
+> **For Repository Administrators:** If you're setting up the repository for others to clone, run `./git-clone-setup.sh` once to configure the Git hooks for automatic setup.
 
 ## ⚙️ System Requirements
 

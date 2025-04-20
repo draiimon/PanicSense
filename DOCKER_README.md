@@ -43,7 +43,7 @@ In summary:
 
 ## Local Development & Testing
 
-To verify your Docker setup locally before deploying:
+To verify your Docker setup locally before deploying to Render:
 
 ```bash
 # Make the verification script executable
@@ -53,7 +53,14 @@ chmod +x docker-verify.sh
 ./docker-verify.sh
 ```
 
-This will build your Docker image and run tests to verify it works correctly.
+This will:
+1. Build your Docker image using the multi-stage Dockerfile
+2. Start a temporary PostgreSQL container for testing
+3. Run the application container and connect it to the database
+4. Test the API health endpoint to ensure everything works
+5. Clean up all test containers
+
+If the verification passes, your setup is ready for deployment to Render!
 
 ## Technology Stack
 
