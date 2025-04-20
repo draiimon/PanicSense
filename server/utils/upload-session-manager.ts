@@ -32,22 +32,18 @@ export class UploadSessionManager {
    */
   async findActiveSession() {
     try {
-      // Calculate timestamp for stale sessions (30 minutes old)
-      const staleTimestamp = new Date(Date.now() - this.STALE_SESSION_THRESHOLD);
+      // Just use direct SQL to avoid schema issues with column names
+      const result = await db.execute(sql`
+        SELECT * FROM upload_sessions 
+        WHERE status = 'processing' 
+        LIMIT 1
+      `);
       
-      // Find active sessions - those that are:
-      // 1. In 'processing' status AND
-      // 2. Were updated within the last 30 minutes
-      const activeSessions = await db.select().from(uploadSessions)
-        .where(
-          and(
-            eq(uploadSessions.status, 'processing'),
-            gt(uploadSessions.updatedAt, staleTimestamp)
-          )
-        )
-        .limit(1);
+      if (result.rows && result.rows.length > 0) {
+        return result.rows[0];
+      }
       
-      return activeSessions.length > 0 ? activeSessions[0] : null;
+      return null;
     } catch (error) {
       console.error('Error finding active upload session:', error);
       return null;
