@@ -4,8 +4,9 @@
  */
 
 import express from 'express';
-import pkg from 'pg';
-const { Pool } = pkg;
+// Fix for pg ESM import
+import pg from 'pg';
+const { Pool } = pg;
 import http from 'http';
 import path from 'path';
 import fs from 'fs';
