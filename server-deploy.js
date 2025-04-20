@@ -50,42 +50,37 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Serve static files
-// Try multiple possible static file locations
-const possibleDirs = [
-  path.join(__dirname, 'public'),             // dist/public when built
-  path.join(__dirname, '../public'),          // /public
-  path.join(__dirname, '../dist/public'),     // /dist/public 
-  path.join(__dirname, 'client/dist'),        // original location
-  path.join(__dirname, '../client/dist')      // /client/dist
-];
+const publicDir = path.join(__dirname, '../dist/public');
 
-let staticDir = null;
-
-// Find the first directory that exists
-for (const dir of possibleDirs) {
-  if (fs.existsSync(dir)) {
-    staticDir = dir;
-    console.log(`Found static files in: ${dir}`);
-    break;
-  }
-}
-
-if (staticDir) {
-  console.log(`Serving static files from ${staticDir}`);
-  app.use(express.static(staticDir));
+// Check if the directory exists and serve it
+if (fs.existsSync(publicDir)) {
+  console.log(`Serving static files from ${publicDir}`);
+  app.use(express.static(publicDir));
   
   // SPA fallback
   app.get('*', (req, res) => {
-    if (fs.existsSync(path.join(staticDir, 'index.html'))) {
-      res.sendFile(path.join(staticDir, 'index.html'));
+    const indexHtml = path.join(publicDir, 'index.html');
+    if (fs.existsSync(indexHtml)) {
+      res.sendFile(indexHtml);
     } else {
-      res.send('Application is running but index.html not found');
+      console.error('Error: index.html not found in', publicDir);
+      res.send('Application is running but index.html not found. Check server logs.');
     }
   });
 } else {
-  console.warn(`No static directory found. Tried: ${possibleDirs.join(', ')}`);
+  console.error(`Error: Static directory not found at ${publicDir}`);
+  // List all directories to debug
+  console.log('Available directories:');
+  try {
+    const rootDir = path.join(__dirname, '..');
+    const dirs = fs.readdirSync(rootDir);
+    console.log(dirs);
+  } catch (err) {
+    console.error('Error listing directories:', err);
+  }
+  
   app.get('*', (req, res) => {
-    res.send('Application is running but frontend static files were not found');
+    res.send('Application is running but static files directory not found. Check server logs.');
   });
 }
 
