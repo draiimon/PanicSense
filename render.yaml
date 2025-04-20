@@ -1,12 +1,11 @@
-# PRODUCTION RENDER CONFIGURATION FOR FREE TIER
-# Uses pure CommonJS server.js implementation with NO top-level await
+# SIMPLE RENDER DEPLOYMENT CONFIGURATION
 services:
   - type: web
-    name: panicsense-deployment
+    name: panicsense
     env: node
     plan: free
     buildCommand: npm install && npx vite build
-    startCommand: NODE_ENV=production node server.js
+    startCommand: node server-deploy.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -14,8 +13,6 @@ services:
         fromDatabase:
           name: panicsense-db
           property: connectionString
-      - key: PORT
-        value: 10000
 
 databases:
   - name: panicsense-db
