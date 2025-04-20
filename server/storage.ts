@@ -570,6 +570,8 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date()
         })
         .returning();
+        
+      return result;
     } catch (error) {
       console.error("Error in createUploadSession (table may not exist):", error);
       // Return a mock session since the table might not exist
