@@ -38,21 +38,17 @@ wss.on('connection', (ws) => {
   ws.on('close', () => console.log('WebSocket client disconnected'));
 });
 
-// Connect to PostgreSQL database
+// Import the database connection from server/db.ts
+// Avoid creating a separate connection - use only the Neon database 
+// managed by Drizzle ORM
 let pool;
-if (process.env.DATABASE_URL) {
-  console.log('Connecting to PostgreSQL database...');
-  
-  // Configure PostgreSQL client with SSL for Render or other cloud platforms
-  const isProduction = process.env.NODE_ENV === 'production';
-  pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: isProduction ? { rejectUnauthorized: false } : false
-  });
-  
-  console.log(`Database connection initialized in ${isProduction ? 'production' : 'development'} mode`);
-} else {
-  console.warn('No DATABASE_URL provided, database features will be disabled');
+try {
+  const { pool: dbPool } = require('./server/db');
+  pool = dbPool;
+  console.log('Using shared database connection from server/db.ts');
+} catch (error) {
+  console.warn('Failed to import database connection from server/db.ts:', error.message);
+  console.warn('Some database features might be disabled');
 }
 
 // Create simple broadcast function for WebSocket
