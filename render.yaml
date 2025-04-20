@@ -1,15 +1,12 @@
-# Simple Render configuration that works without TypeScript dependencies
+# PRODUCTION RENDER CONFIGURATION
+# Uses pure CommonJS server.js implementation with NO top-level await
 services:
   - type: web
     name: disaster-monitoring-platform
     env: node
-    plan: starter
-    buildCommand: |
-      # Install dependencies
-      npm install
-      # Build the frontend only
-      npx vite build
-    # Use our pure CommonJS server implementation directly
+    region: singapore
+    plan: free
+    buildCommand: npm install && npx vite build
     startCommand: NODE_ENV=production node server.js
     envVars:
       - key: NODE_ENV
@@ -23,4 +20,5 @@ services:
 
 databases:
   - name: disaster-monitoring-db
-    plan: starter
+    region: singapore
+    plan: free
