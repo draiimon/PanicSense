@@ -1,1 +1,1 @@
-web: npm run startRender
+web: node start.js
