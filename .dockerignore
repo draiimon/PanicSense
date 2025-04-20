@@ -1,14 +1,42 @@
+# Version control
+.git
+.github
+.gitignore
+
+# Environment
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Dependencies
 node_modules
 npm-debug.log
-.git
-.gitignore
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.DS_Store
+yarn-debug.log
+yarn-error.log
+
+# Build output
 dist
-uploads/*
-!uploads/.gitkeep
-.replit
-replit.nix
+build
+*.tsbuildinfo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+
+# Testing
+coverage
+
+# Other
+*.log
+.vercel
+.next
+.turbo
+.cache
