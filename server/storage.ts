@@ -8,7 +8,7 @@ import { users, type User, type InsertUser,
   trainingExamples, type TrainingExample, type InsertTrainingExample,
   uploadSessions, type UploadSession, type InsertUploadSession
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -557,17 +557,19 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
+      // Use Drizzle ORM
       const [result] = await db.insert(uploadSessions)
         .values({
           sessionId: session.sessionId,
           status: session.status || 'active',
-          progress: JSON.stringify(session.progress || null),
-          fileId: session.fileId || null,  // Ensure fileId is null if undefined
-          userId: session.userId || null,   // Ensure userId is null if undefined
-          serverStartTimestamp: serverTimestamp // Add the timestamp
+          progress: session.progress ? JSON.stringify(session.progress) : null, 
+          fileId: session.fileId || null,
+          userId: session.userId || null,
+          serverStartTimestamp: serverTimestamp,
+          createdAt: new Date(),
+          updatedAt: new Date()
         })
         .returning();
-      return result;
     } catch (error) {
       console.error("Error in createUploadSession (table may not exist):", error);
       // Return a mock session since the table might not exist
