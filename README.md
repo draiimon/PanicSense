@@ -1,81 +1,152 @@
-# Disaster Monitoring Platform
+# PanicSense PH - Disaster Monitoring Platform
 
-An advanced AI-powered disaster monitoring and community resilience platform for the Philippines, leveraging cutting-edge technology to enhance emergency response and community preparedness.
+![PanicSense PH](./public/logo.png)
 
-## Running on Replit
+An advanced AI-powered disaster monitoring and community resilience platform specifically designed for the Philippines, leveraging cutting-edge technology to enhance emergency preparedness and response.
 
-The project is already configured to run on Replit. Simply click the "Run" button in the Replit interface to start the server. The application will be available at the provided Replit URL.
-
-## Deployment on Render
-
-This application is configured for deployment on Render.com with PostgreSQL database integration.
-
-### Deployment Steps with Neon Database
-
-1. Push this repository to GitHub
-2. Log in to [Render](https://render.com)
-3. Click "New +" and select "Blueprint"
-4. Connect to your GitHub repository
-5. Render will detect the `render.yaml` file and set up the web service
-6. **Add your Neon Database:**
-   - Go to your Neon dashboard and copy your database connection string
-   - In Render dashboard, go to your disaster-monitoring-platform service
-   - Go to "Environment" tab
-   - Add a new environment variable:
-     - Key: `DATABASE_URL`
-     - Value: Your Neon database connection string (`postgresql://username:password@hostname:port/database_name?sslmode=require`)
-   - Click "Save Changes"
-7. **Add Other Required Secrets:**
-   - If using Python services for AI, add:
-     - Key: `PYTHON_API_KEYS`
-     - Value: Your API keys (comma-separated)
-8. Click "Manual Deploy" > "Deploy latest commit"
-
-### Manual Deployment (Alternative)
-
-If you prefer to set up services without the Blueprint:
-
-1. **Prepare Your Neon Database:**
-   - Make sure you have your Neon database connection string ready
-   - Format should be: `postgresql://username:password@hostname:port/database_name?sslmode=require`
-
-2. **Create a Web Service:**
-   - In Render dashboard, select "New +" > "Web Service"
-   - Connect to your GitHub repository
-   - Configure the service:
-     - **Name:** disaster-monitoring-platform
-     - **Environment:** Node
-     - **Build Command:** `./render-build.sh`
-     - **Start Command:** `./render-start.sh`
-   - Add the environment variables:
-     - `NODE_ENV`: `production`
-     - `DATABASE_URL`: Your Neon database connection string
-     - `PYTHON_API_KEYS`: (If using AI features) Your API keys
-
-### Environment Variables
-
-- `NODE_ENV`: Set to `production` for production environment
-- `DATABASE_URL`: PostgreSQL connection string - if using Neon database, get this from your Neon dashboard
-- `PYTHON_API_KEYS`: Required for AI sentiment analysis functionality (if used)
-
-## Key Features
-
-- Advanced multilingual NLP processing
-- Real-time social media and event monitoring
-- Specialized Filipino language support
-- Responsive mobile-first design with adaptive UI elements
-- Interactive geospatial mapping capabilities
-
-## Development
-
-To run the application locally:
+## 🚀 Quick Start
 
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/panicsense-ph.git
+cd panicsense-ph
+
+# Copy environment variables template and set up your variables
+cp .env.example .env
+
 # Install dependencies
 npm install
 
-# Start the development server
+# Set up the database
+npm run db:push
+
+# Start the application in development mode
 npm run dev
 ```
 
-This will start both the backend and frontend development servers.
+> **First-time setup:** When you first run the application, a setup script will automatically check if your environment is properly configured and guide you through the setup process.
+
+## ⚙️ System Requirements
+
+- Node.js 20.x or later
+- Python 3.11 or later
+- PostgreSQL 15.x
+- 2GB RAM minimum (4GB recommended)
+
+## 🔧 Environment Configuration
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# Database
+DATABASE_URL="postgres://username:password@localhost:5432/panicsense"
+
+# Server
+PORT=5000
+NODE_ENV=development
+
+# Python configuration
+PYTHON_PATH=python3
+
+# Session
+SESSION_SECRET=your_secret_key
+```
+
+## 📋 Features
+
+- **AI-Powered Sentiment Analysis**: Real-time analysis of social media and news for disaster signals
+- **Multi-lingual Support**: Special focus on Filipino language processing
+- **Interactive Maps**: Visualize disaster events and response coordination
+- **Data Analytics**: Trend analysis and historical data comparison
+- **Community Alerts**: Early warning system based on AI predictions
+- **Admin Dashboard**: Comprehensive monitoring and management tools
+
+## 🧰 Technology Stack
+
+- **Frontend**: React with TypeScript
+- **Backend**: Node.js (Express)
+- **Database**: PostgreSQL with Drizzle ORM
+- **AI/ML**: Python with PyTorch
+- **UI Components**: Tailwind CSS with shadcn/ui
+- **Deployment**: Docker, Render.com
+
+## 🌐 API Endpoints
+
+The application exposes various RESTful endpoints:
+
+- `/api/health` - Server health check
+- `/api/auth/*` - Authentication endpoints
+- `/api/sentiment-posts/*` - Sentiment analysis data
+- `/api/disaster-events/*` - Disaster event information
+- `/api/analyzed-files/*` - Processed data files
+- More endpoints detailed in our API documentation
+
+## 🛠️ Development Guide
+
+### Scripts
+
+```bash
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start in production mode
+npm run start
+
+# Run database migrations
+npm run db:push
+
+# Run tests
+npm run test
+```
+
+### Project Structure
+
+```
+├── client/           # Frontend React application
+├── server/           # Backend Express server
+│   └── python/       # Python ML components
+├── shared/           # Shared code between frontend and backend
+├── migrations/       # Database migrations
+├── public/           # Static assets
+└── uploads/          # User uploaded files
+```
+
+## 🐳 Docker Support
+
+You can run this application using Docker:
+
+```bash
+# Build the Docker image
+docker build -t panicsense-ph .
+
+# Run the container
+docker run -p 5000:5000 -e DATABASE_URL=your_database_url panicsense-ph
+```
+
+For a complete guide on using Docker with this project, see [DOCKER_README.md](./DOCKER_README.md).
+
+## 🚀 Deployment to Render
+
+This project is configured for easy deployment to Render.com. For detailed instructions, see [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md).
+
+## 🔒 Security
+
+- All sensitive data should be stored in environment variables
+- API endpoints are protected with appropriate authentication
+- User passwords are hashed using bcrypt
+- Session data is securely stored and managed
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📞 Support
+
+If you encounter any issues or have questions, please file an issue on the GitHub repository or contact the maintainers.
