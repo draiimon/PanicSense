@@ -1,11 +1,11 @@
-# SIMPLE RENDER DEPLOYMENT CONFIGURATION
+# RENDER DEPLOYMENT CONFIGURATION
 services:
   - type: web
     name: panicsense
     env: node
     plan: free
-    buildCommand: npm install
-    startCommand: node server-deploy.js
+    buildCommand: ./render-build.sh
+    startCommand: ./render-start.sh
     region: singapore
     envVars:
       - key: NODE_ENV
