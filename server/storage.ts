@@ -201,101 +201,106 @@ export class DatabaseStorage implements IStorage {
 
   async createSentimentPost(post: InsertSentimentPost): Promise<SentimentPost> {
     try {
-      // Create a safe copy without potentially problematic fields
-      const safeSentimentPost: any = { 
-        text: post.text,
-        timestamp: post.timestamp,
-        source: post.source,
-        language: post.language,
-        sentiment: post.sentiment,
-        confidence: post.confidence,
-        location: post.location,
-        disasterType: post.disasterType,
-        fileId: post.fileId,
-        explanation: post.explanation,
-        processedBy: post.processedBy
-        // Deliberately omitting aiTrustMessage to avoid error if column doesn't exist
-      };
+      // Create timestamp as ISO string for proper formatting in the query
+      const timestamp = post.timestamp instanceof Date ? post.timestamp.toISOString() : post.timestamp;
       
-      // Only include aiTrustMessage if it's present in the post and not undefined/null
-      if (post.aiTrustMessage) {
-        try {
-          // Try to insert with aiTrustMessage first
-          const [result] = await db.insert(sentimentPosts)
-            .values({...safeSentimentPost, aiTrustMessage: post.aiTrustMessage})
-            .returning();
-          return result;
-        } catch (err) {
-          // If it fails due to missing column, fall back to insert without it
-          console.log("Warning: aiTrustMessage column missing. Using fallback method.");
-          const [result] = await db.insert(sentimentPosts)
-            .values(safeSentimentPost)
-            .returning();
-          return result;
-        }
-      } else {
-        // Regular insert without aiTrustMessage
-        const [result] = await db.insert(sentimentPosts)
-          .values(safeSentimentPost)
-          .returning();
-        return result;
+      // Use direct SQL query to avoid potential column name issues
+      const result = await db.execute(sql`
+        INSERT INTO sentiment_posts (
+          text, 
+          timestamp, 
+          source, 
+          language, 
+          sentiment, 
+          confidence, 
+          location, 
+          disaster_type, 
+          file_id, 
+          explanation, 
+          processed_by
+        ) VALUES (
+          ${post.text},
+          ${timestamp},
+          ${post.source || null},
+          ${post.language || null},
+          ${post.sentiment},
+          ${post.confidence},
+          ${post.location || null},
+          ${post.disasterType || null},
+          ${post.fileId || null},
+          ${post.explanation || null},
+          ${post.processedBy || null}
+        )
+        RETURNING *
+      `);
+      
+      if (!result.rows || result.rows.length === 0) {
+        throw new Error('Insert successful but no rows returned');
       }
+      
+      console.log(`Sentiment post saved with ID: ${result.rows[0].id}`);
+      return result.rows[0];
     } catch (error) {
       console.error("Error in createSentimentPost:", error);
-      // Last resort - force insert with basic fields only
-      const basicPost = {
-        text: post.text,
-        timestamp: post.timestamp || new Date(),
-        source: post.source || "Unknown",
-        language: post.language || "Unknown",
-        sentiment: post.sentiment,
-        confidence: post.confidence
-      };
       
-      const [result] = await db.insert(sentimentPosts)
-        .values(basicPost)
-        .returning();
-      return result;
+      // Fallback to basic insert with only essential fields using raw SQL
+      try {
+        const result = await db.execute(sql`
+          INSERT INTO sentiment_posts (
+            text, 
+            timestamp, 
+            source, 
+            language, 
+            sentiment, 
+            confidence
+          ) VALUES (
+            ${post.text},
+            ${post.timestamp instanceof Date ? post.timestamp.toISOString() : (post.timestamp || new Date().toISOString())},
+            ${post.source || 'Unknown'},
+            ${post.language || 'Unknown'},
+            ${post.sentiment},
+            ${post.confidence}
+          )
+          RETURNING *
+        `);
+        
+        console.log(`Fallback sentiment post saved with ID: ${result.rows[0].id}`);
+        return result.rows[0];
+      } catch (fallbackError) {
+        console.error("Fallback insertion also failed:", fallbackError);
+        throw fallbackError; // Re-throw after logging
+      }
     }
   }
 
   async createManySentimentPosts(posts: InsertSentimentPost[]): Promise<SentimentPost[]> {
+    const results: SentimentPost[] = [];
+    
     try {
-      // Create safe copies without potentially problematic fields
-      const safePosts = posts.map(post => ({
-        text: post.text,
-        timestamp: post.timestamp,
-        source: post.source,
-        language: post.language,
-        sentiment: post.sentiment,
-        confidence: post.confidence,
-        location: post.location,
-        disasterType: post.disasterType,
-        fileId: post.fileId,
-        explanation: post.explanation,
-        processedBy: post.processedBy
-        // Deliberately omitting aiTrustMessage to avoid error if column doesn't exist
-      }));
+      // Using individual inserts with raw SQL for better error handling
+      for (const post of posts) {
+        try {
+          const result = await this.createSentimentPost(post);
+          results.push(result);
+        } catch (postError) {
+          console.error(`Error inserting single post in batch: ${postError}`);
+          // Continue with other posts on error
+        }
+      }
       
-      return db.insert(sentimentPosts)
-        .values(safePosts)
-        .returning();
+      console.log(`Successfully inserted ${results.length} out of ${posts.length} posts`);
+      return results;
     } catch (error) {
       console.error("Error in createManySentimentPosts:", error);
       
-      // Last resort - force insert with basic fields only
-      const basicPosts = posts.map(post => ({
-        text: post.text,
-        timestamp: post.timestamp || new Date(),
-        source: post.source || "Unknown",
-        language: post.language || "Unknown",
-        sentiment: post.sentiment,
-        confidence: post.confidence
-      }));
+      // If we have at least some results, return them
+      if (results.length > 0) {
+        console.log(`Returning partial results: ${results.length} posts`);
+        return results;
+      }
       
-      return db.insert(sentimentPosts)
-        .values(basicPosts)
-        .returning();
+      // If all fails, throw error
+      throw error;
     }
   }
 
