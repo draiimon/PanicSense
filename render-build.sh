@@ -14,34 +14,30 @@ echo "Building frontend assets..."
 npm run build
 
 # Install Python dependencies if needed
-if [ -d "python" ]; then
+if [ -d "server/python" ]; then
   echo "Setting up Python environment and installing dependencies..."
   # Install Python packages
-  if [ -f "python/requirements.txt" ]; then
-    pip install -r python/requirements.txt
+  if [ -f "server/python/requirements.txt" ]; then
+    echo "Installing Python requirements from server/python/requirements.txt"
+    pip install -r server/python/requirements.txt
+  elif [ -f "python-requirements.txt" ]; then
+    echo "Installing Python requirements from python-requirements.txt"
+    pip install -r python-requirements.txt
   fi
   
-  # Install NLP dependencies if needed
-  if [ -f "python/nlp_setup.py" ]; then
-    python python/nlp_setup.py
-  fi
-  
-  # Download NLTK data if needed
-  if [ -f "python/nltk_setup.py" ]; then
-    python python/nltk_setup.py
-  fi
+  # Install NLTK data
+  echo "Installing NLTK data..."
+  python -m nltk.downloader punkt stopwords wordnet
 fi
 
 # Make scripts executable
 chmod +x render-start.sh
 
 echo "Setting up file permissions..."
-# Setup any other required permissions
-if [ -d "uploads" ]; then
-  chmod -R 755 uploads
+# Create uploads directory if it doesn't exist
+if [ ! -d "uploads" ]; then
+  mkdir -p uploads/temp
 fi
-if [ -d "temp" ]; then
-  chmod -R 755 temp
-fi
+chmod -R 755 uploads
 
 echo "Build process completed successfully. Ready for deployment."
