@@ -26,4 +26,5 @@ export const pool = new Pool({
   ssl: { rejectUnauthorized: false } // Always use SSL for Neon
 });
 
-export const db = drizzle({ client: pool, schema });
+console.log('Connecting to database with schema:', Object.keys(schema).join(', '));
+export const db = drizzle(pool, { schema });
