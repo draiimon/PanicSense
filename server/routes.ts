@@ -13,8 +13,7 @@ import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFee
 import { usageTracker } from "./utils/usage-tracker";
 import { uploadSessionManager } from "./utils/upload-session-manager";
 import { EventEmitter } from 'events';
-import { registerRealTimeFeedRoutes } from "./routes/real-time-feeds";
-import { startAutoPostGenerator } from "./utils/auto-post-generator";
+import { registerRealNewsRoutes } from "./routes/real-news-routes";
 
 // Extend global to support our connection counter
 declare global {
@@ -169,11 +168,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     path: '/ws'  
   });
   
-  // Register real-time feed routes
-  registerRealTimeFeedRoutes(app, wss);
-  
-  // Start the auto-post generator for real-time feed
-  startAutoPostGenerator();
+  // Register real news feed routes for authentic disaster updates
+  try {
+    registerRealNewsRoutes(app, wss);
+    console.log('Real news feed routes registered successfully');
+  } catch (error) {
+    console.error('Error registering real news feed routes:', error);
+  }
 
   // WebSocket connection handler
   wss.on('connection', (ws: WebSocket) => {
