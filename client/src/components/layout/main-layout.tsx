@@ -68,6 +68,11 @@ export function MainLayout({ children }: MainLayoutProps) {
       icon: <Activity className="w-4 h-4" />,
     },
     {
+      path: "/news-monitoring",
+      label: "News Monitoring",
+      icon: <Globe className="w-4 h-4" />,
+    },
+    {
       path: "/about",
       label: "About",
       icon: <HelpCircle className="w-4 h-4" />,
