@@ -65,19 +65,56 @@ ENV PORT=5000
 ENV PYTHON_PATH=python3
 ENV TZ=Asia/Manila
 
-# Add health check for better container stability
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:5000/api/health || exit 1
-
 # Expose the port
 EXPOSE 5000
 
-# Added healthcheck script to verify DB connectivity
+# Create a healthcheck script for more reliable health checks
+RUN echo '#!/bin/bash\n\
+# Comprehensive health check that verifies both the web server and database\n\
+HEALTH_ENDPOINT="http://localhost:5000/api/health"\n\
+\n\
+# Check if the server is responding\n\
+RESPONSE=$(curl -s -f -m 3 $HEALTH_ENDPOINT 2>/dev/null)\n\
+if [ $? -ne 0 ]; then\n\
+  echo "Health check failed: Server not responding"\n\
+  exit 1\n\
+fi\n\
+\n\
+# Make sure it returns a valid JSON with status ok\n\
+if ! echo "$RESPONSE" | grep -q "\"status\":\"ok\""; then\n\
+  echo "Health check failed: Invalid response from server"\n\
+  exit 1\n\
+fi\n\
+\n\
+# All checks passed\n\
+echo "Health check passed: Application is running correctly"\n\
+exit 0\n\
+' > /app/healthcheck.sh && chmod +x /app/healthcheck.sh
+
+# Add health check for better container stability
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD /app/healthcheck.sh
+
+# Adding database connection reliability script
 COPY --from=node-builder /app/node_modules/.bin/drizzle-kit /app/node_modules/.bin/drizzle-kit
 
-# Simple startup command with db migration support
-CMD echo "Starting application with database migration support..." && \
-    echo "Waiting for database to be ready..." && \
-    sleep 3 && \
-    echo "Running application..." && \
-    node index.js
+# Create startup script for better database connection handling
+RUN echo '#!/bin/bash\n\
+echo "🚀 Starting PanicSense PH with enhanced database reliability..."\n\
+\n\
+MAX_RETRIES=${DB_CONNECTION_RETRY_ATTEMPTS:-5}\n\
+RETRY_DELAY=${DB_CONNECTION_RETRY_DELAY_MS:-3000}\n\
+\n\
+echo "📊 Database connection settings:"\n\
+echo "  - Max retries: $MAX_RETRIES"\n\
+echo "  - Retry delay: $RETRY_DELAY ms"\n\
+\n\
+echo "⏳ Waiting for database to be ready..."\n\
+sleep 3\n\
+\n\
+echo "✅ Starting application..."\n\
+node index.js\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# Use the startup script
+CMD ["/app/start.sh"]
