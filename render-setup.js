@@ -212,6 +212,43 @@ async function setupDatabase() {
   }
 }
 
+// Fix database queries with created_at references
+async function fixDatabaseQueries() {
+  try {
+    console.log('🔧 Applying database query fixes...');
+    
+    // Import and run the database fix script
+    try {
+      const dbFix = await import('./server/db-fix.js');
+      const result = await dbFix.fixDatabaseQueries();
+      console.log('🔧 Database query fix result:', result ? '✅ APPLIED' : 'ℹ️ NOT NEEDED');
+      return true;
+    } catch (error) {
+      console.error('⚠️ Could not import db-fix.js, falling back to direct fix:', error.message);
+      
+      // Direct fix if module import fails
+      const serverJsPath = path.join(__dirname, 'server.js');
+      
+      if (fs.existsSync(serverJsPath)) {
+        let serverJs = fs.readFileSync(serverJsPath, 'utf8');
+        
+        // Replace all ORDER BY created_at with ORDER BY id
+        serverJs = serverJs.replace(/ORDER BY created_at/g, 'ORDER BY id');
+        
+        fs.writeFileSync(serverJsPath, serverJs);
+        console.log('✅ Direct fix applied to server.js');
+        return true;
+      } else {
+        console.error('❌ server.js not found for direct fix at:', serverJsPath);
+        return false;
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error fixing database queries:', error.message);
+    return false;
+  }
+}
+
 // Main setup function
 async function runSetup() {
   console.log('======================================');
@@ -226,6 +263,9 @@ async function runSetup() {
   if (dbConnected) {
     console.log('✅ Database connection successful, setting up tables...');
     await setupDatabase();
+    
+    // Apply database query fixes
+    await fixDatabaseQueries();
   }
   
   console.log('======================================');
