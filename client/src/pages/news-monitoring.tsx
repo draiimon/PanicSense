@@ -151,49 +151,48 @@ const newsImageMap: Record<string, string> = {
     "https://www.pna.gov.ph/uploads/photos/2022/06/Itcz-rain.jpg"
 };
 
-// Function to extract og:image meta tag from URL - REALTIME IMAGE GRABBER
+// Function to extract news image for URL - RELIABLE IMAGE SOURCES
 const extractOgImageUrl = (url: string): string => {
-  // MOST RELIABLE API - will prevent placeholders by using a proxy pattern for CORS
-  // We use the consistent URLbox API with specific selectors for each news source
-  
-  // SPECIAL HANDLING PER SOURCE - Maximum optimization
+  // Use a more direct approach with site-specific image URLs
+
+  // SPECIAL HANDLING PER SOURCE - Using direct image URLs
   if (url.includes('inquirer.net')) {
-    // Inquirer has consistent image structure in article-body-main
-    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.article-body-main+img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
+    // Inquirer news
+    return "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
   }
   
   if (url.includes('philstar.com')) {
-    // PhilStar has .article-body section containing images
-    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.article-body img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
+    // PhilStar news
+    return "https://media.philstar.com/photos/2022/04/pagasa-bulletin_2022-04-08_23-06-27.jpg";
   }
   
   if (url.includes('abs-cbn.com')) {
-    // ABS-CBN uses specific article image containers  
-    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.article-main-img img, .article-body img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
+    // ABS-CBN news
+    return "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg";
   }
   
   if (url.includes('rappler.com')) {
-    // Rappler has specific article-main-image
-    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.article-main-image img, .rappler-main-image img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
+    // Rappler news
+    return "https://www.rappler.com/tachyon/2023/02/disaster-drill-february-23-2023-002.jpeg";
   }
   
   if (url.includes('gmanetwork.com')) {
-    // GMA has very specific image containers
-    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.article-main img, .story__header__image img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
+    // GMA news
+    return "https://images.gmanews.tv/webpics/2022/06/NDRRMC_2022_06_29_23_01_42.jpg";
   }
   
-  if (url.includes('manilatimes.net') || url.includes('mb.com.ph')) {
-    // Manila Times and MB have featured images
-    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.featured-image img, .article-featured-image img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
+  if (url.includes('manilatimes.net')) {
+    // Manila Times
+    return "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
   }
   
-  if (url.includes('pna.gov.ph') || url.includes('pagasa.dost.gov.ph')) {
-    // PNA and PAGASA have specific image containers
-    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.article-image img, .featured-image-container img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
+  if (url.includes('pagasa.dost.gov.ph')) {
+    // PAGASA
+    return "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
   }
   
-  // CATCH ALL for any other news source - target the largest image on the page
-  return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=80&disable_js=true&device_scale=1`;
+  // Default reliable fallback
+  return "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
 };
 
 // Get news image based on URL patterns or direct mappings - with REALTIME options
@@ -724,7 +723,7 @@ export default function NewsMonitoringPage() {
                                 
                                 {/* REALTIME IMAGE - Direct from source */}
                                 <img 
-                                  src={item.url ? `https://api.allorigins.win/raw?url=${encodeURIComponent(item.url)}` : getNewsImage(item)}
+                                  src={getNewsImage(item)}
                                   alt={item.title}
                                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 z-10 relative"
                                   loading="lazy"
