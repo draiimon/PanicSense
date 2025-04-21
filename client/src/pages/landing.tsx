@@ -296,8 +296,6 @@ const LiveTimeCounter = () => {
 };
 
 // Philippines Map Component - More detailed
-
-// Philippines Map Component - More detailed
 const PhilippinesMap = () => {
   return (
     <div className="relative w-full h-full">
