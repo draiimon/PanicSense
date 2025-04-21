@@ -117,7 +117,8 @@ async function registerRoutes() {
   app.get('/api/disaster-events', async (req, res) => {
     try {
       if (!pool) return res.json([]);
-      const result = await pool.query('SELECT * FROM disaster_events ORDER BY created_at DESC');
+      // Use timestamp or id instead of created_at to fix database error
+      const result = await pool.query('SELECT * FROM disaster_events ORDER BY id DESC');
       res.json(result.rows);
     } catch (err) {
       console.error('Error getting disaster events:', err);
@@ -139,7 +140,8 @@ async function registerRoutes() {
   app.get('/api/analyzed-files', async (req, res) => {
     try {
       if (!pool) return res.json([]);
-      const result = await pool.query('SELECT * FROM analyzed_files ORDER BY created_at DESC');
+      // Use id instead of created_at to fix database error
+      const result = await pool.query('SELECT * FROM analyzed_files ORDER BY id DESC');
       res.json(result.rows);
     } catch (err) {
       console.error('Error getting analyzed files:', err);
