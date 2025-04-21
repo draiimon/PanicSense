@@ -109,15 +109,33 @@ async function setupDatabase() {
   try {
     console.log('🔄 Setting up database tables...');
     
-    // Import the database setup module
-    const dbSetup = await import('./server/db-setup.js');
-    console.log('✅ Database setup module loaded');
+    // Try to run emergency fix first (this is most reliable)
+    try {
+      console.log('🚨 Running direct database fix first (most reliable method)...');
+      const emergencyFix = await import('./server/direct-db-fix.js');
+      const fixResult = await emergencyFix.emergencyDatabaseFix();
+      console.log('🚨 Emergency database fix result:', fixResult ? 'SUCCESS' : 'FAILED');
+      
+      if (fixResult) {
+        console.log('✅ Database fixed successfully through emergency fix');
+        return true;
+      }
+    } catch (emergencyError) {
+      console.error('⚠️ Emergency fix failed:', emergencyError.message);
+      console.log('Continuing with standard fixes...');
+    }
     
-    return true;
-  } catch (error) {
-    console.error('❌ Failed to setup database tables:', error.message);
+    // If emergency fix wasn't successful, try the normal module
+    try {
+      // Import the database setup module
+      const dbSetup = await import('./server/db-setup.js');
+      console.log('✅ Database setup module loaded');
+      return true;
+    } catch (moduleError) {
+      console.error('❌ Failed to setup database tables via module:', moduleError.message);
+    }
     
-    // If failed to import the module, try to create tables directly
+    // If both methods failed, try to create tables directly as a last resort
     try {
       const databaseUrl = process.env.DATABASE_URL;
       if (!databaseUrl) {
@@ -125,7 +143,7 @@ async function setupDatabase() {
         return false;
       }
       
-      console.log("Connecting to database directly...");
+      console.log("⚠️ Connecting to database directly (last resort)...");
       const pool = new Pool({
         connectionString: databaseUrl,
         ssl: { rejectUnauthorized: false }
@@ -134,7 +152,8 @@ async function setupDatabase() {
       const client = await pool.connect();
       console.log(`✅ Successfully connected to PostgreSQL database`);
       
-      // Create basic tables
+      // Create basic tables with timestamp column instead of created_at
+      console.log("Creating tables with timestamp column instead of created_at...");
       await client.query(`
         CREATE TABLE IF NOT EXISTS disaster_events (
           id SERIAL PRIMARY KEY,
@@ -143,8 +162,7 @@ async function setupDatabase() {
           location VARCHAR(255),
           severity VARCHAR(50),
           event_type VARCHAR(50),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
       
@@ -172,7 +190,7 @@ async function setupDatabase() {
           precision FLOAT,
           recall FLOAT,
           f1_score FLOAT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
       
@@ -209,6 +227,9 @@ async function setupDatabase() {
       console.error('❌ Failed to setup database directly:', directError.message);
       return false;
     }
+  } catch (error) {
+    console.error('❌ Unexpected error in database setup:', error.message);
+    return false;
   }
 }
 
