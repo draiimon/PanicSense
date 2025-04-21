@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: panicsense-app
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
+      - NODE_ENV=production
+      - PORT=3000
+      - SESSION_SECRET=your_session_secret_here
+      - DB_SSL_REQUIRED=false
+      # Add OpenAI API key if needed
+      # - OPENAI_API_KEY=your_openai_api_key_here
+    volumes:
+      # For development, uncomment these lines to mount source code
+      # - ./client:/app/client
+      # - ./server:/app/server
+      # - ./python:/app/python
+      # - ./shared:/app/shared
+      # For persistent data storage
+      - uploads:/app/uploads
+
+  db:
+    image: postgres:16-alpine
+    container_name: panicsense-db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  uploads:
