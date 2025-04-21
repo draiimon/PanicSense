@@ -23,7 +23,7 @@ console.log(`Using database connection type: ${databaseUrl.split(':')[0]}`);
 
 export const pool = new Pool({ 
   connectionString: databaseUrl,
-  ssl: { rejectUnauthorized: false } // Always use SSL for Neon
+  ssl: process.env.DB_SSL_REQUIRED === 'true' ? { rejectUnauthorized: false } : false
 });
 
 console.log('Connecting to database with schema:', Object.keys(schema).join(', '));

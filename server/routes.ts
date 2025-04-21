@@ -147,7 +147,7 @@ function broadcastUpdate(data: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Add health check endpoint for Render
+  // Add health check endpoint for monitoring
   app.get('/api/health', (req: Request, res: Response) => {
     res.status(200).json({ 
       status: 'healthy',

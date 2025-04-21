@@ -1,6 +1,6 @@
 /**
  * EMERGENCY DATABASE FIX
- * Direct database fix for Render deployment issues
+ * Direct database fix for Replit deployment
  * This script will:
  * 1. Create missing tables if they don't exist
  * 2. Ensure all tables have the correct columns
@@ -27,7 +27,7 @@ export async function emergencyDatabaseFix() {
     console.log("🔄 Connecting to database directly...");
     pool = new Pool({
       connectionString: databaseUrl,
-      ssl: { rejectUnauthorized: false }
+      ssl: process.env.DB_SSL_REQUIRED === 'true' ? { rejectUnauthorized: false } : false
     });
 
     client = await pool.connect();
