@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, json, date, pgEnum, relations } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -143,6 +143,80 @@ export const insertUploadSessionSchema = createInsertSchema(uploadSessions).pick
   serverStartTimestamp: true
 });
 
+// Community Challenge System
+export const challengeDifficultyEnum = pgEnum('challenge_difficulty', ['beginner', 'intermediate', 'advanced', 'expert']);
+export const challengeStatusEnum = pgEnum('challenge_status', ['draft', 'active', 'completed', 'archived']);
+export const userProgressEnum = pgEnum('user_progress_status', ['not_started', 'in_progress', 'completed', 'verified']);
+
+// Challenges Table
+export const challenges = pgTable("challenges", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  instructions: text("instructions").notNull(),
+  difficulty: challengeDifficultyEnum("difficulty").notNull().default('beginner'),
+  disasterType: text("disaster_type").notNull(),
+  imageUrl: text("image_url"),
+  pointsValue: integer("points_value").notNull().default(10),
+  learningOutcomes: text("learning_outcomes").notNull(),
+  status: challengeStatusEnum("status").notNull().default('draft'),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdBy: integer("created_by").references(() => users.id),
+});
+
+// Challenge Resources
+export const challengeResources = pgTable("challenge_resources", {
+  id: serial("id").primaryKey(),
+  challengeId: integer("challenge_id").notNull().references(() => challenges.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  resourceType: text("resource_type").notNull(), // video, article, pdf, etc.
+  url: text("url").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User Challenge Progress
+export const userChallengeProgress = pgTable("user_challenge_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  challengeId: integer("challenge_id").notNull().references(() => challenges.id),
+  status: userProgressEnum("status").notNull().default('not_started'),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  verifiedAt: timestamp("verified_at"),
+  pointsEarned: integer("points_earned").default(0),
+  submissionNotes: text("submission_notes"),
+  submissionUrl: text("submission_url"),
+  feedbackNotes: text("feedback_notes"),
+});
+
+// User Points Leaderboard
+export const userPoints = pgTable("user_points", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  totalPoints: integer("total_points").notNull().default(0),
+  weeklyPoints: integer("weekly_points").notNull().default(0),
+  monthlyPoints: integer("monthly_points").notNull().default(0),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  badgesEarned: integer("badges_earned").default(0),
+  challengesCompleted: integer("challenges_completed").default(0),
+});
+
+// Challenge Community Discussions
+export const challengeDiscussions = pgTable("challenge_discussions", {
+  id: serial("id").primaryKey(),
+  challengeId: integer("challenge_id").notNull().references(() => challenges.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  parentId: integer("parent_id"), // Will be updated with a relation after table creation
+  pinned: boolean("pinned").default(false),
+});
+
 // Schema Validation
 export const insertUserSchema = createInsertSchema(users).extend({
   confirmPassword: z.string(),
@@ -214,3 +288,71 @@ export type TrainingExample = typeof trainingExamples.$inferSelect;
 
 export type InsertUploadSession = z.infer<typeof insertUploadSessionSchema>;
 export type UploadSession = typeof uploadSessions.$inferSelect;
+
+// Challenge Schema Types
+export const insertChallengeSchema = createInsertSchema(challenges).pick({
+  title: true,
+  description: true,
+  instructions: true,
+  difficulty: true,
+  disasterType: true,
+  imageUrl: true,
+  pointsValue: true,
+  learningOutcomes: true,
+  status: true,
+  startDate: true,
+  endDate: true,
+  createdBy: true
+});
+
+export const insertChallengeResourceSchema = createInsertSchema(challengeResources).pick({
+  challengeId: true,
+  title: true,
+  resourceType: true,
+  url: true,
+  description: true
+});
+
+export const insertUserChallengeProgressSchema = createInsertSchema(userChallengeProgress).pick({
+  userId: true,
+  challengeId: true,
+  status: true,
+  startedAt: true,
+  completedAt: true,
+  verifiedAt: true,
+  pointsEarned: true,
+  submissionNotes: true,
+  submissionUrl: true
+});
+
+export const insertUserPointsSchema = createInsertSchema(userPoints).pick({
+  userId: true,
+  totalPoints: true,
+  weeklyPoints: true,
+  monthlyPoints: true,
+  badgesEarned: true,
+  challengesCompleted: true
+});
+
+export const insertChallengeDiscussionSchema = createInsertSchema(challengeDiscussions).pick({
+  challengeId: true,
+  userId: true,
+  content: true,
+  parentId: true,
+  pinned: true
+});
+
+export type Challenge = typeof challenges.$inferSelect;
+export type InsertChallenge = z.infer<typeof insertChallengeSchema>;
+
+export type ChallengeResource = typeof challengeResources.$inferSelect;
+export type InsertChallengeResource = z.infer<typeof insertChallengeResourceSchema>;
+
+export type UserChallengeProgress = typeof userChallengeProgress.$inferSelect;
+export type InsertUserChallengeProgress = z.infer<typeof insertUserChallengeProgressSchema>;
+
+export type UserPoints = typeof userPoints.$inferSelect;
+export type InsertUserPoints = z.infer<typeof insertUserPointsSchema>;
+
+export type ChallengeDiscussion = typeof challengeDiscussions.$inferSelect;
+export type InsertChallengeDiscussion = z.infer<typeof insertChallengeDiscussionSchema>;
