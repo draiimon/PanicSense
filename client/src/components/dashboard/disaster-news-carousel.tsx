@@ -128,24 +128,57 @@ export function DisasterNewsCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   
-  // Fetch AI-analyzed news data from API
-  const { data: newsData = [], isLoading } = useQuery({
-    // Use the AI-powered disaster news API endpoint
-    queryKey: ['/api/ai-disaster-news'],
-    refetchInterval: 60000, // Refetch every minute
+  // First fetch keyword-filtered news (faster)
+  const { data: regularNewsData = [], isLoading: isLoadingRegular } = useQuery({
+    queryKey: ['/api/real-news/posts'],
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
   
-  // Get all news items and ensure we show 5 articles as requested
-  const allNews = Array.isArray(newsData) ? newsData : [];
+  // Then fetch AI-analyzed news data (slower but more accurate)
+  const { data: aiNewsData = [], isLoading: isLoadingAI } = useQuery({
+    queryKey: ['/api/ai-disaster-news'],
+    refetchInterval: 120000, // Refetch every 2 minutes to avoid rate limits
+  });
+  
+  // Load state - consider keywords loading as quicker route
+  const isLoading = isLoadingRegular;
+  
+  // Combine news from both sources (regular first, then AI if needed)
+  let allNews: NewsItem[] = [];
+  
+  // First add all the AI-analyzed news
+  if (Array.isArray(aiNewsData)) {
+    allNews = [...aiNewsData];
+  }
+  
+  // Then add any missing regular news items not already in the AI list
+  if (Array.isArray(regularNewsData)) {
+    // Filter to avoid duplicates
+    const aiIds = new Set(allNews.map(item => item.id));
+    const uniqueRegularNews = regularNewsData.filter(item => !aiIds.has(item.id));
+    allNews = [...allNews, ...uniqueRegularNews];
+  }
   
   // First try to get disaster-related news
   let disasterNews = allNews.filter(isDisasterRelated);
   
-  // If we have fewer than 5 disaster news, add more regular news to reach 5 total
-  if (disasterNews.length < 5) {
-    const regularNews = allNews.filter(item => !isDisasterRelated(item));
-    const neededItems = 5 - disasterNews.length;
-    disasterNews = [...disasterNews, ...regularNews.slice(0, neededItems)];
+  // If we have fewer than 3 disaster news, add more regular news to reach at least 3
+  if (disasterNews.length < 3) {
+    // Try getting disaster news directly from the regular endpoint
+    // This is a fallback if the AI filtering didn't work well
+    const regularDisasterNews = Array.isArray(regularNewsData) 
+      ? regularNewsData.filter(isDisasterRelated)
+      : [];
+    
+    const regularIds = new Set(disasterNews.map(item => item.id));
+    const uniqueRegularDisasterNews = regularDisasterNews.filter(item => !regularIds.has(item.id));
+    
+    disasterNews = [...disasterNews, ...uniqueRegularDisasterNews];
+  }
+  
+  // In the worst case, get any news (even non-disaster) to avoid showing "No Active Disaster Alerts"
+  if (disasterNews.length === 0 && allNews.length > 0) {
+    disasterNews = allNews;
   }
   
   // Limit to 5 items
@@ -162,17 +195,67 @@ export function DisasterNewsCarousel() {
     return () => clearInterval(timer);
   }, [disasterNews.length, isPaused]);
   
-  if (isLoading) {
+  // Extended loading state that doesn't disappear quickly
+  const [showingLoadingPlaceholder, setShowingLoadingPlaceholder] = useState(true);
+  
+  // Keep the loading state for at least 1.5 seconds to prevent flickering
+  useEffect(() => {
+    if (!isLoading && showingLoadingPlaceholder) {
+      const timer = setTimeout(() => {
+        setShowingLoadingPlaceholder(false);
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, showingLoadingPlaceholder]);
+  
+  // Show detailed loading state
+  if (isLoading || showingLoadingPlaceholder) {
     return (
-      <div className="bg-blue-900 p-6 h-[280px] flex justify-center items-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 text-white mx-auto animate-spin mb-2" />
-          <p className="text-white">Loading disaster updates...</p>
+      <div className="bg-blue-900 p-6 h-[280px]">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-full bg-white/10 backdrop-blur-md">
+              <AlertTriangle className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white flex items-center gap-1.5">
+                Latest Disaster Updates
+                <motion.div
+                  className="inline-block"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.5 }}
+                >
+                  <div className="flex h-5 items-center justify-center rounded-full bg-red-500/20 px-1.5">
+                    <span className="text-[9px] font-semibold text-red-400">
+                      LIVE
+                    </span>
+                  </div>
+                </motion.div>
+              </h2>
+              <p className="text-xs text-blue-100/70">
+                Real-time monitoring from national news sources
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-center items-center h-[200px]">
+          <div className="text-center">
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <Loader2 className="w-16 h-16 text-blue-200/40 absolute animate-spin" />
+              <Loader2 className="w-16 h-16 text-blue-100 absolute animate-spin" style={{ animationDuration: '3s' }} />
+            </div>
+            <h3 className="text-lg font-medium text-white mb-2">Fetching Disaster Alerts</h3>
+            <p className="text-sm text-blue-100/70">Checking news sources across the Philippines...</p>
+          </div>
         </div>
       </div>
     );
   }
   
+  // If really no news after loading
   if (disasterNews.length === 0) {
     return (
       <div className="bg-blue-900 p-6 h-[280px]">
