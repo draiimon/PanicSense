@@ -822,26 +822,24 @@ export default function NewsMonitoringPage() {
                               <div className="flex flex-col md:flex-row bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl overflow-hidden border border-white/20">
                                 {/* MALAKING AKTUWAL NA NEWS IMAGE */}
                                 <div className="w-full md:w-3/5 relative overflow-hidden h-[350px] transition-all group">
-                                  {/* LOADING PLACEHOLDER habang naglo-load pa - Enhanced */}
-                                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-200 to-purple-100 animate-pulse">
-                                    <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] opacity-20"></div>
-                                    <div className="flex items-center justify-center h-full">
-                                      <img 
-                                        src="/images/fallback/panicsense-image-fallback.svg"
-                                        alt="Loading..."
-                                        className="w-full h-full object-cover opacity-50"
-                                      />
-                                    </div>
+                                  {/* LOADING PLACEHOLDER - AGAD-AGAD MAIPAPAKITA */}
+                                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-300 to-purple-200">
+                                    <img 
+                                      src="/images/fallback/panicsense-image-fallback.svg"
+                                      alt="News Image"
+                                      className="w-full h-full object-cover"
+                                    />
                                   </div>
                                   
-                                  {/* REALTIME IMAGE - Pre-loaded fallback approach */}
+                                  {/* REALTIME IMAGE - IMMEDIATE FALLBACK APPROACH */}
                                   <div className="relative w-full h-full">
                                     {/* Use direct image URL for better reliability */}
                                     <img 
                                       src={getNewsImage(item)}
                                       alt={item.title}
                                       className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 z-10 relative"
-                                      loading="eager" 
+                                      loading="eager"
+                                      style={{backgroundImage: "url('/images/fallback/panicsense-image-fallback.svg')"}} 
                                       onLoad={(e) => {
                                         // On successful load, remove placeholder with nice fade animation
                                         const target = e.currentTarget.parentElement?.parentElement;
@@ -1068,19 +1066,22 @@ export default function NewsMonitoringPage() {
                             <Card className="h-full flex flex-col hover:shadow-md transition-shadow border-indigo-100 overflow-hidden group">
                               {/* Card Image - MALAKING AKTUWAL NA LARAWAN */}
                               <div className="w-full h-48 overflow-hidden relative">
-                                {/* LOADING PLACEHOLDER habang naglo-load pa */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-purple-100 animate-pulse">
-                                  <div className="flex items-center justify-center h-full">
-                                    <Loader className="h-6 w-6 text-indigo-400 animate-spin" />
-                                  </div>
+                                {/* AGAD-AGAD MAY PLACEHOLDER IMAGE - HINDI NA LOADING */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-300 to-purple-200">
+                                  <img 
+                                    src="/images/fallback/panicsense-image-fallback.svg"
+                                    alt="News Image"
+                                    className="w-full h-full object-cover opacity-60"
+                                  />
                                 </div>
                                 
-                                {/* REALTIME IMAGE - Direct from source */}
+                                {/* REALTIME IMAGE - Direct from source with immediate fallback */}
                                 <img 
                                   src={getNewsImage(item)}
                                   alt={item.title}
                                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 z-10 relative"
-                                  loading="lazy"
+                                  loading="eager" 
+                                  style={{backgroundImage: "url('/images/fallback/panicsense-image-fallback.svg')"}} 
                                   onLoad={(e) => {
                                     // Kapag na-load na ang image, alisin na ang placeholder
                                     const target = e.currentTarget.parentElement;
