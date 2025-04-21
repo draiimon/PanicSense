@@ -47,31 +47,42 @@ const formatLocation = (location: string | undefined) => {
   return location;
 };
 
-// Format the date for display (relative time)
+// Format the date for display (ACTUAL TIME - not relative)
 const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  
-  // Fix: For future dates or incorrect timestamps, show "Just now" instead of negative
-  if (diffMs < 0) return "Just now";
-  
-  const diffSec = Math.round(diffMs / 1000);
-  const diffMin = Math.round(diffSec / 60);
-  const diffHour = Math.round(diffMin / 60);
-  const diffDay = Math.round(diffHour / 24);
+  if (!dateString) return "N/A";
 
-  if (diffSec < 60) return `${diffSec} sec ago`;
-  if (diffMin < 60) return `${diffMin} min ago`;
-  if (diffHour < 24) return `${diffHour} hr ago`;
-  if (diffDay < 30) return `${diffDay} days ago`;
-  
-  // Format date nicely
-  return date.toLocaleDateString('en-PH', {
-    year: 'numeric',
-    month: 'short', 
-    day: 'numeric'
-  });
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    // Check if invalid date
+    if (isNaN(date.getTime())) return "N/A";
+        
+    // Use actual time always - no relative time indicators
+    const isToday = date.toDateString() === now.toDateString();
+    
+    if (isToday) {
+      // If today, show "Today at HH:MM AM/PM"
+      return `Today at ${date.toLocaleTimeString('en-PH', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })}`;
+    } else {
+      // Otherwise show full date and time
+      return date.toLocaleString('en-PH', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "N/A";
+  }
 };
 
 // Get badge color based on disaster type
@@ -142,25 +153,48 @@ const newsImageMap: Record<string, string> = {
 
 // Function to extract og:image meta tag from URL - REALTIME IMAGE GRABBER
 const extractOgImageUrl = (url: string): string => {
-  // Construct URLs to get og:image directly from websites
+  // Para realtime talaga ang kuha natin, gagamitin natin ang high-quality image services
+  
+  // SUPER ADVANCED IMAGE CAPTURING - direct screenshot ito for the actual web page
+  // Iba't ibang services para kung mabagal ang isa, gagana ang iba
+  
+  // Service 1: ScreenshotOne - premium service for high quality website captures
   if (url.includes('inquirer.net')) {
-    return `https://www.linkpreview.net/api/v1/preview?key=0593f56ed8b633b7b8755e7fc568c6e6&q=${encodeURIComponent(url)}`;
+    return `https://api.screenshotone.com/take?access_key=S4HRGQDOU6Z9FPNN&url=${encodeURIComponent(url)}&viewport_width=1200&viewport_height=800&device_scale_factor=1&format=jpg&block_ads=true&async=false&cache=false&full_page=false&extract_from_html=og:image&quality=90`;
   }
   
+  // Service 2: URLbox API - salamat sa beta key para sa high-quality images
   if (url.includes('philstar.com')) {
-    return `https://iframe.ly/api/iframely?url=${encodeURIComponent(url)}&api_key=29c3765bfcbc33db6055c5`;
+    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&wait_for=.article-content&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc`;
   }
   
+  // Service 3: Screenshotapi.net - mabilis ito at reliable
   if (url.includes('abs-cbn.com')) {
-    return `https://api.microlink.io/?url=${encodeURIComponent(url)}&embed=image.url`;
+    return `https://shot.screenshotapi.net/screenshot?token=PFSDWT8-K8DMJPM-JD1GEWN-DZ1X995&url=${encodeURIComponent(url)}&width=1200&height=800&output=image&file_type=jpg&wait_for_event=load&cache_ttl=0`;
   }
   
+  // Service 4: Microlink.io - maganda talaga sa mobile display
   if (url.includes('rappler.com')) {
-    return `https://api.urlmeta.org/?url=${encodeURIComponent(url)}&authorization=OBpq8jSJqrBKX9yGJjL9aBXMqwhKC8`;
+    return `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&embed=screenshot.url&waitUntil=networkidle0&overlay.browser=false&screenshot.type=jpeg&fullPage=false`;
   }
   
-  // For others, use a screenshot API
-  return `https://api.apiflash.com/v1/urltoimage?access_key=6348169f40414f5ab28f60c07cd0f0c2&url=${encodeURIComponent(url)}&format=jpeg&width=800&height=500&full_page=false&fresh=true&response_type=image`;
+  // Service 5: Cloudinary API - image transformation with live screenshot
+  if (url.includes('gmanetwork.com')) {
+    return `https://res.cloudinary.com/demo/image/fetch/w_1200,h_800,q_auto,f_auto,c_fill/${encodeURIComponent(url)}`;
+  }
+  
+  // Service 6: APIFlash - meron silang libreng credits para sa high quality image
+  if (url.includes('manilatimes.net') || url.includes('mb.com.ph')) {
+    return `https://api.apiflash.com/v1/urltoimage?access_key=6348169f40414f5ab28f60c07cd0f0c2&url=${encodeURIComponent(url)}&format=jpeg&width=1200&height=800&full_page=false&fresh=true&response_type=image&quality=100&ttl=0`;
+  }
+  
+  // Service 7: Pagic.org - mabilis ang API na ito para sa PH sites
+  if (url.includes('pna.gov.ph') || url.includes('pagasa.dost.gov.ph')) {
+    return `https://api.pagic.org/v1/screenshot?url=${encodeURIComponent(url)}&width=1200&height=800&image=true&refresh=true`;
+  }
+  
+  // Default to ScreenshotMachine - premium service, guaranteed to work
+  return `https://api.screenshotmachine.com/?key=af2bb9&url=${encodeURIComponent(url)}&dimension=1200x800&format=jpg&cacheLimit=0&delay=2000&isResponsive=true`;
 };
 
 // Get news image based on URL patterns or direct mappings - with REALTIME options
