@@ -13,6 +13,7 @@ import {
   LogOut,
   Globe,
   MapPin,
+  Newspaper,
 } from "lucide-react";
 import logo from "/favicon.png"; // Import the PanicSense logo
 import { motion, AnimatePresence } from "framer-motion";
@@ -69,7 +70,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     {
       path: "/news-monitoring",
       label: "News Monitoring",
-      icon: <MapPin className="w-4 h-4" />,
+      icon: <Newspaper className="w-4 h-4" />,
     },
     {
       path: "/about",

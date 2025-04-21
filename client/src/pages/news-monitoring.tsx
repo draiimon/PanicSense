@@ -436,30 +436,24 @@ export default function NewsMonitoringPage() {
   return (
     <div className="relative min-h-screen">
       {/* DASHBOARD STYLE BACKGROUND - Similar to Dashboard page */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        {/* Main dark gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900"></div>
-        
-        {/* Dot pattern overlay */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px]" />
-        </div>
-        
-        {/* Animated gradient overlay */}
-        <div 
-          className="absolute inset-0 opacity-10 bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-700 animate-gradient"
-          style={{ backgroundSize: '400% 400%', animation: 'gradient 15s ease infinite' }}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-violet-50 to-pink-50 overflow-hidden">
+        {/* More vibrant animated gradient overlay - CSS Animation */}
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-purple-500/15 via-teal-500/10 to-rose-500/15 animate-gradient"
+          style={{ backgroundSize: "200% 200%" }}
         />
-        
-        {/* Animated glass-like orbs */}
-        <div className="absolute h-64 w-64 rounded-full bg-blue-400/10 filter blur-3xl animate-float-slow will-change-transform"
-          style={{ top: "15%", left: "10%" }} />
-        
-        <div className="absolute h-56 w-56 rounded-full bg-indigo-500/10 filter blur-3xl animate-float-slow-reverse will-change-transform"
-          style={{ bottom: "15%", right: "10%" }} />
-        
-        <div className="absolute h-48 w-48 rounded-full bg-purple-500/10 filter blur-3xl animate-float-4 will-change-transform"
-          style={{ top: "60%", left: "25%" }} />
+
+        {/* Enhanced animated patterns with more vibrant colors */}
+        <div className="absolute inset-0 opacity-15 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM1MDUwRjAiIGZpbGwtb3BhY2l0eT0iMC41Ij48cGF0aCBkPSJNMzYgMzR2Nmg2di02aC02em02IDZ2Nmg2di02aC02em0tMTIgMGg2djZoLTZ2LTZ6bTEyIDBoNnY2aC02di02eiIvPjwvZz48L2c+PC9zdmc+')]"></div>
+
+        {/* Additional decorative elements */}
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,rgba(120,80,255,0.8)_0%,transparent_70%)]"></div>
+
+        {/* More colorful floating elements - USING CSS ANIMATIONS */}
+        <div
+          className="absolute h-72 w-72 rounded-full bg-purple-500/25 filter blur-3xl animate-float-1 will-change-transform"
+          style={{ top: "15%", left: "8%" }}
+        />
           
         <div className="absolute h-72 w-72 rounded-full bg-violet-400/10 filter blur-3xl animate-float-5 will-change-transform"
           style={{ top: "30%", right: "25%" }} />
