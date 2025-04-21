@@ -8,6 +8,7 @@ dependencies = [
     "langdetect>=1.0.9",
     "nltk>=3.9.1",
     "numpy>=2.2.4",
+    "openai>=1.75.0",
     "pandas>=2.2.3",
     "python-dotenv>=1.1.0",
     "pytz>=2025.2",
