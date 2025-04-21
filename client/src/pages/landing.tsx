@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'wouter';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Database, ArrowRight, Info, ExternalLink, Shield, Users, BellRing, Star, Award, Heart, Globe, Activity, Check, Sparkles, ArrowUp } from 'lucide-react';
+import { ChevronRight, X, FileText, BarChart3, AlertTriangle, MapPin, Clock, Database, ArrowRight, Info, ExternalLink, Shield, Users, BellRing, Star, Award, Heart, Globe, Activity, Check, Sparkles, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import useEmblaCarousel from 'embla-carousel-react';
+import FeaturesCarousel from '@/components/landing/features-carousel';
 
 // Import tutorial images directly
 import uploadDataImg from '../assets/upload-disaster-data.png';
@@ -295,136 +295,7 @@ const LiveTimeCounter = () => {
   );
 };
 
-// Features Carousel Component with Embla Carousel
-const FeaturesCarousel = () => {
-  const features = [
-    {
-      title: "Sentiment Analysis",
-      description: "Automatically detect emotions and sentiment in disaster-related text using advanced processing models.",
-      icon: <BarChart3 />,
-      color: "blue",
-      delay: 0
-    },
-    {
-      title: "Disaster Classification",
-      description: "Automatically identify and classify different types of disasters and emergencies.",
-      icon: <AlertTriangle />,
-      color: "red",
-      delay: 0.1
-    },
-    {
-      title: "Geographic Mapping",
-      description: "Visual representation of disaster locations plotted on interactive maps.",
-      icon: <MapPin />,
-      color: "green",
-      delay: 0.2
-    },
-    {
-      title: "News Monitoring",
-      description: "Real-time news articles with enhanced image loading and improved UI consistency.",
-      icon: <BellRing />,
-      color: "cyan",
-      delay: 0.3
-    },
-    {
-      title: "Real-time Monitoring",
-      description: "Live monitoring of disaster reports from various sources for immediate response.",
-      icon: <Clock />,
-      color: "purple",
-      delay: 0.4
-    },
-    {
-      title: "Secure Data Storage",
-      description: "Secure and scalable storage of disaster data with advanced search capabilities.",
-      icon: <Database />,
-      color: "orange",
-      delay: 0.5
-    },
-    {
-      title: "Multilingual Support",
-      description: "Support for Filipino, English, and other regional languages used in the Philippines.",
-      icon: <Info />,
-      color: "indigo",
-      delay: 0.6
-    }
-  ];
-
-  const [emblaRef, emblaApi] = useEmblaCarousel({ 
-    loop: true,
-    align: 'start',
-    dragFree: true
-  });
-  
-  const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
-  }, [emblaApi]);
-  
-  const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
-  }, [emblaApi]);
-
-  return (
-    <div className="relative mb-10">
-      <div className="overflow-hidden rounded-xl" ref={emblaRef}>
-        <div className="flex gap-6 py-4 cursor-grab active:cursor-grabbing">
-          {features.map((feature, index) => (
-            <div key={index} className="flex-[0_0_320px] min-w-0 md:flex-[0_0_400px]">
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 * index, duration: 0.5 }}
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                className="group h-full"
-              >
-                <Card className="border-0 h-full shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden relative bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
-                  <div className={`absolute top-0 left-0 w-full h-1 bg-${feature.color}-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300`}></div>
-                  
-                  <CardHeader className="pb-2">
-                    <div className={`p-3 bg-${feature.color}-100 dark:bg-${feature.color}-900/30 rounded-xl w-fit mb-4 group-hover:scale-110 transition-transform duration-300 text-${feature.color}-600 dark:text-${feature.color}-400`}>
-                      {feature.icon}
-                    </div>
-                    <CardTitle className="text-xl font-bold">{feature.title}</CardTitle>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <p className="text-gray-600 dark:text-gray-400">{feature.description}</p>
-                    
-                    <div className="mt-4 flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span>Learn more</span>
-                      <ArrowRight className="ml-1 h-4 w-4" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      <div className="flex justify-center mt-8 gap-4">
-        <Button
-          onClick={scrollPrev}
-          variant="outline"
-          size="icon"
-          className="rounded-full bg-white/90 backdrop-blur shadow hover:bg-white"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-        <Button
-          onClick={scrollNext}
-          variant="outline" 
-          size="icon"
-          className="rounded-full bg-white/90 backdrop-blur shadow hover:bg-white"
-        >
-          <ChevronRight className="h-6 w-6" />
-        </Button>
-      </div>
-      
-      <div className="absolute -z-10 -bottom-10 left-1/2 -translate-x-1/2 w-3/4 h-20 bg-gradient-to-r from-blue-300/20 via-purple-300/20 to-pink-300/20 blur-3xl"></div>
-    </div>
-  );
-};
+// Philippines Map Component - More detailed
 
 // Philippines Map Component - More detailed
 const PhilippinesMap = () => {
@@ -1494,7 +1365,7 @@ export default function LandingPage() {
         </div>
       </section>
       
-      {/* Features Section with Animated Cards */}
+      {/* Features Section with Draggable Carousel */}
       <section className="py-24 bg-white dark:bg-gray-900 relative overflow-hidden">
         <motion.div 
           className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
@@ -1522,89 +1393,7 @@ export default function LandingPage() {
             </p>
           </motion.div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Sentiment Analysis",
-                description: "Automatically detect emotions and sentiment in disaster-related text using advanced processing models.",
-                icon: <BarChart3 />,
-                color: "blue",
-                delay: 0
-              },
-              {
-                title: "Disaster Classification",
-                description: "Automatically identify and classify different types of disasters and emergencies.",
-                icon: <AlertTriangle />,
-                color: "red",
-                delay: 0.1
-              },
-              {
-                title: "Geographic Mapping",
-                description: "Visual representation of disaster locations plotted on interactive maps.",
-                icon: <MapPin />,
-                color: "green",
-                delay: 0.2
-              },
-              {
-                title: "News Monitoring",
-                description: "Real-time news articles with enhanced image loading and improved UI consistency.",
-                icon: <BellRing />,
-                color: "cyan",
-                delay: 0.3
-              },
-              {
-                title: "Real-time Monitoring",
-                description: "Live monitoring of disaster reports from various sources for immediate response.",
-                icon: <Clock />,
-                color: "purple",
-                delay: 0.4
-              },
-              {
-                title: "Secure Data Storage",
-                description: "Secure and scalable storage of disaster data with advanced search capabilities.",
-                icon: <Database />,
-                color: "orange",
-                delay: 0.4
-              },
-              {
-                title: "Multilingual Support",
-                description: "Support for Filipino, English, and other regional languages used in the Philippines.",
-                icon: <Info />,
-                color: "indigo",
-                delay: 0.5
-              }
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: feature.delay, duration: 0.5 }}
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                className="group"
-              >
-                <Card className="border-0 h-full shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden relative bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
-                  <div className={`absolute top-0 left-0 w-full h-1 bg-${feature.color}-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300`}></div>
-                  
-                  <CardHeader className="pb-2">
-                    <div className={`p-3 bg-${feature.color}-100 dark:bg-${feature.color}-900/30 rounded-xl w-fit mb-4 group-hover:scale-110 transition-transform duration-300 text-${feature.color}-600 dark:text-${feature.color}-400`}>
-                      {feature.icon}
-                    </div>
-                    <CardTitle className="text-xl font-bold">{feature.title}</CardTitle>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <p className="text-gray-600 dark:text-gray-400">{feature.description}</p>
-                    
-                    <div className="mt-4 flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span>Learn more</span>
-                      <ArrowRight className="ml-1 h-4 w-4" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+          <FeaturesCarousel />
         </div>
       </section>
       
