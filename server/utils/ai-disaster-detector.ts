@@ -1,19 +1,50 @@
 /**
- * AI Disaster Detector
+ * AI Disaster Detector - TypeScript Version
  * Uses OpenAI API through our Python script to provide more intelligent
  * disaster detection and classification than simple keyword matching
  */
 
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
-const openaiConfig = require('./openai-config');
+import { spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
+import * as openaiConfig from './openai-config';
 
 // Check OpenAI API key on startup
 openaiConfig.logOpenAIStatus();
 
+export interface NewsItem {
+  id?: string;
+  title: string;
+  content: string;
+  timestamp?: string;
+  publishedAt?: string;
+  source?: string;
+  url?: string;
+  imageUrl?: string;
+  [key: string]: any;
+}
+
+export interface DisasterAnalysis {
+  is_disaster_related: boolean;
+  disaster_type: string;
+  location: string;
+  severity: number;
+  confidence: number;
+  explanation: string;
+}
+
+export interface AnalyzedNewsItem extends NewsItem {
+  analysis: DisasterAnalysis;
+  analyzed_at: string;
+}
+
 class AIDisasterDetector {
+  private pythonScript: string;
+  private cache: Map<string, { data: DisasterAnalysis, timestamp: number }>;
+  private cacheExpiry: number;
+  private scriptExists: boolean;
+  
   constructor() {
     this.pythonScript = path.join(process.cwd(), 'python', 'process.py');
     this.cache = new Map(); // Simple memory cache to avoid repeated analysis
@@ -32,7 +63,7 @@ class AIDisasterDetector {
   /**
    * Check if a news item is in our cache
    */
-  getCached(newsItem) {
+  getCached(newsItem: NewsItem): DisasterAnalysis | null {
     const cacheKey = `${newsItem.id || newsItem.title}`;
     const cached = this.cache.get(cacheKey);
     
@@ -51,7 +82,7 @@ class AIDisasterDetector {
   /**
    * Add a news item analysis to our cache
    */
-  addToCache(newsItem, analysis) {
+  addToCache(newsItem: NewsItem, analysis: DisasterAnalysis): void {
     const cacheKey = `${newsItem.id || newsItem.title}`;
     this.cache.set(cacheKey, {
       data: analysis,
@@ -62,7 +93,7 @@ class AIDisasterDetector {
   /**
    * Analyze a news item using our Python script with OpenAI
    */
-  async analyzeNewsItem(newsItem) {
+  async analyzeNewsItem(newsItem: NewsItem): Promise<DisasterAnalysis> {
     // Check cache first
     const cached = this.getCached(newsItem);
     if (cached) return cached;
@@ -81,13 +112,16 @@ class AIDisasterDetector {
       }));
       
       // Run the Python script with environment variables
-      const result = await new Promise((resolve, reject) => {
+      const result = await new Promise<DisasterAnalysis>((resolve, reject) => {
         // Create a copy of process.env to avoid modifying the original
         const env = { ...process.env };
         
         // Ensure OpenAI API key is set in environment
         if (openaiConfig.isOpenAIConfigured()) {
-          env.OPENAI_API_KEY = openaiConfig.getOpenAIKey();
+          const apiKey = openaiConfig.getOpenAIKey();
+          if (apiKey) {
+            env.OPENAI_API_KEY = apiKey;
+          }
         }
         
         // Spawn Python process with environment variables
@@ -122,7 +156,7 @@ class AIDisasterDetector {
           try {
             const parsedOutput = JSON.parse(output);
             resolve(parsedOutput);
-          } catch (e) {
+          } catch (e: any) {
             console.error('Error parsing Python output:', e);
             console.error('Output was:', output);
             reject(new Error(`Failed to parse AI analysis output: ${e.message}`));
@@ -143,11 +177,11 @@ class AIDisasterDetector {
   /**
    * Fallback to rule-based analysis if AI is unavailable
    */
-  _fallbackAnalysis(newsItem) {
+  _fallbackAnalysis(newsItem: NewsItem): DisasterAnalysis {
     const combinedText = `${newsItem.title || ''} ${newsItem.content || ''}`.toLowerCase();
     
     // Simple keyword-based detection
-    const disasterKeywords = {
+    const disasterKeywords: Record<string, string[]> = {
       'typhoon': ['typhoon', 'bagyo', 'storm', 'cyclone'],
       'earthquake': ['earthquake', 'lindol', 'quake', 'tremor', 'magnitude'],
       'flood': ['flood', 'baha', 'rising water', 'overflow'],
@@ -205,8 +239,8 @@ class AIDisasterDetector {
    * Analyze a batch of news items
    * Processes in sequence to avoid rate limits
    */
-  async analyzeBatch(newsItems, maxItems = 5) {
-    const results = [];
+  async analyzeBatch(newsItems: NewsItem[], maxItems = 5): Promise<AnalyzedNewsItem[]> {
+    const results: AnalyzedNewsItem[] = [];
     let count = 0;
     
     for (const item of newsItems) {
@@ -216,7 +250,7 @@ class AIDisasterDetector {
         const analysis = await this.analyzeNewsItem(item);
         
         // Add the analysis to a copy of the item
-        const enrichedItem = {
+        const enrichedItem: AnalyzedNewsItem = {
           ...item,
           analysis: analysis,
           analyzed_at: new Date().toISOString()
@@ -230,7 +264,7 @@ class AIDisasterDetector {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       } catch (error) {
-        console.error(`Error analyzing news item: ${error.message}`);
+        console.error(`Error analyzing news item: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
     
@@ -241,7 +275,4 @@ class AIDisasterDetector {
 // Singleton instance
 const aiDisasterDetector = new AIDisasterDetector();
 
-// For CommonJS
-module.exports = aiDisasterDetector;
-// For ESM
-module.exports.default = aiDisasterDetector;
+export default aiDisasterDetector;
