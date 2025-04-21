@@ -20,8 +20,10 @@ fi
 
 # Special handling for Render: If DATABASE_URL is defined but doesn't have SSL params, add them
 if [ -n "$DATABASE_URL" ]; then
-  # Check if sslmode is already in the URL
-  if [[ "$DATABASE_URL" != *"?sslmode="* ]]; then
+  # Check if sslmode is already in the URL - use test instead of [[ for better compatibility
+  if test "$DATABASE_URL" != "${DATABASE_URL%\?sslmode=*}" || test "$DATABASE_URL" != "${DATABASE_URL%\&sslmode=*}"; then
+    echo "🔒 SSL mode already present in DATABASE_URL"
+  else
     export DATABASE_URL="${DATABASE_URL}?sslmode=require"
     echo "🔒 Added SSL mode to DATABASE_URL"
   fi

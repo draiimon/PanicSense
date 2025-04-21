@@ -4,7 +4,7 @@
  */
 
 import express from 'express';
-import { Pool } from 'pg';
+import pg from 'pg';
 import http from 'http';
 import path from 'path';
 import fs from 'fs';
@@ -12,6 +12,9 @@ import { WebSocketServer } from 'ws';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+
+// pg is a CommonJS module so we need to extract Pool like this
+const { Pool } = pg;
 
 // ES Module dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
