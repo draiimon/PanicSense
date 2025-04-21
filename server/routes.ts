@@ -162,19 +162,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server
   const httpServer = createServer(app);
 
+  // Register our real-time news monitoring routes
+  await registerRealNewsRoutes(app);
+
   // Create WebSocket server
   const wss = new WebSocketServer({ 
     server: httpServer,
     path: '/ws'  
   });
   
-  // Register real news feed routes for authentic disaster updates
-  try {
-    registerRealNewsRoutes(app, wss);
-    console.log('Real news feed routes registered successfully');
-  } catch (error) {
-    console.error('Error registering real news feed routes:', error);
-  }
+  // Real news feed routes are already registered above
 
   // WebSocket connection handler
   wss.on('connection', (ws: WebSocket) => {

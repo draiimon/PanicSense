@@ -1,551 +1,249 @@
-/**
- * Real News Feed Service for PanicSense App
- * Fetches authentic news content from Philippine news sources
- */
-
+import axios from 'axios';
 import Parser from 'rss-parser';
-import { storage } from '../storage';
-import { pythonService } from '../python-service';
-import { WebSocket } from 'ws';
-import { log } from '../vite';
+import { v4 as uuidv4 } from 'uuid';
 
-// Connected WebSocket clients that will receive real-time updates
-const connectedClients = new Set<WebSocket>();
-
-// Create RSS parser instance
+// Define the RSS parser
 const parser = new Parser({
-  headers: {
-    'User-Agent': 'PanicSense Disaster Monitoring App/1.0'
+  customFields: {
+    item: [
+      ['media:content', 'media'],
+      ['description', 'description'],
+      ['content:encoded', 'contentEncoded']
+    ]
   }
 });
 
-// List of Philippines news sources with disaster-related content
-const NEWS_SOURCES = [
-  // Mga pangunahing news sources na gumagana
-  {
-    name: 'PhilStar Nation',
-    url: 'https://www.philstar.com/rss/nation',
-    source: 'PhilStar'
-  },
-  {
-    name: 'Inquirer Feed',
-    url: 'https://www.inquirer.net/fullfeed',
-    source: 'Inquirer'
-  },
-  {
-    name: 'Manila Times',
-    url: 'https://www.manilatimes.net/news/feed',
-    source: 'Manila Times'
-  },
-  {
-    name: 'Manila Standard',
-    url: 'https://manilastandard.net/feed/',
-    source: 'Manila Standard'
-  },
-  {
-    name: 'BusinessWorld',
-    url: 'https://www.bworldonline.com/feed/',
-    source: 'BusinessWorld'
-  },
-  // Dagdag na malalaking news sources
-  {
-    name: 'ABS-CBN News',
-    url: 'https://news.abs-cbn.com/rss/news',
-    source: 'ABS-CBN News'
-  },
-  {
-    name: 'Rappler',
-    url: 'https://www.rappler.com/nation/feed/',
-    source: 'Rappler'
-  },
-  // Weather and Disaster agencies
-  {
-    name: 'PAGASA News',
-    url: 'https://bagong.pagasa.dost.gov.ph/press-release-archive/?format=feed&type=rss',
-    source: 'PAGASA'
-  },
-  
-  // Malalaking news agencies sa Pilipinas
-  {
-    name: 'GMA News',
-    url: 'https://www.gmanetwork.com/news/rss',
-    source: 'GMA News'
-  },
-  // Removed duplicate ABS-CBN entry and error comment since we have a working one above
-  // Manila Bulletin returning error - removed
-  {
-    name: 'PNA',
-    url: 'https://pna.gov.ph/rss',
-    source: 'Philippine News Agency'
-  },
-  
-  // Regional news sources
-  // SunStar returning 404 error
-  /*{
-    name: 'SunStar Philippines',
-    url: 'https://www.sunstar.com.ph/rss',
-    source: 'SunStar'
-  },*/
-  {
-    name: 'Cebu Daily News',
-    url: 'https://cebudailynews.inquirer.net/feed',
-    source: 'Cebu Daily News'
-  },
-  {
-    name: 'Mindanao Times',
-    url: 'https://mindanaotimes.com.ph/feed',
-    source: 'Mindanao Times'
-  },
-  {
-    name: 'Panay News',
-    url: 'https://www.panaynews.net/feed',
-    source: 'Panay News'
-  },
-  {
-    name: 'Bohol Chronicle',
-    url: 'https://boholchronicle.com.ph/feed',
-    source: 'Bohol Chronicle'
-  },
-  {
-    name: 'Punto Central Luzon',
-    url: 'https://punto.com.ph/feed',
-    source: 'Punto Central Luzon'
-  },
-  {
-    name: 'Journal Online',
-    url: 'https://journal.com.ph/feed',
-    source: 'Journal Online'
-  },
-  {
-    name: 'Metro Cebu News',
-    url: 'https://metrocebu.news/feed',
-    source: 'Metro Cebu News'
-  },
-  {
-    name: 'Baguio Midland Courier',
-    url: 'https://baguiomidlandcourier.com.ph/feed',
-    source: 'Baguio Midland Courier'
-  },
-  
-  // Mga internacional at disaster-specific feeds
-  {
-    name: 'ReliefWeb Philippines',
-    url: 'https://reliefweb.int/updates/rss?search=philippines',
-    source: 'ReliefWeb'
-  }
-  
-  // Mga karagdagang feed ay sinubukan pero hindi compatible sa kasalukuyang RSS parser
-  // Kaya kinomento muna para hindi maantala ang mga gumaganang feed
-  /*
-  {
-    name: 'PAGASA Forecasts',
-    url: 'https://bagong.pagasa.dost.gov.ph/rss',
-    source: 'PAGASA'
-  },
-  {
-    name: 'GDACS Global Disasters',
-    url: 'https://www.gdacs.org/rss.aspx',
-    source: 'GDACS'
-  }
-  */
-];
+// News item interface
+export interface NewsItem {
+  id: string;
+  title: string;
+  content: string;
+  source: string;
+  timestamp: string;
+  url: string;
+  disasterType?: string;
+  location?: string;
+}
 
-// Filter keywords STRICTLY related to NATURAL DISASTERS in the Philippines
+// Philippines disaster keywords for filtering relevant news
 const DISASTER_KEYWORDS = [
-  // Typhoons & Storms
-  'bagyo', 'typhoon', 'storm', 'cyclone', 'hurricane', 'habagat', 'monsoon',
-  'signal no. 1', 'signal no. 2', 'signal no. 3', 'signal no. 4', 'signal no. 5',
-  'tropical depression', 'low pressure area', 'amihan', 'malakas na hangin',
+  // Tagalog terms
+  'bagyo', 'lindol', 'baha', 'sunog', 'sakuna', 'kalamidad', 'pagsabog', 'bulkan',
+  'pagputok', 'guho', 'tagtuyot', 'init', 'pagguho', 'habagat', 'pinsala', 'tsunami',
+  'salanta', 'ulan', 'dagundong', 'likas', 'evacuate', 'evacuation',
   
-  // Flooding & Rain
-  'flood', 'baha', 'tubig', 'binaha', 'heavy rain', 'malakas na ulan', 'bumuhos', 
-  'pag-ulan', 'naapektuhan ng baha', 'flashflood', 'rising water level',
-  'high tide', 'tumataas na tubig', 'tubig-baha', 'nabaha',
-  
-  // Landslides
-  'landslide', 'pagguho', 'guho', 'mudslide', 'erosion', 'soil erosion', 
-  'nakabaon', 'nadaganan', 'gumuho ang lupa', 'pagguho ng lupa', 'landslip',
-  
-  // Earthquakes
-  'earthquake', 'lindol', 'magnitude', 'intensity', 'aftershock', 'tremor',
-  'lumindol', 'yumanig', 'phivolcs', 'fault line', 'epicenter', 'seismic',
-  'ground shaking', 'quake', 'temblor',
-  
-  // Tsunamis
-  'tsunami', 'tidal wave', 'storm surge', 'sea level rise', 'coastal flooding',
-  'daluyong', 'alat', 'alon', 'tubig-dagat',
-  
-  // Volcanic Activity
-  'volcanic', 'bulkan', 'volcano', 'ash fall', 'pyroclastic flow', 'lava', 
-  'eruption', 'pumutok', 'taal', 'mayon', 'kanlaon', 'bulusan', 'alert level',
-  'phreatic', 'magma', 'abo', 'ashfall', 'lahar',
-  
-  // Drought & El Niño / Extreme Heat
-  'drought', 'tagtuyot', 'el nino', 'el niño', 'water shortage', 'kakulangan ng tubig',
-  'dry spell', 'crop failure', 'kakapusan ng tubig', 'heatwave', 'heat index',
-  'heat stroke', 'extreme heat', 'matinding init', 'nakamamatay na init',
-  
-  // Disaster Response Terms
-  'evacuated', 'evacuation', 'evacuees', 'rescue', 'nasalanta', 'stranded',
-  'relief', 'casualties', 'fatalities', 'injured', 'missing', 'displaced',
-  'destroyed homes', 'damages', 'relief goods', 'relief operations',
-  'emergency shelter', 'relief center', 'evacuation center',
-  
-  // Government Agencies
-  'ndrrmc', 'pagasa', 'phivolcs', 'disaster agency', 'ocd', 'red cross',
-  'disaster response', 'disaster management', 'LGU disaster', 'DOST disaster',
-  
-  // Warning Levels
-  'red alert', 'orange alert', 'warning', 'disaster', 'calamity', 'state of calamity',
-  'weather alert', 'weather warning', 'weather advisory'
+  // English terms
+  'typhoon', 'earthquake', 'flood', 'fire', 'disaster', 'calamity', 'eruption', 'volcano',
+  'landslide', 'drought', 'heat wave', 'tsunami', 'storm', 'damage', 'tremor', 'aftershock',
+  'evacuation', 'emergency', 'relief', 'rescue', 'warning', 'alert', 'NDRRMC', 'PAGASA', 'PHIVOLCS'
 ];
 
-/**
- * Adds a WebSocket client to the list of connected clients
- */
-export function addWebSocketClient(ws: WebSocket) {
-  connectedClients.add(ws);
-  
-  // Remove the client when it disconnects
-  ws.on('close', () => {
-    connectedClients.delete(ws);
-    log(`Real-time feed client disconnected, ${connectedClients.size} remaining`, 'real-news');
-  });
-  
-  log(`New real-time feed client connected, total clients: ${connectedClients.size}`, 'real-news');
-}
+// Philippine location keywords for detecting affected areas
+const LOCATION_KEYWORDS = [
+  'Manila', 'Quezon City', 'Cebu', 'Davao', 'Luzon', 'Visayas', 'Mindanao',
+  'Cavite', 'Laguna', 'Batangas', 'Rizal', 'Bulacan', 'Pampanga', 'Bicol',
+  'Leyte', 'Samar', 'Iloilo', 'Negros', 'Zambales', 'Pangasinan', 'Bataan',
+  'Nueva Ecija', 'Cagayan', 'Palawan', 'Baguio', 'Tacloban', 'Cotabato',
+  'Zamboanga', 'Albay', 'Sorsogon', 'Marinduque', 'Aklan', 'Capiz', 'Antique'
+];
 
-/**
- * Broadcasts new posts to all connected WebSocket clients
- */
-export function broadcastNewPost(post: any) {
-  try {
-    const messageData = {
-      type: 'new_post',
-      data: post,
-      timestamp: new Date().toISOString()
-    };
+// Disaster type classification based on keywords
+const DISASTER_TYPE_KEYWORDS: Record<string, string[]> = {
+  'typhoon': ['bagyo', 'typhoon', 'storm', 'cyclone', 'hurricane', 'habagat', 'monsoon', 'salanta'],
+  'earthquake': ['lindol', 'earthquake', 'tremor', 'aftershock', 'temblor', 'yugyug', 'dagundong'],
+  'flood': ['baha', 'flood', 'flooding', 'flash flood', 'delubyo', 'pagbaha'],
+  'fire': ['sunog', 'fire', 'blaze', 'flames', 'burning', 'arson'],
+  'volcano': ['bulkan', 'volcano', 'volcanic', 'eruption', 'ashfall', 'lahar', 'pagputok'],
+  'landslide': ['guho', 'landslide', 'mudslide', 'rockfall', 'pagguho', 'tabon'],
+  'extreme heat': ['init', 'heat wave', 'extreme heat', 'high temperature', 'tagtuyot'],
+  'drought': ['tagtuyot', 'drought', 'dry spell', 'water shortage', 'El Niño'],
+  'tsunami': ['tsunami', 'tidal wave', 'alon bundol'],
+};
+
+export class RealNewsService {
+  private newsSources: {url: string, name: string}[];
+  private cachedNews: NewsItem[];
+  private lastFetched: Date;
+  private fetchInterval: number; // in milliseconds
+
+  constructor() {
+    // Initialize with Philippine news sources that have RSS feeds
+    this.newsSources = [
+      { name: 'Inquirer Feed', url: 'https://inquirer.net/feed/' },
+      { name: 'Manila Times', url: 'https://www.manilatimes.net/news/feed/' },
+      { name: 'BusinessWorld', url: 'https://www.bworldonline.com/feed/' },
+      { name: 'GMA News', url: 'https://data.gmanetwork.com/gno/rss/news/feed.xml' },
+      { name: 'Rappler', url: 'https://www.rappler.com/feed/' },
+      { name: 'PAGASA News', url: 'https://bagong.pagasa.dost.gov.ph/feed/' },
+      { name: 'ABS-CBN News', url: 'https://news.abs-cbn.com/rss/news' },
+      { name: 'Cebu Daily News', url: 'https://cebudailynews.inquirer.net/feed' },
+      { name: 'Panay News', url: 'https://www.panaynews.net/feed/' },
+      { name: 'Mindanao Times', url: 'https://mindanaotimes.com.ph/feed/' },
+      { name: 'PNA', url: 'https://www.pna.gov.ph/rss' },
+      { name: 'Baguio Midland Courier', url: 'http://www.baguiomidlandcourier.com.ph/rss.asp' },
+      { name: 'ReliefWeb Philippines', url: 'https://reliefweb.int/country/phl/rss.xml' }
+    ];
     
-    connectedClients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(messageData));
-      }
-    });
+    this.cachedNews = [];
+    this.lastFetched = new Date(0); // Begin with earliest date
+    this.fetchInterval = 10 * 60 * 1000; // 10 minutes
     
-    log(`Broadcasted new post to ${connectedClients.size} clients`, 'real-news');
-  } catch (error) {
-    log(`Error broadcasting new post: ${error}`, 'real-news');
+    // Start fetching news immediately and then regularly
+    this.fetchAllNews();
+    setInterval(() => this.fetchAllNews(), this.fetchInterval);
   }
-}
 
-/**
- * Checks if text contains disaster-related keywords and qualifies as a natural disaster post
- */
-function containsDisasterKeywords(text: string): boolean {
-  if (!text) return false;
-  
-  const lowerText = text.toLowerCase();
-  
-  // First check: Basic keyword matching
-  const hasKeyword = DISASTER_KEYWORDS.some(keyword => lowerText.includes(keyword.toLowerCase()));
-  
-  if (!hasKeyword) return false;
-  
-  // Second check: Must not contain terms that indicate non-natural disasters
-  const nonNaturalDisasterTerms = [
-    'terrorist', 'terrorism', 'bombing', 'shooter', 'shooting', 'hostage', 'kidnap',
-    'attack', 'war', 'coup', 'protest', 'rally', 'demonstration', 'riot',
-    'covid', 'pandemic', 'virus', 'lockdown', 'quarantine', 'omicron', 'delta',
-    'crime', 'murder', 'homicide', 'rape', 'carnap', 'carjacking', 'robbery',
-    'scandal', 'corruption', 'graft', 'investigation'
-  ];
-  
-  // If it has any non-natural disaster terms, return false
-  if (nonNaturalDisasterTerms.some(term => lowerText.includes(term))) {
-    return false;
-  }
-  
-  // Third check: Must have at least one term that strongly indicates natural disaster
-  const strongNaturalDisasterIndicators = [
-    'typhoon', 'bagyo', 'flood', 'baha', 'landslide', 'guho', 'earthquake', 'lindol',
-    'volcanic', 'eruption', 'tsunami', 'storm', 'monsoon', 'habagat', 'cyclone',
-    'drought', 'el nino', 'el niño', 'forest fire', 'wildfire', 'sunog', 'magnitude',
-    'pagasa', 'phivolcs', 'ndrrmc', 'evacuate', 'evacuees', 'evacuation',
-    'heatwave', 'heat index', 'heat stroke', 'extreme heat', 'matinding init',
-    'alert level', 'disaster', 'calamity', 'rising water', 'rising sea'
-  ];
-  
-  return strongNaturalDisasterIndicators.some(term => lowerText.includes(term));
-}
-
-/**
- * Fetches news from a single source
- */
-async function fetchNewsFromSource(source: typeof NEWS_SOURCES[0]): Promise<any[]> {
-  try {
-    log(`Fetching news from ${source.name}...`, 'real-news');
+  /**
+   * Fetch all news from configured sources
+   */
+  private async fetchAllNews(): Promise<void> {
+    const allNews: NewsItem[] = [];
     
-    const feed = await parser.parseURL(source.url);
-    const disasterRelatedItems = feed.items.filter(item => 
-      containsDisasterKeywords(item.title || '') || 
-      containsDisasterKeywords(item.content || '') ||
-      containsDisasterKeywords(item.contentSnippet || '')
-    );
-    
-    log(`Found ${disasterRelatedItems.length} disaster-related items from ${source.name}`, 'real-news');
-    return disasterRelatedItems.map(item => ({
-      ...item,
-      sourceName: source.source
-    }));
-  } catch (error) {
-    log(`Error fetching from ${source.name}: ${error}`, 'real-news');
-    return [];
-  }
-}
-
-/**
- * Processes a news item and saves it to the database
- */
-async function processNewsItem(item: any): Promise<any> {
-  try {
-    // Extract text from the item
-    const title = item.title || '';
-    let content = item.contentSnippet || item.content || '';
-
-    // Truncate excessively long content to prevent processing issues
-    // This is particularly important for Manila Times and other sources that include full article text
-    if (content.length > 800) {
-      content = content.substring(0, 800) + '...';
-      log(`Truncated long content from "${item.sourceName || 'unknown source'}" to 800 chars`, 'real-news');
-    }
-    
-    // Create a clean post text combining title and truncated content
-    const postText = `${title}. ${content}`;
-    
-    // Enhanced duplicate check: Check if we already have this item in our database
-    // 1. First check by exact title match
-    const existingPosts = await storage.getSentimentPosts();
-    
-    // Check for duplicate by exact title match (most reliable)
-    if (existingPosts.some(post => post.text.startsWith(title) || title === post.text)) {
-      log(`Skipping duplicate news item (exact title match): ${title}`, 'real-news');
-      return null;
-    }
-    
-    // Check for partial title match (for slightly modified titles)
-    const titleWords = title.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3);
-    if (titleWords.length > 3) {  // Only check if we have enough significant words
-      const titleMatches = existingPosts.filter(post => {
-        const postTitlePart = post.text.split('.')[0].toLowerCase();
-        return titleWords.filter((word: string) => postTitlePart.includes(word)).length >= Math.min(3, titleWords.length * 0.7);
-      });
-      
-      if (titleMatches.length > 0) {
-        log(`Skipping likely duplicate news item (partial title match): ${title}`, 'real-news');
-        return null;
-      }
-    }
-    
-    // Analyze the sentiment of the news item
-    const result = await pythonService.analyzeSentiment(postText);
-    
-    // Get actual timestamp from post if available
-    const postTimestamp = item.isoDate || item.pubDate ? new Date(item.isoDate || item.pubDate) : new Date();
-    
-    // Detect actual disaster type - if we have a clear disaster type, use it
-    // Otherwise, rely on the python service's analysis
-    const detectedDisasterType = pythonService.extractDisasterTypeFromText(postText);
-    const finalDisasterType = detectedDisasterType || 
-      ((result.disasterType === "Unknown Disaster" || !result.disasterType) ? "UNKNOWN" : result.disasterType);
-    
-    // Detect a single specific location rather than listing all mentioned locations
-    // Use the result.location from Python service first as it may have better AI-based detection
-    // If that's not available, try the JS-based extraction as a fallback
-    const finalLocation = result.location || 
-      (typeof result.location === 'string' && result.location !== 'UNKNOWN' ? result.location : null) || 
-      "UNKNOWN";
-    
-    // Create and save the post with improved metadata
-    const newPost = await storage.createSentimentPost({
-      text: postText,
-      sentiment: result.sentiment,
-      confidence: result.confidence,
-      source: item.sourceName || "Philippine News",
-      language: result.language || "en",
-      location: finalLocation,
-      disasterType: finalDisasterType,
-      explanation: result.explanation,
-      timestamp: postTimestamp
-    });
-    
-    // Get the complete post with ID from the database
-    const savedPost = await storage.getSentimentPostById(newPost.id);
-    
-    // Broadcast the new post to all WebSocket clients
-    if (savedPost) {
-      broadcastNewPost(savedPost);
-    }
-    
-    log(`Processed new news item: "${title}" [Type: ${finalDisasterType}, Location: ${finalLocation}]`, 'real-news');
-    return savedPost;
-  } catch (error) {
-    log(`Error processing news item: ${error}`, 'real-news');
-    return null;
-  }
-}
-
-/**
- * Fetches news from all sources
- */
-export async function fetchAllNews(): Promise<any[]> {
-  try {
     // Fetch from all sources in parallel
-    const allNewsPromises = NEWS_SOURCES.map(source => fetchNewsFromSource(source));
-    const allNewsResults = await Promise.all(allNewsPromises);
+    const fetchPromises = this.newsSources.map(source => this.fetchFromSource(source));
+    const results = await Promise.allSettled(fetchPromises);
     
-    // Flatten results
-    const allNews = allNewsResults.flat();
-    
-    // Sort by latest first
-    allNews.sort((a, b) => {
-      const dateA = a.isoDate || a.pubDate || new Date();
-      const dateB = b.isoDate || b.pubDate || new Date();
-      return new Date(dateB).getTime() - new Date(dateA).getTime();
-    });
-    
-    log(`Fetched a total of ${allNews.length} disaster-related news items`, 'real-news');
-    return allNews;
-  } catch (error) {
-    log(`Error fetching all news: ${error}`, 'real-news');
-    return [];
-  }
-}
-
-/**
- * Processes all fetched news items with improved rate limiting
- */
-async function processAllNews(): Promise<void> {
-  try {
-    // Fetch all news items
-    const allNews = await fetchAllNews();
-    
-    // Handle empty results gracefully
-    if (!allNews || allNews.length === 0) {
-      log('No news items to process or all sources returned empty results', 'real-news');
-      return;
-    }
-    
-    // Take only the top 3 most recent items to avoid API rate limits
-    // This is critical for ensuring we don't hit API limits while still getting fresh content
-    const recentNews = allNews.slice(0, 3);
-    
-    log(`Processing ${recentNews.length} most recent news items out of ${allNews.length} total`, 'real-news');
-    
-    // Track which sources we've already processed to avoid duplicate processing
-    const processedSources = new Set<string>();
-    
-    // Prioritize news items from more diverse sources
-    // Sort by source first to ensure we get news from different sources
-    const diverseRecentNews = recentNews.sort((a, b) => {
-      // First prioritize items from sources we haven't processed yet
-      const aProcessed = processedSources.has(a.sourceName || '');
-      const bProcessed = processedSources.has(b.sourceName || '');
-      
-      if (aProcessed !== bProcessed) {
-        return aProcessed ? 1 : -1; // Place unprocessed sources first
-      }
-      
-      // Then prioritize by date
-      const dateA = a.isoDate || a.pubDate || new Date();
-      const dateB = b.isoDate || b.pubDate || new Date();
-      return new Date(dateB).getTime() - new Date(dateA).getTime();
-    });
-    
-    // Process items sequentially with improved error handling and longer delays
-    for (const item of diverseRecentNews) {
-      try {
-        const source = item.sourceName || 'unknown';
-        
-        // Skip if we've already processed an item from this source in this batch
-        if (processedSources.has(source)) {
-          log(`Skipping additional item from already processed source: ${source}`, 'real-news');
-          continue;
-        }
-        
-        // Process the item
-        const result = await processNewsItem(item);
-        
-        // Mark this source as processed
-        processedSources.add(source);
-        
-        // If successfully processed, add a longer delay (3 seconds) between sources
-        // This ensures we don't overwhelm any APIs and helps prevent rate limiting
-        if (result) {
-          await new Promise(resolve => setTimeout(resolve, 3000));
+    // Process the results
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const newsItems = result.value;
+        if (newsItems && newsItems.length > 0) {
+          console.log(`[real-news] Found ${newsItems.length} disaster-related items from ${this.newsSources[index].name}`);
+          allNews.push(...newsItems);
         } else {
-          // Shorter delay if item was skipped (e.g., duplicate)
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          console.log(`[real-news] Found 0 disaster-related items from ${this.newsSources[index].name}`);
         }
-      } catch (itemError) {
-        log(`Error processing individual news item: ${itemError}`, 'real-news');
-        // Continue with next item even if one fails
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      } else {
+        console.log(`[real-news] Error fetching from ${this.newsSources[index].name}: ${result.reason}`);
+      }
+    });
+    
+    // Update our cache
+    this.cachedNews = allNews;
+    this.lastFetched = new Date();
+  }
+
+  /**
+   * Fetch news from a specific source
+   */
+  private async fetchFromSource(source: {url: string, name: string}): Promise<NewsItem[]> {
+    try {
+      // Fetch the RSS feed with a timeout
+      const response = await axios.get(source.url, { timeout: 10000 });
+      
+      // Parse the feed
+      const feed = await parser.parseString(response.data);
+      
+      if (!feed.items || feed.items.length === 0) {
+        return [];
+      }
+      
+      // Filter for disaster-related news and transform to our format
+      const newsItems: NewsItem[] = feed.items
+        .filter(item => this.isDisasterRelated(item.title, item.contentSnippet || item.content))
+        .map(item => {
+          // Extract best content from item
+          const content = item.contentEncoded || 
+                        item.content || 
+                        item.contentSnippet || 
+                        item.description || 
+                        'No content available';
+          
+          // Clean the content (remove HTML)
+          const cleanContent = this.stripHtml(content);
+          
+          return {
+            id: item.guid || uuidv4(),
+            title: item.title || 'No title',
+            content: cleanContent.substring(0, 500) + (cleanContent.length > 500 ? '...' : ''),
+            source: source.name,
+            timestamp: item.isoDate || new Date().toISOString(),
+            url: item.link || '',
+            disasterType: this.classifyDisasterType(item.title, cleanContent),
+            location: this.extractLocation(item.title, cleanContent)
+          };
+        });
+      
+      return newsItems;
+    } catch (error) {
+      // Throw error with context
+      throw error;
+    }
+  }
+
+  /**
+   * Check if an article is disaster-related based on keywords
+   */
+  private isDisasterRelated(title: string, content: string): boolean {
+    if (!title && !content) return false;
+    
+    const combinedText = `${title} ${content}`.toLowerCase();
+    
+    return DISASTER_KEYWORDS.some(keyword => combinedText.includes(keyword.toLowerCase()));
+  }
+
+  /**
+   * Classify the type of disaster mentioned in the article
+   */
+  private classifyDisasterType(title: string, content: string): string {
+    if (!title && !content) return '';
+    
+    const combinedText = `${title} ${content}`.toLowerCase();
+    
+    // Check each disaster type
+    for (const [disasterType, keywords] of Object.entries(DISASTER_TYPE_KEYWORDS)) {
+      if (keywords.some(keyword => combinedText.includes(keyword.toLowerCase()))) {
+        return disasterType;
       }
     }
     
-    log(`Completed processing news items from ${processedSources.size} unique sources`, 'real-news');
-  } catch (error) {
-    log(`Error in processAllNews: ${error}`, 'real-news');
+    // If no specific disaster type detected but it passed the disaster filter,
+    // it's a general disaster update
+    return 'disaster update';
   }
-}
 
-// Track the timer reference so we can restart it if needed
-let newsFeedInterval: NodeJS.Timeout | null = null;
-
-/**
- * Starts fetching real-time news
- */
-export function startRealNewsFeed(): void {
-  // Stop existing timer if running
-  stopRealNewsFeed();
-  
-  // Process immediately
-  processAllNews();
-  
-  // Set interval to fetch news every 10 minutes to increase fresh content
-  newsFeedInterval = setInterval(processAllNews, 10 * 60 * 1000);
-  
-  log('Real news feed started successfully', 'real-news');
-}
-
-/**
- * Stops fetching real-time news
- */
-export function stopRealNewsFeed(): void {
-  if (newsFeedInterval) {
-    clearInterval(newsFeedInterval);
-    newsFeedInterval = null;
-    log('Real news feed stopped', 'real-news');
+  /**
+   * Extract location information from the article
+   */
+  private extractLocation(title: string, content: string): string {
+    if (!title && !content) return 'Philippines';
+    
+    const combinedText = `${title} ${content}`;
+    
+    // Check for mentions of specific locations in the Philippines
+    for (const location of LOCATION_KEYWORDS) {
+      if (combinedText.includes(location)) {
+        return location;
+      }
+    }
+    
+    // Default to Philippines if no specific location is found
+    return 'Philippines';
   }
-}
 
-/**
- * Gets the most recent posts for the real-time feed
- */
-export async function getLatestPosts(limit: number = 20) {
-  try {
-    return await storage.getRecentSentimentPosts(limit);
-  } catch (error) {
-    log(`Error getting latest posts: ${error}`, 'real-news');
-    return [];
+  /**
+   * Strip HTML tags from content
+   */
+  private stripHtml(html: string): string {
+    // Simple HTML stripping - in production you might want a more robust solution
+    return html.replace(/<[^>]*>?/gm, ' ')
+               .replace(/\s\s+/g, ' ')
+               .trim();
   }
-}
 
-/**
- * Manually triggers fetching news right now
- */
-export async function manuallyFetchNews(): Promise<any[]> {
-  log('Manually fetching news', 'real-news');
-  await processAllNews();
-  return getLatestPosts();
+  /**
+   * Get the latest news, sorted by date (newest first)
+   */
+  public async getLatestNews(): Promise<NewsItem[]> {
+    // If data is older than the fetch interval, refresh it
+    const currentTime = new Date();
+    if (currentTime.getTime() - this.lastFetched.getTime() > this.fetchInterval) {
+      await this.fetchAllNews();
+    }
+    
+    // Sort by timestamp (newest first)
+    return [...this.cachedNews].sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  }
 }

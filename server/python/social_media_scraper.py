@@ -13,11 +13,18 @@ import time
 import re
 import logging
 import requests
+import ssl
+import urllib3
 from datetime import datetime, timedelta
 from urllib.parse import quote
 from bs4 import BeautifulSoup
 import snscrape.modules.twitter as sntwitter
 import random
+
+# Disable SSL warnings and certificate verification for scraping
+# This is necessary in restricted environments like Replit
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+ssl._create_default_https_context = ssl._create_unverified_context
 
 # Configure logging
 logging.basicConfig(
