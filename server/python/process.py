@@ -2194,7 +2194,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
 
                         # Detect social media platform from text content
                         if source == "CSV Import" or not source.strip():
-                            detected_source = self.detect_social_media_source(
+                            detected_source = self.detect_news_source(
                                 text)
                             if detected_source != "Unknown Social Media":
                                 source = detected_source
@@ -2457,7 +2457,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
 
                         # Detect social media platform from text content if source is just "CSV Import"
                         if source == "CSV Import" or not source.strip():
-                            detected_source = self.detect_social_media_source(
+                            detected_source = self.detect_news_source(
                                 text)
                             if detected_source != "Unknown Social Media":
                                 source = detected_source
