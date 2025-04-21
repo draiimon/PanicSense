@@ -1,39 +1,27 @@
 #!/bin/bash
-set -e
+# Initialize the database and start the server
 
-echo "✅ Preparing server environment..."
-
-# Create necessary directories
-mkdir -p server/public
-mkdir -p logs
-mkdir -p uploads
-
-# Check for client build
-if [ -d "client/dist" ]; then
-  echo "📂 Using client/dist for static files"
-  cp -r client/dist/* server/public/
+# Check if DATABASE_URL is set
+if [ -z "$DATABASE_URL" ]; then
+  echo "WARNING: DATABASE_URL environment variable is not set."
+  echo "Will use default local PostgreSQL connection."
+  export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/panicsense"
 fi
 
-# Ensure DATABASE_URL has SSL mode if needed
-if [ -n "$DATABASE_URL" ] && [ "$DB_SSL_REQUIRED" = "true" ]; then
-  # Check if sslmode is already in the URL
-  if test "$DATABASE_URL" != "${DATABASE_URL%\?sslmode=*}" || test "$DATABASE_URL" != "${DATABASE_URL%\&sslmode=*}"; then
-    echo "🔒 SSL mode already present in DATABASE_URL"
-  else
-    export DATABASE_URL="${DATABASE_URL}?sslmode=require"
-    echo "🔒 Added SSL mode to DATABASE_URL"
-  fi
+# Ensure any required environment variables are set
+if [ ! -f .env ]; then
+  echo "Creating .env file from example..."
+  cp .env.example .env
 fi
 
-echo "⚙️ Environment: NODE_ENV=$NODE_ENV"
-echo "🔄 Attempting database connection..."
+# Wait for the database to be ready if needed
+echo "Checking database connection..."
+node verify-db.js || exit 1
 
-echo "🚀 Starting server on port $PORT..."
+# Ensure database schema is up to date
+echo "Setting up database schema..."
+npm run db:push
 
-# Start the server using the primary server.js file
-if [ -f "server.js" ]; then
-  exec node server.js
-else
-  echo "❌ Error: server.js not found!"
-  exit 1
-fi
+# Start the application server
+echo "Starting PanicSense server..."
+exec node server.js
