@@ -77,10 +77,24 @@ export class RealNewsService {
       { name: 'Panay News', url: 'https://www.panaynews.net/feed/' },
       { name: 'Mindanao Times', url: 'https://mindanaotimes.com.ph/feed/' },
       
-      // New reliable sources added (2025-04-21)
+      // National news sources
       { name: 'PhilStar Headlines', url: 'https://www.philstar.com/rss/headlines' },
       { name: 'PhilStar Nation', url: 'https://www.philstar.com/rss/nation' },
-      { name: 'NewsInfo Inquirer', url: 'https://newsinfo.inquirer.net/feed' }
+      { name: 'NewsInfo Inquirer', url: 'https://newsinfo.inquirer.net/feed' },
+      { name: 'Manila Bulletin', url: 'https://mb.com.ph/feed/' },
+      { name: 'Tribune News', url: 'https://prod-qt-images.s3.amazonaws.com/production/tribune/feed.xml' },
+      
+      // Regional news sources - Luzon
+      { name: 'PhilStar Metro', url: 'https://www.philstar.com/rss/metro' },
+      { name: 'PhilStar Luzon', url: 'https://www.philstar.com/rss/region/luzon' },
+      
+      // Regional news sources - Visayas
+      { name: 'PhilStar Visayas', url: 'https://www.philstar.com/rss/region/visayas' },
+      { name: 'SunStar Cebu', url: 'https://www.sunstar.com.ph/rss?id=4' },
+      
+      // Regional news sources - Mindanao
+      { name: 'PhilStar Mindanao', url: 'https://www.philstar.com/rss/region/mindanao' },
+      { name: 'MindaNews', url: 'https://www.mindanews.com/feed/' }
     ];
     
     this.cachedNews = [];
@@ -139,7 +153,7 @@ export class RealNewsService {
       
       // Filter for disaster-related news and transform to our format
       const newsItems: NewsItem[] = feed.items
-        .filter(item => this.isDisasterRelated(item.title, item.contentSnippet || item.content))
+        .filter(item => this.isDisasterRelated(item.title || '', (item.contentSnippet || item.content || '')))
         .map(item => {
           // Extract best content from item
           const content = item.contentEncoded || 
@@ -158,8 +172,8 @@ export class RealNewsService {
             source: source.name,
             timestamp: item.isoDate || new Date().toISOString(),
             url: item.link || '',
-            disasterType: this.classifyDisasterType(item.title, cleanContent),
-            location: this.extractLocation(item.title, cleanContent)
+            disasterType: this.classifyDisasterType(item.title || '', cleanContent),
+            location: this.extractLocation(item.title || '', cleanContent)
           };
         });
       
