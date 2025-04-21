@@ -1,40 +1,34 @@
 services:
   - type: web
     name: panicsense-ph
-    env: docker
+    runtime: node
     plan: free
-    region: singapore
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    buildCommand: npm install && npm run build
+    startCommand: node pre-render-start.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5000
+        value: 10000
       - key: TZ
         value: Asia/Manila
-      - key: DB_CONNECTION_RETRY_ATTEMPTS
-        value: 5
-      - key: DB_CONNECTION_RETRY_DELAY_MS
-        value: 3000
       - key: RUNTIME_ENV
         value: render
-      - key: DB_SSL_REQUIRED
-        value: true
       - key: HOST
         value: 0.0.0.0
-      # DATABASE_URL should be setup as a secret in Render.com dashboard
-    healthCheckPath: /api/health
-    autoDeploy: true
-    domains:
-      - panicsense.ph
-    buildFilter:
-      paths:
-        - ./**
-      ignoredPaths:
-        - PanicSense/**
-        - my_panicsense_clone/**
-        - github_fix/**
-        - temp_github_push/**
-        - node_modules/**
-        - .git/**
+      - key: PYTHON_SERVICE_ENABLED
+        value: true
+      - key: ENABLE_SOCIAL_SCRAPER
+        value: true
+      - key: DISABLE_SSL_VERIFY
+        value: true
+      - key: DB_SSL_REQUIRED
+        value: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: panicsense-db
+          property: connectionString
+
+databases:
+  - name: panicsense-db
+    plan: free
