@@ -119,19 +119,19 @@ export default function NewsMonitoringPage() {
   const [activeTab, setActiveTab] = useState("all");
   
   // Fetch news data from API
-  const { data: newsData, isLoading: newsLoading } = useQuery({
+  const { data: newsData = [], isLoading: newsLoading } = useQuery({
     queryKey: ['/api/real-news/posts'],
     refetchInterval: 60000, // Refetch every minute
   });
   
   // Fetch social media data from API
-  const { data: socialData, isLoading: socialLoading } = useQuery({
+  const { data: socialData = [], isLoading: socialLoading } = useQuery({
     queryKey: ['/api/social-media/posts'],
     refetchInterval: 30000, // Refetch every 30 seconds
   });
   
   // Combined feed for "All" tab
-  const { data: combinedData, isLoading: combinedLoading } = useQuery({
+  const { data: combinedData = [], isLoading: combinedLoading } = useQuery({
     queryKey: ['/api/combined-feed'],
     refetchInterval: 30000, // Refetch every 30 seconds
   });
@@ -173,7 +173,7 @@ export default function NewsMonitoringPage() {
             <div className="flex justify-center py-12">
               <Loader className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : combinedData && combinedData.length > 0 ? (
+          ) : combinedData && Array.isArray(combinedData) && combinedData.length > 0 ? (
             <Carousel className="w-full">
               <CarouselContent>
                 {combinedData.slice(0, 5).map((item: NewsItem | SocialMediaPost, index: number) => (
@@ -260,7 +260,7 @@ export default function NewsMonitoringPage() {
               <div className="flex justify-center py-12">
                 <Loader className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : combinedData && combinedData.length > 0 ? (
+            ) : combinedData && Array.isArray(combinedData) && combinedData.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {combinedData.map((item: NewsItem | SocialMediaPost, index: number) => (
                   <motion.div
@@ -349,7 +349,7 @@ export default function NewsMonitoringPage() {
               <div className="flex justify-center py-12">
                 <Loader className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : newsData && newsData.length > 0 ? (
+            ) : newsData && Array.isArray(newsData) && newsData.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {newsData.map((item: NewsItem, index: number) => (
                   <motion.div
@@ -412,7 +412,7 @@ export default function NewsMonitoringPage() {
               <div className="flex justify-center py-12">
                 <Loader className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : socialData && socialData.length > 0 ? (
+            ) : socialData && Array.isArray(socialData) && socialData.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {socialData.map((post: SocialMediaPost, index: number) => (
                   <motion.div
