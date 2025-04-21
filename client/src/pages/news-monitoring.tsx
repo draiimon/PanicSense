@@ -333,7 +333,7 @@ const getNewsImage = (item: NewsItem): string => {
   return "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
 };
 
-// Filter ONLY disaster-related news - ADVANCED FILTERING
+// Filter ONLY disaster-related news - ADVANCED FILTERING WITH INTENSITY SCORING
 const isDisasterRelated = (item: NewsItem): boolean => {
   if (!item.title && !item.content) return false;
   
@@ -342,38 +342,100 @@ const isDisasterRelated = (item: NewsItem): boolean => {
   
   // CHECKING CONTEXT: Need at least one PRIMARY disaster keyword
   const primaryDisasterKeywords = [
-    // Malalaking disasters - PRIMARY KEYWORDS
-    'bagyo', 'typhoon', 'bagyong', 'storm', 
-    'lindol', 'earthquake', 'intensity', 'magnitude',
-    'baha', 'flood', 'binaha', 'pagbaha', 'tubig-baha',
-    'sunog', 'fire', 'nasusunog', 'wildfire',
-    'sakuna', 'disaster', 'kalamidad', 'calamity',
-    'pagsabog', 'eruption', 'bulkan', 'volcano',
-    'guho', 'landslide', 'pagguho', 'collapse',
-    'tsunami', 'tidal wave',
-    'drought', 'tagtuyot', 'el niño',
-    'evacuate', 'evacuation', 'ilikas', 'lumikas',
-    'aftershock', 'landfall', 'signal no', 'warning'
+    // VERY HIGH PRIORITY - ACTIVE/CURRENT DISASTERS
+    { keyword: 'storm signal', priority: 10 },
+    { keyword: 'storm warning', priority: 10 },
+    { keyword: 'bagyo update', priority: 10 },
+    { keyword: 'typhoon update', priority: 10 },
+    { keyword: 'flash flood', priority: 10 },
+    { keyword: 'severe flood', priority: 10 },
+    { keyword: 'evacuate', priority: 10 },
+    { keyword: 'evacuation', priority: 10 },
+    { keyword: 'hazard', priority: 10 },
+    { keyword: 'emergency', priority: 10 },
+    { keyword: 'alert level', priority: 10 },
+    { keyword: 'eruption', priority: 10 },
+    { keyword: 'pagsabog', priority: 10 },
+    { keyword: 'danger zone', priority: 10 },
+    { keyword: 'tsunami', priority: 10 },
+    { keyword: 'magnitude', priority: 10 },
+    { keyword: 'intensity', priority: 10 },
+    { keyword: 'heat index', priority: 10 },
+    { keyword: 'extreme heat', priority: 10 },
+    { keyword: 'signal no', priority: 10 },
+    { keyword: 'pagasa warning', priority: 10 },
+    { keyword: 'walangpasok', priority: 10 },
+    
+    // HIGH PRIORITY - GENERAL DISASTERS
+    { keyword: 'bagyo', priority: 8 },
+    { keyword: 'typhoon', priority: 8 },
+    { keyword: 'lindol', priority: 8 }, 
+    { keyword: 'earthquake', priority: 8 },
+    { keyword: 'baha', priority: 8 },
+    { keyword: 'flood', priority: 8 },
+    { keyword: 'binaha', priority: 8 },
+    { keyword: 'pagbaha', priority: 8 },
+    { keyword: 'sunog', priority: 8 },
+    { keyword: 'fire', priority: 8 },
+    { keyword: 'wildfire', priority: 8 },
+    { keyword: 'sakuna', priority: 8 },
+    { keyword: 'disaster', priority: 8 },
+    { keyword: 'kalamidad', priority: 8 }, 
+    { keyword: 'bulkan', priority: 8 },
+    { keyword: 'volcano', priority: 8 },
+    { keyword: 'guho', priority: 8 },
+    { keyword: 'landslide', priority: 8 },
+    { keyword: 'collapsed', priority: 8 },
+    { keyword: 'aftershock', priority: 8 },
+    { keyword: 'landfall', priority: 8 }
   ];
   
-  // MAGANDANG ADDITIONAL CONTEXT - mga kaakibat ng disaster events
+  // MEDIUM PRIORITY - WEATHER AND CLIMATE CONTEXT
   const secondaryDisasterKeywords = [
     // Secondary disaster contexts
-    'inundated', 'water level', 'rising water', 'tubig-baha',
-    'pag-aalburuto', 'rumbling', 'dagundong',
-    'rescue', 'relief', 'emergency', 'evacuees',
-    'damage', 'pinsala', 'nasira', 'casualties',
-    'stranded', 'na-strand', 'naputol', 'washed out', 
-    'trapped', 'nasira', 'destroyed',
-    'suspend', 'suspendido', 'closed', 'sarado',
-    'red alert', 'orange alert', 'yellow alert',
-    'habagat', 'amihan', 'monsoon', 'ulan', 'heavy rain',
+    { keyword: 'inundated', priority: 5 },
+    { keyword: 'water level', priority: 5 },
+    { keyword: 'rising water', priority: 5 },
+    { keyword: 'tubig-baha', priority: 5 },
+    { keyword: 'rumbling', priority: 5 },
+    { keyword: 'dagundong', priority: 5 },
+    { keyword: 'rescue', priority: 5 },
+    { keyword: 'relief', priority: 5 },
+    { keyword: 'evacuees', priority: 5 },
+    { keyword: 'casualties', priority: 5 },
+    { keyword: 'damage', priority: 5 },
+    { keyword: 'pinsala', priority: 5 },
+    { keyword: 'nasira', priority: 5 },
+    { keyword: 'stranded', priority: 5 },
+    { keyword: 'na-strand', priority: 5 },
+    { keyword: 'naputol', priority: 5 },
+    { keyword: 'washed out', priority: 5 },
+    { keyword: 'trapped', priority: 5 },
+    { keyword: 'destroyed', priority: 5 },
+    { keyword: 'suspend', priority: 5 },
+    { keyword: 'suspendido', priority: 5 },
+    { keyword: 'closed', priority: 5 },
+    { keyword: 'sarado', priority: 5 },
+    { keyword: 'red alert', priority: 5 },
+    { keyword: 'orange alert', priority: 5 },
+    { keyword: 'yellow alert', priority: 5 },
+    { keyword: 'habagat', priority: 5 },
+    { keyword: 'amihan', priority: 5 },
+    { keyword: 'monsoon', priority: 5 },
+    { keyword: 'ulan', priority: 5 },
+    { keyword: 'heavy rain', priority: 5 },
     
     // Agency-based disaster context
-    'ndrrmc', 'pagasa', 'phivolcs', 'ocd',
-    'red cross', 'warning', 'advisory', 'hazard',
-    'alert level', 'raised alert', 'signal', 'bulletin',
-    'weatherforecast', 'weatherupdate', 'walangpasok'
+    { keyword: 'ndrrmc', priority: 5 },
+    { keyword: 'pagasa', priority: 5 },
+    { keyword: 'phivolcs', priority: 5 },
+    { keyword: 'ocd', priority: 5 },
+    { keyword: 'red cross', priority: 5 },
+    { keyword: 'warning', priority: 5 },
+    { keyword: 'advisory', priority: 5 },
+    { keyword: 'bulletin', priority: 5 },
+    { keyword: 'weatherforecast', priority: 5 },
+    { keyword: 'weatherupdate', priority: 5 }
   ];
   
   // MGA HINDI KASAMA - NOT CONSIDERED DISASTER CONTEXT
@@ -395,22 +457,57 @@ const isDisasterRelated = (item: NewsItem): boolean => {
   
   if (hasStrongNegativeContext) return false;
   
-  // MUST have at least one primary disaster keyword
-  const hasPrimaryKeyword = primaryDisasterKeywords.some(keyword => combinedText.includes(keyword));
+  // Check for primary disaster keywords (high priority ones)
+  let disasterScore = 0;
+  let hasPrimaryKeyword = false;
   
-  // IF no primary keyword, check for strong secondary context (multiple secondary keywords)
-  if (!hasPrimaryKeyword) {
-    // Count how many secondary keywords appear
-    const secondaryKeywordCount = secondaryDisasterKeywords.filter(keyword => 
-      combinedText.includes(keyword)
-    ).length;
-    
-    // Only consider as disaster-related if it has multiple secondary keywords
-    return secondaryKeywordCount >= 3;
+  // Calculate disaster score based on keyword priorities
+  for (const {keyword, priority} of primaryDisasterKeywords) {
+    if (combinedText.includes(keyword)) {
+      disasterScore += priority;
+      hasPrimaryKeyword = true;
+    }
   }
   
-  // Has primary keyword, so it's disaster-related
-  return true;
+  // If already has primary keywords, add secondary keyword scores
+  if (hasPrimaryKeyword) {
+    for (const {keyword, priority} of secondaryDisasterKeywords) {
+      if (combinedText.includes(keyword)) {
+        disasterScore += priority;
+      }
+    }
+  } else {
+    // Only check secondary keywords if no primary keywords found
+    let secondaryCount = 0;
+    
+    for (const {keyword} of secondaryDisasterKeywords) {
+      if (combinedText.includes(keyword)) {
+        secondaryCount++;
+        disasterScore += 2; // Lower score for secondary-only matches
+      }
+    }
+    
+    // Need multiple secondary keywords to qualify
+    return secondaryCount >= 3;
+  }
+  
+  // Add extra info for debugging - save score to window for inspection
+  try {
+    if (typeof window !== 'undefined') {
+      // @ts-ignore - Just for debugging
+      window._disasterScores = window._disasterScores || {};
+      // @ts-ignore
+      window._disasterScores[item.id] = {
+        title: item.title,
+        score: disasterScore
+      };
+    }
+  } catch (e) {
+    // Ignore
+  }
+  
+  // HIGH THRESHOLD for disaster relevance - must have strong disaster context
+  return disasterScore >= 8;
 };
 
 export default function NewsMonitoringPage() {
@@ -531,7 +628,28 @@ export default function NewsMonitoringPage() {
                   ) : disasterNews.length > 0 ? (
                     <Carousel className="w-full">
                       <CarouselContent>
-                        {disasterNews.slice(0, 5).map((item: NewsItem, index: number) => (
+                        {disasterNews
+                          .filter(item => {
+                            // ONLY HIGH PRIORITY/ALERT NEWS - more strict filtering
+                            const emergencyKeywords = [
+                              'typhoon', 'bagyo', 'storm signal', 'warning', 'alert',
+                              'evacuate', 'evacuation', 'emergency', 'evacuación',
+                              'intensity', 'magnitude', 'lindol', 'earthquake',
+                              'malakas na ulan', 'heavy rainfall', 'flood', 'baha',
+                              'heat index', 'extreme heat', 'landslide', 'guho', 
+                              'tsunami', 'pagasa warning', 'phivolcs alert', 'storm surge'
+                            ];
+                            
+                            // Combined title+content text para mas malakas ang context
+                            const combinedText = `${item.title} ${item.content}`.toLowerCase();
+                            
+                            // Dapat meron at least 1 emergency keyword
+                            return emergencyKeywords.some(keyword => 
+                              combinedText.includes(keyword.toLowerCase())
+                            );
+                          })
+                          .slice(0, 5)
+                          .map((item: NewsItem, index: number) => (
                           <CarouselItem key={item.id || index} className="md:basis-4/5 lg:basis-3/4">
                             <div className="p-1">
                               <div className="flex flex-col md:flex-row bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl overflow-hidden border border-white/20">
@@ -622,20 +740,27 @@ export default function NewsMonitoringPage() {
                                       }}
                                     />
                                     
-                                    {/* Gradient overlay for better text readability */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 z-20"></div>
+                                    {/* Gradient overlay for better text readability - DARKER FOR BETTER VISIBILITY */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20 opacity-90 z-20"></div>
                                   </div>
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20"></div>
                                   
-                                  <div className="absolute bottom-0 left-0 p-4 w-full">
+                                  {/* EMERGENCY ALERT BADGE - For high visibility */}
+                                  <div className="absolute top-4 left-4 z-30">
+                                    <Badge className="bg-red-600 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
+                                      <AlertTriangle className="h-3 w-3" />
+                                      ALERT
+                                    </Badge>
+                                  </div>
+                                  
+                                  <div className="absolute bottom-0 left-0 p-4 w-full z-30">
                                     <div className="flex justify-end items-start">
-                                      {/* Disaster type removed to improve reliability */}
-                                      <Badge className="bg-black/50 flex items-center gap-1 text-white text-xs">
+                                      <Badge className="bg-black/70 flex items-center gap-1 text-white text-xs">
                                         <Clock className="h-3 w-3" />
                                         {formatDate(item.timestamp)}
                                       </Badge>
                                     </div>
-                                    <h3 className="text-xl md:text-2xl font-bold text-white mb-2 drop-shadow-md line-clamp-3">
+                                    <h3 className="text-xl md:text-2xl font-bold text-white mb-2 drop-shadow-md line-clamp-2 text-shadow">
                                       {item.title}
                                     </h3>
                                   </div>
