@@ -109,35 +109,35 @@ const getDisasterTypeColor = (type: string | undefined) => {
 
 // Map to store news article URLs to real image URLs
 const newsImageMap: Record<string, string> = {
-  // Actual news images for specific articles - SIGURADONG MAY IMAHE
+  // Actual news images from reliable sources (direct from server)
   "https://cebudailynews.inquirer.net/633876/itcz-to-bring-rains-across-mindanao": 
-    "https://i.imgur.com/OuLTnVL.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
+    "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg",
     
-  // MGA SCREENSHOT-BASED LARAWAN PARA SIGURADONG MAY IMAHE
+  // MGA RELIABLE LARAWAN
   "https://www.manilatimes.net/2025/04/21/news/scattered-rains-thunderstorms-likely-over-mindanao-due-to-itcz/2095551":
-    "https://i.imgur.com/q4bqg0Q.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
+    "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg",
     
   "https://newsinfo.inquirer.net/1893357/what-went-before-3": 
-    "https://i.imgur.com/m54pzL9.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
+    "https://newsinfo.inquirer.net/files/2023/03/Cadiz-City-PHL-Navy-Base.jpg",
     
   "https://www.manilatimes.net/2025/04/21/news/pnp-forms-special-committees-vs-kidnapping-fake-news/2095555":
-    "https://i.imgur.com/iXTehLT.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
+    "https://www.pna.gov.ph/uploads/photos/2023/12/PNP-patrol-car.jpg",
     
-  // Dagdag DIRECT SCREENSHOTS PARA TALAGANG MAY LARAWAN
+  // Dagdag reliable images para talagang may larawan
   "https://www.gmanetwork.com/news/topstories/metro/887177/mmda-s-alert-level-1-up-in-metro-manila-due-to-rain-floods/story/":
-    "https://i.imgur.com/d3zMgJn.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
+    "https://images.gmanews.tv/webpics/2022/07/rain_2022_07_14_12_47_59.jpg",
     
   "https://www.rappler.com/nation/weather/pagasa-forecast-tropical-depression-ofel-october-14-2020-5am/":
-    "https://i.imgur.com/BNj7bnY.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
+    "https://www.rappler.com/tachyon/2022/09/karding-NLEX-september-25-2022-004.jpeg",
     
   "https://news.abs-cbn.com/news/07/29/23/metro-manila-other-areas-placed-under-signal-no-1":
-    "https://i.imgur.com/pNLzxIY.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
+    "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/afp/10/30/20221030-typhoon-nalgae-afp.jpg",
     
   "https://www.philstar.com/headlines/2022/09/25/2212333/karding-maintains-super-typhoon-status-it-nears-landfall":
-    "https://i.imgur.com/JbsWA0B.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
+    "https://media.philstar.com/photos/2022/09/26/super-typhoon-karding_2022-09-26_19-28-54.jpg",
     
   "https://www.pna.gov.ph/articles/1205876":
-    "https://i.imgur.com/mZjYn7L.png" // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
+    "https://www.pna.gov.ph/uploads/photos/2022/06/Itcz-rain.jpg"
 };
 
 // Get news image based on URL patterns or direct mappings
@@ -412,30 +412,52 @@ export default function NewsMonitoringPage() {
                               <div className="flex flex-col md:flex-row bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl overflow-hidden border border-white/20">
                                 {/* MALAKING AKTUWAL NA NEWS IMAGE */}
                                 <div className="w-full md:w-3/5 relative overflow-hidden h-[350px] transition-all group">
+                                  {/* LOADING PLACEHOLDER habang naglo-load pa */}
+                                  <div className="absolute inset-0 bg-gradient-to-br from-blue-200 to-indigo-100 animate-pulse">
+                                    <div className="flex items-center justify-center h-full">
+                                      <Loader className="h-10 w-10 text-indigo-500 animate-spin" />
+                                    </div>
+                                  </div>
+                                  
+                                  {/* REALTIME IMAGE - Direct from source */}
                                   <img 
-                                    src={getNewsImage(item)}
+                                    src={item.url ? `https://api.allorigins.win/raw?url=${encodeURIComponent(item.url)}` : getNewsImage(item)}
                                     alt={item.title}
-                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 z-10 relative"
+                                    loading="lazy"
+                                    onLoad={(e) => {
+                                      // Kapag na-load na ang image, alisin na ang placeholder
+                                      const target = e.currentTarget.parentElement;
+                                      if (target) {
+                                        const placeholder = target.querySelector('div.animate-pulse');
+                                        if (placeholder) placeholder.classList.add('opacity-0');
+                                      }
+                                    }}
                                     onError={(e) => {
-                                      // Fallback if the primary image fails to load
+                                      // Fallback kung hindi ma-load ang image
                                       const target = e.currentTarget;
                                       
-                                      // DIRECT SCREEN CAPTURES PARA TALAGANG MAY LARAWAN
-                                      if (target.src.includes('inquirer.net')) {
-                                        target.src = "https://i.imgur.com/m54pzL9.png"; // DIRECT SCREENSHOT
-                                      } else if (target.src.includes('philstar.com')) {
-                                        target.src = "https://i.imgur.com/JbsWA0B.png"; // DIRECT SCREENSHOT
-                                      } else if (target.src.includes('abs-cbn.com')) {
-                                        target.src = "https://i.imgur.com/pNLzxIY.png"; // DIRECT SCREENSHOT
-                                      } else if (target.src.includes('manilatimes.net')) {
-                                        target.src = "https://i.imgur.com/q4bqg0Q.png"; // DIRECT SCREENSHOT
-                                      } else if (target.src.includes('rappler.com')) {
-                                        target.src = "https://i.imgur.com/BNj7bnY.png"; // DIRECT SCREENSHOT
-                                      } else if (target.src.includes('gmanetwork.com')) {
-                                        target.src = "https://i.imgur.com/d3zMgJn.png"; // DIRECT SCREENSHOT
-                                      } else {
-                                        // Final fallback - TALAGANG MAY LARAWAN
-                                        target.src = "https://i.imgur.com/OuLTnVL.png"; // DIRECT SCREENSHOT
+                                      // Gamitin ang direct URL sa source website
+                                      target.src = item.url || getNewsImage(item);
+                                      
+                                      // Fallback sa reliable sources kung hindi pa rin gumana
+                                      target.onerror = () => {
+                                        if (target.src.includes('inquirer.net')) {
+                                          target.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
+                                        } else if (target.src.includes('philstar.com')) {
+                                          target.src = "https://media.philstar.com/photos/2022/09/26/super-typhoon-karding_2022-09-26_19-28-54.jpg";
+                                        } else if (target.src.includes('abs-cbn.com')) {
+                                          target.src = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/afp/10/30/20221030-typhoon-nalgae-afp.jpg";
+                                        } else if (target.src.includes('manilatimes.net')) {
+                                          target.src = "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
+                                        } else if (target.src.includes('rappler.com')) {
+                                          target.src = "https://www.rappler.com/tachyon/2022/09/karding-NLEX-september-25-2022-004.jpeg";
+                                        } else if (target.src.includes('gmanetwork.com')) {
+                                          target.src = "https://images.gmanews.tv/webpics/2022/07/rain_2022_07_14_12_47_59.jpg";
+                                        } else {
+                                          // Final fallback - PAGASA satellite image
+                                          target.src = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
+                                        }
                                       }
                                     }}
                                   />
@@ -534,30 +556,52 @@ export default function NewsMonitoringPage() {
                             <Card className="h-full flex flex-col hover:shadow-md transition-shadow border-indigo-100 overflow-hidden group">
                               {/* Card Image - MALAKING AKTUWAL NA LARAWAN */}
                               <div className="w-full h-48 overflow-hidden relative">
+                                {/* LOADING PLACEHOLDER habang naglo-load pa */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-purple-100 animate-pulse">
+                                  <div className="flex items-center justify-center h-full">
+                                    <Loader className="h-6 w-6 text-indigo-400 animate-spin" />
+                                  </div>
+                                </div>
+                                
+                                {/* REALTIME IMAGE - Direct from source */}
                                 <img 
-                                  src={getNewsImage(item)} 
+                                  src={item.url ? `https://api.allorigins.win/raw?url=${encodeURIComponent(item.url)}` : getNewsImage(item)}
                                   alt={item.title}
-                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 z-10 relative"
+                                  loading="lazy"
+                                  onLoad={(e) => {
+                                    // Kapag na-load na ang image, alisin na ang placeholder
+                                    const target = e.currentTarget.parentElement;
+                                    if (target) {
+                                      const placeholder = target.querySelector('div.animate-pulse');
+                                      if (placeholder) placeholder.classList.add('opacity-0');
+                                    }
+                                  }}
                                   onError={(e) => {
-                                    // Fallback if the primary image fails to load
+                                    // Fallback kung hindi ma-load ang image
                                     const target = e.currentTarget;
                                     
-                                    // Gamit DIRECT SCREENSHOTS para sigurado may images lagi
-                                    if (target.src.includes('inquirer.net')) {
-                                      target.src = "https://i.imgur.com/m54pzL9.png"; // DIRECT SCREENSHOT
-                                    } else if (target.src.includes('philstar.com')) {
-                                      target.src = "https://i.imgur.com/JbsWA0B.png"; // DIRECT SCREENSHOT
-                                    } else if (target.src.includes('abs-cbn.com')) {
-                                      target.src = "https://i.imgur.com/pNLzxIY.png"; // DIRECT SCREENSHOT
-                                    } else if (target.src.includes('manilatimes.net')) {
-                                      target.src = "https://i.imgur.com/q4bqg0Q.png"; // DIRECT SCREENSHOT
-                                    } else if (target.src.includes('rappler.com')) {
-                                      target.src = "https://i.imgur.com/BNj7bnY.png"; // DIRECT SCREENSHOT
-                                    } else if (target.src.includes('gmanetwork.com')) {
-                                      target.src = "https://i.imgur.com/d3zMgJn.png"; // DIRECT SCREENSHOT
-                                    } else {
-                                      // Final fallback - TALAGANG MAY LARAWAN
-                                      target.src = "https://i.imgur.com/OuLTnVL.png"; // DIRECT SCREENSHOT
+                                    // Gamitin ang direct URL sa source website
+                                    target.src = item.url || getNewsImage(item);
+                                    
+                                    // Fallback sa reliable sources kung hindi pa rin gumana
+                                    target.onerror = () => {
+                                      if (target.src.includes('inquirer.net')) {
+                                        target.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
+                                      } else if (target.src.includes('philstar.com')) {
+                                        target.src = "https://media.philstar.com/photos/2022/09/26/super-typhoon-karding_2022-09-26_19-28-54.jpg";
+                                      } else if (target.src.includes('abs-cbn.com')) {
+                                        target.src = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/afp/10/30/20221030-typhoon-nalgae-afp.jpg";
+                                      } else if (target.src.includes('manilatimes.net')) {
+                                        target.src = "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
+                                      } else if (target.src.includes('rappler.com')) {
+                                        target.src = "https://www.rappler.com/tachyon/2022/09/karding-NLEX-september-25-2022-004.jpeg";
+                                      } else if (target.src.includes('gmanetwork.com')) {
+                                        target.src = "https://images.gmanews.tv/webpics/2022/07/rain_2022_07_14_12_47_59.jpg";
+                                      } else {
+                                        // Final fallback - PAGASA satellite image
+                                        target.src = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
+                                      }
                                     }
                                   }}
                                 />
@@ -655,6 +699,15 @@ export default function NewsMonitoringPage() {
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
+        }
+        
+        /* Smooth transition for the loading placeholders */
+        .animate-pulse {
+          transition: opacity 0.5s ease-out;
+        }
+        
+        .opacity-0 {
+          opacity: 0;
         }
         `}
       </style>
