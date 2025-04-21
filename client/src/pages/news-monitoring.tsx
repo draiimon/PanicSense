@@ -955,7 +955,7 @@ export default function NewsMonitoringPage() {
                 <div className="rounded-xl bg-white p-6">
                   <h2 className="text-xl font-semibold mb-6 flex items-center text-indigo-700">
                     <Zap className="h-5 w-5 mr-2" />
-                    Real-Time Emergency Intelligence
+                    Latest Disaster Alerts
                   </h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1204,7 +1204,7 @@ export default function NewsMonitoringPage() {
                             <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
                               {/* Card Image */}
                               <div className="w-full h-40 overflow-hidden relative">
-                                {/* Loading placeholder */}
+                                {/* Loading placeholder - Hidden when image loads */}
                                 <div className="absolute inset-0 bg-gradient-to-br from-pink-100 to-purple-100 animate-pulse">
                                   <div className="flex items-center justify-center h-full">
                                     <Loader className="h-6 w-6 text-pink-400 animate-spin" />
@@ -1213,13 +1213,14 @@ export default function NewsMonitoringPage() {
                                 <img 
                                   src={getNewsImage(item)} 
                                   alt={item.title}
-                                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-105 z-10 relative"
                                   loading="lazy"
                                   onLoad={(e) => {
+                                    // Kapag na-load na ang image, alisin na ang placeholder
                                     const target = e.currentTarget.parentElement;
                                     if (target) {
                                       const placeholder = target.querySelector('div.animate-pulse');
-                                      if (placeholder) placeholder.classList.add('opacity-0');
+                                      if (placeholder) placeholder.classList.add('hidden');
                                     }
                                   }}
                                   onError={(e) => {
