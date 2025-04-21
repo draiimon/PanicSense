@@ -89,6 +89,48 @@ export async function registerRealNewsRoutes(app: Express): Promise<void> {
     }
   });
 
-  console.log('Real news feed routes registered successfully');
+  // Enhanced logging for Render deployment
+  console.log('=== REAL NEWS SERVICE INITIALIZATION ===');
+  console.log('✅ Real news feed routes registered successfully');
+  
+  // Schedule periodic news fetching to keep logs visible in Render
+  const FETCH_INTERVAL = 10 * 60 * 1000; // 10 minutes
+  
+  // Initial fetch on startup
+  setTimeout(async () => {
+    try {
+      console.log('🔄 Performing initial news fetch...');
+      const news = await realNewsService.getLatestNews();
+      console.log(`📰 Retrieved ${news.length} news items from sources`);
+      
+      // Log sources breakdown
+      const sourceCounts: Record<string, number> = {};
+      news.forEach(item => {
+        const source = item.source || 'unknown';
+        sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+      });
+      
+      Object.entries(sourceCounts).forEach(([source, count]) => {
+        console.log(`📊 Source: ${source}, Items: ${count}`);
+      });
+    } catch (error) {
+      console.error('❌ Error during initial news fetch:', error);
+    }
+  }, 5000); // 5 second delay after server start
+  
+  // Schedule periodic fetches to maintain activity logs in Render
+  if (process.env.NODE_ENV === 'production') {
+    console.log(`⏰ Scheduling news fetches every ${FETCH_INTERVAL/60000} minutes`);
+    setInterval(async () => {
+      try {
+        console.log('🔄 Performing scheduled news fetch...');
+        const news = await realNewsService.getLatestNews();
+        console.log(`📰 Retrieved ${news.length} news items`);
+      } catch (error) {
+        console.error('❌ Error during scheduled news fetch:', error);
+      }
+    }, FETCH_INTERVAL);
+  }
+  
   return Promise.resolve();
 }

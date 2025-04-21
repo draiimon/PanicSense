@@ -33,7 +33,7 @@ interface ProcessCSVResult {
 export class PythonService {
   private pythonBinary: string;
   private tempDir: string;
-  private scriptPath: string;
+  private scriptPath: string = '';  // Initialize with empty string to avoid TypeScript error
   private confidenceCache: Map<string, number>;  // Cache for confidence scores
   private similarityCache: Map<string, boolean>; // Cache for text similarity checks
   private activeProcesses: Map<string, { process: any, tempFilePath: string, startTime: Date }>;  // Track active Python processes with start times
@@ -63,35 +63,63 @@ export class PythonService {
       if (!fs.existsSync(this.tempDir)) {
         fs.mkdirSync(this.tempDir, { recursive: true });
       }
-    } catch (err) {
+    } catch (error) {
+      const err = error as Error;
       console.warn(`⚠️ Unable to create temp directory: ${err.message}`);
       // Fallback to OS temp dir directly
       this.tempDir = os.tmpdir();
     }
     console.log(`📁 Using temp directory: ${this.tempDir}`);
     
-    // Script path with better error handling and logging
-    const scriptPath = path.join(process.cwd(), 'server', 'python', 'process.py');
-    if (!fs.existsSync(scriptPath)) {
-      console.warn(`⚠️ Python script not found at ${scriptPath}, trying alternatives...`);
-      // Try alternative paths
-      const alternatives = [
-        path.join(__dirname, 'python', 'process.py'),
-        path.join(process.cwd(), 'python', 'process.py'),
-        path.join(__dirname, '../python', 'process.py')
-      ];
-      
-      const foundPath = alternatives.find(p => fs.existsSync(p));
-      if (foundPath) {
-        this.scriptPath = foundPath;
-        console.log(`✅ Found Python script at alternative path: ${foundPath}`);
-      } else {
-        console.error('❌ Could not find Python script in any location!');
-        this.scriptPath = scriptPath; // Use the original path anyway
+    // Script path with better error handling and logging for Render deployment
+    // In Render production environment, python folder is in the root directory
+    // Note: Using process.cwd() instead of __dirname for ESM compatibility
+    const possibleScriptPaths = [
+      path.join(process.cwd(), 'server', 'python', 'process.py'),  // Standard path
+      path.join(process.cwd(), 'server', 'python', 'process.py'),  // Duplicate for consistency (removed __dirname)
+      path.join(process.cwd(), 'python', 'process.py'),            // Root python folder path
+      path.join(process.cwd(), 'python', 'process.py')             // Alternative path (removed __dirname)
+    ];
+    
+    // Try each path and use the first one that exists
+    let scriptFound = false;
+    for (const scriptPath of possibleScriptPaths) {
+      try {
+        if (fs.existsSync(scriptPath)) {
+          this.scriptPath = scriptPath;
+          console.log(`✅ Found Python script at: ${scriptPath}`);
+          scriptFound = true;
+          break;
+        }
+      } catch (error) {
+        const err = error as Error;
+        console.warn(`⚠️ Error checking path ${scriptPath}: ${err.message}`);
       }
-    } else {
-      this.scriptPath = scriptPath;
-      console.log(`✅ Found Python script at: ${scriptPath}`);
+    }
+    
+    // If no script was found, use the default path but log a warning
+    if (!scriptFound) {
+      this.scriptPath = path.join(process.cwd(), 'server', 'python', 'process.py');
+      console.error(`❌ Could not find Python script in any location! Using default path: ${this.scriptPath}`);
+      
+      // Print current directory contents for debugging
+      try {
+        console.log('📂 Current directory contents:');
+        const rootDir = fs.readdirSync(process.cwd());
+        console.log(rootDir);
+        
+        // Check if server/python exists
+        const pythonDir = path.join(process.cwd(), 'server', 'python');
+        if (fs.existsSync(pythonDir)) {
+          console.log('📂 server/python directory contents:');
+          console.log(fs.readdirSync(pythonDir));
+        } else {
+          console.log(`❌ server/python directory does not exist`);
+        }
+      } catch (error) {
+        const err = error as Error;
+        console.error(`❌ Error listing directory contents: ${err.message}`);
+      }
     }
     
     this.confidenceCache = new Map();  // Initialize confidence cache

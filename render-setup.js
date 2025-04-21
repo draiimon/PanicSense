@@ -1,6 +1,12 @@
 /**
  * Render.com Setup Helper
  * This script helps validate and setup PanicSense in the Render.com environment
+ * 
+ * ENHANCED VERSION WITH COMPREHENSIVE DEBUGGING & FIXES
+ * - Validates and fixes database connections
+ * - Sets up Python environment properly
+ * - Ensures proper file permissions and paths
+ * - Adds debugging information for easier troubleshooting
  */
 
 import pg from 'pg';

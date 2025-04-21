@@ -1,117 +1,105 @@
-# PanicSense Render Deployment Guide
+# PanicSense PH - Render Deployment Guide
 
-This guide provides instructions for deploying PanicSense to Render.com.
+This guide provides step-by-step instructions for deploying PanicSense PH to Render.com hosting service. The deployment has been optimized with additional scripts and improvements to ensure proper functionality in the Render environment.
 
-## Pre-Deployment Checklist
+## Required Environment Variables
 
-Before deploying, verify:
+Ensure you have these environment variables set in your Render dashboard:
 
-1. **Database Connection**: Neon.tech or compatible PostgreSQL database is ready
-2. **Environment Variables**: Your `.env` file has all required variables
-3. **Branch Ready**: Your code is on the `render-deployment-fix` branch
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `DATABASE_URL` | `postgres://...` | Your Neon PostgreSQL connection string |
+| `NODE_ENV` | `production` | Forces production mode |
+| `PORT` | `10000` (or Render default) | Application port |
+| `RUNTIME_ENV` | `render` | Enables Render-specific optimizations |
+| `DISABLE_SSL_VERIFY` | `true` | Fixes potential SSL issues with API connections |
+| `TZ` | `Asia/Manila` | Sets timezone for Philippines |
 
 ## Deployment Steps
 
-### 1. Creating a Web Service
+1. **Create a Web Service in Render Dashboard**
+   - Select "Web Service"
+   - Connect your GitHub repository
+   - Choose the branch with latest fixes (e.g., `render-deployment-fix`)
 
-1. Log into your [Render Dashboard](https://dashboard.render.com/)
-2. Click **New** and select **Web Service**
-3. Connect your GitHub repository (or use **Deploy from Existing Repository** option)
-4. Configure the following settings:
-   - **Name**: `PanicSense` or your preferred name
-   - **Root Directory**: _Leave empty_
-   - **Environment**: `Node`
-   - **Region**: Select the region closest to the Philippines
-   - **Branch**: `render-deployment-fix`
-   - **Build Command**: `npm ci && npm run build`
-   - **Start Command**: `./start.sh`
-   - **Plan**: Free tier (or paid tier for better performance)
+2. **Configure Build & Start Commands**
+   - Build Command: `npm install && npm run build`
+   - Start Command: `node pre-render-start.js`
 
-### 2. Environment Variables
+3. **Set Environment Variables**
+   - Add all required environment variables listed above
+   - Ensure your `DATABASE_URL` is properly formatted with SSL settings
 
-Add these environment variables in the Render Dashboard:
+4. **Deploy the Application**
+   - Click "Create Web Service"
+   - Wait for the build and deployment to complete
 
-| Key | Value | Description |
-|-----|-------|-------------|
-| `DATABASE_URL` | `postgres://...` | Your Neon or PostgreSQL database URL |
-| `NODE_ENV` | `production` | Run in production mode |
-| `PORT` | `5000` or `10000` | Port for the application (typically 10000 for Render) |
-| `TZ` | `Asia/Manila` | Philippine timezone |
-| `RUNTIME_ENV` | `render` | Tells app it's running on Render |
-| `DB_SSL_REQUIRED` | `true` | Ensures SSL for database connection |
-| `HOST` | `0.0.0.0` | Listen on all interfaces |
+## Debugging & Troubleshooting
 
-### 3. Database Setup
+The enhanced deployment includes several debugging features:
 
-If you're using a Neon.tech or PostgreSQL database:
+- **Enhanced Logging System**: Logs are now written to files in the `/logs` directory as well as to the console
+- **Automatic Database Fixes**: Detects and resolves common database issues
+- **Python Integration Improvements**: Better detection of Python paths and scripts
+- **Scheduled Jobs**: Periodic tasks run to keep services active and logs visible
+- **Directory Checks**: Validates critical directories and file permissions
 
-1. Make sure your database connection string is added to the environment variables
-2. Tables will be created automatically on first run through the render-setup.js script
-3. If tables don't create automatically, you may need to manually push the schema from your local environment first
+If you encounter issues, check the logs in the Render dashboard. The enhanced logging should provide more detailed information about any problems.
 
-## Troubleshooting
+## Accessing Log Files
 
-### Common Issues
+Logs are saved in the `/logs` directory. You can view them through the Render shell if needed:
 
-#### Build Fails due to Node Version
+```bash
+# In Render shell
+cd logs
+ls -la
+cat render-startup-*.log
+```
 
-**Issue**: Build fails with node version errors
-**Solution**: Add `.node-version` file with content `20.x` to the root of your project
+## Monitoring Services
 
-#### Database Connection Fails
+Important services that should be active:
+- News feed service (fetches disaster news every 10 minutes)
+- Python sentiment analysis service
+- Database connection
+- Static file serving 
 
-**Issue**: Database connection errors in logs
-**Solutions**:
-- Verify your DATABASE_URL is correct and includes SSL parameters
-- Check if your database allows connections from Render's IP addresses
-- Test connection manually using `psql` from your local machine
+Each service now logs its status regularly to make issues more visible.
 
-#### ES Module / CommonJS Errors
+## Issues Fixed in Render Deployment
 
-**Issue**: Error messages about `require` not being defined in ES modules
-**Solutions**:
-- Ensure server.js is using import statements instead of require
-- Check that package.json has `"type": "module"`
-- For mixed module types, use .cjs extension for CommonJS files
-- Update any dynamic imports to use async/await pattern:
-  ```javascript
-  // Instead of this:
-  const { something } = require('./file');
-  
-  // Use this:
-  const module = await import('./file.js');
-  const { something } = module;
-  ```
+1. **Python Path Detection**: Better handling of Python binary and script paths
+2. **Enhanced Error Logging**: More detailed error reporting for all services
+3. **Fixed Database Connection**: Better SSL handling for PostgreSQL
+4. **Directory Structure**: Automatic creation of required directories
+5. **Static File Handling**: Improved handling of static assets
 
-#### Static Files Not Loading
+## Ensuring CSV Processing Works
 
-**Issue**: Frontend shows but without CSS/JS or shows a blank page
-**Solutions**:
-- Check logs to see if render-setup.js ran correctly
-- Verify client/dist or dist/public files were copied to server/public
-- Ensure server.js has the correct path to static files
-- Check browser console for 404 errors on specific files
+CSV processing requires proper Python setup in the Render environment. The following has been configured:
 
-## Deployment Verification
+1. Python is automatically located in the Render environment
+2. Temporary directories are properly created with correct permissions
+3. Process timeouts have been extended for larger files
+4. Error handling has been improved for better visibility
 
-After deployment:
+## Setting Up Real News and Social Media
 
-1. Check the **Logs** tab in your Render dashboard
-2. Verify your application is running (look for "🚀 Server running on port...")
-3. Click the generated domain name to open your application
-4. Test core functionality to ensure everything works
+The news feed system has been configured to:
 
-## Updating Your Deployment
+1. Fetch news from reliable Philippine sources periodically
+2. Log all fetched items for better visibility
+3. Automatically retry on temporary failures
+4. Run on a scheduled basis to ensure fresh data
 
-To update your deployed application:
+## Troubleshooting Common Issues
 
-1. Push changes to the `render-deployment-fix` branch
-2. Render will automatically detect the changes and deploy
+If you encounter any of these issues:
 
-## Support
+1. **Blank screen or app not loading**: Check if static files were properly copied to `server/public`
+2. **Database errors**: Ensure `DATABASE_URL` is correct and includes SSL parameters
+3. **Missing Python functionality**: Check logs for Python path detection issues
+4. **No news data**: Look for news feed service logs to see if feeds are being fetched
 
-If you encounter issues not covered in this guide, please:
-
-1. Check Render's logs for specific error messages
-2. Review the Render documentation at https://render.com/docs
-3. Check for common Node.js deployment issues in the troubleshooting section above
+For any other issues, check the enhanced logs which should provide more detailed information about the problem.
