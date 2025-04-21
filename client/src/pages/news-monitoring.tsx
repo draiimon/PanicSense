@@ -212,6 +212,48 @@ const extractOgImageUrl = (url: string): string => {
   return "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
 };
 
+// Helper function for adding source branding to image containers
+const addSourceBranding = (container: HTMLElement | null, url: string) => {
+  if (!container) return;
+  
+  // Check if branding already exists
+  if (container.querySelector('.source-branding')) return;
+  
+  // Create branding element
+  const branding = document.createElement('div');
+  branding.className = "source-branding absolute bottom-2 right-2 bg-white/20 backdrop-blur-sm rounded-md px-2 py-1 text-white text-xs font-medium z-20";
+  
+  // Determine source icon and name
+  let sourceIcon = "";
+  let sourceName = "";
+  
+  if (url.includes('inquirer.net')) {
+    sourceIcon = "🔍";
+    sourceName = "Inquirer";
+  } else if (url.includes('philstar.com')) {
+    sourceIcon = "⭐";
+    sourceName = "PhilStar";
+  } else if (url.includes('abs-cbn.com')) {
+    sourceIcon = "📡";
+    sourceName = "ABS-CBN";
+  } else if (url.includes('manilatimes.net')) {
+    sourceIcon = "📰";
+    sourceName = "ManilaT";
+  } else if (url.includes('rappler.com')) {
+    sourceIcon = "🌐";
+    sourceName = "Rappler";
+  } else if (url.includes('gmanetwork.com')) {
+    sourceIcon = "📺";
+    sourceName = "GMA";
+  } else {
+    sourceIcon = "📄";
+    sourceName = "News";
+  }
+  
+  branding.innerHTML = `${sourceIcon} ${sourceName}`;
+  container.appendChild(branding);
+};
+
 // Get news image based on URL patterns or direct mappings - with REALTIME options
 const getNewsImage = (item: NewsItem): string => {
   const { url, disasterType, source, imageUrl } = item;
@@ -997,11 +1039,12 @@ export default function NewsMonitoringPage() {
                                     }
                                   }}
                                   onError={(e) => {
-                                    // If direct image fails, try Open Graph API first
+                                    // ⚠️ TRIPLE FALLBACK SYSTEM: Original → OpenGraph → PanicSense Logo
+                                    // Current failure: Original image failed to load
                                     const target = e.currentTarget;
                                     
                                     try {
-                                      // Generate Open Graph URL for the news site
+                                      // LEVEL 2: Try to use OpenGraph image URL
                                       const urlObj = new URL(item.url);
                                       const domain = urlObj.hostname;
                                       let ogImageUrl = "";
@@ -1025,8 +1068,64 @@ export default function NewsMonitoringPage() {
                                       }
                                       
                                       if (ogImageUrl) {
-                                        // Try Open Graph first
+                                        // Try OpenGraph fallback with error handler for next fallback level
                                         console.log('Trying OG image URL:', ogImageUrl);
+                                        
+                                        // Add a second error handler to catch OG image failures
+                                        target.onerror = () => {
+                                          // LEVEL 3: Final fallback to PanicSense logo
+                                          console.log('OpenGraph image failed, using PanicSense logo fallback');
+                                          target.src = '/images/fallback/panicsense-logo.svg';
+                                          
+                                          // Remove error handler to prevent infinite loop
+                                          target.onerror = null;
+                                          
+                                          // Add animation to make the transition smoother
+                                          target.classList.add('animate-pulse');
+                                          setTimeout(() => {
+                                            target.classList.remove('animate-pulse');
+                                          }, 1000);
+                                          
+                                          // Add source branding
+                                          const container = target.parentElement;
+                                          if (container && !container.querySelector('.source-branding')) {
+                                            // Create branding element
+                                            const branding = document.createElement('div');
+                                            branding.className = "source-branding absolute bottom-2 right-2 bg-white/20 backdrop-blur-sm rounded-md px-2 py-1 text-white text-xs font-medium z-20";
+                                            
+                                            // Determine source icon and name
+                                            let sourceIcon = "";
+                                            let sourceName = "";
+                                            
+                                            if (item.url.includes('inquirer.net')) {
+                                              sourceIcon = "🔍";
+                                              sourceName = "Inquirer";
+                                            } else if (item.url.includes('philstar.com')) {
+                                              sourceIcon = "⭐";
+                                              sourceName = "PhilStar";
+                                            } else if (item.url.includes('abs-cbn.com')) {
+                                              sourceIcon = "📡";
+                                              sourceName = "ABS-CBN";
+                                            } else if (item.url.includes('manilatimes.net')) {
+                                              sourceIcon = "📰";
+                                              sourceName = "ManilaT";
+                                            } else if (item.url.includes('rappler.com')) {
+                                              sourceIcon = "🌐";
+                                              sourceName = "Rappler";
+                                            } else if (item.url.includes('gmanetwork.com')) {
+                                              sourceIcon = "📺";
+                                              sourceName = "GMA";
+                                            } else {
+                                              sourceIcon = "📄";
+                                              sourceName = "News";
+                                            }
+                                            
+                                            branding.innerHTML = `${sourceIcon} ${sourceName}`;
+                                            container.appendChild(branding);
+                                          }
+                                        };
+                                        
+                                        // Try loading the OpenGraph image
                                         target.src = ogImageUrl;
                                         return;
                                       }
@@ -1034,82 +1133,85 @@ export default function NewsMonitoringPage() {
                                       console.error('Error generating OG URL:', urlError);
                                     }
                                     
-                                    // If OG image couldn't be loaded or generated, use fallback gradient
-                                    const parentContainer = target.parentElement;
+                                    // If OG image generation failed, go straight to final fallback
+                                    console.log('Using PanicSense logo ultimate fallback');
+                                    target.src = '/images/fallback/panicsense-logo.svg';
                                     
-                                    // Replace the image with a beautiful gradient background based on the source
+                                    // Style the container with beautiful gradient
+                                    const parentContainer = target.parentElement;
                                     if (parentContainer) {
-                                      // Keep the loading animation in place but make it pretty
                                       const placeholder = parentContainer.querySelector('.animate-pulse') as HTMLElement;
                                       if (placeholder) {
-                                        // Make placeholder visible
-                                        placeholder.style.opacity = "1";
-                                        
-                                        // Set gradient color based on source
-                                        let gradientStyle = "";
-                                        if (item.url.includes('inquirer.net')) {
-                                          gradientStyle = "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)";
-                                        } else if (item.url.includes('philstar.com')) {
-                                          gradientStyle = "linear-gradient(135deg, #be123c 0%, #f87171 100%)";
-                                        } else if (item.url.includes('abs-cbn.com')) {
-                                          gradientStyle = "linear-gradient(135deg, #065f46 0%, #10b981 100%)";
-                                        } else if (item.url.includes('manilatimes.net')) {
-                                          gradientStyle = "linear-gradient(135deg, #713f12 0%, #f59e0b 100%)";
-                                        } else if (item.url.includes('rappler.com')) {
-                                          gradientStyle = "linear-gradient(135deg, #9f1239 0%, #f472b6 100%)";
-                                        } else if (item.url.includes('gmanetwork.com')) {
-                                          gradientStyle = "linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)";
-                                        } else {
-                                          gradientStyle = "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)";
-                                        }
-                                        
-                                        placeholder.style.background = gradientStyle;
-                                        
-                                        // Add source branding sa placeholder
+                                        // Make placeholder visible with nice animation
+                                        placeholder.style.opacity = "0";
+                                        setTimeout(() => {
+                                          placeholder.style.opacity = "1";
+                                          
+                                          // Beautiful gradient based on source
+                                          let gradientStyle = "";
+                                          if (item.url.includes('inquirer.net')) {
+                                            gradientStyle = "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)";
+                                          } else if (item.url.includes('philstar.com')) {
+                                            gradientStyle = "linear-gradient(135deg, #be123c 0%, #f87171 100%)";
+                                          } else if (item.url.includes('abs-cbn.com')) {
+                                            gradientStyle = "linear-gradient(135deg, #065f46 0%, #10b981 100%)";
+                                          } else if (item.url.includes('manilatimes.net')) {
+                                            gradientStyle = "linear-gradient(135deg, #713f12 0%, #f59e0b 100%)";
+                                          } else if (item.url.includes('rappler.com')) {
+                                            gradientStyle = "linear-gradient(135deg, #9f1239 0%, #f472b6 100%)";
+                                          } else if (item.url.includes('gmanetwork.com')) {
+                                            gradientStyle = "linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)";
+                                          } else {
+                                            gradientStyle = "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)";
+                                          }
+                                          
+                                          placeholder.style.background = gradientStyle;
+                                          
+                                          // Remove spinner animation
+                                          const loader = placeholder.querySelector('.animate-spin');
+                                          if (loader) loader.remove();
+                                          
+                                          // Add pattern for visual interest
+                                          placeholder.innerHTML += `<div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>`;
+                                        }, 300);
+                                      }
+                                      
+                                      // Add source branding
+                                      if (!parentContainer.querySelector('.source-branding')) {
+                                        // Create branding element
                                         const branding = document.createElement('div');
-                                        branding.className = "absolute bottom-2 right-2 bg-white/20 backdrop-blur-sm rounded-md px-2 py-1 text-white text-xs font-medium z-20";
+                                        branding.className = "source-branding absolute bottom-2 right-2 bg-white/20 backdrop-blur-sm rounded-md px-2 py-1 text-white text-xs font-medium z-20";
                                         
+                                        // Determine source icon and name
                                         let sourceIcon = "";
-                                        let domain = "";
+                                        let sourceName = "";
                                         
                                         if (item.url.includes('inquirer.net')) {
                                           sourceIcon = "🔍";
-                                          domain = "Inquirer";
+                                          sourceName = "Inquirer";
                                         } else if (item.url.includes('philstar.com')) {
                                           sourceIcon = "⭐";
-                                          domain = "PhilStar";
+                                          sourceName = "PhilStar";
                                         } else if (item.url.includes('abs-cbn.com')) {
                                           sourceIcon = "📡";
-                                          domain = "ABS-CBN";
+                                          sourceName = "ABS-CBN";
                                         } else if (item.url.includes('manilatimes.net')) {
                                           sourceIcon = "📰";
-                                          domain = "ManilaT";
+                                          sourceName = "ManilaT";
                                         } else if (item.url.includes('rappler.com')) {
                                           sourceIcon = "🌐";
-                                          domain = "Rappler";
+                                          sourceName = "Rappler";
                                         } else if (item.url.includes('gmanetwork.com')) {
                                           sourceIcon = "📺";
-                                          domain = "GMA";
+                                          sourceName = "GMA";
                                         } else {
                                           sourceIcon = "📄";
-                                          domain = "News";
+                                          sourceName = "News";
                                         }
                                         
-                                        branding.innerHTML = `${sourceIcon} ${domain}`;
+                                        branding.innerHTML = `${sourceIcon} ${sourceName}`;
                                         parentContainer.appendChild(branding);
-                                        
-                                        // Adjust the loading animation to look like a dynamic background
-                                        const loader = placeholder.querySelector('.animate-spin');
-                                        if (loader) {
-                                          loader.remove(); // Remove spinner
-                                        }
-                                        
-                                        // Add a pattern to make it more visually interesting
-                                        placeholder.innerHTML += `<div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>`;
                                       }
-                                      
-                                      // Hide the failed image element
-                                      target.style.opacity = "0";
                                     }
                                   }}
                                 />
