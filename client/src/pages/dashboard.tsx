@@ -917,19 +917,19 @@ export default function Dashboard() {
       {/* Alert banner with animation */}
       <AnimatePresence>
         {showAlert && (
-          <div className="relative bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-md shadow-md mb-6">
+          <div className="relative bg-indigo-50 border-l-4 border-indigo-500 p-3 rounded-r-md shadow-md mb-6">
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <Bell className="h-5 w-5 text-blue-600" />
+                <Sparkles className="h-5 w-5 text-indigo-600" />
               </div>
               <div className="ml-3">
-                <p className="text-sm text-blue-800 font-medium">
-                  New Feature Alert
+                <p className="text-sm text-indigo-800 font-medium">
+                  Latest Updates (April 2025)
                 </p>
-                <p className="text-sm text-blue-600 mt-1">
-                  Real-time news feed system updated with 6 disaster-related items from Inquirer, Manila Times, and PhilStar with duplicate detection.
+                <p className="text-sm text-indigo-600 mt-1">
+                  ✨ Fixed image loading in News Monitoring page • Enhanced UI consistency across all pages • Added new Newspaper icon for News section • Optimized codebase for faster rendering • Improved deployment to Render.com
                 </p>
-                <div className="flex items-center mt-1.5 text-xs text-blue-500">
+                <div className="flex items-center mt-1.5 text-xs text-indigo-500">
                   <Clock className="h-3 w-3 mr-1" />
                   <span>This alert will auto-dismiss in a few seconds</span>
                 </div>
