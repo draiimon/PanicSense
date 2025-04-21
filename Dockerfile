@@ -15,6 +15,8 @@ COPY drizzle.config.ts tailwind.config.ts tsconfig.json vite.config.ts theme.jso
 
 # Build the application with optimizations
 RUN npm run build
+# Verify the build output structure
+RUN ls -la dist/
 
 # STAGE 2: Final image with Python + Node
 FROM python:3.11-slim
@@ -36,7 +38,11 @@ WORKDIR /app
 
 # Copy built files from node-builder
 COPY --from=node-builder /app/dist ./dist
+COPY --from=node-builder /app/public ./public
 COPY --from=node-builder /app/node_modules ./node_modules
+
+# Make a copy of dist to the public directory to match the vite.ts expectations
+RUN if [ -d "dist" ]; then mkdir -p server/public && cp -r dist/* server/public/; fi
 
 # Copy package files (only production files)
 COPY package*.json ./
