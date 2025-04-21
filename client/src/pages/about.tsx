@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/carousel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BrainCircuit, Users, Lightbulb, Webhook, Globe, BarChart } from "lucide-react";
+import { BrainCircuit, Users, Lightbulb, Webhook, Globe, BarChart, AlertTriangle, Sparkles, Award, Heart } from "lucide-react";
 
 export default function About() {
   const [api, setApi] = React.useState<any>();
@@ -52,21 +52,27 @@ export default function About() {
   const founders = [
     {
       name: "Mark Andrei R. Castillo",
-      role: "Core System Architecture & Machine Learning",
+      role: "Lead System Architect & AI Engineer",
       image: "https://raw.githubusercontent.com/draiimon/PanicSense/main/client/public/images/drei.jpg",
-      description: "Leads the development of our advanced ML pipelines and system architecture"
+      description: "Architect behind our disaster detection models and real-time monitoring systems"
     },
     {
       name: "Ivahnn B. Garcia",
-      role: "Frontend Development & User Experience",
+      role: "Frontend Lead & DevOps Engineer",
       image: "https://raw.githubusercontent.com/draiimon/PanicSense/main/client/public/images/van.jpg",
-      description: "Creates intuitive and responsive user interfaces for seamless interaction"
+      description: "Develops our responsive UI and manages cloud infrastructure deployment"
     },
     {
       name: "Julia Daphne Ngan-Gatdula",
-      role: "Data Resources & Information Engineering",
+      role: "Data Science & Natural Language Processing",
       image: "https://raw.githubusercontent.com/draiimon/PanicSense/main/client/public/images/julia.jpg",
-      description: "Manages data infrastructure and information processing systems"
+      description: "Optimizes our multilingual text analysis models for Filipino context"
+    },
+    {
+      name: "Raymond Sajor",
+      role: "Community Relations & Emergency Response",
+      image: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?ixlib=rb-4.0.3&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
+      description: "Coordinates with disaster response agencies and community organizations"
     }
   ];
 
@@ -225,7 +231,7 @@ export default function About() {
 
                   {/* Mobile indicator dots */}
                   <div className="flex justify-center gap-2 mt-6 md:hidden">
-                    {[0, 1, 2].map((index) => (
+                    {[0, 1, 2, 3].map((index) => (
                       <button
                         key={index}
                         onClick={() => {
@@ -311,10 +317,10 @@ export default function About() {
                   <div>
                     <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
                       <Lightbulb className="h-5 w-5 text-white" />
-                      Impact & Innovation
+                      2025 Innovations & Impact
                     </CardTitle>
                     <CardDescription className="text-white/80">
-                      How our solution makes a difference
+                      Latest features making a difference today
                     </CardDescription>
                   </div>
                 </div>
@@ -323,35 +329,38 @@ export default function About() {
                 <ul className="space-y-4">
                   <li className="flex items-center space-x-4">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center shadow-sm">
-                      <svg className="h-4 w-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
+                      <AlertTriangle className="h-4 w-4 text-pink-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800">Enhanced Disaster Response</p>
-                      <p className="text-sm text-slate-600 mt-1">Improved resource allocation based on real-time emotional analysis</p>
+                      <p className="font-medium text-slate-800">Intelligent Keyword Filtering</p>
+                      <p className="text-sm text-slate-600 mt-1">Advanced pattern matching system for faster disaster identification</p>
                     </div>
                   </li>
                   <li className="flex items-center space-x-4">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center shadow-sm">
-                      <svg className="h-4 w-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
+                      <Sparkles className="h-4 w-4 text-pink-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800">Data-Driven Decision Making</p>
-                      <p className="text-sm text-slate-600 mt-1">Actionable insights from social media analysis during crises</p>
+                      <p className="font-medium text-slate-800">Dockerized Deployment</p>
+                      <p className="text-sm text-slate-600 mt-1">Simplified local setup with containerized architecture for seamless distribution</p>
                     </div>
                   </li>
                   <li className="flex items-center space-x-4">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center shadow-sm">
-                      <svg className="h-4 w-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
+                      <Award className="h-4 w-4 text-pink-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800">Community-Centric Solutions</p>
-                      <p className="text-sm text-slate-600 mt-1">Focused on addressing the specific needs of Filipino communities</p>
+                      <p className="font-medium text-slate-800">Filipino Language Support</p>
+                      <p className="text-sm text-slate-600 mt-1">Enhanced recognition of Filipino disaster terms and location-specific context</p>
+                    </div>
+                  </li>
+                  <li className="flex items-center space-x-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center shadow-sm">
+                      <Heart className="h-4 w-4 text-pink-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-800">Community Resilience Tools</p>
+                      <p className="text-sm text-slate-600 mt-1">Resources to help communities prepare and recover from disasters</p>
                     </div>
                   </li>
                 </ul>
@@ -381,29 +390,27 @@ export default function About() {
             <CardContent className="p-6 bg-white/80 backdrop-blur-sm">
               <div className="prose max-w-none">
                 <p className="text-slate-700 leading-relaxed mb-4">
-                  PanicSense PH revolutionizes disaster response through
-                  cutting-edge deep learning and natural language processing
-                  technologies. Our system performs real-time sentiment analysis
-                  during crisis events, utilizing a sophisticated neural
-                  architecture that combines transformer-based models with custom
-                  attention mechanisms.
+                  <span className="font-semibold">PanicSense PH</span> is a cutting-edge disaster monitoring system designed specifically for the Philippines, 
+                  combining real-time news analysis with advanced AI to identify and categorize disaster events across the country. 
+                  Launched in April 2025, our platform now processes thousands of news articles daily from trusted Philippine sources.
                 </p>
                 <p className="text-slate-700 leading-relaxed mb-4">
-                  Our platform employs advanced transfer learning techniques and
-                  fine-tuned language models capable of processing both English and
-                  Filipino text with state-of-the-art accuracy. Our innovative
-                  multilingual approach ensures contextual understanding of cultural
-                  nuances and colloquial expressions across multiple Filipino
-                  dialects.
+                  Our technology integrates <span className="text-blue-600 font-medium">intelligent keyword filtering</span> with <span className="text-indigo-600 font-medium">machine learning validation</span> to 
+                  ensure accurate detection of disasters, supporting both Filipino and English language content. This dual-language capability allows us to understand 
+                  contextual nuances and local expressions in disaster reporting throughout the archipelago.
                 </p>
-                <p className="text-slate-700 leading-relaxed">
-                  Through ensemble methods and reinforcement learning algorithms,
-                  the system dynamically categorizes emotional states into five
-                  distinct classifications: Panic, Fear/Anxiety, Disbelief,
-                  Resilience, and Neutral. This granular emotion mapping provides
-                  crucial decision support for emergency response coordination and
-                  resource allocation during disaster events.
+                <p className="text-slate-700 leading-relaxed mb-4">
+                  The system automatically categorizes disasters into types (typhoons, earthquakes, fires, floods, etc.) and analyzes emotional sentiment in reporting 
+                  to help emergency responders prioritize areas experiencing heightened distress. All data is visualized through interactive maps and dashboards for 
+                  easy interpretation by government agencies and humanitarian organizations.
                 </p>
+                <div className="mt-6 flex flex-wrap gap-2 items-center">
+                  <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-blue-200">Real-time News Monitoring</span>
+                  <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-indigo-200">Automated Disaster Detection</span>
+                  <span className="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-violet-200">Multilingual Analysis</span>
+                  <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-green-200">Geographic Visualization</span>
+                  <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-orange-200">Docker-based Deployment</span>
+                </div>
               </div>
             </CardContent>
           </Card>
