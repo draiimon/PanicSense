@@ -5,6 +5,15 @@ import { AlertTriangle, Newspaper, MapPin, Calendar, Loader2, ArrowUpRight } fro
 import { Link } from "wouter";
 import "./carousel-style.css";
 
+interface DisasterAnalysis {
+  is_disaster_related: boolean;
+  disaster_type: string;
+  location: string;
+  severity: number;
+  confidence: number;
+  explanation: string;
+}
+
 interface NewsItem {
   id: string;
   title: string;
@@ -15,6 +24,7 @@ interface NewsItem {
   imageUrl?: string;
   disasterType?: string;
   location?: string;
+  analysis?: DisasterAnalysis; // Add support for AI analysis
 }
 
 // Function to get disaster type color
@@ -64,6 +74,15 @@ const formatDate = (dateString: string) => {
 
 // Filter for disaster-related news
 const isDisasterRelated = (item: NewsItem): boolean => {
+  // First check if we have AI analysis
+  if (item.analysis?.is_disaster_related) {
+    // If AI is confident (> 0.6) about disaster relation, trust it
+    if (item.analysis.confidence > 0.6) {
+      return item.analysis.is_disaster_related;
+    }
+  }
+  
+  // Fallback to keyword matching if no AI analysis or low confidence
   if (!item.title && !item.content) return false;
   
   // Combine title and content for stronger context analysis
@@ -109,9 +128,10 @@ export function DisasterNewsCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   
-  // Fetch news data from API
+  // Fetch AI-analyzed news data from API
   const { data: newsData = [], isLoading } = useQuery({
-    queryKey: ['/api/real-news/posts'],
+    // Use the AI-powered disaster news API endpoint
+    queryKey: ['/api/ai-disaster-news'],
     refetchInterval: 60000, // Refetch every minute
   });
   
@@ -294,18 +314,34 @@ export function DisasterNewsCarousel() {
                           </span>
                         )}
                         
-                        {item.location && (
+                        {/* Location from either AI analysis or direct property */}
+                        {(item.analysis?.location && item.analysis.location !== 'Philippines') ? (
+                          <span className="inline-flex items-center text-xs bg-white/20 px-2 py-1 rounded text-white">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {item.analysis.location}
+                          </span>
+                        ) : item.location ? (
                           <span className="inline-flex items-center text-xs bg-white/20 px-2 py-1 rounded text-white">
                             <MapPin className="h-3 w-3 mr-1" />
                             {item.location}
                           </span>
+                        ) : (
+                          <span className="inline-flex items-center text-xs bg-white/20 px-2 py-1 rounded text-white">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            Philippines
+                          </span>
                         )}
                         
-                        {item.disasterType && (
+                        {/* Display disaster type from either AI analysis or direct property */}
+                        {(item.analysis?.disaster_type && item.analysis.disaster_type !== 'other') ? (
+                          <span className={`inline-flex items-center text-xs px-2 py-1 rounded ${getDisasterTypeColor(item.analysis.disaster_type)}`}>
+                            {item.analysis.disaster_type}
+                          </span>
+                        ) : item.disasterType ? (
                           <span className={`inline-flex items-center text-xs px-2 py-1 rounded ${getDisasterTypeColor(item.disasterType)}`}>
                             {item.disasterType}
                           </span>
-                        )}
+                        ) : null}
                       </div>
                       
                       <p className="text-sm text-white/80 line-clamp-3">
