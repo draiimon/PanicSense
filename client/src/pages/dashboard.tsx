@@ -994,7 +994,7 @@ export default function Dashboard() {
 
       {/* Latest Disaster News Carousel - Auto-moving sneak peek */}
       <div className="relative mb-6 rounded-xl overflow-hidden shadow-xl">
-        <DisasterNewsCarousel />
+        {DisasterNewsCarousel && <DisasterNewsCarousel />}
       </div>
 
       {/* Stats Grid with improved styling (3-card layout) */}

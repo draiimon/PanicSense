@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Newspaper, MapPin, Calendar, Loader2 } from "lucide-react";
+import { AlertTriangle, Newspaper, MapPin, Calendar, Loader2, ArrowUpRight } from "lucide-react";
+import { Link } from "wouter";
+import "./carousel-style.css";
 
 interface NewsItem {
   id: string;
@@ -106,17 +108,6 @@ export function DisasterNewsCarousel() {
     return () => clearInterval(timer);
   }, [disasterNews.length]);
   
-  // Handle manual navigation
-  const goToNext = () => {
-    if (disasterNews.length <= 1) return;
-    setActiveIndex((prev) => (prev + 1) % disasterNews.length);
-  };
-  
-  const goToPrevious = () => {
-    if (disasterNews.length <= 1) return;
-    setActiveIndex((prev) => (prev - 1 + disasterNews.length) % disasterNews.length);
-  };
-  
   if (isLoading) {
     return (
       <div className="bg-gradient-to-r from-violet-600/90 via-blue-600/90 to-purple-600/90 p-6 h-[280px] flex justify-center items-center">
@@ -141,143 +132,162 @@ export function DisasterNewsCarousel() {
   }
   
   return (
-    <div 
-      className="bg-gradient-to-r from-violet-600/90 via-blue-600/90 to-purple-600/90 p-6 h-[280px] relative"
-      onMouseEnter={() => {/* Pause auto-rotation if needed */}}
-      onMouseLeave={() => {/* Resume auto-rotation if needed */}}
-    >
-      {/* Background decoration for visual interest */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-      <div className="absolute inset-0 bg-pattern opacity-10"></div>
+    <div className="relative overflow-hidden rounded-xl shadow-xl">
+      {/* Background gradient that matches the image */}
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-600/90 via-blue-600/90 to-purple-600/90"></div>
       
-      {/* Carousel header */}
-      <div className="flex items-center justify-between mb-4 relative z-10">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-full bg-white/20">
-            <AlertTriangle className="h-5 w-5 text-white" />
+      {/* Pattern overlay for texture */}
+      <div className="absolute inset-0 opacity-5 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC41Ij48cGF0aCBkPSJNMzYgMzR2Nmg2di02aC02em02IDZ2Nmg2di02aC02em0tMTIgMGg2djZoLTZ2LTZ6bTEyIDBoNnY2aC02di02eiIvPjwvZz48L2c+PC9zdmc+')]"></div>
+      
+      {/* Floating elements for visual interest */}
+      <div className="absolute inset-0">
+        <div className="absolute h-32 w-32 rounded-full bg-teal-500/15 filter blur-2xl animate-float-1" 
+             style={{ top: "20%", left: "10%" }} />
+        <div className="absolute h-40 w-40 rounded-full bg-purple-500/15 filter blur-2xl animate-float-2" 
+             style={{ bottom: "10%", right: "15%" }} />
+      </div>
+      
+      {/* Content container */}
+      <div className="relative p-6 z-10">
+        {/* Header with title and view all button */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-full bg-white/10 backdrop-blur-md">
+              <AlertTriangle className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white flex items-center gap-1.5">
+                Latest Disaster Updates
+                <motion.div
+                  className="inline-block"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.5 }}
+                >
+                  <div className="flex h-5 items-center justify-center rounded-full bg-red-500/20 px-1.5">
+                    <span className="text-[9px] font-semibold text-red-400">
+                      LIVE
+                    </span>
+                  </div>
+                </motion.div>
+              </h2>
+              <p className="text-xs text-blue-100/70">
+                Real-time monitoring from national news sources
+              </p>
+            </div>
           </div>
-          <h2 className="text-xl font-bold text-white">Latest Disaster Updates</h2>
+          
+          {/* View All button linked to news-monitoring page */}
+          <Link 
+            href="/news-monitoring" 
+            className="text-xs font-medium text-white flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20 transition-colors"
+          >
+            View All
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
         
         {/* Navigation dots */}
-        <div className="hidden md:flex items-center gap-1">
-          {disasterNews.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setActiveIndex(idx)}
-              className={`w-2 h-2 rounded-full transition-all ${
-                idx === activeIndex ? "bg-white" : "bg-white/30"
-              }`}
-              aria-label={`Go to slide ${idx + 1}`}
-            />
-          ))}
+        <div className="flex justify-center mb-3">
+          <div className="flex items-center gap-1.5">
+            {disasterNews.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveIndex(idx)}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  idx === activeIndex ? "bg-white" : "bg-white/30"
+                }`}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-      
-      {/* Carousel content */}
-      <div className="relative h-[200px] overflow-hidden">
-        <AnimatePresence mode="wait">
-          {disasterNews.map((item, idx) => (
-            idx === activeIndex && (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.5 }}
-                className="h-full"
-              >
-                <div className="flex flex-col md:flex-row gap-4">
-                  {/* News Image */}
-                  {item.imageUrl && (
-                    <div className="md:w-1/3 h-32 md:h-full overflow-hidden rounded-lg">
-                      <img 
-                        src={item.imageUrl} 
-                        alt={item.title} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/images/default-disaster.jpg";
-                        }}
-                      />
-                    </div>
-                  )}
-                  
-                  {/* News Content */}
-                  <div className={item.imageUrl ? "md:w-2/3" : "w-full"}>
-                    <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">
-                      {item.title}
-                    </h3>
+        
+        {/* Carousel content */}
+        <div className="relative h-[210px] overflow-hidden">
+          <AnimatePresence mode="wait">
+            {disasterNews.map((item, idx) => (
+              idx === activeIndex && (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.5 }}
+                  className="h-full"
+                >
+                  <div className="flex flex-col md:flex-row gap-4">
+                    {/* News Image */}
+                    {item.imageUrl && (
+                      <div className="md:w-1/3 h-32 md:h-full overflow-hidden rounded-lg">
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.title} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/images/default-disaster.svg";
+                          }}
+                        />
+                      </div>
+                    )}
                     
-                    <div className="mb-3 flex flex-wrap gap-2">
-                      {item.source && (
-                        <span className="inline-flex items-center text-xs bg-white/20 px-2 py-1 rounded text-white">
-                          <Newspaper className="h-3 w-3 mr-1" />
-                          {item.source}
-                        </span>
-                      )}
+                    {/* News Content */}
+                    <div className={item.imageUrl ? "md:w-2/3" : "w-full"}>
+                      <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">
+                        {item.title}
+                      </h3>
                       
-                      {item.timestamp && (
-                        <span className="inline-flex items-center text-xs bg-white/20 px-2 py-1 rounded text-white">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {formatDate(item.timestamp)}
-                        </span>
-                      )}
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {item.source && (
+                          <span className="inline-flex items-center text-xs bg-white/20 px-2 py-1 rounded text-white">
+                            <Newspaper className="h-3 w-3 mr-1" />
+                            {item.source}
+                          </span>
+                        )}
+                        
+                        {item.timestamp && (
+                          <span className="inline-flex items-center text-xs bg-white/20 px-2 py-1 rounded text-white">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            {formatDate(item.timestamp)}
+                          </span>
+                        )}
+                        
+                        {item.location && (
+                          <span className="inline-flex items-center text-xs bg-white/20 px-2 py-1 rounded text-white">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {item.location}
+                          </span>
+                        )}
+                        
+                        {item.disasterType && (
+                          <span className={`inline-flex items-center text-xs px-2 py-1 rounded ${getDisasterTypeColor(item.disasterType)}`}>
+                            {item.disasterType}
+                          </span>
+                        )}
+                      </div>
                       
-                      {item.location && (
-                        <span className="inline-flex items-center text-xs bg-white/20 px-2 py-1 rounded text-white">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {item.location}
-                        </span>
-                      )}
+                      <p className="text-sm text-white/80 line-clamp-3">
+                        {item.content}
+                      </p>
                       
-                      {item.disasterType && (
-                        <span className={`inline-flex items-center text-xs px-2 py-1 rounded ${getDisasterTypeColor(item.disasterType)}`}>
-                          {item.disasterType}
-                        </span>
-                      )}
-                    </div>
-                    
-                    <p className="text-sm text-white/80 line-clamp-3">
-                      {item.content}
-                    </p>
-                    
-                    <div className="mt-2">
-                      <a 
-                        href={item.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-xs text-white/90 hover:text-white underline underline-offset-2"
-                      >
-                        Read full article
-                      </a>
+                      <div className="mt-2">
+                        <a 
+                          href={item.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-white/90 hover:text-white underline underline-offset-2"
+                        >
+                          Read full article
+                        </a>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            )
-          ))}
-        </AnimatePresence>
+                </motion.div>
+              )
+            ))}
+          </AnimatePresence>
+        </div>
       </div>
-      
-      {/* Navigation buttons */}
-      {disasterNews.length > 1 && (
-        <>
-          <button 
-            onClick={goToPrevious}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center text-white hover:bg-black/50 transition-colors z-20"
-            aria-label="Previous slide"
-          >
-            ←
-          </button>
-          <button 
-            onClick={goToNext}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center text-white hover:bg-black/50 transition-colors z-20"
-            aria-label="Next slide"
-          >
-            →
-          </button>
-        </>
-      )}
     </div>
   );
 }
