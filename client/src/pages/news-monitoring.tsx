@@ -955,7 +955,7 @@ export default function NewsMonitoringPage() {
                 <div className="rounded-xl bg-white p-6">
                   <h2 className="text-xl font-semibold mb-6 flex items-center text-indigo-700">
                     <Zap className="h-5 w-5 mr-2" />
-                    Latest Disaster Alerts
+                    Disaster News Feed
                   </h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1187,6 +1187,14 @@ export default function NewsMonitoringPage() {
                     <div className="flex justify-center py-12">
                       <Loader className="h-8 w-8 animate-spin text-pink-500" />
                     </div>
+                  ) : !allNews.filter(item => item.title && item.content && !isDisasterRelated(item)).length ? (
+                    <Alert className="bg-pink-50 border-pink-200">
+                      <AlertTriangle className="h-4 w-4 text-pink-500" />
+                      <AlertTitle>No general news available</AlertTitle>
+                      <AlertDescription>
+                        There are currently no general news articles available. Please check back later.
+                      </AlertDescription>
+                    </Alert>
                   ) : (
                     <Carousel
                       className="w-full"
