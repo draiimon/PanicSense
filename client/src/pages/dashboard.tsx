@@ -786,7 +786,7 @@ export default function Dashboard() {
                               animate={{ x: 0, opacity: 1 }}
                               transition={{ delay: 0.1 }}
                             >
-                              Advanced Machine Learning
+                              Social Media Monitoring
                             </motion.h4>
                             <motion.div
                               initial={{ opacity: 0, scale: 0 }}
@@ -794,7 +794,7 @@ export default function Dashboard() {
                               transition={{ delay: 0.3, type: "spring" }}
                               className="ml-auto flex items-center gap-1 rounded-full bg-indigo-500/10 px-2 py-0.5 text-[8px] font-medium text-indigo-300"
                             >
-                              <span>NEW</span>
+                              <span>MAR 2025</span>
                             </motion.div>
                           </div>
                           <motion.p
@@ -803,9 +803,7 @@ export default function Dashboard() {
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.2 }}
                           >
-                            Advanced language model with improved sentiment
-                            analysis for both English and Tagalog social media
-                            posts.
+                            Real-time tracking of #BagyoPH, #LindolPH, #BahaPH hashtags with official @phivolcs_dost and @dost_pagasa accounts monitoring for immediate alerts.
                           </motion.p>
                           <div className="mt-auto">
                             <motion.div
@@ -815,7 +813,7 @@ export default function Dashboard() {
                               transition={{ delay: 0.4 }}
                             >
                               <Clock className="h-3 w-3" />
-                              <span>{new Date().toLocaleDateString()}</span>
+                              <span>Updated March 30, 2025</span>
                             </motion.div>
                           </div>
                         </div>
@@ -841,7 +839,7 @@ export default function Dashboard() {
                               animate={{ x: 0, opacity: 1 }}
                               transition={{ delay: 0.1 }}
                             >
-                              Real-time Alerts
+                              Duplicate Detection System
                             </motion.h4>
                             <motion.div
                               initial={{ opacity: 0, scale: 0 }}
@@ -849,7 +847,7 @@ export default function Dashboard() {
                               transition={{ delay: 0.3, type: "spring" }}
                               className="ml-auto flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-0.5 text-[8px] font-medium text-purple-300"
                             >
-                              <span>COMING</span>
+                              <span>FEB 2025</span>
                             </motion.div>
                           </div>
                           <motion.p
@@ -858,9 +856,8 @@ export default function Dashboard() {
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.2 }}
                           >
-                            Live notification system for emergency events with
-                            instant alerts based on sentiment and volume
-                            analysis.
+                            Advanced system to prevent duplicate entries using both exact title matching and semantic 
+                            similarity detection to ensure data integrity across all sources.
                           </motion.p>
                           <div className="mt-auto">
                             <motion.div
@@ -870,7 +867,7 @@ export default function Dashboard() {
                               transition={{ delay: 0.4 }}
                             >
                               <Clock className="h-3 w-3" />
-                              <span>Coming soon</span>
+                              <span>Updated February 15, 2025</span>
                             </motion.div>
                           </div>
                         </div>
@@ -930,8 +927,7 @@ export default function Dashboard() {
                   New Feature Alert
                 </p>
                 <p className="text-sm text-blue-600 mt-1">
-                  Enhanced geospatial sentiment analysis now available with
-                  real-time updates.
+                  Real-time news feed system updated with 6 disaster-related items from Inquirer, Manila Times, and PhilStar with duplicate detection.
                 </p>
                 <div className="flex items-center mt-1.5 text-xs text-blue-500">
                   <Clock className="h-3 w-3 mr-1" />
