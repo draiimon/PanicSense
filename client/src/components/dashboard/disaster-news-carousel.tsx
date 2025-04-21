@@ -69,15 +69,36 @@ const isDisasterRelated = (item: NewsItem): boolean => {
   // Combine title and content for stronger context analysis
   const combinedText = `${item.title} ${item.content}`.toLowerCase();
   
-  // Primary disaster keywords
+  // Primary disaster keywords - expanded for better coverage
   const primaryDisasterKeywords = [
-    'storm signal', 'storm warning', 'bagyo update', 'typhoon update',
-    'cyclone warning', 'flash flood', 'flood warning', 'severe flood',
-    'earthquake', 'lindol', 'magnitude', 'quake', 'tsunami warning',
-    'volcanic eruption', 'volcanic alert', 'bulkan', 'ashfall',
-    'landslide', 'mudslide', 'rockfall', 'evacuation', 'emergency',
-    'disaster alert', 'disaster warning', 'phivolcs', 'pagasa warning',
-    'severe weather', 'extreme weather', 'weather disturbance'
+    // Weather and Storms
+    'storm', 'bagyo', 'typhoon', 'cyclone', 'hurricane', 'signal', 'warning',
+    
+    // Floods
+    'flood', 'baha', 'flash flood', 'overflow', 'rising water',
+    
+    // Earthquakes
+    'earthquake', 'lindol', 'magnitude', 'quake', 'tremor', 'shaking',
+    
+    // Tsunamis
+    'tsunami', 'tidal wave', 'sea level',
+    
+    // Volcanic Activity
+    'volcanic', 'volcano', 'eruption', 'bulkan', 'ashfall', 'lava', 'phivolcs',
+    
+    // Landslides
+    'landslide', 'mudslide', 'rockfall', 'erosion', 'guho',
+    
+    // Fires
+    'fire', 'sunog', 'blaze', 'burning', 'flame',
+    
+    // Emergencies and Warnings
+    'evacuation', 'evacuate', 'emergency', 'disaster', 'alert', 'warning',
+    'rescue', 'pagasa', 'ndrrmc', 'calamity', 'casualty', 'damage',
+    
+    // Weather Conditions
+    'severe weather', 'extreme weather', 'heavy rain', 'strong wind',
+    'weather disturbance', 'monsoon', 'habagat'
   ];
 
   // Check for primary disaster keywords
@@ -94,9 +115,21 @@ export function DisasterNewsCarousel() {
     refetchInterval: 60000, // Refetch every minute
   });
   
-  // Filter for disaster-related news only - showing only 5 articles as requested
+  // Get all news items and ensure we show 5 articles as requested
   const allNews = Array.isArray(newsData) ? newsData : [];
-  const disasterNews = allNews.filter(isDisasterRelated).slice(0, 5); // Take only the first 5 disaster news items
+  
+  // First try to get disaster-related news
+  let disasterNews = allNews.filter(isDisasterRelated);
+  
+  // If we have fewer than 5 disaster news, add more regular news to reach 5 total
+  if (disasterNews.length < 5) {
+    const regularNews = allNews.filter(item => !isDisasterRelated(item));
+    const neededItems = 5 - disasterNews.length;
+    disasterNews = [...disasterNews, ...regularNews.slice(0, neededItems)];
+  }
+  
+  // Limit to 5 items
+  disasterNews = disasterNews.slice(0, 5);
   
   // Auto-rotation with pause on hover
   useEffect(() => {
