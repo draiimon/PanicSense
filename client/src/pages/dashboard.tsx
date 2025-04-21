@@ -733,7 +733,7 @@ export default function Dashboard() {
                               animate={{ x: 0, opacity: 1 }}
                               transition={{ delay: 0.1 }}
                             >
-                              Enhanced Geospatial Analysis
+                              Real-time News Feed System
                             </motion.h4>
                             <motion.div
                               initial={{ opacity: 0, scale: 0 }}
@@ -741,7 +741,7 @@ export default function Dashboard() {
                               transition={{ delay: 0.3, type: "spring" }}
                               className="ml-auto flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[8px] font-medium text-blue-300"
                             >
-                              <span>v2.4</span>
+                              <span>APR 2025</span>
                             </motion.div>
                           </div>
                           <motion.p
@@ -750,8 +750,7 @@ export default function Dashboard() {
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.2 }}
                           >
-                            Improved disaster location mapping with real-time
-                            updates from social media and government alerts.
+                            Live monitoring from 15+ Philippine news sources including Inquirer, PhilStar, Rappler, GMA News and ABS-CBN with updates every 10 minutes.
                           </motion.p>
                           <div className="mt-auto">
                             <motion.div
