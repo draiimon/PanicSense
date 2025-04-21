@@ -16,7 +16,7 @@ import {
   User,
   LogOut,
   Globe,
-  Map,
+  MapPin,
 } from "lucide-react";
 
 interface NavItem {
@@ -38,7 +38,7 @@ export function Sidebar() {
     {
       href: "/emotion-analysis",
       label: "Geographic Analysis",
-      icon: <Map className="h-5 w-5" />,
+      icon: <MapPin className="h-5 w-5" />,
     },
     {
       href: "/timeline",

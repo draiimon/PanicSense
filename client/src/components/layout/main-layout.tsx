@@ -12,6 +12,7 @@ import {
   User,
   LogOut,
   Globe,
+  MapPin,
 } from "lucide-react";
 import logo from "/favicon.png"; // Import the PanicSense logo
 import { motion, AnimatePresence } from "framer-motion";
@@ -38,7 +39,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     {
       path: "/geographic-analysis",
       label: "Geographic Analysis",
-      icon: <Globe className="w-4 h-4" />,
+      icon: <MapPin className="w-4 h-4" />,
     },
     {
       path: "/timeline",
@@ -68,7 +69,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     {
       path: "/news-monitoring",
       label: "News Monitoring",
-      icon: <Map className="w-4 h-4" />,
+      icon: <MapPin className="w-4 h-4" />,
     },
     {
       path: "/about",
