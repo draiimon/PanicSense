@@ -47,6 +47,32 @@ const NEWS_SOURCES = [
     name: 'BusinessWorld',
     url: 'https://www.bworldonline.com/feed/',
     source: 'BusinessWorld'
+  },
+  // Karagdagang Philippine News Sources
+  {
+    name: 'GMA News',
+    url: 'https://www.gmanetwork.com/news/rss',
+    source: 'GMA News'
+  },
+  {
+    name: 'ABS-CBN News',
+    url: 'https://news.abs-cbn.com/rss',
+    source: 'ABS-CBN'
+  },
+  {
+    name: 'Manila Bulletin',
+    url: 'https://mb.com.ph/feed',
+    source: 'Manila Bulletin'
+  },
+  {
+    name: 'SunStar Philippines',
+    url: 'https://www.sunstar.com.ph/rss',
+    source: 'SunStar'
+  },
+  {
+    name: 'Cebu Daily News',
+    url: 'https://cebudailynews.inquirer.net/feed',
+    source: 'Cebu Daily News'
   }
 ];
 
@@ -200,7 +226,7 @@ async function processNewsItem(item: any): Promise<any> {
     // Extract text from the item
     const title = item.title || '';
     const content = item.contentSnippet || item.content || '';
-    const postText = `${title}. ${content}`.substring(0, 1000); // Limit length
+    const postText = `${title}. ${content}`; // Don't limit length to avoid cutting off important text
     
     // Check if we already have this item in our database (by title)
     const existingPosts = await storage.getSentimentPosts();
@@ -227,7 +253,7 @@ async function processNewsItem(item: any): Promise<any> {
       source: item.sourceName || "Philippine News",
       language: result.language || "en",
       location: result.location || "UNKNOWN",
-      disasterType: result.disasterType === "Unknown Disaster" ? "UNKNOWN" : (result.disasterType || "UNKNOWN"),
+      disasterType: (result.disasterType === "Unknown Disaster" || !result.disasterType) ? "UNKNOWN" : result.disasterType,
       explanation: result.explanation,
       timestamp: postTimestamp
     });
@@ -312,8 +338,8 @@ export function startRealNewsFeed(): void {
   // Process immediately
   processAllNews();
   
-  // Set interval to fetch news every 15 minutes
-  newsFeedInterval = setInterval(processAllNews, 15 * 60 * 1000);
+  // Set interval to fetch news every 10 minutes to increase fresh content
+  newsFeedInterval = setInterval(processAllNews, 10 * 60 * 1000);
   
   log('Real news feed started successfully', 'real-news');
 }
