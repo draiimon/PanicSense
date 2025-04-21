@@ -2,11 +2,13 @@ import axios from 'axios';
 import Parser from 'rss-parser';
 import { v4 as uuidv4 } from 'uuid';
 
-// Define the RSS parser
+// Define the RSS parser with enhanced media support
 const parser = new Parser({
   customFields: {
     item: [
       ['media:content', 'media'],
+      ['media:thumbnail', 'mediaThumbnail'],
+      ['enclosure', 'enclosure'],
       ['description', 'description'],
       ['content:encoded', 'contentEncoded']
     ]
@@ -187,6 +189,14 @@ export class RealNewsService {
           // Clean the content (remove HTML)
           const cleanContent = this.stripHtml(content);
           
+          // Extract image URL from the item
+          const imageUrl = this.extractImageFromItem(item);
+          
+          // Log found images for debugging
+          if (imageUrl) {
+            console.log(`[real-news] Found image in item from ${source.name}: ${imageUrl.substring(0, 100)}...`);
+          }
+          
           newsItems.push({
             id: item.guid || uuidv4(),
             title: item.title || 'No title',
@@ -194,6 +204,7 @@ export class RealNewsService {
             source: source.name,
             timestamp: item.isoDate || new Date().toISOString(),
             url: item.link || '',
+            imageUrl: imageUrl, // Add the extracted image URL
             disasterType: this.classifyDisasterType(item.title || '', cleanContent),
             location: this.extractLocation(item.title || '', cleanContent)
           });
@@ -269,6 +280,51 @@ export class RealNewsService {
     return html.replace(/<[^>]*>?/gm, ' ')
                .replace(/\s\s+/g, ' ')
                .trim();
+  }
+  
+  /**
+   * Extract image URL from RSS item using multiple methods
+   * Ranked in order of preference: media:content, enclosure, media:thumbnail, and HTML content
+   */
+  private extractImageFromItem(item: any): string {
+    try {
+      // Check for media:content which often contains the main image
+      if (item.media && item.media.$ && item.media.$.url) {
+        return item.media.$.url;
+      }
+      
+      // Check for media with multiple items (array)
+      if (Array.isArray(item.media)) {
+        for (const media of item.media) {
+          if (media.$ && media.$.url) {
+            return media.$.url;
+          }
+        }
+      }
+      
+      // Check for enclosure (often used for media attachments)
+      if (item.enclosure && item.enclosure.url) {
+        return item.enclosure.url;
+      }
+      
+      // Check for media:thumbnail
+      if (item.mediaThumbnail && item.mediaThumbnail.$ && item.mediaThumbnail.$.url) {
+        return item.mediaThumbnail.$.url;
+      }
+      
+      // Extract first image from HTML content using regex
+      const rawHtml = item.contentEncoded || item.content || item.description || '';
+      const match = rawHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (match && match[1]) {
+        return match[1];
+      }
+      
+      // No image found
+      return '';
+    } catch (error) {
+      console.log('[real-news] Error extracting image:', error);
+      return '';
+    }
   }
 
   /**

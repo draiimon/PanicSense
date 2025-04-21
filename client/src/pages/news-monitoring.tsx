@@ -197,9 +197,15 @@ const extractOgImageUrl = (url: string): string => {
 
 // Get news image based on URL patterns or direct mappings - with REALTIME options
 const getNewsImage = (item: NewsItem): string => {
-  const { url, disasterType, source } = item;
+  const { url, disasterType, source, imageUrl } = item;
   
-  // Try to get REALTIME image first - prioritize this!
+  // Check if we have the actual image URL from the RSS feed (highest priority)
+  if (imageUrl && imageUrl.startsWith('http')) {
+    console.log('Using actual image from RSS feed:', imageUrl);
+    return imageUrl;
+  }
+  
+  // Try to get REALTIME image fallback - second priority
   const realtimeImage = extractOgImageUrl(url);
   if (realtimeImage) {
     return realtimeImage;
