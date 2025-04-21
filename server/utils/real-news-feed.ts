@@ -303,18 +303,40 @@ async function processNewsItem(item: any): Promise<any> {
   try {
     // Extract text from the item
     const title = item.title || '';
-    const content = item.contentSnippet || item.content || '';
-    const postText = `${title}. ${content}`; // Don't limit length to avoid cutting off important text
+    let content = item.contentSnippet || item.content || '';
+
+    // Truncate excessively long content to prevent processing issues
+    // This is particularly important for Manila Times and other sources that include full article text
+    if (content.length > 800) {
+      content = content.substring(0, 800) + '...';
+      log(`Truncated long content from "${item.sourceName || 'unknown source'}" to 800 chars`, 'real-news');
+    }
     
-    // Check if we already have this item in our database (by title)
+    // Create a clean post text combining title and truncated content
+    const postText = `${title}. ${content}`;
+    
+    // Enhanced duplicate check: Check if we already have this item in our database
+    // 1. First check by exact title match
     const existingPosts = await storage.getSentimentPosts();
-    const alreadyExists = existingPosts.some(post => 
-      post.text.includes(title) || title.includes(post.text)
-    );
     
-    if (alreadyExists) {
-      log(`Skipping already existing news item: ${title}`, 'real-news');
+    // Check for duplicate by exact title match (most reliable)
+    if (existingPosts.some(post => post.text.startsWith(title) || title === post.text)) {
+      log(`Skipping duplicate news item (exact title match): ${title}`, 'real-news');
       return null;
+    }
+    
+    // Check for partial title match (for slightly modified titles)
+    const titleWords = title.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3);
+    if (titleWords.length > 3) {  // Only check if we have enough significant words
+      const titleMatches = existingPosts.filter(post => {
+        const postTitlePart = post.text.split('.')[0].toLowerCase();
+        return titleWords.filter((word: string) => postTitlePart.includes(word)).length >= Math.min(3, titleWords.length * 0.7);
+      });
+      
+      if (titleMatches.length > 0) {
+        log(`Skipping likely duplicate news item (partial title match): ${title}`, 'real-news');
+        return null;
+      }
     }
     
     // Analyze the sentiment of the news item
@@ -323,15 +345,28 @@ async function processNewsItem(item: any): Promise<any> {
     // Get actual timestamp from post if available
     const postTimestamp = item.isoDate || item.pubDate ? new Date(item.isoDate || item.pubDate) : new Date();
     
-    // Create and save the post
+    // Detect actual disaster type - if we have a clear disaster type, use it
+    // Otherwise, rely on the python service's analysis
+    const detectedDisasterType = pythonService.extractDisasterTypeFromText(postText);
+    const finalDisasterType = detectedDisasterType || 
+      ((result.disasterType === "Unknown Disaster" || !result.disasterType) ? "UNKNOWN" : result.disasterType);
+    
+    // Detect a single specific location rather than listing all mentioned locations
+    // Use the result.location from Python service first as it may have better AI-based detection
+    // If that's not available, try the JS-based extraction as a fallback
+    const finalLocation = result.location || 
+      (typeof result.location === 'string' && result.location !== 'UNKNOWN' ? result.location : null) || 
+      "UNKNOWN";
+    
+    // Create and save the post with improved metadata
     const newPost = await storage.createSentimentPost({
       text: postText,
       sentiment: result.sentiment,
       confidence: result.confidence,
       source: item.sourceName || "Philippine News",
       language: result.language || "en",
-      location: result.location || "UNKNOWN",
-      disasterType: (result.disasterType === "Unknown Disaster" || !result.disasterType) ? "UNKNOWN" : result.disasterType,
+      location: finalLocation,
+      disasterType: finalDisasterType,
       explanation: result.explanation,
       timestamp: postTimestamp
     });
@@ -344,7 +379,7 @@ async function processNewsItem(item: any): Promise<any> {
       broadcastNewPost(savedPost);
     }
     
-    log(`Processed new news item: "${title}"`, 'real-news');
+    log(`Processed new news item: "${title}" [Type: ${finalDisasterType}, Location: ${finalLocation}]`, 'real-news');
     return savedPost;
   } catch (error) {
     log(`Error processing news item: ${error}`, 'real-news');
@@ -380,24 +415,78 @@ export async function fetchAllNews(): Promise<any[]> {
 }
 
 /**
- * Processes all fetched news items
+ * Processes all fetched news items with improved rate limiting
  */
 async function processAllNews(): Promise<void> {
   try {
     // Fetch all news items
     const allNews = await fetchAllNews();
     
-    // Take only the top 5 most recent items to avoid flooding
-    const recentNews = allNews.slice(0, 5);
-    
-    // Process items sequentially to avoid overwhelming the system
-    for (const item of recentNews) {
-      await processNewsItem(item);
-      // Add a small delay between processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    // Handle empty results gracefully
+    if (!allNews || allNews.length === 0) {
+      log('No news items to process or all sources returned empty results', 'real-news');
+      return;
     }
     
-    log(`Completed processing ${recentNews.length} news items`, 'real-news');
+    // Take only the top 3 most recent items to avoid API rate limits
+    // This is critical for ensuring we don't hit API limits while still getting fresh content
+    const recentNews = allNews.slice(0, 3);
+    
+    log(`Processing ${recentNews.length} most recent news items out of ${allNews.length} total`, 'real-news');
+    
+    // Track which sources we've already processed to avoid duplicate processing
+    const processedSources = new Set<string>();
+    
+    // Prioritize news items from more diverse sources
+    // Sort by source first to ensure we get news from different sources
+    const diverseRecentNews = recentNews.sort((a, b) => {
+      // First prioritize items from sources we haven't processed yet
+      const aProcessed = processedSources.has(a.sourceName || '');
+      const bProcessed = processedSources.has(b.sourceName || '');
+      
+      if (aProcessed !== bProcessed) {
+        return aProcessed ? 1 : -1; // Place unprocessed sources first
+      }
+      
+      // Then prioritize by date
+      const dateA = a.isoDate || a.pubDate || new Date();
+      const dateB = b.isoDate || b.pubDate || new Date();
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
+    
+    // Process items sequentially with improved error handling and longer delays
+    for (const item of diverseRecentNews) {
+      try {
+        const source = item.sourceName || 'unknown';
+        
+        // Skip if we've already processed an item from this source in this batch
+        if (processedSources.has(source)) {
+          log(`Skipping additional item from already processed source: ${source}`, 'real-news');
+          continue;
+        }
+        
+        // Process the item
+        const result = await processNewsItem(item);
+        
+        // Mark this source as processed
+        processedSources.add(source);
+        
+        // If successfully processed, add a longer delay (3 seconds) between sources
+        // This ensures we don't overwhelm any APIs and helps prevent rate limiting
+        if (result) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        } else {
+          // Shorter delay if item was skipped (e.g., duplicate)
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } catch (itemError) {
+        log(`Error processing individual news item: ${itemError}`, 'real-news');
+        // Continue with next item even if one fails
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    log(`Completed processing news items from ${processedSources.size} unique sources`, 'real-news');
   } catch (error) {
     log(`Error in processAllNews: ${error}`, 'real-news');
   }

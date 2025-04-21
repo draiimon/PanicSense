@@ -142,70 +142,180 @@ export class PythonService {
     this.activeProcesses.clear();
   }
   
-  // Utility method to extract disaster type from text
-  private extractDisasterTypeFromText(text: string): string | null {
+  // Enhanced method to extract disaster type from text - made public to share functionality
+  public extractDisasterTypeFromText(text: string): string | null {
     const textLower = text.toLowerCase();
     
-    // Check for typhoon/bagyo
+    // Check for weather-related disaster warnings first
+    
+    // Check for ITCZ (Intertropical Convergence Zone)
+    if (textLower.includes('itcz') || textLower.includes('intertropical convergence zone')) {
+      // Check if there's a clear sign of actual disaster impact
+      if (textLower.includes('flooding') || textLower.includes('landslide') || 
+          textLower.includes('heavy rain') || textLower.includes('thunderstorm')) {
+        if (textLower.includes('flooding') || textLower.includes('flood') || 
+            textLower.includes('baha') || textLower.includes('tubig') || textLower.includes('water rising')) {
+          return 'Flood';
+        } else {
+          return 'Severe Weather';  // General category for weather warnings
+        }
+      }
+      
+      // If it's just a forecast without clear disaster impact
+      if (textLower.includes('forecast') || textLower.includes('advisory') || 
+          textLower.includes('monitor') || textLower.includes('watch')) {
+        return 'Weather Advisory';  // Not an actual disaster yet
+      }
+    }
+    
+    // Check for tropical depressions, storms, and typhoons
     if (textLower.includes('typhoon') || textLower.includes('bagyo') || 
-        textLower.includes('cyclone') || textLower.includes('storm')) {
+        textLower.includes('cyclone') || textLower.includes('storm') ||
+        textLower.includes('tropical depression') || textLower.includes('low pressure area') ||
+        textLower.includes('lpa') || textLower.includes('tropical cyclone')) {
+      
+      // Check if it's already causing damage
+      if (textLower.includes('damage') || textLower.includes('destroyed') || 
+          textLower.includes('casualties') || textLower.includes('evacuation') || 
+          textLower.includes('evacuate') || textLower.includes('stranded')) {
+        return 'Typhoon';  // Active disaster
+      }
+      
+      // If it's just a forecast without clear disaster impact
+      if (textLower.includes('forecast') || textLower.includes('advisory') || 
+          textLower.includes('monitor') || textLower.includes('approaching') ||
+          textLower.includes('expected')) {
+        return 'Typhoon Warning';  // Imminent but not yet an active disaster
+      }
+      
+      // Default to Typhoon if none of the above conditions are met
       return 'Typhoon';
+    }
+    
+    // Check for extreme heat
+    if ((textLower.includes('heat') || textLower.includes('init')) && 
+        (textLower.includes('index') || textLower.includes('warning') || 
+         textLower.includes('advisory') || textLower.includes('danger'))) {
+      
+      // Check for specific danger level indicators
+      if (textLower.includes('danger') || textLower.includes('extreme') || 
+          /\d+\s*degrees/.test(textLower)) {
+        return 'Extreme Heat';
+      }
     }
     
     // Check for flood/baha
     if (textLower.includes('flood') || textLower.includes('baha') || 
-        textLower.includes('tubig') || textLower.includes('water rising')) {
+        textLower.includes('tubig') || textLower.includes('water rising') ||
+        textLower.includes('binaha') || textLower.includes('flash flood')) {
       return 'Flood';
     }
     
     // Check for earthquake/lindol
     if (textLower.includes('earthquake') || textLower.includes('lindol') || 
         textLower.includes('linog') || textLower.includes('magnitude') || 
-        textLower.includes('shaking') || textLower.includes('tremor')) {
+        textLower.includes('shaking') || textLower.includes('tremor') ||
+        textLower.includes('seismic') || textLower.includes('aftershock') ||
+        textLower.includes('temblor') || textLower.includes('quake')) {
       return 'Earthquake';
     }
     
     // Check for volcano/bulkan
     if (textLower.includes('volcano') || textLower.includes('bulkan') || 
         textLower.includes('eruption') || textLower.includes('lava') || 
-        textLower.includes('ash fall') || textLower.includes('magma')) {
+        textLower.includes('ash fall') || textLower.includes('magma') ||
+        textLower.includes('phivolcs') || textLower.includes('alert level') ||
+        textLower.includes('volcanic') || textLower.includes('taal') ||
+        textLower.includes('mayon') || textLower.includes('kanlaon') ||
+        textLower.includes('bulusan')) {
       return 'Volcanic Eruption';
     }
     
     // Check for fire/sunog
     if (textLower.includes('fire') || textLower.includes('sunog') || 
-        textLower.includes('burning') || textLower.includes('nasusunog')) {
+        textLower.includes('burning') || textLower.includes('nasusunog') ||
+        textLower.includes('apoy') || textLower.includes('flame') ||
+        textLower.includes('firefighter') || textLower.includes('bumbero')) {
       return 'Fire';
     }
     
     // Check for landslide/pagguho
     if (textLower.includes('landslide') || textLower.includes('pagguho') || 
         textLower.includes('mudslide') || textLower.includes('rockfall') || 
-        textLower.includes('gumuho')) {
+        textLower.includes('gumuho') || textLower.includes('debris flow') ||
+        textLower.includes('soil erosion') || textLower.includes('mountain collapse')) {
       return 'Landslide';
+    }
+    
+    // Check for tsunami
+    if (textLower.includes('tsunami') || 
+        (textLower.includes('wave') && (textLower.includes('giant') || textLower.includes('huge')))) {
+      return 'Tsunami';
+    }
+    
+    // Check for drought
+    if (textLower.includes('drought') || textLower.includes('water shortage') || 
+        textLower.includes('el niño') || textLower.includes('el nino') ||
+        textLower.includes('tagtuyot')) {
+      return 'Drought';
     }
     
     return null;
   }
   
-  // Utility method to extract location from text
-  private extractLocationFromText(text: string): string | null {
-    // Philippine locations - major cities and regions
-    const locations = [
-      'Manila', 'Quezon City', 'Davao', 'Cebu', 'Makati', 'Taguig', 'Pasig',
-      'Cagayan', 'Bicol', 'Samar', 'Leyte', 'Tacloban', 'Batanes', 'Mindanao',
-      'Luzon', 'Visayas', 'Palawan', 'Mindoro', 'Batangas', 'Cavite', 'Laguna',
+  // Utility method to extract location from text - made public to share functionality
+  public extractLocationFromText(text: string): string | null {
+    // Philippine locations - major regions ordered by priority (more specific regions first)
+    const priorityRegions = [
+      'Metro Manila', 'NCR', 'Davao Region', 'Cebu', 'Iloilo', 'Bicol Region', 
+      'CALABARZON', 'MIMAROPA', 'Cordillera', 'Cagayan Valley', 'Central Luzon',
+      'Western Visayas', 'Central Visayas', 'Eastern Visayas', 'Zamboanga Peninsula',
+      'Northern Mindanao', 'SOCCSKSARGEN', 'Caraga', 'BARMM', 'Bangsamoro'
+    ];
+    
+    // Philippine locations - major cities and areas ordered by priority (more important/populated first)
+    const priorityCities = [
+      'Manila', 'Quezon City', 'Davao', 'Cebu City', 'Makati', 'Taguig', 'Pasig',
+      'Cagayan de Oro', 'Tacloban', 'Batanes', 'Batangas', 'Cavite', 'Laguna',
       'Albay', 'Baguio', 'Zambales', 'Pampanga', 'Bulacan', 'Iloilo', 'Bacolod',
-      'Zamboanga', 'General Santos', 'Cagayan de Oro', 'Butuan', 'Camarines'
+      'Zamboanga', 'General Santos', 'Butuan', 'Camarines', 'Surigao'
+    ];
+    
+    // Major geographical divisions
+    const majorAreas = [
+      'Mindanao', 'Luzon', 'Visayas', 'Palawan', 'Mindoro', 'Samar', 'Leyte'
     ];
     
     // Convert to lowercase for case-insensitive matching
     const textLower = text.toLowerCase();
+
+    // Find first ITCZ-specific affected areas (unique to weather reports)
+    const itczPattern = /itcz.+?affecting\s+([^\.]+)/i;
+    const itczMatch = text.match(itczPattern);
+    if (itczMatch && itczMatch.length > 1) {
+      // Extract the first location from the matched string
+      const affectedAreas = itczMatch[1].split(',')[0].split(' and ')[0].trim();
+      if (affectedAreas) return affectedAreas;
+    }
     
-    // Check each location
-    for (const location of locations) {
-      if (textLower.includes(location.toLowerCase())) {
-        return location;
+    // Look for the highest priority region first
+    for (const region of priorityRegions) {
+      if (textLower.includes(region.toLowerCase())) {
+        return region;
+      }
+    }
+    
+    // Then check priority cities
+    for (const city of priorityCities) {
+      if (textLower.includes(city.toLowerCase())) {
+        return city;
+      }
+    }
+    
+    // Finally check major geographical divisions
+    for (const area of majorAreas) {
+      if (textLower.includes(area.toLowerCase())) {
+        return area;
       }
     }
     
