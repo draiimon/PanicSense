@@ -71,18 +71,8 @@ const NEWS_SOURCES = [
     url: 'https://www.gmanetwork.com/news/rss',
     source: 'GMA News'
   },
-  // ABS-CBN may be returning a 500 error, temporarily disabling
-  /*{
-    name: 'ABS-CBN News',
-    url: 'https://news.abs-cbn.com/rss',
-    source: 'ABS-CBN'
-  },*/
-  // Manila Bulletin returning error
-  /*{
-    name: 'Manila Bulletin',
-    url: 'https://mb.com.ph/feed',
-    source: 'Manila Bulletin'
-  },*/
+  // Removed duplicate ABS-CBN entry and error comment since we have a working one above
+  // Manila Bulletin returning error - removed
   {
     name: 'PNA',
     url: 'https://pna.gov.ph/rss',
