@@ -113,7 +113,7 @@ const newsImageMap: Record<string, string> = {
   "https://cebudailynews.inquirer.net/633876/itcz-to-bring-rains-across-mindanao": 
     "https://cebudailynews.inquirer.net/files/2024/12/weather-update-rain2-1024x600.jpg",
     
-  // Add more direct image mappings here as you discover them
+  // DAGDAG NA DIRECT MAPPINGS for ALL news
   "https://www.manilatimes.net/2025/04/21/news/scattered-rains-thunderstorms-likely-over-mindanao-due-to-itcz/2095551":
     "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg",
     
@@ -121,7 +121,23 @@ const newsImageMap: Record<string, string> = {
     "https://newsinfo.inquirer.net/files/2023/03/Cadiz-City-PHL-Navy-Base.jpg",
     
   "https://www.manilatimes.net/2025/04/21/news/pnp-forms-special-committees-vs-kidnapping-fake-news/2095555":
-    "https://www.pna.gov.ph/uploads/photos/2023/12/PNP-patrol-car.jpg"
+    "https://www.pna.gov.ph/uploads/photos/2023/12/PNP-patrol-car.jpg",
+    
+  // Dagdag actual news images para walang masayang na balita
+  "https://www.gmanetwork.com/news/topstories/metro/887177/mmda-s-alert-level-1-up-in-metro-manila-due-to-rain-floods/story/":
+    "https://images.gmanews.tv/webpics/2022/07/rain_2022_07_14_12_47_59.jpg",
+    
+  "https://www.rappler.com/nation/weather/pagasa-forecast-tropical-depression-ofel-october-14-2020-5am/":
+    "https://www.rappler.com/tachyon/2022/09/karding-NLEX-september-25-2022-004.jpeg",
+    
+  "https://news.abs-cbn.com/news/07/29/23/metro-manila-other-areas-placed-under-signal-no-1":
+    "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/afp/10/30/20221030-typhoon-nalgae-afp.jpg",
+    
+  "https://www.philstar.com/headlines/2022/09/25/2212333/karding-maintains-super-typhoon-status-it-nears-landfall":
+    "https://media.philstar.com/photos/2022/09/26/super-typhoon-karding_2022-09-26_19-28-54.jpg",
+    
+  "https://www.pna.gov.ph/articles/1205876":
+    "https://www.pna.gov.ph/uploads/photos/2022/06/Itcz-rain.jpg"
 };
 
 // Get news image based on URL patterns or direct mappings
@@ -298,7 +314,7 @@ export default function NewsMonitoringPage() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Animated Background */}
+      {/* ENHANCED Animated Background with Floating Elements */}
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-violet-50 to-pink-50 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/15 via-teal-500/10 to-rose-500/15 animate-gradient"
           style={{ backgroundSize: '400% 400%', animation: 'gradient 15s ease infinite' }}
@@ -306,242 +322,300 @@ export default function NewsMonitoringPage() {
         <div className="absolute inset-0 opacity-25">
           <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]" />
         </div>
+        
+        {/* Floating Gradient Orbs */}
+        <div className="absolute h-60 w-60 rounded-full bg-indigo-500/20 filter blur-3xl animate-float-slow will-change-transform"
+          style={{ top: "20%", left: "15%" }} />
+        
+        <div className="absolute h-52 w-52 rounded-full bg-blue-500/20 filter blur-3xl animate-float-slow-reverse will-change-transform"
+          style={{ top: "45%", right: "20%" }} />
+        
+        <div className="absolute h-48 w-48 rounded-full bg-pink-500/20 filter blur-3xl animate-float-4 will-change-transform"
+          style={{ top: "65%", left: "25%" }} />
+          
+        <div className="absolute h-40 w-40 rounded-full bg-yellow-400/15 filter blur-3xl animate-float-5 will-change-transform"
+          style={{ top: "30%", left: "40%" }} />
+          
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
       
-      <Container>
-        <PageHeader
-          heading="Real-Time Disaster News Monitoring"
-          subheading="Monitor calamity and disaster-related news in real-time from official government agencies and media sources"
-          className="mb-8 relative z-10"
-        >
-          <Button onClick={handleRefresh} 
-            className="relative overflow-hidden rounded-md gap-2 bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 hover:from-indigo-500 hover:via-blue-500 hover:to-purple-500 shadow-md"
+      <div className="relative pb-10">
+        <Container>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="relative space-y-8 pt-10"
           >
-            <Zap className="h-4 w-4" />
-            Refresh Feed
-          </Button>
-        </PageHeader>
-
-        {/* MALAKING CAROUSEL with FULL-SCREEN NEWS IMAGES */}
-        <div className="mb-8">
-          <div className="relative overflow-hidden rounded-2xl border-none shadow-lg bg-gradient-to-r from-indigo-600/90 via-blue-600/90 to-purple-600/90 p-4">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 animate-gradient" />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            
-            <div className="relative z-10">
-              <h2 className="text-xl font-semibold mb-4 text-white flex items-center">
-                <AlertTriangle className="h-5 w-5 mr-2" />
-                Latest Disaster Alerts
-              </h2>
+            {/* BONGGANG HEADER Design SIMILAR SA ABOUT PAGE */}
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="relative overflow-hidden rounded-2xl border-none shadow-lg bg-gradient-to-r from-indigo-600/90 via-blue-600/90 to-purple-600/90 p-4 sm:p-6"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 animate-gradient" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
               
-              {newsLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader className="h-8 w-8 animate-spin text-white" />
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm shadow-inner">
+                    <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-lg sm:text-xl font-bold text-white">
+                      Disaster News Monitoring
+                    </h1>
+                    <p className="text-xs sm:text-sm text-indigo-100 mt-0.5 sm:mt-1">
+                      Real-time updates from official agencies and media sources across the Philippines
+                    </p>
+                  </div>
                 </div>
-              ) : disasterNews.length > 0 ? (
-                <Carousel className="w-full">
-                  <CarouselContent>
-                    {disasterNews.slice(0, 5).map((item: NewsItem, index: number) => (
-                      <CarouselItem key={item.id || index} className="md:basis-4/5 lg:basis-3/4">
-                        <div className="p-1">
-                          <div className="flex flex-col md:flex-row bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl overflow-hidden border border-white/20">
-                            {/* MALAKING AKTUWAL NA NEWS IMAGE */}
-                            <div className="w-full md:w-3/5 relative overflow-hidden h-[350px] transition-all group">
-                              <img 
-                                src={getNewsImage(item)}
-                                alt={item.title}
-                                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                                onError={(e) => {
-                                  // Fallback if the primary image fails to load
-                                  const target = e.currentTarget;
+                <div className="flex items-center">
+                  <Button onClick={handleRefresh} 
+                    className="relative overflow-hidden rounded-md gap-2 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-none shadow-md"
+                  >
+                    <Zap className="h-4 w-4" />
+                    Refresh Feed
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* MALAKING CAROUSEL with FULL-SCREEN NEWS IMAGES - Enhanced Design */}
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mb-8"
+            >
+              <div className="relative overflow-hidden rounded-2xl border-none shadow-lg bg-gradient-to-r from-indigo-600/90 via-blue-600/90 to-purple-600/90 p-4 sm:p-6">
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 animate-gradient" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              
+                <div className="relative z-10">
+                  <h2 className="text-xl font-semibold mb-4 text-white flex items-center">
+                    <AlertTriangle className="h-5 w-5 mr-2" />
+                    Latest Disaster Alerts
+                  </h2>
+                  
+                  {newsLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader className="h-8 w-8 animate-spin text-white" />
+                    </div>
+                  ) : disasterNews.length > 0 ? (
+                    <Carousel className="w-full">
+                      <CarouselContent>
+                        {disasterNews.slice(0, 5).map((item: NewsItem, index: number) => (
+                          <CarouselItem key={item.id || index} className="md:basis-4/5 lg:basis-3/4">
+                            <div className="p-1">
+                              <div className="flex flex-col md:flex-row bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl overflow-hidden border border-white/20">
+                                {/* MALAKING AKTUWAL NA NEWS IMAGE */}
+                                <div className="w-full md:w-3/5 relative overflow-hidden h-[350px] transition-all group">
+                                  <img 
+                                    src={getNewsImage(item)}
+                                    alt={item.title}
+                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                                    onError={(e) => {
+                                      // Fallback if the primary image fails to load
+                                      const target = e.currentTarget;
+                                      
+                                      // Attempt to fix image URL if it's from a known source
+                                      if (target.src.includes('inquirer.net')) {
+                                        target.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
+                                      } else if (target.src.includes('philstar.com')) {
+                                        target.src = "https://media.philstar.com/photos/2022/04/pagasa-bulletin_2022-04-08_23-06-27.jpg";
+                                      } else if (target.src.includes('abs-cbn.com')) {
+                                        target.src = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg";
+                                      } else if (target.src.includes('manilatimes.net')) {
+                                        target.src = "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
+                                      } else {
+                                        // Final fallback
+                                        target.src = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
+                                      }
+                                    }}
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                                   
-                                  // Attempt to fix image URL if it's from a known source
-                                  if (target.src.includes('inquirer.net')) {
-                                    target.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
-                                  } else if (target.src.includes('philstar.com')) {
-                                    target.src = "https://media.philstar.com/photos/2022/04/pagasa-bulletin_2022-04-08_23-06-27.jpg";
-                                  } else if (target.src.includes('abs-cbn.com')) {
-                                    target.src = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg";
-                                  } else if (target.src.includes('manilatimes.net')) {
-                                    target.src = "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
-                                  } else {
-                                    // Final fallback
-                                    target.src = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
-                                  }
-                                }}
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                              
-                              <div className="absolute bottom-0 left-0 p-4 w-full">
-                                <div className="flex justify-between items-start">
+                                  <div className="absolute bottom-0 left-0 p-4 w-full">
+                                    <div className="flex justify-between items-start">
+                                      <Badge 
+                                        className="mb-2 text-white bg-red-500/80 hover:bg-red-600/80 transition-colors"
+                                      >
+                                        {formatDisasterType(item.disasterType)}
+                                      </Badge>
+                                      <Badge className="bg-black/50 flex items-center gap-1 text-white text-xs">
+                                        <Clock className="h-3 w-3" />
+                                        {formatDate(item.timestamp)}
+                                      </Badge>
+                                    </div>
+                                    <h3 className="text-xl md:text-2xl font-bold text-white mb-2 drop-shadow-md line-clamp-3">
+                                      {item.title}
+                                    </h3>
+                                  </div>
+                                </div>
+                                
+                                {/* Content Section */}
+                                <div className="w-full md:w-2/5 p-4 flex flex-col">
+                                  <div className="text-white/90 mb-4 overflow-y-auto max-h-[200px] text-sm scrollbar-hide" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+                                    <div className="line-clamp-[8]">{item.content}</div>
+                                  </div>
+                                  
+                                  <div className="mt-auto flex justify-between items-center pt-2 border-t border-white/20">
+                                    <div className="text-sm text-white">
+                                      <span className="font-medium">
+                                        Source: {item.source}
+                                      </span>
+                                    </div>
+                                    <Button 
+                                      className="bg-white/20 hover:bg-white/30 text-white"
+                                      size="sm"
+                                      asChild
+                                    >
+                                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                                        Read More <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious className="bg-white/30 hover:bg-white/50 border-none text-white left-2" />
+                      <CarouselNext className="bg-white/30 hover:bg-white/50 border-none text-white right-2" />
+                    </Carousel>
+                  ) : (
+                    <Alert className="bg-white/20 border-white/20 text-white">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>No disaster alerts</AlertTitle>
+                      <AlertDescription>
+                        There are currently no active disaster alerts. Stay tuned for updates.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* News Grid - with AKTUWAL NA LARAWAN FROM NEWS SOURCES */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mb-8"
+            >
+              <div className="animate-border rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-[length:400%_400%] p-[2px] transition-all">
+                <div className="rounded-xl bg-white p-6">
+                  <h2 className="text-xl font-semibold mb-6 flex items-center text-indigo-700">
+                    <AlertTriangle className="h-5 w-5 mr-2" />
+                    Disaster News Feed
+                  </h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {newsLoading ? (
+                      <div className="col-span-full flex justify-center py-12">
+                        <Loader className="h-8 w-8 animate-spin text-indigo-500" />
+                      </div>
+                    ) : disasterNews.length > 0 ? (
+                      <>
+                        {disasterNews.map((item: NewsItem, index: number) => (
+                          <motion.div
+                            key={item.id || index}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 }}
+                          >
+                            <Card className="h-full flex flex-col hover:shadow-md transition-shadow border-indigo-100 overflow-hidden group">
+                              {/* Card Image - MALAKING AKTUWAL NA LARAWAN */}
+                              <div className="w-full h-48 overflow-hidden relative">
+                                <img 
+                                  src={getNewsImage(item)} 
+                                  alt={item.title}
+                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                  onError={(e) => {
+                                    // Fallback if the primary image fails to load
+                                    const target = e.currentTarget;
+                                    
+                                    // Check source to use appropriate fallback
+                                    if (target.src.includes('inquirer.net')) {
+                                      target.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
+                                    } else if (target.src.includes('philstar.com')) {
+                                      target.src = "https://media.philstar.com/photos/2022/04/pagasa-bulletin_2022-04-08_23-06-27.jpg";
+                                    } else if (target.src.includes('abs-cbn.com')) {
+                                      target.src = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg";
+                                    } else if (target.src.includes('manilatimes.net')) {
+                                      target.src = "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
+                                    } else {
+                                      // Final fallback
+                                      target.src = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
+                                    }
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70"></div>
+                                <div className="absolute bottom-0 left-0 p-3 w-full">
                                   <Badge 
-                                    className="mb-2 text-white bg-red-500/80 hover:bg-red-600/80 transition-colors"
+                                    variant="secondary"
+                                    className={`${getDisasterTypeColor(item.disasterType)} mb-1`}
                                   >
                                     {formatDisasterType(item.disasterType)}
                                   </Badge>
-                                  <Badge className="bg-black/50 flex items-center gap-1 text-white text-xs">
+                                  <h3 className="text-white font-bold line-clamp-2 text-sm">
+                                    {item.title}
+                                  </h3>
+                                </div>
+                              </div>
+                              
+                              {/* Card Content */}
+                              <CardHeader className="pb-2 bg-gradient-to-r from-indigo-50 to-purple-50 flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="flex items-center gap-1 text-xs">
                                     <Clock className="h-3 w-3" />
                                     {formatDate(item.timestamp)}
                                   </Badge>
                                 </div>
-                                <h3 className="text-xl md:text-2xl font-bold text-white mb-2 drop-shadow-md line-clamp-3">
-                                  {item.title}
-                                </h3>
-                              </div>
-                            </div>
-                            
-                            {/* Content Section */}
-                            <div className="w-full md:w-2/5 p-4 flex flex-col">
-                              <div className="text-white/90 mb-4 overflow-y-auto max-h-[200px] text-sm">
-                                {item.content}
-                              </div>
+                                <CardDescription className="text-xs">From: {item.source}</CardDescription>
+                              </CardHeader>
                               
-                              <div className="mt-auto flex justify-between items-center pt-2 border-t border-white/20">
-                                <div className="text-sm text-white">
-                                  <span className="font-medium">
-                                    Source: {item.source}
-                                  </span>
-                                </div>
+                              <CardContent className="py-3 flex-grow">
+                                <p className="text-sm text-muted-foreground line-clamp-4">{item.content}</p>
+                              </CardContent>
+                              
+                              <CardFooter className="pt-2 flex justify-between items-center bg-indigo-50/30">
+                                <div className="text-xs font-medium text-indigo-800">{formatLocation(item.location)}</div>
                                 <Button 
-                                  className="bg-white/20 hover:bg-white/30 text-white"
-                                  size="sm"
+                                  size="sm" 
+                                  className="rounded-full bg-indigo-600 hover:bg-indigo-700 text-white px-4" 
                                   asChild
                                 >
                                   <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                                    Read More <ExternalLink className="h-3 w-3" />
+                                    Read <ArrowUpRight className="h-3 w-3" />
                                   </a>
                                 </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious className="bg-white/30 hover:bg-white/50 border-none text-white left-2" />
-                  <CarouselNext className="bg-white/30 hover:bg-white/50 border-none text-white right-2" />
-                </Carousel>
-              ) : (
-                <Alert className="bg-white/20 border-white/20 text-white">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>No disaster alerts</AlertTitle>
-                  <AlertDescription>
-                    There are currently no active disaster alerts. Stay tuned for updates.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* News Grid - with AKTUWAL NA LARAWAN FROM NEWS SOURCES */}
-        <div className="mb-8 animate-border rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-[length:400%_400%] p-[2px] transition-all">
-          <div className="rounded-xl bg-white p-6">
-            <h2 className="text-xl font-semibold mb-6 flex items-center text-indigo-700">
-              <AlertTriangle className="h-5 w-5 mr-2" />
-              Disaster News Feed
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {newsLoading ? (
-                <div className="col-span-full flex justify-center py-12">
-                  <Loader className="h-8 w-8 animate-spin text-indigo-500" />
+                              </CardFooter>
+                            </Card>
+                          </motion.div>
+                        ))}
+                      </>
+                    ) : (
+                      <div className="col-span-3">
+                        <Alert className="bg-indigo-50 border-indigo-200">
+                          <AlertTriangle className="h-4 w-4 text-indigo-500" />
+                          <AlertTitle>Walang updates</AlertTitle>
+                          <AlertDescription>
+                            Wala pang available na disaster-related news sa ngayon. Pakisubukang i-refresh sa ibang pagkakataon.
+                          </AlertDescription>
+                        </Alert>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ) : disasterNews.length > 0 ? (
-                <>
-                  {disasterNews.map((item: NewsItem, index: number) => (
-                    <motion.div
-                      key={item.id || index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                    >
-                      <Card className="h-full flex flex-col hover:shadow-md transition-shadow border-indigo-100 overflow-hidden group">
-                        {/* Card Image - MALAKING AKTUWAL NA LARAWAN */}
-                        <div className="w-full h-48 overflow-hidden relative">
-                          <img 
-                            src={getNewsImage(item)} 
-                            alt={item.title}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            onError={(e) => {
-                              // Fallback if the primary image fails to load
-                              const target = e.currentTarget;
-                              
-                              // Check source to use appropriate fallback
-                              if (target.src.includes('inquirer.net')) {
-                                target.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
-                              } else if (target.src.includes('philstar.com')) {
-                                target.src = "https://media.philstar.com/photos/2022/04/pagasa-bulletin_2022-04-08_23-06-27.jpg";
-                              } else if (target.src.includes('abs-cbn.com')) {
-                                target.src = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg";
-                              } else if (target.src.includes('manilatimes.net')) {
-                                target.src = "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
-                              } else {
-                                // Final fallback
-                                target.src = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
-                              }
-                            }}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70"></div>
-                          <div className="absolute bottom-0 left-0 p-3 w-full">
-                            <Badge 
-                              variant="secondary"
-                              className={`${getDisasterTypeColor(item.disasterType)} mb-1`}
-                            >
-                              {formatDisasterType(item.disasterType)}
-                            </Badge>
-                            <h3 className="text-white font-bold line-clamp-2 text-sm">
-                              {item.title}
-                            </h3>
-                          </div>
-                        </div>
-                        
-                        {/* Card Content */}
-                        <CardHeader className="pb-2 bg-gradient-to-r from-indigo-50 to-purple-50 flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                              <Clock className="h-3 w-3" />
-                              {formatDate(item.timestamp)}
-                            </Badge>
-                          </div>
-                          <CardDescription className="text-xs">From: {item.source}</CardDescription>
-                        </CardHeader>
-                        
-                        <CardContent className="py-3 flex-grow">
-                          <p className="text-sm text-muted-foreground line-clamp-4">{item.content}</p>
-                        </CardContent>
-                        
-                        <CardFooter className="pt-2 flex justify-between items-center bg-indigo-50/30">
-                          <div className="text-xs font-medium text-indigo-800">{formatLocation(item.location)}</div>
-                          <Button 
-                            size="sm" 
-                            className="rounded-full bg-indigo-600 hover:bg-indigo-700 text-white px-4" 
-                            asChild
-                          >
-                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                              Read <ArrowUpRight className="h-3 w-3" />
-                            </a>
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </>
-              ) : (
-                <div className="col-span-3">
-                  <Alert className="bg-indigo-50 border-indigo-200">
-                    <AlertTriangle className="h-4 w-4 text-indigo-500" />
-                    <AlertTitle>Walang updates</AlertTitle>
-                    <AlertDescription>
-                      Wala pang available na disaster-related news sa ngayon. Pakisubukang i-refresh sa ibang pagkakataon.
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </Container>
+              </div>
+            </motion.div>
+          </motion.div>
+        </Container>
+      </div>
 
       {/* CSS Animations */}
       <style>
@@ -564,6 +638,15 @@ export default function NewsMonitoringPage() {
         @keyframes border {
           0%, 100% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
         `}
       </style>
