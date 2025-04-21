@@ -4,7 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { checkPortPeriodically, checkPort } from "./debug-port";
 // Import emergency database fixes - both old and new strategy
-import { applyEmergencyFixes } from "./emergency-db-fix";
+// Emergency fixes module removed to clean up the codebase
 // Import the simple fix (now ESM compatible)
 import { simpleDbFix } from "./db-simple-fix";
 // Import Python service for shutdown handling
@@ -127,14 +127,9 @@ app.use((req, res, next) => {
         if (simpleFixSuccessful) {
           console.log("✅ Simple database fix successful!");
         } else {
-          // If simple fix fails, try the more complex one
-          console.log("Simple fix failed, trying complex emergency fix...");
-          const fixesSuccessful = await applyEmergencyFixes();
-          if (fixesSuccessful) {
-            console.log("✅ Complex database fixes applied successfully!");
-          } else {
-            console.error("⚠️ All database fixes failed. App may not function correctly.");
-          }
+          // We removed the complex emergency fix method to clean up codebase
+          console.log("Simple fix failed but complex fix is removed");
+          console.warn("⚠️ Database may need attention if problems persist");
         }
       } catch (error) {
         console.error("Fatal error in database fix script:", error);
