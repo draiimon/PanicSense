@@ -5,8 +5,6 @@
  */
 
 export async function simpleDbFix() {
-  console.log('Running simple database fix...');
-  // No need to actually run the fix since we're using Neon DB
-  console.log('All tables created successfully');
+  // Silent operation for production
   return true;
 }
