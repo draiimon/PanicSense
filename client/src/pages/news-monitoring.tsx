@@ -622,12 +622,8 @@ export default function NewsMonitoringPage() {
                                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                                   
                                   <div className="absolute bottom-0 left-0 p-4 w-full">
-                                    <div className="flex justify-between items-start">
-                                      <Badge 
-                                        className="mb-2 text-white bg-red-500/80 hover:bg-red-600/80 transition-colors"
-                                      >
-                                        {formatDisasterType(item.disasterType)}
-                                      </Badge>
+                                    <div className="flex justify-end items-start">
+                                      {/* Disaster type removed to improve reliability */}
                                       <Badge className="bg-black/50 flex items-center gap-1 text-white text-xs">
                                         <Clock className="h-3 w-3" />
                                         {formatDate(item.timestamp)}
@@ -693,8 +689,8 @@ export default function NewsMonitoringPage() {
               <div className="animate-border rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-[length:400%_400%] p-[2px] transition-all">
                 <div className="rounded-xl bg-white p-6">
                   <h2 className="text-xl font-semibold mb-6 flex items-center text-indigo-700">
-                    <Map className="h-5 w-5 mr-2" />
-                    National Disaster Updates
+                    <Zap className="h-5 w-5 mr-2" />
+                    Real-Time Emergency Intelligence
                   </h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -818,12 +814,7 @@ export default function NewsMonitoringPage() {
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70"></div>
                                 <div className="absolute bottom-0 left-0 p-3 w-full">
-                                  <Badge 
-                                    variant="secondary"
-                                    className={`${getDisasterTypeColor(item.disasterType)} mb-1`}
-                                  >
-                                    {formatDisasterType(item.disasterType)}
-                                  </Badge>
+                                  {/* Disaster type tags removed as requested */}
                                   <h3 className="text-white font-bold line-clamp-2 text-sm">
                                     {item.title}
                                   </h3>
