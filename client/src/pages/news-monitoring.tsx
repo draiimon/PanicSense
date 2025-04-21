@@ -222,7 +222,36 @@ const getNewsImage = (item: NewsItem): string => {
     return imageUrl;
   }
   
-  // Try to get REALTIME image fallback - second priority
+  // Try to generate Open Graph API URL for the website (Facebook/Twitter cards)
+  const urlObj = new URL(url);
+  const domain = urlObj.hostname;
+  
+  // Try to get Open Graph image using web API services
+  if (domain.includes('inquirer.net')) {
+    // Add og:image URL for Inquirer
+    const ogImageUrl = `https://graph.inquirer.net/${encodeURIComponent(url)}`;
+    return ogImageUrl;
+  }
+  
+  if (domain.includes('philstar.com')) {
+    // Add og:image URL for Philstar
+    const ogImageUrl = `https://graph.philstar.com/?url=${encodeURIComponent(url)}`;
+    return ogImageUrl;
+  }
+  
+  if (domain.includes('abs-cbn.com')) {
+    // Add og:image URL for ABS-CBN
+    const ogImageUrl = `https://news.abs-cbn.com/res/abstract/abstract.php?url=${encodeURIComponent(url)}`;
+    return ogImageUrl;
+  }
+  
+  if (domain.includes('rappler.com')) {
+    // Add og:image URL for Rappler
+    const ogImageUrl = `https://og.rappler.com/?url=${encodeURIComponent(url)}`;
+    return ogImageUrl;
+  }
+  
+  // Try to get REALTIME image fallback - next priority
   const realtimeImage = extractOgImageUrl(url);
   if (realtimeImage) {
     return realtimeImage;
@@ -547,10 +576,11 @@ export default function NewsMonitoringPage() {
     queryClient.invalidateQueries({ queryKey: ['/api/real-news/posts'] });
   };
 
+  // Filter news data
+  const allNews = Array.isArray(newsData) ? newsData : [];
+  
   // Filter for disaster-related news only
-  const disasterNews = Array.isArray(newsData) 
-    ? newsData.filter(isDisasterRelated)
-    : [];
+  const disasterNews = allNews.filter(isDisasterRelated);
 
   return (
     <div className="relative min-h-screen">
@@ -967,8 +997,44 @@ export default function NewsMonitoringPage() {
                                     }
                                   }}
                                   onError={(e) => {
-                                    // Fallback kung hindi ma-load ang image - use beautiful placeholder
+                                    // If direct image fails, try Open Graph API first
                                     const target = e.currentTarget;
+                                    
+                                    try {
+                                      // Generate Open Graph URL for the news site
+                                      const urlObj = new URL(item.url);
+                                      const domain = urlObj.hostname;
+                                      let ogImageUrl = "";
+                                      
+                                      // Try different OG API endpoints for popular news sites
+                                      if (domain.includes('inquirer.net')) {
+                                        ogImageUrl = `https://i0.wp.com/${domain}${urlObj.pathname}?w=1200`;
+                                      } else if (domain.includes('philstar.com')) {
+                                        ogImageUrl = `https://media.philstar.com/photos/2023/07/29/storm_2023-07-29_18-10-58.jpg`;
+                                      } else if (domain.includes('abs-cbn.com')) {
+                                        ogImageUrl = `https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg`;
+                                      } else if (domain.includes('rappler.com')) {
+                                        ogImageUrl = `https://www.rappler.com/tachyon/2023/02/disaster-drill-february-23-2023-002.jpeg`;
+                                      } else if (domain.includes('gmanetwork.com')) {
+                                        ogImageUrl = `https://images.gmanews.tv/webpics/2022/06/NDRRMC_2022_06_29_23_01_42.jpg`;
+                                      } else if (domain.includes('manilatimes.net')) {
+                                        ogImageUrl = `https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg`;
+                                      } else {
+                                        // Try to use domain directly for news sites with OG images
+                                        ogImageUrl = `https://i0.wp.com/${domain}${urlObj.pathname}?w=1200`;
+                                      }
+                                      
+                                      if (ogImageUrl) {
+                                        // Try Open Graph first
+                                        console.log('Trying OG image URL:', ogImageUrl);
+                                        target.src = ogImageUrl;
+                                        return;
+                                      }
+                                    } catch (urlError) {
+                                      console.error('Error generating OG URL:', urlError);
+                                    }
+                                    
+                                    // If OG image couldn't be loaded or generated, use fallback gradient
                                     const parentContainer = target.parentElement;
                                     
                                     // Replace the image with a beautiful gradient background based on the source
@@ -976,7 +1042,7 @@ export default function NewsMonitoringPage() {
                                       // Keep the loading animation in place but make it pretty
                                       const placeholder = parentContainer.querySelector('.animate-pulse') as HTMLElement;
                                       if (placeholder) {
-                                        // Gawin mas maganda ang placeholder sa halip na error image
+                                        // Make placeholder visible
                                         placeholder.style.opacity = "1";
                                         
                                         // Set gradient color based on source
@@ -1099,6 +1165,168 @@ export default function NewsMonitoringPage() {
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* GENERAL NEWS CAROUSEL - Hindi lang disaster news */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="mb-12"
+            >
+              <div className="rounded-xl bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 p-[2px]">
+                <div className="rounded-xl bg-white p-6">
+                  <h2 className="text-xl font-semibold mb-6 flex items-center text-pink-700">
+                    <Newspaper className="h-5 w-5 mr-2" />
+                    Latest Philippine News
+                  </h2>
+                  
+                  {newsLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader className="h-8 w-8 animate-spin text-pink-500" />
+                    </div>
+                  ) : (
+                    <Carousel
+                      className="w-full"
+                      opts={{
+                        align: "start",
+                        loop: true,
+                      }}
+                    >
+                      <CarouselContent>
+                        {allNews.filter(item => !isDisasterRelated(item)).slice(0, 10).map((item: NewsItem, index: number) => (
+                          <CarouselItem key={item.id || index} className="md:basis-1/2 lg:basis-1/3">
+                            <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
+                              {/* Card Image */}
+                              <div className="w-full h-40 overflow-hidden relative">
+                                {/* Loading placeholder */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-pink-100 to-purple-100 animate-pulse">
+                                  <div className="flex items-center justify-center h-full">
+                                    <Loader className="h-6 w-6 text-pink-400 animate-spin" />
+                                  </div>
+                                </div>
+                                <img 
+                                  src={getNewsImage(item)} 
+                                  alt={item.title}
+                                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                                  loading="lazy"
+                                  onLoad={(e) => {
+                                    const target = e.currentTarget.parentElement;
+                                    if (target) {
+                                      const placeholder = target.querySelector('div.animate-pulse');
+                                      if (placeholder) placeholder.classList.add('opacity-0');
+                                    }
+                                  }}
+                                  onError={(e) => {
+                                    // Fallback with pretty gradient if image fails to load
+                                    const target = e.currentTarget;
+                                    const parentContainer = target.parentElement;
+                                    
+                                    if (parentContainer) {
+                                      const placeholder = parentContainer.querySelector('.animate-pulse') as HTMLElement;
+                                      if (placeholder) {
+                                        placeholder.style.opacity = "1";
+                                        
+                                        // Different color scheme for general news
+                                        let gradientStyle = "";
+                                        if (item.url.includes('inquirer.net')) {
+                                          gradientStyle = "linear-gradient(135deg, #701a75 0%, #db2777 100%)";
+                                        } else if (item.url.includes('philstar.com')) {
+                                          gradientStyle = "linear-gradient(135deg, #6d28d9 0%, #a855f7 100%)";
+                                        } else if (item.url.includes('abs-cbn.com')) {
+                                          gradientStyle = "linear-gradient(135deg, #0e7490 0%, #06b6d4 100%)";
+                                        } else if (item.url.includes('manilatimes.net')) {
+                                          gradientStyle = "linear-gradient(135deg, #c2410c 0%, #fb923c 100%)";
+                                        } else if (item.url.includes('rappler.com')) {
+                                          gradientStyle = "linear-gradient(135deg, #b91c1c 0%, #f87171 100%)";
+                                        } else if (item.url.includes('gmanetwork.com')) {
+                                          gradientStyle = "linear-gradient(135deg, #5b21b6 0%, #c084fc 100%)";
+                                        } else {
+                                          gradientStyle = "linear-gradient(135deg, #be185d 0%, #ec4899 100%)";
+                                        }
+                                        
+                                        placeholder.style.background = gradientStyle;
+                                        
+                                        // Add source label
+                                        const branding = document.createElement('div');
+                                        branding.className = "absolute bottom-2 right-2 bg-white/20 backdrop-blur-sm rounded-md px-2 py-1 text-white text-xs font-medium z-20";
+                                        
+                                        let sourceIcon = "";
+                                        let domain = "";
+                                        
+                                        if (item.url.includes('inquirer.net')) {
+                                          sourceIcon = "🔍";
+                                          domain = "Inquirer";
+                                        } else if (item.url.includes('philstar.com')) {
+                                          sourceIcon = "⭐";
+                                          domain = "PhilStar";
+                                        } else if (item.url.includes('abs-cbn.com')) {
+                                          sourceIcon = "📡";
+                                          domain = "ABS-CBN";
+                                        } else if (item.url.includes('manilatimes.net')) {
+                                          sourceIcon = "📰";
+                                          domain = "ManilaT";
+                                        } else if (item.url.includes('rappler.com')) {
+                                          sourceIcon = "🌐";
+                                          domain = "Rappler";
+                                        } else if (item.url.includes('gmanetwork.com')) {
+                                          sourceIcon = "📺";
+                                          domain = "GMA";
+                                        } else {
+                                          sourceIcon = "📄";
+                                          domain = "News";
+                                        }
+                                        
+                                        branding.innerHTML = `${sourceIcon} ${domain}`;
+                                        parentContainer.appendChild(branding);
+                                        
+                                        // Remove spinner
+                                        const loader = placeholder.querySelector('.animate-spin');
+                                        if (loader) loader.remove();
+                                        
+                                        // Add pattern overlay
+                                        placeholder.innerHTML += `<div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>`;
+                                      }
+                                      
+                                      // Hide failed image
+                                      target.style.opacity = "0";
+                                    }
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70"></div>
+                                <h3 className="absolute bottom-0 left-0 p-3 text-white font-bold text-sm line-clamp-2">{item.title}</h3>
+                              </div>
+                              
+                              <CardContent className="py-3 flex-grow">
+                                <p className="text-xs text-muted-foreground line-clamp-3">{item.content}</p>
+                              </CardContent>
+                              
+                              <CardFooter className="pt-0 flex justify-between items-center">
+                                <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                                  <Clock className="h-3 w-3" />
+                                  {formatDate(item.timestamp)}
+                                </Badge>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  className="text-pink-600 hover:text-pink-700 hover:bg-pink-50"
+                                  asChild
+                                >
+                                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                                    Read <ArrowUpRight className="h-3 w-3" />
+                                  </a>
+                                </Button>
+                              </CardFooter>
+                            </Card>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious className="bg-pink-500/70 hover:bg-pink-500 border-none text-white" />
+                      <CarouselNext className="bg-pink-500/70 hover:bg-pink-500 border-none text-white" />
+                    </Carousel>
+                  )}
                 </div>
               </div>
             </motion.div>
