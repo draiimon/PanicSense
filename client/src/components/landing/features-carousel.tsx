@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
-import { BarChart3, AlertTriangle, MapPin, BellRing, Clock, Database, Info, ArrowRight } from 'lucide-react';
+import { BarChart3, AlertTriangle, MapPin, BellRing, Clock, Database, Info, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 const FeaturesCarousel = () => {
   const features = [
@@ -57,49 +58,31 @@ const FeaturesCarousel = () => {
     }
   ];
 
-  // Combined feature array for seamless looping
-  const loopedFeatures = [...features, ...features, ...features];
-  
-  const [isPaused, setIsPaused] = useState(false);
-  const autoplayInterval = 2000; // Auto-scroll every 2 seconds
-
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
     loop: true,
     align: 'start',
-    dragFree: true,
-    containScroll: false
+    dragFree: true
   });
+  
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
   
   const scrollNext = useCallback(() => {
     if (emblaApi) emblaApi.scrollNext();
   }, [emblaApi]);
 
-  // Automatic scrolling with useEffect
-  useEffect(() => {
-    if (!emblaApi || isPaused) return;
-    
-    const intervalId = setInterval(() => {
-      scrollNext();
-    }, autoplayInterval);
-    
-    return () => clearInterval(intervalId);
-  }, [emblaApi, isPaused, scrollNext, autoplayInterval]);
-
   return (
-    <div 
-      className="relative mb-10"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
+    <div className="relative mb-10">
       <div className="overflow-hidden rounded-xl" ref={emblaRef}>
-        <div className="flex gap-6 py-4 cursor-grab active:cursor-grabbing ticker-scroll">
-          {loopedFeatures.map((feature, index) => (
-            <div key={`feature-${index}`} className="flex-[0_0_320px] min-w-0 md:flex-[0_0_400px]">
+        <div className="flex gap-6 py-4 cursor-grab active:cursor-grabbing">
+          {features.map((feature, index) => (
+            <div key={index} className="flex-[0_0_320px] min-w-0 md:flex-[0_0_400px]">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.05 * (index % features.length), duration: 0.5 }}
+                transition={{ delay: 0.1 * index, duration: 0.5 }}
                 whileHover={{ y: -5, transition: { duration: 0.2 } }}
                 className="group h-full"
               >
@@ -128,7 +111,24 @@ const FeaturesCarousel = () => {
         </div>
       </div>
       
-      {/* Removed left and right indicators as requested */}
+      <div className="flex justify-center mt-8 gap-4">
+        <Button
+          onClick={scrollPrev}
+          variant="outline"
+          size="icon"
+          className="rounded-full bg-white/90 backdrop-blur shadow hover:bg-white"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </Button>
+        <Button
+          onClick={scrollNext}
+          variant="outline" 
+          size="icon"
+          className="rounded-full bg-white/90 backdrop-blur shadow hover:bg-white"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </Button>
+      </div>
       
       <div className="absolute -z-10 -bottom-10 left-1/2 -translate-x-1/2 w-3/4 h-20 bg-gradient-to-r from-blue-300/20 via-purple-300/20 to-pink-300/20 blur-3xl"></div>
     </div>
