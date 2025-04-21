@@ -753,35 +753,36 @@ class DisasterSentimentBackend:
         
         return "UNKNOWN"
 
-    def detect_social_media_source(self, text):
+    def detect_news_source(self, text):
         """
-        Detect social media platform from text content
-        Returns the identified platform or "Unknown" if no match
+        Detect news source from text content
+        Returns the identified news source or "Unknown" if no match
         """
         text_lower = text.lower()
 
-        # Social media identifiers
-        if "rt @" in text_lower or "retweeted" in text_lower or "@" in text_lower and len(
-                text) < 280:
-            return "Twitter"
-        elif "#fb" in text_lower or "facebook.com" in text_lower:
-            return "Facebook"
-        elif "instagram" in text_lower or "#ig" in text_lower:
-            return "Instagram"
-        elif "tiktok" in text_lower or "#tt" in text_lower:
-            return "TikTok"
-        elif "reddit" in text_lower or "r/" in text_lower:
-            return "Reddit"
-        elif "youtube" in text_lower or "youtu.be" in text_lower:
-            return "YouTube"
+        # News media source identifiers
+        if "manila times" in text_lower or "manilatimes.net" in text_lower:
+            return "Manila Times"
+        elif "rappler" in text_lower or "rappler.com" in text_lower:
+            return "Rappler"
+        elif "inquirer" in text_lower or "inquirer.net" in text_lower:
+            return "Inquirer"
+        elif "abs-cbn" in text_lower or "abs-cbn.com" in text_lower:
+            return "ABS-CBN News"
+        elif "gma news" in text_lower or "gmanetwork.com" in text_lower:
+            return "GMA News"
+        elif "philstar" in text_lower or "philstar.com" in text_lower:
+            return "Philippine Star"
+        elif "businessworld" in text_lower or "bworldonline.com" in text_lower:
+            return "BusinessWorld"
 
         # Format clues
-        if len(text) <= 280 and "@" in text_lower:
-            return "Twitter"
         if text.startswith("LOOK: ") or text.startswith("JUST IN: "):
             return "News Media"
-        if "Posted by u/" in text:
-            return "Reddit"
+        if "BREAKING" in text or "BREAKING NEWS" in text:
+            return "News Media"
+        if "SPECIAL REPORT" in text:
+            return "News Media"
 
         return "Unknown Social Media"
 
@@ -2091,10 +2092,10 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                             logging.info(f"Identified location column by city names: {col}")
                             location_col = col
                         
-                        # Check for social media sources
-                        social_media = ['Facebook', 'Twitter', 'Instagram', 'TikTok', 'YouTube']
-                        if any(platform in v for v in values for platform in social_media):
-                            logging.info(f"Identified source column by social media platform names: {col}")
+                        # Check for news sources
+                        news_sources = ['Manila Times', 'Rappler', 'Inquirer', 'ABS-CBN', 'GMA News', 'Philippine Star', 'BusinessWorld']
+                        if any(source in v for v in values for source in news_sources):
+                            logging.info(f"Identified source column by news source names: {col}")
                             source_col = col
                     
                     # If we still don't have text column identified correctly, use the first column with actual text content
