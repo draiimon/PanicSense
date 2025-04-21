@@ -4,6 +4,7 @@
  */
 
 import { Express, Request, Response } from 'express';
+import * as WebSocket from 'ws';
 import { 
   startRealNewsFeed, 
   stopRealNewsFeed, 
@@ -20,7 +21,7 @@ import {
 
 import { log } from '../vite';
 
-export async function registerRealNewsRoutes(app: Express): Promise<void> {
+export async function registerRealNewsRoutes(app: Express, wss?: WebSocket.Server): Promise<void> {
   try {
     // Start real-time news feed and social media monitor on server start
     startRealNewsFeed();
