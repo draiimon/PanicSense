@@ -71,7 +71,7 @@ const FeaturesCarousel = () => {
   });
   
   const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext({ behavior: 'smooth' });
+    if (emblaApi) emblaApi.scrollNext();
   }, [emblaApi]);
 
   // Automatic scrolling with useEffect
