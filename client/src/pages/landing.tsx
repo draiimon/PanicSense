@@ -1414,11 +1414,18 @@ export default function LandingPage() {
                 delay: 0.2
               },
               {
+                title: "News Monitoring",
+                description: "Real-time news articles with enhanced image loading and improved UI consistency.",
+                icon: <BellRing />,
+                color: "cyan",
+                delay: 0.3
+              },
+              {
                 title: "Real-time Monitoring",
                 description: "Live monitoring of disaster reports from various sources for immediate response.",
                 icon: <Clock />,
                 color: "purple",
-                delay: 0.3
+                delay: 0.4
               },
               {
                 title: "Secure Data Storage",
