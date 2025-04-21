@@ -104,6 +104,114 @@ function setupStaticFiles() {
   }
 }
 
+// Initialize database tables
+async function setupDatabase() {
+  try {
+    console.log('🔄 Setting up database tables...');
+    
+    // Import the database setup module
+    const dbSetup = await import('./server/db-setup.js');
+    console.log('✅ Database setup module loaded');
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to setup database tables:', error.message);
+    
+    // If failed to import the module, try to create tables directly
+    try {
+      const databaseUrl = process.env.DATABASE_URL;
+      if (!databaseUrl) {
+        console.error("❌ No DATABASE_URL found in environment variables");
+        return false;
+      }
+      
+      console.log("Connecting to database directly...");
+      const pool = new Pool({
+        connectionString: databaseUrl,
+        ssl: { rejectUnauthorized: false }
+      });
+
+      const client = await pool.connect();
+      console.log(`✅ Successfully connected to PostgreSQL database`);
+      
+      // Create basic tables
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS disaster_events (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          location VARCHAR(255),
+          severity VARCHAR(50),
+          event_type VARCHAR(50),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS sentiment_posts (
+          id SERIAL PRIMARY KEY,
+          text TEXT NOT NULL,
+          timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          source VARCHAR(100),
+          language VARCHAR(50),
+          sentiment VARCHAR(50),
+          confidence FLOAT,
+          disaster_type VARCHAR(100),
+          location VARCHAR(255)
+        )
+      `);
+      
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS analyzed_files (
+          id SERIAL PRIMARY KEY,
+          original_name VARCHAR(255) NOT NULL,
+          stored_name VARCHAR(255) NOT NULL,
+          row_count INTEGER,
+          accuracy FLOAT,
+          precision FLOAT,
+          recall FLOAT,
+          f1_score FLOAT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Add sample data
+      console.log("Adding sample disaster data...");
+      
+      // Insert sample disaster event
+      await client.query(`
+        INSERT INTO disaster_events (name, description, location, severity, event_type)
+        VALUES ('Typhoon in Coastal Areas', 'Based on 3 reports from the community. Please stay safe.', 'Metro Manila, Philippines', 'High', 'Typhoon')
+        ON CONFLICT DO NOTHING
+      `);
+      
+      // Insert sample sentiment post
+      await client.query(`
+        INSERT INTO sentiment_posts (text, source, language, sentiment, confidence, disaster_type, location)
+        VALUES ('My prayers to our brothers and sisters in Visayas region..', 'Twitter', 'en', 'neutral', 0.85, 'Typhoon', 'Visayas, Philippines')
+        ON CONFLICT DO NOTHING
+      `);
+      
+      // Insert sample analyzed file
+      await client.query(`
+        INSERT INTO analyzed_files (original_name, stored_name, row_count, accuracy, precision, recall, f1_score)
+        VALUES ('MAGULONG DATA! (1).csv', 'batch-EJBpcspVXK_TZ717aZDM7-MAGULONG DATA! (1).csv', 100, 0.89, 0.91, 0.87, 0.89)
+        ON CONFLICT DO NOTHING
+      `);
+      
+      console.log("✅ Sample data added successfully");
+      client.release();
+      await pool.end();
+      
+      return true;
+    } catch (directError) {
+      console.error('❌ Failed to setup database directly:', directError.message);
+      return false;
+    }
+  }
+}
+
 // Main setup function
 async function runSetup() {
   console.log('======================================');
@@ -113,7 +221,12 @@ async function runSetup() {
   // Run each setup step
   setupDirectories();
   setupStaticFiles();
-  await testDbConnection();
+  const dbConnected = await testDbConnection();
+  
+  if (dbConnected) {
+    console.log('✅ Database connection successful, setting up tables...');
+    await setupDatabase();
+  }
   
   console.log('======================================');
   console.log('✅ Render.com setup process complete');
