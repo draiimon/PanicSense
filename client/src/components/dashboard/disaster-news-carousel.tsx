@@ -141,10 +141,14 @@ export function DisasterNewsCarousel() {
       
       {/* Floating elements for visual interest */}
       <div className="absolute inset-0">
-        <div className="absolute h-32 w-32 rounded-full bg-teal-500/15 filter blur-2xl animate-float-1" 
-             style={{ top: "20%", left: "10%" }} />
-        <div className="absolute h-40 w-40 rounded-full bg-purple-500/15 filter blur-2xl animate-float-2" 
-             style={{ bottom: "10%", right: "15%" }} />
+        <div 
+          className="absolute h-32 w-32 rounded-full bg-teal-500/15 filter blur-2xl animate-float-1" 
+          style={{ top: "20%", left: "10%" }}
+        ></div>
+        <div 
+          className="absolute h-40 w-40 rounded-full bg-purple-500/15 filter blur-2xl animate-float-2" 
+          style={{ bottom: "10%", right: "15%" }}
+        ></div>
       </div>
       
       {/* Content container */}
