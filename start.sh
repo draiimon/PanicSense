@@ -19,9 +19,12 @@ elif [ -d "dist/public" ]; then
 fi
 
 # Special handling for Render: If DATABASE_URL is defined but doesn't have SSL params, add them
-if [[ -n "$DATABASE_URL" && "$DATABASE_URL" != *"?sslmode="* ]]; then
-  export DATABASE_URL="${DATABASE_URL}?sslmode=require"
-  echo "🔒 Added SSL mode to DATABASE_URL"
+if [ -n "$DATABASE_URL" ]; then
+  # Check if sslmode is already in the URL
+  if [[ "$DATABASE_URL" != *"?sslmode="* ]]; then
+    export DATABASE_URL="${DATABASE_URL}?sslmode=require"
+    echo "🔒 Added SSL mode to DATABASE_URL"
+  fi
 fi
 
 echo "⚙️ Environment: NODE_ENV=$NODE_ENV"

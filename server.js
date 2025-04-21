@@ -3,13 +3,19 @@
  * Simple Node.js server for the application
  */
 
-const express = require('express');
-const { Pool } = require('pg');
-const http = require('http');
-const path = require('path');
-const fs = require('fs');
-const { WebSocketServer } = require('ws');
-const multer = require('multer');
+import express from 'express';
+import { Pool } from 'pg';
+import http from 'http';
+import path from 'path';
+import fs from 'fs';
+import { WebSocketServer } from 'ws';
+import multer from 'multer';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// ES Module dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Create Express app and HTTP server
 const app = express();
@@ -43,12 +49,27 @@ wss.on('connection', (ws) => {
 // managed by Drizzle ORM
 let pool;
 try {
-  const { pool: dbPool } = require('./server/db');
-  pool = dbPool;
-  console.log('Using shared database connection from server/db.ts');
+  // For ES Module, use dynamic import
+  const dbModule = await import('./server/db.js');
+  pool = dbModule.pool;
+  console.log('Using shared database connection from server/db.js');
 } catch (error) {
-  console.warn('Failed to import database connection from server/db.ts:', error.message);
+  console.warn('Failed to import database connection from server/db.js:', error.message);
   console.warn('Some database features might be disabled');
+  
+  // Fallback to direct connection if needed
+  try {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (databaseUrl) {
+      pool = new Pool({
+        connectionString: databaseUrl,
+        ssl: { rejectUnauthorized: false }
+      });
+      console.log('Created fallback database connection from DATABASE_URL');
+    }
+  } catch (fallbackError) {
+    console.error('Failed to create fallback database connection:', fallbackError.message);
+  }
 }
 
 // Create simple broadcast function for WebSocket

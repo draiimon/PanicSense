@@ -1,130 +1,117 @@
-# PanicSense Deployment Guide for Render.com
+# PanicSense Render Deployment Guide
 
-This guide provides step-by-step instructions for deploying PanicSense to Render.com using the free tier.
+This guide provides instructions for deploying PanicSense to Render.com.
 
-## Prerequisites
+## Pre-Deployment Checklist
 
-1. A Render.com account
-2. A PostgreSQL database (either on Render or elsewhere like Neon.tech)
-3. Git repository for your PanicSense project
+Before deploying, verify:
+
+1. **Database Connection**: Neon.tech or compatible PostgreSQL database is ready
+2. **Environment Variables**: Your `.env` file has all required variables
+3. **Branch Ready**: Your code is on the `render-deployment-fix` branch
 
 ## Deployment Steps
 
-### 1. Set Up Your Database
+### 1. Creating a Web Service
 
-**If using Render's PostgreSQL:**
+1. Log into your [Render Dashboard](https://dashboard.render.com/)
+2. Click **New** and select **Web Service**
+3. Connect your GitHub repository (or use **Deploy from Existing Repository** option)
+4. Configure the following settings:
+   - **Name**: `PanicSense` or your preferred name
+   - **Root Directory**: _Leave empty_
+   - **Environment**: `Node`
+   - **Region**: Select the region closest to the Philippines
+   - **Branch**: `render-deployment-fix`
+   - **Build Command**: `npm ci && npm run build`
+   - **Start Command**: `./start.sh`
+   - **Plan**: Free tier (or paid tier for better performance)
 
-1. Log in to your Render dashboard
-2. Navigate to "Databases" on the left sidebar
-3. Click "New Database"
-4. Select PostgreSQL
-5. Fill in:
-   - Name: `panicsense-db`
-   - Database: `panicsense`
-   - User: Leave as default
-   - Region: Choose a region close to your users (e.g., Singapore for PH users)
-   - Plan: Free tier
-6. Click "Create Database"
-7. Once created, note your Internal Database URL
+### 2. Environment Variables
 
-**If using Neon.tech or other PostgreSQL provider:**
+Add these environment variables in the Render Dashboard:
 
-1. Create a PostgreSQL database with your provider
-2. Note your database connection string
+| Key | Value | Description |
+|-----|-------|-------------|
+| `DATABASE_URL` | `postgres://...` | Your Neon or PostgreSQL database URL |
+| `NODE_ENV` | `production` | Run in production mode |
+| `PORT` | `5000` or `10000` | Port for the application (typically 10000 for Render) |
+| `TZ` | `Asia/Manila` | Philippine timezone |
+| `RUNTIME_ENV` | `render` | Tells app it's running on Render |
+| `DB_SSL_REQUIRED` | `true` | Ensures SSL for database connection |
+| `HOST` | `0.0.0.0` | Listen on all interfaces |
 
-### 2. Deploy to Render
+### 3. Database Setup
 
-#### Option 1: Direct from GitHub
+If you're using a Neon.tech or PostgreSQL database:
 
-1. Log in to your Render dashboard
-2. Navigate to "Web Services" on the left sidebar
-3. Click "New Web Service"
-4. Connect your GitHub repository
-5. Configure your web service:
-   - Name: `panicsense-ph`
-   - Environment: Docker
-   - Region: Singapore (or closest to your users)
-   - Branch: `main` (or your default branch)
-   - Plan: Free
-6. Under "Advanced" settings, add environment variables:
-   - `DATABASE_URL`: Your database connection string
-   - (All other variables are already defined in render.yaml)
-7. Click "Create Web Service"
-
-#### Option 2: Using render.yaml (Blueprint)
-
-1. Log in to your Render dashboard
-2. Navigate to "Blueprints" on the left sidebar
-3. Click "New Blueprint Instance"
-4. Connect your GitHub repository
-5. Render will automatically detect the render.yaml file
-6. Add your required environment secrets:
-   - `DATABASE_URL`: Your database connection string
-7. Click "Apply"
-
-### 3. Setup SSL and Custom Domain (Optional)
-
-If you have a custom domain for your PanicSense application:
-
-1. From your web service page, click on "Settings"
-2. Scroll to "Custom Domains"
-3. Click "Add Custom Domain"
-4. Enter your domain name (e.g., panicsense.ph)
-5. Follow the DNS configuration instructions
-6. Render will automatically provision a free SSL certificate
-
-### 4. Verify Deployment
-
-1. Once deployment is complete, click on your service URL
-2. Verify that the application is working correctly
-3. Check the logs for any errors or warnings
+1. Make sure your database connection string is added to the environment variables
+2. Tables will be created automatically on first run through the render-setup.js script
+3. If tables don't create automatically, you may need to manually push the schema from your local environment first
 
 ## Troubleshooting
 
-### Database Connection Issues
+### Common Issues
 
-If your application cannot connect to the database:
+#### Build Fails due to Node Version
 
-1. Verify your DATABASE_URL is correct
-2. Make sure SSL is enabled (should be handled by start.sh)
-3. Check that your database is accessible from Render
+**Issue**: Build fails with node version errors
+**Solution**: Add `.node-version` file with content `20.x` to the root of your project
 
-### Build Failures
+#### Database Connection Fails
 
-If your Docker build fails:
+**Issue**: Database connection errors in logs
+**Solutions**:
+- Verify your DATABASE_URL is correct and includes SSL parameters
+- Check if your database allows connections from Render's IP addresses
+- Test connection manually using `psql` from your local machine
 
-1. Check Render logs for specific error messages
-2. Verify that the Dockerfile is correctly set up
-3. Make sure your repository doesn't exceed size limits
+#### ES Module / CommonJS Errors
 
-### Application Errors
+**Issue**: Error messages about `require` not being defined in ES modules
+**Solutions**:
+- Ensure server.js is using import statements instead of require
+- Check that package.json has `"type": "module"`
+- For mixed module types, use .cjs extension for CommonJS files
+- Update any dynamic imports to use async/await pattern:
+  ```javascript
+  // Instead of this:
+  const { something } = require('./file');
+  
+  // Use this:
+  const module = await import('./file.js');
+  const { something } = module;
+  ```
 
-If the application deploys but doesn't work correctly:
+#### Static Files Not Loading
 
-1. Check Render logs for runtime errors
-2. Verify all required environment variables are set
-3. Make sure your database schema is correctly set up
+**Issue**: Frontend shows but without CSS/JS or shows a blank page
+**Solutions**:
+- Check logs to see if render-setup.js ran correctly
+- Verify client/dist or dist/public files were copied to server/public
+- Ensure server.js has the correct path to static files
+- Check browser console for 404 errors on specific files
 
-## Maintenance
+## Deployment Verification
 
-### Updating Your Application
+After deployment:
 
-1. Push changes to your GitHub repository
-2. Render will automatically deploy updates (if auto-deploy is enabled)
+1. Check the **Logs** tab in your Render dashboard
+2. Verify your application is running (look for "🚀 Server running on port...")
+3. Click the generated domain name to open your application
+4. Test core functionality to ensure everything works
 
-### Database Backups
+## Updating Your Deployment
 
-If using Render PostgreSQL:
+To update your deployed application:
 
-1. Backups are automatically created daily
-2. You can create manual backups from the database dashboard
+1. Push changes to the `render-deployment-fix` branch
+2. Render will automatically detect the changes and deploy
 
 ## Support
 
-If you encounter issues with your Render deployment, you can:
+If you encounter issues not covered in this guide, please:
 
-1. Check Render documentation at https://render.com/docs
-2. Contact Render support through your dashboard
-3. Review application logs in the Render dashboard
-
-For application-specific issues, please refer to the PanicSense documentation or contact the development team.
+1. Check Render's logs for specific error messages
+2. Review the Render documentation at https://render.com/docs
+3. Check for common Node.js deployment issues in the troubleshooting section above
