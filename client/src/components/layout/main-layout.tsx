@@ -338,8 +338,8 @@ export function MainLayout({ children }: MainLayoutProps) {
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Profile - More compact on mobile */}
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
-              <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden">
+              <img src="/images/drei.jpg" alt="Mark Andrei" className="w-full h-full object-cover" />
             </div>
             <span className="text-xs sm:text-sm font-medium text-slate-700 hidden sm:inline">
               Mark Andrei
