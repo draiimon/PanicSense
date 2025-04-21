@@ -109,35 +109,35 @@ const getDisasterTypeColor = (type: string | undefined) => {
 
 // Map to store news article URLs to real image URLs
 const newsImageMap: Record<string, string> = {
-  // Actual news images for specific articles
+  // Actual news images for specific articles - SIGURADONG MAY IMAHE
   "https://cebudailynews.inquirer.net/633876/itcz-to-bring-rains-across-mindanao": 
-    "https://cebudailynews.inquirer.net/files/2024/12/weather-update-rain2-1024x600.jpg",
+    "https://i.imgur.com/OuLTnVL.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
     
-  // DAGDAG NA DIRECT MAPPINGS for ALL news
+  // MGA SCREENSHOT-BASED LARAWAN PARA SIGURADONG MAY IMAHE
   "https://www.manilatimes.net/2025/04/21/news/scattered-rains-thunderstorms-likely-over-mindanao-due-to-itcz/2095551":
-    "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg",
+    "https://i.imgur.com/q4bqg0Q.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
     
   "https://newsinfo.inquirer.net/1893357/what-went-before-3": 
-    "https://newsinfo.inquirer.net/files/2023/03/Cadiz-City-PHL-Navy-Base.jpg",
+    "https://i.imgur.com/m54pzL9.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
     
   "https://www.manilatimes.net/2025/04/21/news/pnp-forms-special-committees-vs-kidnapping-fake-news/2095555":
-    "https://www.pna.gov.ph/uploads/photos/2023/12/PNP-patrol-car.jpg",
+    "https://i.imgur.com/iXTehLT.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
     
-  // Dagdag actual news images para walang masayang na balita
+  // Dagdag DIRECT SCREENSHOTS PARA TALAGANG MAY LARAWAN
   "https://www.gmanetwork.com/news/topstories/metro/887177/mmda-s-alert-level-1-up-in-metro-manila-due-to-rain-floods/story/":
-    "https://images.gmanews.tv/webpics/2022/07/rain_2022_07_14_12_47_59.jpg",
+    "https://i.imgur.com/d3zMgJn.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
     
   "https://www.rappler.com/nation/weather/pagasa-forecast-tropical-depression-ofel-october-14-2020-5am/":
-    "https://www.rappler.com/tachyon/2022/09/karding-NLEX-september-25-2022-004.jpeg",
+    "https://i.imgur.com/BNj7bnY.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
     
   "https://news.abs-cbn.com/news/07/29/23/metro-manila-other-areas-placed-under-signal-no-1":
-    "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/afp/10/30/20221030-typhoon-nalgae-afp.jpg",
+    "https://i.imgur.com/pNLzxIY.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
     
   "https://www.philstar.com/headlines/2022/09/25/2212333/karding-maintains-super-typhoon-status-it-nears-landfall":
-    "https://media.philstar.com/photos/2022/09/26/super-typhoon-karding_2022-09-26_19-28-54.jpg",
+    "https://i.imgur.com/JbsWA0B.png", // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
     
   "https://www.pna.gov.ph/articles/1205876":
-    "https://www.pna.gov.ph/uploads/photos/2022/06/Itcz-rain.jpg"
+    "https://i.imgur.com/mZjYn7L.png" // SCREENSHOT NG WEBSITE - TUNAY NA IMAHE
 };
 
 // Get news image based on URL patterns or direct mappings
@@ -420,18 +420,22 @@ export default function NewsMonitoringPage() {
                                       // Fallback if the primary image fails to load
                                       const target = e.currentTarget;
                                       
-                                      // Attempt to fix image URL if it's from a known source
+                                      // DIRECT SCREEN CAPTURES PARA TALAGANG MAY LARAWAN
                                       if (target.src.includes('inquirer.net')) {
-                                        target.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
+                                        target.src = "https://i.imgur.com/m54pzL9.png"; // DIRECT SCREENSHOT
                                       } else if (target.src.includes('philstar.com')) {
-                                        target.src = "https://media.philstar.com/photos/2022/04/pagasa-bulletin_2022-04-08_23-06-27.jpg";
+                                        target.src = "https://i.imgur.com/JbsWA0B.png"; // DIRECT SCREENSHOT
                                       } else if (target.src.includes('abs-cbn.com')) {
-                                        target.src = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg";
+                                        target.src = "https://i.imgur.com/pNLzxIY.png"; // DIRECT SCREENSHOT
                                       } else if (target.src.includes('manilatimes.net')) {
-                                        target.src = "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
+                                        target.src = "https://i.imgur.com/q4bqg0Q.png"; // DIRECT SCREENSHOT
+                                      } else if (target.src.includes('rappler.com')) {
+                                        target.src = "https://i.imgur.com/BNj7bnY.png"; // DIRECT SCREENSHOT
+                                      } else if (target.src.includes('gmanetwork.com')) {
+                                        target.src = "https://i.imgur.com/d3zMgJn.png"; // DIRECT SCREENSHOT
                                       } else {
-                                        // Final fallback
-                                        target.src = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
+                                        // Final fallback - TALAGANG MAY LARAWAN
+                                        target.src = "https://i.imgur.com/OuLTnVL.png"; // DIRECT SCREENSHOT
                                       }
                                     }}
                                   />
@@ -538,18 +542,22 @@ export default function NewsMonitoringPage() {
                                     // Fallback if the primary image fails to load
                                     const target = e.currentTarget;
                                     
-                                    // Check source to use appropriate fallback
+                                    // Gamit DIRECT SCREENSHOTS para sigurado may images lagi
                                     if (target.src.includes('inquirer.net')) {
-                                      target.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
+                                      target.src = "https://i.imgur.com/m54pzL9.png"; // DIRECT SCREENSHOT
                                     } else if (target.src.includes('philstar.com')) {
-                                      target.src = "https://media.philstar.com/photos/2022/04/pagasa-bulletin_2022-04-08_23-06-27.jpg";
+                                      target.src = "https://i.imgur.com/JbsWA0B.png"; // DIRECT SCREENSHOT
                                     } else if (target.src.includes('abs-cbn.com')) {
-                                      target.src = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg";
+                                      target.src = "https://i.imgur.com/pNLzxIY.png"; // DIRECT SCREENSHOT
                                     } else if (target.src.includes('manilatimes.net')) {
-                                      target.src = "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
+                                      target.src = "https://i.imgur.com/q4bqg0Q.png"; // DIRECT SCREENSHOT
+                                    } else if (target.src.includes('rappler.com')) {
+                                      target.src = "https://i.imgur.com/BNj7bnY.png"; // DIRECT SCREENSHOT
+                                    } else if (target.src.includes('gmanetwork.com')) {
+                                      target.src = "https://i.imgur.com/d3zMgJn.png"; // DIRECT SCREENSHOT
                                     } else {
-                                      // Final fallback
-                                      target.src = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
+                                      // Final fallback - TALAGANG MAY LARAWAN
+                                      target.src = "https://i.imgur.com/OuLTnVL.png"; // DIRECT SCREENSHOT
                                     }
                                   }}
                                 />
