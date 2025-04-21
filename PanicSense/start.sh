@@ -1,9 +1,27 @@
 #!/bin/bash
 set -e
 
-# Ang laman ng file na ito ay direct na nagra-run ng server.js
-# Hindi na kailangan mag-build ng client dahil nagawa na ito
-# sa Dockerfile build stage
+# 1) Build the React client
+cd client
+npm ci --no-audit --no-fund --prefer-offline
+npm run build
+cd ..
 
-echo "🚀 [start.sh] Launching server on port $PORT..."
-exec node server.js
+echo "✅ Client build complete."
+
+# 2) Install server deps
+cd server
+npm ci --no-audit --no-fund --prefer-offline
+cd ..
+
+echo "✅ Server dependencies installed."
+
+# 3) Stage static files for Express
+mkdir -p server/public
+cp -r client/dist/* server/public/
+
+echo "✅ Static assets staged."
+
+# 4) Launch the server
+echo "🚀 Starting server on port $PORT..."
+exec node server/server.js

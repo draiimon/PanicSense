@@ -1,73 +1,61 @@
-# ----------------------------
-# STAGE 1: BUILD NODE ARTIFACTS
-# ----------------------------
+# 1) Builder Stage: build client + install server deps
 FROM node:20.19.0-slim AS builder
 WORKDIR /app
 
-# 1. Copy root package.json to leverage cache for any top‑level scripts
-COPY package*.json ./
-RUN npm ci --no-audit --no-fund --prefer-offline
-
-# 2. Copy client and server manifests, then install/build each
-# CLIENT
+# Copy and install client
 COPY client/package*.json ./client/
 WORKDIR /app/client
 RUN npm ci --no-audit --no-fund --prefer-offline
-
-# Copy client source code and build
-COPY client ./
+# Copy client source files
+COPY client/ ./
+# Build React app
 RUN npm run build
 
-# SERVER
+# Copy and install server dependencies
 WORKDIR /app
 COPY server/package*.json ./server/
 WORKDIR /app/server
 RUN npm ci --no-audit --no-fund --prefer-offline
+# Copy server source files
+COPY server/ ./
 
-# Copy server source code
-COPY server ./
-
-# 3. Stage static assets for production
+# Stage static output for Express
 WORKDIR /app
 RUN mkdir -p server/public \
  && cp -r client/dist/* server/public/
 
-# ----------------------------
-# STAGE 2: FINAL IMAGE
-# ----------------------------
+# 2) Final Stage: runtime with Python + Node
 FROM python:3.11-slim
 WORKDIR /app
 
-# 4. System dependencies + Node.js runtime
+# Install system deps + Node.js runtime
 RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-      curl gnupg libpq-dev \
+ && apt-get install -y --no-install-recommends curl gnupg libpq-dev \
  && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && apt-get install -y --no-install-recommends nodejs \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/* \
+ && apt-get clean && rm -rf /var/lib/apt/lists/* \
  && npm cache clean --force
 
-# 5. Copy Node artifacts from builder
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/client/dist ./client/dist
-COPY --from=builder /app/server ./server
-COPY --from=builder /app/server/public ./server/public
+# Copy server code + node_modules
+COPY --from=builder /app/server /app/server
+COPY --from=builder /app/server/node_modules /app/server/node_modules
 
-# 6. Copy application source code
+# Copy built client dist directly to server/public
+COPY --from=builder /app/client/dist /app/client/dist
+COPY --from=builder /app/server/public /app/server/public
+
+# Copy other needed files
 COPY migrations ./migrations
 COPY shared ./shared
 COPY drizzle.config.ts ./
 COPY package*.json ./
-COPY postcss.config.js ./
-COPY tailwind.config.ts ./
 COPY server.js ./
 
-# 7. Copy your helper script & make it executable
+# Copy start script
 COPY start.sh ./
 RUN chmod +x start.sh
 
-# 8. Install Python ML dependencies
+# Install Python ML deps
 COPY server/python/requirements.txt ./server/python/
 RUN pip install --no-cache-dir --timeout=180 --retries=3 \
       torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu \
@@ -76,16 +64,15 @@ RUN pip install --no-cache-dir --timeout=180 --retries=3 \
  && find /usr/local -name '__pycache__' -delete \
  && pip cache purge
 
-# 9. Environment & ports
-ENV NODE_ENV=production
-ENV PORT=5000
-ENV TZ=Asia/Manila
+# Env & expose
+ENV NODE_ENV=production \
+    PORT=5000 \
+    TZ=Asia/Manila
 EXPOSE 5000
 
-# 10. Healthcheck for Render's monitoring
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -sSf http://localhost:$PORT/api/health || exit 1
+ CMD curl -sSf http://localhost:$PORT/api/health || exit 1
 
-# 11. Launch server via server.js directly (no need for start.sh in production)
-# Since we've already built everything in the builder stage
-CMD ["node", "server.js"]
+# Entry
+CMD ["/bin/bash", "./start.sh"]
