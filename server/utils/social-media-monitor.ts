@@ -84,34 +84,11 @@ export class SocialMediaMonitor {
    * Fetch social media posts related to disasters in the Philippines
    */
   private async fetchSocialMediaPosts(): Promise<void> {
-    // Prevent multiple concurrent fetches
-    if (this.fetchInProgress) {
-      return;
-    }
-    
-    this.fetchInProgress = true;
-    
-    try {
-      console.log('[social-media] Fetching tweets for disaster hashtags...');
-      
-      // Use the Python scraper to get tweets
-      const result = await this.runPythonScraper();
-      
-      if (result && Array.isArray(result) && result.length > 0) {
-        // Replace the existing posts with the new ones
-        this.posts = result;
-        console.log(`[social-media] Fetched a total of ${result.length} disaster-related tweets`);
-      } else {
-        console.log('[social-media] No tweets to process');
-        // Keep existing posts if we didn't get any new ones
-      }
-      
-      this.lastFetched = new Date();
-    } catch (error) {
-      console.error('[social-media] Social media scraper error:', error);
-    } finally {
-      this.fetchInProgress = false;
-    }
+    // Twitter scraper has been disabled per user request
+    this.fetchInProgress = false;
+    this.lastFetched = new Date();
+    console.log('[social-media] Twitter scraper has been disabled');
+    return;
   }
 
   /**
