@@ -1,0 +1,24 @@
+Para ma-push ang Docker configuration files sa GitHub:
+
+1. Mag-log in sa GitHub account mo
+2. Bisitahin ang link na ito para i-allow ang token sa push:
+   https://github.com/draiimon/PanicSense/security/secret-scanning/unblock-secret/2w3PHenYlZ3ECnSSgGM6kbF2y6I
+
+3. O kaya, gawin ang mga manual na steps sa iyong local machine:
+
+   git clone https://github.com/draiimon/PanicSense.git
+   cd PanicSense
+   git checkout -b DockerPS
+   
+   # Kopyahin ang mga files:
+   # - Dockerfile
+   # - docker-compose.yml
+   # - start.sh
+   # - .env.example
+   # - docker-readme.md
+   
+   git add Dockerfile docker-compose.yml start.sh .env.example docker-readme.md
+   git commit -m "Add Docker configuration for local deployment"
+   git push -u origin DockerPS
+
+4. Mag-create ng Pull Request sa GitHub repository para i-merge ang DockerPS branch sa main branch.
