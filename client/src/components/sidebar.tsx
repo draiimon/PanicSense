@@ -40,7 +40,7 @@ export function Sidebar() {
     {
       href: "/emotion-analysis",
       label: "Geographic Analysis",
-      icon: <Globe className="h-5 w-5" />,
+      icon: <Map className="h-5 w-5" />,
     },
     {
       href: "/timeline",
