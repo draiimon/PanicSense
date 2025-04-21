@@ -1,27 +1,19 @@
 #!/bin/bash
 set -e
 
-# 1) Build the React client
-cd client
-npm ci --no-audit --no-fund --prefer-offline
+echo "📦 Installing all dependencies..."
+npm install --no-audit --no-fund --prefer-offline
+
+echo "🚧 Building client + bundling server..."
 npm run build
-cd ..
 
-echo "✅ Client build complete."
+echo "✅ Build complete. Preparing server..."
 
-# 2) Install server deps
-cd server
-npm ci --no-audit --no-fund --prefer-offline
-cd ..
-
-echo "✅ Server dependencies installed."
-
-# 3) Stage static files for Express
+# Make sure static files are properly staged
 mkdir -p server/public
-cp -r client/dist/* server/public/
+if [ -d "client/dist" ]; then
+  cp -r client/dist/* server/public/
+fi
 
-echo "✅ Static assets staged."
-
-# 4) Launch the server
 echo "🚀 Starting server on port $PORT..."
-exec node server/server.js
+exec node server.js
