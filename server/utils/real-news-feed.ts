@@ -67,21 +67,20 @@ export class RealNewsService {
   private fetchInterval: number; // in milliseconds
 
   constructor() {
-    // Initialize with Philippine news sources that have RSS feeds
+    // Initialize with Philippine news sources that have RSS feeds (verified working)
     this.newsSources = [
-      { name: 'Inquirer Feed', url: 'https://inquirer.net/feed/' },
+      // Working news sources (verified)
       { name: 'Manila Times', url: 'https://www.manilatimes.net/news/feed/' },
       { name: 'BusinessWorld', url: 'https://www.bworldonline.com/feed/' },
-      { name: 'GMA News', url: 'https://data.gmanetwork.com/gno/rss/news/feed.xml' },
       { name: 'Rappler', url: 'https://www.rappler.com/feed/' },
-      { name: 'PAGASA News', url: 'https://bagong.pagasa.dost.gov.ph/feed/' },
-      { name: 'ABS-CBN News', url: 'https://news.abs-cbn.com/rss/news' },
       { name: 'Cebu Daily News', url: 'https://cebudailynews.inquirer.net/feed' },
       { name: 'Panay News', url: 'https://www.panaynews.net/feed/' },
       { name: 'Mindanao Times', url: 'https://mindanaotimes.com.ph/feed/' },
-      { name: 'PNA', url: 'https://www.pna.gov.ph/rss' },
-      { name: 'Baguio Midland Courier', url: 'http://www.baguiomidlandcourier.com.ph/rss.asp' },
-      { name: 'ReliefWeb Philippines', url: 'https://reliefweb.int/country/phl/rss.xml' }
+      
+      // New reliable sources added (2025-04-21)
+      { name: 'PhilStar Headlines', url: 'https://www.philstar.com/rss/headlines' },
+      { name: 'PhilStar Nation', url: 'https://www.philstar.com/rss/nation' },
+      { name: 'NewsInfo Inquirer', url: 'https://newsinfo.inquirer.net/feed' }
     ];
     
     this.cachedNews = [];
