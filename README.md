@@ -132,29 +132,53 @@ This project is configured for easy deployment to Render.com. Follow these steps
 1. **Push your code to a Git repository** (GitHub, GitLab, etc.)
 2. **Connect to Render.com**:
    - Create a new account or log in to Render
-   - Click "New" and select "Blueprint"
+   - Click "New" and select "Web Service"
    - Connect to your Git repository
    - Select the repository with this project
-   - Render will automatically detect the `render.yaml` configuration
 
-3. **Configure Environment Variables**:
+3. **Configure the Web Service**:
+   - Name: `panicsense-ph` (or your preferred name)
+   - Runtime: `Node`
+   - Build Command: `npm install && npm run build`
+   - Start Command: `node index.js`
+   - Instance Type: `Standard (1x CPU, 2GB RAM)` is recommended
+
+4. **Configure Environment Variables**:
    - Once the service is created, go to the "Environment" tab
    - Add the following environment variables:
-     - `NODE_ENV`: Set to `production`
-     - `DATABASE_URL`: Your PostgreSQL connection string
-     - Any API keys needed for external services
+     ```
+     DATABASE_URL=postgres://username:password@host:port/database_name
+     DB_SSL_REQUIRED=true
+     NODE_ENV=production
+     PORT=10000
+     TZ=Asia/Manila
+     RUNTIME_ENV=render
+     HOST=0.0.0.0
+     PYTHON_SERVICE_ENABLED=true
+     ENABLE_SOCIAL_SCRAPER=true
+     SESSION_SECRET=your_random_secure_string
+     ```
+     
+   - **Important**: Create a PostgreSQL database instance in Render and use its connection string for `DATABASE_URL`
 
-4. **Wait for deployment to complete**:
+5. **Set Auto-Deploy**:
+   - Enable automatic deployments for the `render-deployment-fix` branch
+
+6. **Troubleshooting Common Issues**:
+   - If you encounter database-related errors containing "created_at" column references:
+     1. Check server logs for details
+     2. Verify that render-setup.js is being executed on deployment
+     3. The system is designed to automatically create necessary tables through `server/db-setup.js`
+
+7. **Wait for deployment to complete**:
    - Render will automatically build and deploy the application
    - You can monitor the build progress in the "Logs" tab
 
-5. **Verify the Deployment**:
+8. **Verify the Deployment**:
    - Once deployed, visit the provided Render URL
-   - Test the application functionality
+   - Test the application functionality including data uploads, real-time updates, and news display
 
-For more detailed instructions, see [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md).
-
-> **IMPORTANT**: Render deployment uses a special startup script (`npm run startRender`) that bootstraps both the PostgreSQL database and Node.js application correctly. The entire setup is handled in `index.js` and `render-setup.sh`.
+> **IMPORTANT**: The `render-setup.js` script automatically handles database setup and static file preparation. It's designed to fix common deployment issues including the "created_at" column errors.
 
 ## 🔒 Security
 
