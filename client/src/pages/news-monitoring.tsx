@@ -281,9 +281,35 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Enhanced image preloader - will pre-fetch likely needed images
+const preloadImportantImages = () => {
+  // List of important fallback images to preload
+  const criticalImages = [
+    '/images/fallback/panicsense-logo.svg',
+    '/images/fallback/panicsense-image-fallback.svg',
+    'https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg',
+    'https://media.philstar.com/photos/2022/04/pagasa-bulletin_2022-04-08_23-06-27.jpg',
+    'https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg',
+    'https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg'
+  ];
+  
+  // Preload each image
+  criticalImages.forEach(src => {
+    const img = new Image();
+    img.src = src;
+  });
+};
+
+// Run the preloader on mount
+document.addEventListener('DOMContentLoaded', preloadImportantImages);
+
 // Get news image based on URL patterns or direct mappings - with REALTIME options
 const getNewsImage = (item: NewsItem): string => {
   const { url, disasterType, source, imageUrl } = item;
+  
+  // PERFORMANCE OPTIMIZATION: Always return a default low-res image first
+  // This will be shown while the real image loads or as fallback
+  if (!url) return '/images/fallback/panicsense-image-fallback.svg';
   
   // Check if we have the actual image URL from the RSS feed (highest priority)
   if (imageUrl && imageUrl.startsWith('http')) {
@@ -292,43 +318,44 @@ const getNewsImage = (item: NewsItem): string => {
   }
   
   // Try to generate Open Graph API URL for the website (Facebook/Twitter cards)
-  const urlObj = new URL(url);
-  const domain = urlObj.hostname;
-  
-  // Try to get Open Graph image using web API services
-  if (domain.includes('inquirer.net')) {
-    // Add og:image URL for Inquirer
-    const ogImageUrl = `https://graph.inquirer.net/${encodeURIComponent(url)}`;
-    return ogImageUrl;
-  }
-  
-  if (domain.includes('philstar.com')) {
-    // Add og:image URL for Philstar
-    const ogImageUrl = `https://graph.philstar.com/?url=${encodeURIComponent(url)}`;
-    return ogImageUrl;
-  }
-  
-  if (domain.includes('abs-cbn.com')) {
-    // Add og:image URL for ABS-CBN
-    const ogImageUrl = `https://news.abs-cbn.com/res/abstract/abstract.php?url=${encodeURIComponent(url)}`;
-    return ogImageUrl;
-  }
-  
-  if (domain.includes('rappler.com')) {
-    // Add og:image URL for Rappler
-    const ogImageUrl = `https://og.rappler.com/?url=${encodeURIComponent(url)}`;
-    return ogImageUrl;
-  }
-  
-  // Try to get REALTIME image fallback - next priority
-  const realtimeImage = extractOgImageUrl(url);
-  if (realtimeImage) {
-    return realtimeImage;
-  }
-  
-  // Then check if we have a direct mapping for this article
-  if (newsImageMap[url]) {
-    return newsImageMap[url];
+  try {
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname;
+    
+    // Try to get Open Graph image using web API services
+    if (domain.includes('inquirer.net')) {
+      // Add og:image URL for Inquirer
+      return `https://graph.inquirer.net/${encodeURIComponent(url)}`;
+    }
+    
+    if (domain.includes('philstar.com')) {
+      // Add og:image URL for Philstar
+      return `https://graph.philstar.com/?url=${encodeURIComponent(url)}`;
+    }
+    
+    if (domain.includes('abs-cbn.com')) {
+      // Add og:image URL for ABS-CBN
+      return `https://news.abs-cbn.com/res/abstract/abstract.php?url=${encodeURIComponent(url)}`;
+    }
+    
+    if (domain.includes('rappler.com')) {
+      // Add og:image URL for Rappler
+      return `https://og.rappler.com/?url=${encodeURIComponent(url)}`;
+    }
+    
+    // Try to get REALTIME image fallback - next priority
+    const realtimeImage = extractOgImageUrl(url);
+    if (realtimeImage) {
+      return realtimeImage;
+    }
+    
+    // Then check if we have a direct mapping for this article
+    if (newsImageMap[url]) {
+      return newsImageMap[url];
+    }
+  } catch (error) {
+    console.error('Error parsing URL or getting image:', error);
+    return '/images/fallback/panicsense-image-fallback.svg';
   }
   
   // Based on the URL pattern and domain, return appropriate images
@@ -795,10 +822,15 @@ export default function NewsMonitoringPage() {
                               <div className="flex flex-col md:flex-row bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl overflow-hidden border border-white/20">
                                 {/* MALAKING AKTUWAL NA NEWS IMAGE */}
                                 <div className="w-full md:w-3/5 relative overflow-hidden h-[350px] transition-all group">
-                                  {/* LOADING PLACEHOLDER habang naglo-load pa */}
-                                  <div className="absolute inset-0 bg-gradient-to-br from-blue-200 to-indigo-100 animate-pulse">
+                                  {/* LOADING PLACEHOLDER habang naglo-load pa - Enhanced */}
+                                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-200 to-purple-100 animate-pulse">
+                                    <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] opacity-20"></div>
                                     <div className="flex items-center justify-center h-full">
-                                      <Loader className="h-10 w-10 text-indigo-500 animate-spin" />
+                                      <img 
+                                        src="/images/fallback/panicsense-image-fallback.svg"
+                                        alt="Loading..."
+                                        className="w-full h-full object-cover opacity-50"
+                                      />
                                     </div>
                                   </div>
                                   
@@ -809,13 +841,18 @@ export default function NewsMonitoringPage() {
                                       src={getNewsImage(item)}
                                       alt={item.title}
                                       className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 z-10 relative"
-                                      loading="lazy"
+                                      loading="eager" 
                                       onLoad={(e) => {
-                                        // On successful load, remove placeholder
+                                        // On successful load, remove placeholder with nice fade animation
                                         const target = e.currentTarget.parentElement?.parentElement;
                                         if (target) {
                                           const placeholder = target.querySelector('div.animate-pulse');
-                                          if (placeholder) placeholder.classList.add('opacity-0');
+                                          if (placeholder) {
+                                            placeholder.classList.add('opacity-0');
+                                            placeholder.classList.add('transition-opacity', 'duration-500');
+                                          }
+                                          // Add animate-in class for smoother appearance
+                                          e.currentTarget.classList.add('animate-fadeIn');
                                         }
                                       }}
                                       onError={(e) => {
