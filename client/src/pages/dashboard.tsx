@@ -4,6 +4,7 @@ import { OptimizedSentimentChart } from "@/components/dashboard/optimized-sentim
 import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
 import { AffectedAreasCard } from "@/components/dashboard/affected-areas-card-new";
 import { UsageStatsCard } from "@/components/dashboard/usage-stats-card";
+import { DisasterNewsCarousel } from "@/components/dashboard/disaster-news-carousel";
 import { FileUploader } from "@/components/file-uploader";
 import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
 import { getSentimentColor, getDisasterTypeColor } from "@/lib/colors";
@@ -540,15 +541,15 @@ export default function Dashboard() {
               <div className="flex flex-wrap gap-3">
                 <div className="flex items-center text-xs bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white">
                   <Database className="h-3.5 w-3.5 mr-1.5" />
-                  <span>{totalPosts} Data Points</span>
+                  <span>Real-time Disaster Monitoring</span>
                 </div>
                 <div className="flex items-center text-xs bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white">
-                  <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-                  <span>Sentiment Analysis</span>
+                  <Bell className="h-3.5 w-3.5 mr-1.5" />
+                  <span>Live News Integration</span>
                 </div>
                 <div className="flex items-center text-xs bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-white">
-                  <Globe2 className="h-3.5 w-3.5 mr-1.5" />
-                  <span>Geographic Mapping</span>
+                  <Shield className="h-3.5 w-3.5 mr-1.5" />
+                  <span>Community Resilience</span>
                 </div>
               </div>
             </div>
@@ -989,6 +990,11 @@ export default function Dashboard() {
             <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
           </div>
         )}
+      </div>
+
+      {/* Latest Disaster News Carousel - Auto-moving sneak peek */}
+      <div className="relative mb-6 rounded-xl overflow-hidden shadow-xl">
+        <DisasterNewsCarousel />
       </div>
 
       {/* Stats Grid with improved styling (3-card layout) */}
