@@ -16,7 +16,14 @@ COPY drizzle.config.ts tailwind.config.ts tsconfig.json vite.config.ts theme.jso
 # Build the application with optimizations
 RUN npm run build
 # Verify the build output structure
-RUN ls -la dist/
+RUN ls -la dist/ && echo "Build output verification completed"
+
+# Create a production structure that matches what vite.ts expects
+RUN mkdir -p server/public && \
+    cp -r dist/* server/public/ && \
+    mkdir -p client/dist && \
+    cp -r dist/* client/dist/ && \
+    echo "Copied build files to server/public and client/dist directories for production"
 
 # STAGE 2: Final image with Python + Node
 FROM python:3.11-slim
@@ -39,10 +46,15 @@ WORKDIR /app
 # Copy built files from node-builder
 COPY --from=node-builder /app/dist ./dist
 COPY --from=node-builder /app/public ./public
+COPY --from=node-builder /app/server/public ./server/public
+COPY --from=node-builder /app/client ./client
 COPY --from=node-builder /app/node_modules ./node_modules
 
-# Make a copy of dist to the public directory to match the vite.ts expectations
-RUN if [ -d "dist" ]; then mkdir -p server/public && cp -r dist/* server/public/; fi
+# Create needed directory structure for static files
+RUN mkdir -p client/dist && \
+    if [ -d "dist" ]; then cp -r dist/* client/dist/; fi && \
+    if [ ! -d "server/public" ] && [ -d "dist" ]; then mkdir -p server/public && cp -r dist/* server/public/; fi && \
+    echo "Created all necessary static directories"
 
 # Copy package files (only production files)
 COPY package*.json ./
@@ -60,6 +72,7 @@ RUN pip install --no-cache-dir --timeout=180 --retries=3 torch==2.1.2 --index-ur
 COPY migrations ./migrations
 COPY server ./server
 COPY shared ./shared
+COPY client ./client
 COPY index.js ./
 
 # Create needed directories for file uploads
@@ -117,6 +130,14 @@ echo "  - Retry delay: $RETRY_DELAY ms"\n\
 \n\
 echo "⏳ Waiting for database to be ready..."\n\
 sleep 3\n\
+\n\
+echo "💡 Checking static directories..."\n\
+echo "Client dist directory:"\n\
+ls -la /app/client/dist || echo "Dir not found!"\n\
+echo "Server public directory:"\n\
+ls -la /app/server/public || echo "Dir not found!"\n\
+echo "Root dist directory:"\n\
+ls -la /app/dist || echo "Dir not found!"\n\
 \n\
 echo "✅ Starting application..."\n\
 node index.js\n\
