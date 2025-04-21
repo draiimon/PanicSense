@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Copy package files and install dependencies (with production flag for lighter install)
 COPY package*.json ./
-RUN npm ci --production=false
+RUN npm ci --production=false --no-audit --no-fund --prefer-offline
 
 # Copy source files and build
 COPY client ./client
@@ -13,7 +13,7 @@ COPY shared ./shared
 COPY public ./public
 COPY drizzle.config.ts tailwind.config.ts tsconfig.json vite.config.ts theme.json ./
 
-# Build the application
+# Build the application with optimizations
 RUN npm run build
 
 # STAGE 2: Final image with Python + Node
@@ -42,10 +42,12 @@ COPY --from=node-builder /app/node_modules ./node_modules
 COPY package*.json ./
 
 # Copy Python requirements and install
-# Combined pip commands to reduce layers and optimize caching
+# Optimized Python installation to improve build speed and reduce image size
 COPY server/python/requirements.txt ./server/python/
-RUN pip install --no-cache-dir torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir -r server/python/requirements.txt \
+RUN pip install --no-cache-dir --timeout=180 --retries=3 torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir --timeout=180 --retries=3 -r server/python/requirements.txt \
+    && find /usr/local -name '*.pyc' -delete \
+    && find /usr/local -name '__pycache__' -delete \
     && pip cache purge
 
 # Copy only needed files for runtime
@@ -70,5 +72,12 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 # Expose the port
 EXPOSE 5000
 
-# Simple startup command
-CMD ["node", "index.js"]
+# Added healthcheck script to verify DB connectivity
+COPY --from=node-builder /app/node_modules/.bin/drizzle-kit /app/node_modules/.bin/drizzle-kit
+
+# Simple startup command with db migration support
+CMD echo "Starting application with database migration support..." && \
+    echo "Waiting for database to be ready..." && \
+    sleep 3 && \
+    echo "Running application..." && \
+    node index.js

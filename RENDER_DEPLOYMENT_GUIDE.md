@@ -45,7 +45,12 @@ Verify these requirements before deployment:
    - `NODE_ENV`: `production`
    - `PORT`: `5000`
    - `PYTHON_PATH`: `python3`
-5. Click **Create Web Service**
+   - `TZ`: `Asia/Manila`
+   - `SESSION_SECRET`: Generate a strong random string (you can use: `openssl rand -base64 32`)
+5. Optional: If you're experiencing database connection delays during startup, add:
+   - `DB_CONNECTION_RETRY_ATTEMPTS`: `5`
+   - `DB_CONNECTION_RETRY_DELAY_MS`: `3000`
+6. Click **Create Web Service**
 
 ### Step 3: Monitor Deployment
 
@@ -74,6 +79,7 @@ Verify these requirements before deployment:
 | `PORT` | Application port | `5000` |
 | `PYTHON_PATH` | Path to Python executable | `python3` |
 | `TZ` | Timezone for logs and data | `Asia/Manila` |
+| `SESSION_SECRET` | Secret for session security | `a-very-long-secure-random-string` |
 
 ## Troubleshooting
 
