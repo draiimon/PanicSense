@@ -630,23 +630,47 @@ export default function NewsMonitoringPage() {
                       <CarouselContent>
                         {disasterNews
                           .filter(item => {
-                            // ONLY HIGH PRIORITY/ALERT NEWS - more strict filtering
-                            const emergencyKeywords = [
-                              'typhoon', 'bagyo', 'storm signal', 'warning', 'alert',
-                              'evacuate', 'evacuation', 'emergency', 'evacuación',
-                              'intensity', 'magnitude', 'lindol', 'earthquake',
-                              'malakas na ulan', 'heavy rainfall', 'flood', 'baha',
-                              'heat index', 'extreme heat', 'landslide', 'guho', 
-                              'tsunami', 'pagasa warning', 'phivolcs alert', 'storm surge'
+                            // ONLY SHOW 100% CONFIRMED DISASTER ITEMS - SUPER STRICT FILTERING
+                            const veryHighPriorityKeywords = [
+                              // Weather alerts and storms - VERY SPECIFIC
+                              'storm signal no', 'signal no.', 'typhoon warning', 'storm warning',
+                              'severe weather', 'weather alert', 'tropical cyclone', 'tropical storm',
+                              'storm surge', 'flash flood', 'major flood', 'severe flooding',
+                              
+                              // Earthquake terms - SPECIFIC MAGNITUDE OR INTENSITY
+                              'magnitude 4', 'magnitude 5', 'magnitude 6', 'magnitude 7',
+                              'intensity iv', 'intensity v', 'intensity vi', 'phivolcs', 
+                              
+                              // Evacuations and emergency response
+                              'evacuate now', 'mandatory evacuation', 'evacuation order',
+                              'emergency evacuation', 'disaster response', 'relief operations',
+                              'class suspension', 'walang pasok', 
+                              
+                              // Heat alerts
+                              'extreme heat', 'heat index', 'heat advisory',
+                              
+                              // Volcano alerts
+                              'alert level', 'volcano alert', 'phivolcs bulletin',
+                              'volcanic activity', 'taal volcano', 'mayon volcano'
                             ];
                             
-                            // Combined title+content text para mas malakas ang context
+                            // Combined search text
                             const combinedText = `${item.title} ${item.content}`.toLowerCase();
                             
-                            // Dapat meron at least 1 emergency keyword
-                            return emergencyKeywords.some(keyword => 
+                            // Check if this is a VERY HIGH PRIORITY disaster item with SPECIFIC terms
+                            const isVeryHighPriority = veryHighPriorityKeywords.some(keyword => 
                               combinedText.includes(keyword.toLowerCase())
                             );
+                            
+                            // Get disaster score for this item
+                            // @ts-ignore - For debugging
+                            const disasterScore = typeof window !== 'undefined' && window._disasterScores && window._disasterScores[item.id] ? 
+                              // @ts-ignore
+                              window._disasterScores[item.id].score : 0;
+                            
+                            // CRITICALLY IMPORTANT: Item must be a VERY specific disaster alert 
+                            // OR have an extremely high disaster score
+                            return isVeryHighPriority || disasterScore >= 20;
                           })
                           .slice(0, 5)
                           .map((item: NewsItem, index: number) => (
@@ -747,10 +771,73 @@ export default function NewsMonitoringPage() {
                                   
                                   {/* EMERGENCY ALERT BADGE - For high visibility */}
                                   <div className="absolute top-4 left-4 z-30">
-                                    <Badge className="bg-red-600 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
-                                      <AlertTriangle className="h-3 w-3" />
-                                      ALERT
-                                    </Badge>
+                                    {(() => {
+                                      // Choose appropriate alert badge based on content
+                                      const combinedText = `${item.title} ${item.content}`.toLowerCase();
+                                      
+                                      // Emergency badge types
+                                      if (combinedText.includes('typhoon') || combinedText.includes('bagyo') || 
+                                          combinedText.includes('storm') || combinedText.includes('tropical cyclone')) {
+                                        return (
+                                          <Badge className="bg-blue-600 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
+                                            <Cloud className="h-3 w-3" />
+                                            WEATHER ALERT
+                                          </Badge>
+                                        );
+                                      } else if (combinedText.includes('earthquake') || combinedText.includes('lindol') || 
+                                                combinedText.includes('intensity') || combinedText.includes('magnitude')) {
+                                        return (
+                                          <Badge className="bg-orange-600 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
+                                            <AlertTriangle className="h-3 w-3" />
+                                            EARTHQUAKE
+                                          </Badge>
+                                        );
+                                      } else if (combinedText.includes('flood') || combinedText.includes('baha')) {
+                                        return (
+                                          <Badge className="bg-blue-700 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
+                                            <Droplets className="h-3 w-3" />
+                                            FLOOD WARNING
+                                          </Badge>
+                                        );
+                                      } else if (combinedText.includes('fire') || combinedText.includes('sunog')) {
+                                        return (
+                                          <Badge className="bg-red-600 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
+                                            <Flame className="h-3 w-3" />
+                                            FIRE ALERT
+                                          </Badge>
+                                        );
+                                      } else if (combinedText.includes('volcano') || combinedText.includes('bulkan') || 
+                                                combinedText.includes('phivolcs')) {
+                                        return (
+                                          <Badge className="bg-red-700 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
+                                            <Mountain className="h-3 w-3" />
+                                            VOLCANO ALERT
+                                          </Badge>
+                                        );
+                                      } else if (combinedText.includes('heat') || combinedText.includes('temperature')) {
+                                        return (
+                                          <Badge className="bg-amber-600 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
+                                            <Thermometer className="h-3 w-3" />
+                                            HEAT ADVISORY
+                                          </Badge>
+                                        );
+                                      } else if (combinedText.includes('evacuate') || combinedText.includes('evacuation')) {
+                                        return (
+                                          <Badge className="bg-purple-600 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
+                                            <LifeBuoy className="h-3 w-3" />
+                                            EVACUATION
+                                          </Badge>
+                                        );
+                                      } else {
+                                        // Default emergency badge
+                                        return (
+                                          <Badge className="bg-red-600 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
+                                            <AlertTriangle className="h-3 w-3" />
+                                            EMERGENCY
+                                          </Badge>
+                                        );
+                                      }
+                                    })()}
                                   </div>
                                   
                                   <div className="absolute bottom-0 left-0 p-4 w-full z-30">
