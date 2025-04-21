@@ -545,37 +545,51 @@ export default function NewsMonitoringPage() {
                                     </div>
                                   </div>
                                   
-                                  {/* REALTIME IMAGE - Direct from source */}
-                                  <img 
-                                    src={`https://api.urlbox.io/v1/render?url=${encodeURIComponent(item.url)}&format=jpeg&full_page=false&selector=img&width=800&height=600&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc`}
-                                    alt={item.title}
-                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 z-10 relative"
-                                    loading="lazy"
-                                    onLoad={(e) => {
-                                      // Kapag na-load na ang image, alisin na ang placeholder
-                                      const target = e.currentTarget.parentElement;
-                                      if (target) {
-                                        const placeholder = target.querySelector('div.animate-pulse');
-                                        if (placeholder) placeholder.classList.add('opacity-0');
-                                      }
-                                    }}
-                                    onError={(e) => {
-                                      // Fallback kung hindi ma-load ang image (try another approach)
-                                      const target = e.currentTarget;
-                                      const parentContainer = target.parentElement;
-                                      
-                                      // Replace the image with a beautiful gradient background based on the source
-                                      if (parentContainer) {
-                                        // Keep the loading animation in place but make it pretty
-                                        const placeholder = parentContainer.querySelector('.animate-pulse') as HTMLElement;
-                                        if (placeholder) {
-                                          // Gawin mas maganda ang placeholder sa halip na error image
-                                          placeholder.style.opacity = "1";
-                                          placeholder.style.background = "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)";
-                                          
-                                          // Add source branding sa placeholder
-                                          const branding = document.createElement('div');
-                                          branding.className = "absolute bottom-2 right-2 bg-white/20 backdrop-blur-sm rounded-md px-2 py-1 text-white text-xs font-medium z-20";
+                                  {/* REALTIME IMAGE - Pre-loaded fallback approach */}
+                                  <div className="relative w-full h-full">
+                                    {/* Use direct image URL for better reliability */}
+                                    <img 
+                                      src={getNewsImage(item)}
+                                      alt={item.title}
+                                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 z-10 relative"
+                                      loading="lazy"
+                                      onLoad={(e) => {
+                                        // On successful load, remove placeholder
+                                        const target = e.currentTarget.parentElement?.parentElement;
+                                        if (target) {
+                                          const placeholder = target.querySelector('div.animate-pulse');
+                                          if (placeholder) placeholder.classList.add('opacity-0');
+                                        }
+                                      }}
+                                      onError={(e) => {
+                                        // If direct image fails, try a second approach with a reliable fallback
+                                        const target = e.currentTarget;
+                                        
+                                        // Try a fallback source based on the disaster type
+                                        let fallbackUrl = "";
+                                        
+                                        if (item.disasterType?.toLowerCase().includes('typhoon') || 
+                                            item.disasterType?.toLowerCase().includes('bagyo')) {
+                                          fallbackUrl = "https://newsinfo.inquirer.net/files/2022/09/Typhoon-Karding.jpg";
+                                        } else if (item.disasterType?.toLowerCase().includes('flood') || 
+                                                  item.disasterType?.toLowerCase().includes('baha')) {
+                                          fallbackUrl = "https://sa.kapamilya.com/absnews/abscbnnews/media/2023/news/08/01/20230801-manila-flood-jl-5.jpg";
+                                        } else if (item.disasterType?.toLowerCase().includes('earthquake') || 
+                                                  item.disasterType?.toLowerCase().includes('lindol')) {
+                                          fallbackUrl = "https://newsinfo.inquirer.net/files/2022/07/310599.jpg";
+                                        } else {
+                                          fallbackUrl = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
+                                        }
+                                        
+                                        // Set fallback source
+                                        target.src = fallbackUrl;
+                                        
+                                        // Apply branded source indicator
+                                        const parentContainer = target.parentElement?.parentElement;
+                                        if (parentContainer) {
+                                          // Add source indicator
+                                          const sourceIndicator = document.createElement('div');
+                                          sourceIndicator.className = "absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm rounded-md px-2 py-1 text-white text-xs font-medium z-20";
                                           
                                           let sourceIcon = "";
                                           let domain = "";
@@ -603,40 +617,15 @@ export default function NewsMonitoringPage() {
                                             domain = "News Source";
                                           }
                                           
-                                          branding.innerHTML = `${sourceIcon} ${domain}`;
-                                          parentContainer.appendChild(branding);
-                                          
-                                          // Adjust the loading animation to look like a dynamic background
-                                          const loader = placeholder.querySelector('.animate-spin');
-                                          if (loader) {
-                                            loader.remove(); // Remove spinner
-                                          }
-                                          
-                                          // Add animated design elements on the placeholder
-                                          const elements = document.createElement('div');
-                                          elements.className = "absolute inset-0 overflow-hidden";
-                                          
-                                          // Create floating design
-                                          elements.innerHTML = `
-                                            <div class="absolute w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full top-5 left-5 animate-float-slow"></div>
-                                            <div class="absolute w-16 h-16 bg-white/10 backdrop-blur-sm rounded-full bottom-10 right-10 animate-float-4"></div>
-                                            <div class="absolute w-12 h-12 bg-white/5 backdrop-blur-sm rounded-full top-1/3 right-5 animate-float-5"></div>
-                                          `;
-                                          
-                                          placeholder.appendChild(elements);
-                                          
-                                          // Add a message that seems professional
-                                          const message = document.createElement('div');
-                                          message.className = "absolute inset-0 flex items-center justify-center z-10";
-                                          message.innerHTML = `<p class="text-white text-center text-sm px-4 drop-shadow-lg">Disaster updates from<br/><span class="font-bold text-lg">${item.source}</span></p>`;
-                                          placeholder.appendChild(message);
+                                          sourceIndicator.innerHTML = `${sourceIcon} ${domain}`;
+                                          parentContainer.appendChild(sourceIndicator);
                                         }
-                                        
-                                        // Hide the failed image element
-                                        target.style.opacity = "0";
-                                      }
-                                    }}
-                                  />
+                                      }}
+                                    />
+                                    
+                                    {/* Gradient overlay for better text readability */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 z-20"></div>
+                                  </div>
                                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                                   
                                   <div className="absolute bottom-0 left-0 p-4 w-full">
@@ -711,8 +700,8 @@ export default function NewsMonitoringPage() {
               <div className="animate-border rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-[length:400%_400%] p-[2px] transition-all">
                 <div className="rounded-xl bg-white p-6">
                   <h2 className="text-xl font-semibold mb-6 flex items-center text-indigo-700">
-                    <AlertTriangle className="h-5 w-5 mr-2" />
-                    Disaster News Feed
+                    <Map className="h-5 w-5 mr-2" />
+                    National Disaster Updates
                   </h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
