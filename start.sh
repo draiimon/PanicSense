@@ -1,27 +1,26 @@
 #!/bin/bash
-# Initialize the database and start the server
+set -e
 
-# Check if DATABASE_URL is set
-if [ -z "$DATABASE_URL" ]; then
-  echo "WARNING: DATABASE_URL environment variable is not set."
-  echo "Will use default local PostgreSQL connection."
-  export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/panicsense"
-fi
+# Wait for PostgreSQL to be ready
+echo "Waiting for PostgreSQL to be ready..."
+until pg_isready -h db -U postgres; do
+  echo "PostgreSQL is unavailable - sleeping"
+  sleep 1
+done
 
-# Ensure any required environment variables are set
-if [ ! -f .env ]; then
-  echo "Creating .env file from example..."
-  cp .env.example .env
-fi
+echo "PostgreSQL is up - executing database migration"
 
-# Wait for the database to be ready if needed
-echo "Checking database connection..."
-node verify-db.js || exit 1
-
-# Ensure database schema is up to date
-echo "Setting up database schema..."
+# Run database migrations
+echo "Pushing database schema changes..."
 npm run db:push
 
-# Start the application server
-echo "Starting PanicSense server..."
-exec node server.js
+# Set proper permissions for Python scripts
+chmod +x python/process.py
+
+# Run application in production mode
+echo "Starting application in production mode..."
+if [ "$NODE_ENV" = "production" ]; then
+  node dist/index.js
+else
+  npm run dev
+fi

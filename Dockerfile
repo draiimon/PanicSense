@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     git \
     curl \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Create Python virtual environment
@@ -32,6 +33,9 @@ RUN pip install --no-cache-dir -e .
 # Copy the rest of the application
 COPY . .
 
+# Make the start script executable
+RUN chmod +x ./start.sh
+
 # Build the frontend
 RUN npm run build
 
@@ -43,5 +47,5 @@ ENV PORT=3000
 # Expose the port
 EXPOSE 3000
 
-# CMD to start the application
-CMD ["npm", "run", "start"]
+# Use start.sh as entrypoint
+CMD ["./start.sh"]
