@@ -227,7 +227,7 @@ async function processNewsItem(item: any): Promise<any> {
       source: item.sourceName || "Philippine News",
       language: result.language || "en",
       location: result.location || "UNKNOWN",
-      disasterType: result.disasterType || "UNKNOWN",
+      disasterType: result.disasterType === "Unknown Disaster" ? "UNKNOWN" : (result.disasterType || "UNKNOWN"),
       explanation: result.explanation,
       timestamp: postTimestamp
     });
