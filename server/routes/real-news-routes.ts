@@ -94,52 +94,109 @@ export async function registerRealNewsRoutes(app: Express): Promise<void> {
         return dateB - dateA;
       });
       
-      // Filter out non-disaster news for the top items using Groq API
-      try {
-        const topLimit = Math.min(10, sorted.length);
-        const filteredItems = [];
-        
-        // Validate each news item to check if it's a disaster
-        for (const item of sorted.slice(0, topLimit)) {
-          try {
-            const validation = await isDisasterNews(item.title, item.content);
-            
-            if (validation.isDisaster) {
-              // Add additional metadata for the validated items
-              filteredItems.push({
-                ...item,
-                validatedAsDisaster: true,
-                disasterConfidence: validation.confidence,
-                disasterType: validation.disasterType,
-                validationDetails: validation.details
-              });
+      // Pre-filter using keywords to reduce API calls
+      const disasterKeywords = [
+        'typhoon', 'earthquake', 'flood', 'fire', 'landslide', 'eruption',
+        'tsunami', 'evacuation', 'emergency', 'disaster', 'rescue', 'survivors',
+        'bagyo', 'lindol', 'baha', 'sunog', 'pagguho', 'bulkan', 'sakuna',
+        'quake', 'tremor', 'blaze', 'collapse', 'explosion', 'storm', 'cyclone',
+        'evacuate', 'destroyed', 'damaged', 'submerged', 'trapped', 'killed',
+        'casualty', 'casualties', 'injured', 'damages', 'devastation'
+      ];
+      
+      // First pass keyword filtering
+      const keywordFilteredItems = sorted.filter(item => {
+        return disasterKeywords.some(keyword =>
+          item.title.toLowerCase().includes(keyword.toLowerCase()) ||
+          item.content.toLowerCase().includes(keyword.toLowerCase())
+        );
+      });
+      
+      // Do we have enough items after keyword filtering?
+      if (keywordFilteredItems.length >= 5) {
+        // Just add disaster confidence info
+        const enrichedItems = keywordFilteredItems.map(item => {
+          // Find which keyword matched
+          let matchedKeyword = null;
+          for (const keyword of disasterKeywords) {
+            if (item.title.toLowerCase().includes(keyword.toLowerCase())) {
+              matchedKeyword = keyword;
+              break;
             }
-          } catch (validationError) {
-            console.warn(`Error validating combined feed item: ${item.title}`, validationError);
-            // Skip items that failed validation
           }
-        }
+          if (!matchedKeyword) {
+            for (const keyword of disasterKeywords) {
+              if (item.content.toLowerCase().includes(keyword.toLowerCase())) {
+                matchedKeyword = keyword;
+                break;
+              }
+            }
+          }
+          
+          // Add disaster metadata
+          return {
+            ...item,
+            validatedAsDisaster: true,
+            disasterConfidence: 0.8,
+            disasterType: matchedKeyword ? matchedKeyword.charAt(0).toUpperCase() + matchedKeyword.slice(1) : "Emergency",
+            validationDetails: `Keyword-matched disaster news (${matchedKeyword || 'unknown'})`
+          };
+        });
         
-        // If we have validated disaster news, use those for the top items
-        if (filteredItems.length > 0) {
-          // Get the non-top items that weren't filtered
-          const nonTopItems = sorted.slice(topLimit);
+        // Combine with any remaining non-filtered items
+        const nonFilteredIds = new Set(keywordFilteredItems.map(item => item.id));
+        const remainingItems = sorted.filter(item => !nonFilteredIds.has(item.id));
+        
+        // Construct the new sorted array with filtered disaster news first
+        sorted.splice(0, sorted.length, ...enrichedItems, ...remainingItems);
+      } else {
+        // Not enough keyword matches, try more advanced filtering with Groq API
+        try {
+          const topLimit = Math.min(10, sorted.length);
+          const filteredItems = [];
           
-          // Construct the new sorted array with filtered disaster news first
-          sorted.splice(0, sorted.length, ...filteredItems, ...nonTopItems);
-        } else {
-          // If validation didn't yield any disaster news, fall back to AI analysis
-          const limit = Math.min(5, sorted.length);
-          const topItems = sorted.slice(0, limit);
-          const analyzedTopItems = await aiDisasterDetector.analyzeBatch(topItems, limit);
+          // Validate each news item to check if it's a disaster
+          for (const item of sorted.slice(0, topLimit)) {
+            try {
+              const validation = await isDisasterNews(item.title, item.content);
+              
+              if (validation.isDisaster) {
+                // Add additional metadata for the validated items
+                filteredItems.push({
+                  ...item,
+                  validatedAsDisaster: true,
+                  disasterConfidence: validation.confidence,
+                  disasterType: validation.disasterType,
+                  validationDetails: validation.details
+                });
+              }
+            } catch (validationError) {
+              console.warn(`Error validating combined feed item: ${item.title}`, validationError);
+              // Skip items that failed validation
+            }
+          }
           
-          // Replace the original top items with the analyzed ones
-          // Use type assertion to handle compatibility
-          sorted.splice(0, limit, ...(analyzedTopItems as any[]));
+          // If we have validated disaster news, use those for the top items
+          if (filteredItems.length > 0) {
+            // Get the non-top items that weren't filtered
+            const nonTopItems = sorted.slice(topLimit);
+            
+            // Construct the new sorted array with filtered disaster news first
+            sorted.splice(0, sorted.length, ...filteredItems, ...nonTopItems);
+          } else {
+            // If validation didn't yield any disaster news, fall back to AI analysis
+            const limit = Math.min(5, sorted.length);
+            const topItems = sorted.slice(0, limit);
+            const analyzedTopItems = await aiDisasterDetector.analyzeBatch(topItems, limit);
+            
+            // Replace the original top items with the analyzed ones
+            // Use type assertion to handle compatibility
+            sorted.splice(0, limit, ...(analyzedTopItems as any[]));
+          }
+        } catch (analysisError) {
+          console.warn('Non-fatal error during news validation/analysis:', analysisError);
+          // Continue with unfiltered news if validation/analysis fails
         }
-      } catch (analysisError) {
-        console.warn('Non-fatal error during news validation/analysis:', analysisError);
-        // Continue with unfiltered news if validation/analysis fails
       }
       
       res.json(sorted);
@@ -157,81 +214,263 @@ export async function registerRealNewsRoutes(app: Express): Promise<void> {
     try {
       const newsItems = await realNewsService.getLatestNews();
       
-      // Use Groq API to validate if news is disaster-related
-      let validatedAlerts = [];
+      // Define strong disaster alert keywords - prioritizing high urgency
+      const highPriorityKeywords = [
+        'emergency', 'alert', 'warning', 'evacuate', 'evacuación', 'evacuation',
+        'danger', 'severe', 'critical', 'imminent', 'immediate', 'urgent',
+        'calamity', 'catastrophe', 'disaster declaration', 'state of emergency',
+        'mandatory evacuation', 'major disaster', 'NDRRMC alert'
+      ];
       
-      try {
-        // First pass: filter using traditional keyword matching to reduce API calls
-        const keywordFilteredItems = newsItems.filter(item => {
-          // Check for emergency keywords in title or content
-          return [
-            'emergency', 'alert', 'warning', 'evacuate', 'evacuación',
-            'danger', 'severe', 'critical', 'imminent', 'immediate',
-            'typhoon', 'earthquake', 'flood', 'fire', 'landslide', 
-            'volcano', 'tsunami', 'drought'
-          ].some(keyword => 
-            item.title.toLowerCase().includes(keyword) ||
-            item.content.toLowerCase().includes(keyword)
-          );
-        });
+      // Define disaster type keywords
+      const disasterTypeKeywords = [
+        'typhoon', 'earthquake', 'flood', 'fire', 'landslide', 'eruption',
+        'volcano', 'tsunami', 'drought', 'storm', 'cyclone', 'bagyo', 'lindol',
+        'baha', 'sunog', 'pagguho', 'bulkan', 'sakuna', 'quake', 'tremor'
+      ];
+      
+      // Combined keywords for broader matching
+      const allDisasterKeywords = [...highPriorityKeywords, ...disasterTypeKeywords];
+      
+      // First, get high-priority alerts (combination of disaster type + urgency keyword)
+      const highPriorityAlerts = newsItems.filter(item => {
+        const hasHighPriorityWord = highPriorityKeywords.some(keyword => 
+          item.title.toLowerCase().includes(keyword.toLowerCase()) ||
+          item.content.toLowerCase().includes(keyword.toLowerCase())
+        );
         
-        // Second pass: validate with Groq API
-        for (const item of keywordFilteredItems.slice(0, 15)) { // Limit to 15 items to avoid too many API calls
-          try {
-            const validation = await isDisasterNews(item.title, item.content);
-            
-            if (validation.isDisaster && validation.confidence > 0.6) {
-              validatedAlerts.push({
-                ...item,
-                validatedAsDisaster: true,
-                disasterConfidence: validation.confidence,
-                disasterType: validation.disasterType,
-                validationDetails: validation.details
-              });
-            }
-          } catch (validationError) {
-            console.warn(`Error validating news item for disaster alerts: ${item.title}`, validationError);
+        const hasDisasterTypeWord = disasterTypeKeywords.some(keyword => 
+          item.title.toLowerCase().includes(keyword.toLowerCase()) ||
+          item.content.toLowerCase().includes(keyword.toLowerCase())
+        );
+        
+        return hasHighPriorityWord && hasDisasterTypeWord;
+      });
+      
+      // Enhance high priority alerts with metadata
+      const enhancedHighPriorityAlerts = highPriorityAlerts.map(item => {
+        // Find which disaster type matched
+        let matchedDisasterType = null;
+        for (const keyword of disasterTypeKeywords) {
+          if (item.title.toLowerCase().includes(keyword.toLowerCase()) || 
+              item.content.toLowerCase().includes(keyword.toLowerCase())) {
+            matchedDisasterType = keyword;
+            break;
           }
         }
         
-        // If we don't have enough validated alerts, fall back to AI analysis
-        if (validatedAlerts.length < 5) {
-          // Process a smaller set with AI to avoid rate limits
-          const itemsToAnalyze = keywordFilteredItems
-            .filter(item => !validatedAlerts.some(alert => alert.id === item.id))
-            .slice(0, 10);
-          
-          // Analyze with AI
-          const analyzedItems = await aiDisasterDetector.analyzeBatch(itemsToAnalyze, 10);
-          
-          // Filter for high confidence disaster items
-          const aiAlerts = analyzedItems.filter(item => 
-            item.analysis && 
-            item.analysis.is_disaster_related && 
-            item.analysis.confidence > 0.6 &&
-            item.analysis.severity >= 3
-          );
-          
-          // Combine validated alerts with AI alerts
-          validatedAlerts = [...validatedAlerts, ...aiAlerts];
+        // Find which urgency keyword matched
+        let matchedUrgencyType = null;
+        for (const keyword of highPriorityKeywords) {
+          if (item.title.toLowerCase().includes(keyword.toLowerCase()) || 
+              item.content.toLowerCase().includes(keyword.toLowerCase())) {
+            matchedUrgencyType = keyword;
+            break;
+          }
         }
         
-      } catch (validationError) {
-        console.warn('Error using Groq API for disaster validation, falling back to keyword matching:', validationError);
+        return {
+          ...item,
+          validatedAsDisaster: true,
+          disasterConfidence: 0.9, // Very high confidence for combined matches
+          disasterType: matchedDisasterType ? 
+            matchedDisasterType.charAt(0).toUpperCase() + matchedDisasterType.slice(1) : 
+            "Emergency",
+          urgencyLevel: matchedUrgencyType ? 
+            matchedUrgencyType.charAt(0).toUpperCase() + matchedUrgencyType.slice(1) : 
+            "Alert",
+          validationDetails: `High-priority disaster alert: ${matchedDisasterType || 'unknown'} (${matchedUrgencyType || 'urgent'})`
+        };
+      });
+      
+      // Do we have enough high-priority alerts?
+      let validatedAlerts: any[] = [];
+      
+      if (enhancedHighPriorityAlerts.length >= 3) {
+        // We have enough high-priority alerts
+        validatedAlerts = enhancedHighPriorityAlerts;
         
-        // Fallback to basic keyword matching
-        validatedAlerts = newsItems.filter(item => {
-          // Check for emergency keywords in title or content
-          return [
-            'emergency', 'alert', 'warning', 'evacuate', 'evacuación',
-            'danger', 'severe', 'critical', 'imminent', 'immediate',
-            'typhoon', 'earthquake', 'flood', 'fire', 'landslide', 
-            'volcano', 'tsunami', 'drought'
-          ].some(keyword => 
-            item.title.toLowerCase().includes(keyword) ||
-            item.content.toLowerCase().includes(keyword)
-          );
-        });
+        // Optionally add a few regular disaster alerts if needed
+        if (validatedAlerts.length < 5) {
+          // Get regular disaster items that aren't already in high-priority list
+          const highPriorityIds = new Set(enhancedHighPriorityAlerts.map(item => item.id));
+          
+          const regularDisasterItems = newsItems
+            .filter(item => 
+              !highPriorityIds.has(item.id) && 
+              allDisasterKeywords.some(keyword => 
+                item.title.toLowerCase().includes(keyword.toLowerCase()) ||
+                item.content.toLowerCase().includes(keyword.toLowerCase())
+              )
+            )
+            .slice(0, 5 - validatedAlerts.length);
+          
+          // Add these to our alerts with somewhat lower confidence
+          const enhancedRegularItems = regularDisasterItems.map(item => {
+            // Find which keyword matched
+            let matchedKeyword = null;
+            for (const keyword of allDisasterKeywords) {
+              if (item.title.toLowerCase().includes(keyword.toLowerCase()) || 
+                  item.content.toLowerCase().includes(keyword.toLowerCase())) {
+                matchedKeyword = keyword;
+                break;
+              }
+            }
+            
+            return {
+              ...item,
+              validatedAsDisaster: true,
+              disasterConfidence: 0.75,
+              disasterType: matchedKeyword ? 
+                matchedKeyword.charAt(0).toUpperCase() + matchedKeyword.slice(1) : 
+                "Emergency",
+              validationDetails: `Disaster keyword match: ${matchedKeyword || 'unknown'}`
+            };
+          });
+          
+          validatedAlerts = [...validatedAlerts, ...enhancedRegularItems];
+        }
+      } else {
+        // Not enough high-priority matches, try API validation as a backup
+        try {
+          // First, get regular keyword-filtered items
+          const keywordFilteredItems = newsItems.filter(item => {
+            return allDisasterKeywords.some(keyword => 
+              item.title.toLowerCase().includes(keyword.toLowerCase()) ||
+              item.content.toLowerCase().includes(keyword.toLowerCase())
+            );
+          });
+          
+          // Add the high priority ones first (even if fewer than 3)
+          validatedAlerts = [...enhancedHighPriorityAlerts];
+          
+          // Do we have enough with just keywords?
+          if (keywordFilteredItems.length >= 5) {
+            // Add enough keyword-filtered items to reach 5 total
+            const highPriorityIds = new Set(enhancedHighPriorityAlerts.map(item => item.id));
+            const additionalItems = keywordFilteredItems
+              .filter(item => !highPriorityIds.has(item.id))
+              .slice(0, 5 - validatedAlerts.length);
+              
+            // Add keyword metadata
+            const enhancedAdditionalItems = additionalItems.map(item => {
+              // Find which keyword matched
+              let matchedKeyword = null;
+              for (const keyword of allDisasterKeywords) {
+                if (item.title.toLowerCase().includes(keyword.toLowerCase()) || 
+                    item.content.toLowerCase().includes(keyword.toLowerCase())) {
+                  matchedKeyword = keyword;
+                  break;
+                }
+              }
+              
+              return {
+                ...item,
+                validatedAsDisaster: true,
+                disasterConfidence: 0.75,
+                disasterType: matchedKeyword ? 
+                  matchedKeyword.charAt(0).toUpperCase() + matchedKeyword.slice(1) : 
+                  "Emergency",
+                validationDetails: `Disaster keyword match: ${matchedKeyword || 'unknown'}`
+              };
+            });
+            
+            validatedAlerts = [...validatedAlerts, ...enhancedAdditionalItems];
+          } else {
+            // We don't have enough items with just keyword filtering
+            // Try a few API calls for validation
+            for (const item of keywordFilteredItems.slice(0, 5)) {
+              // Skip items we already validated
+              if (validatedAlerts.some(alert => alert.id === item.id)) {
+                continue;
+              }
+              
+              try {
+                const validation = await isDisasterNews(item.title, item.content);
+                
+                if (validation.isDisaster && validation.confidence > 0.6) {
+                  validatedAlerts.push({
+                    ...item,
+                    validatedAsDisaster: true,
+                    disasterConfidence: validation.confidence,
+                    disasterType: validation.disasterType,
+                    validationDetails: validation.details
+                  });
+                  
+                  // If we have enough validated alerts, stop making API calls
+                  if (validatedAlerts.length >= 5) {
+                    break;
+                  }
+                }
+              } catch (validationError) {
+                console.warn(`Error validating news item for disaster alerts: ${item.title}`, validationError);
+              }
+            }
+            
+            // If we still don't have enough alerts, add more keyword-matched items
+            if (validatedAlerts.length < 5) {
+              const validatedIds = new Set(validatedAlerts.map(alert => alert.id));
+              const remainingKeywordItems = keywordFilteredItems
+                .filter(item => !validatedIds.has(item.id))
+                .slice(0, 5 - validatedAlerts.length);
+              
+              // Add metadata to remaining items
+              const enhancedRemainingItems = remainingKeywordItems.map(item => {
+                // Find which keyword matched
+                let matchedKeyword = null;
+                for (const keyword of allDisasterKeywords) {
+                  if (item.title.toLowerCase().includes(keyword.toLowerCase()) || 
+                      item.content.toLowerCase().includes(keyword.toLowerCase())) {
+                    matchedKeyword = keyword;
+                    break;
+                  }
+                }
+                
+                return {
+                  ...item,
+                  validatedAsDisaster: true,
+                  disasterConfidence: 0.65,
+                  disasterType: matchedKeyword ? 
+                    matchedKeyword.charAt(0).toUpperCase() + matchedKeyword.slice(1) : 
+                    "Emergency",
+                  validationDetails: `Disaster keyword match (fallback): ${matchedKeyword || 'unknown'}`
+                };
+              });
+              
+              validatedAlerts = [...validatedAlerts, ...enhancedRemainingItems];
+            }
+          }
+        } catch (validationError) {
+          console.warn('Error in disaster alerts validation, using keyword matching only:', validationError);
+          
+          // Fallback to basic keyword matching
+          validatedAlerts = newsItems.filter(item => {
+            return allDisasterKeywords.some(keyword => 
+              item.title.toLowerCase().includes(keyword.toLowerCase()) ||
+              item.content.toLowerCase().includes(keyword.toLowerCase())
+            );
+          }).slice(0, 10).map(item => {
+            // Find which keyword matched
+            let matchedKeyword = null;
+            for (const keyword of allDisasterKeywords) {
+              if (item.title.toLowerCase().includes(keyword.toLowerCase()) || 
+                  item.content.toLowerCase().includes(keyword.toLowerCase())) {
+                matchedKeyword = keyword;
+                break;
+              }
+            }
+            
+            return {
+              ...item,
+              validatedAsDisaster: true,
+              disasterConfidence: 0.7,
+              disasterType: matchedKeyword ? 
+                matchedKeyword.charAt(0).toUpperCase() + matchedKeyword.slice(1) : 
+                "Emergency",
+              validationDetails: `Disaster keyword match (fallback): ${matchedKeyword || 'unknown'}`
+            };
+          });
+        }
       }
       
       // Sort by timestamp (newest first)

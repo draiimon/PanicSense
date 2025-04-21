@@ -52,15 +52,41 @@ export async function isDisasterNews(title: string, content: string): Promise<Di
   const disasterKeywords = [
     'typhoon', 'earthquake', 'flood', 'fire', 'landslide', 'eruption',
     'tsunami', 'evacuation', 'emergency', 'disaster', 'rescue', 'survivors',
-    'bagyo', 'lindol', 'baha', 'sunog', 'pagguho', 'bulkan', 'sakuna'
+    'bagyo', 'lindol', 'baha', 'sunog', 'pagguho', 'bulkan', 'sakuna',
+    'quake', 'tremor', 'blaze', 'collapse', 'explosion', 'storm', 'cyclone',
+    'evacuate', 'destroyed', 'damaged', 'submerged', 'trapped', 'killed',
+    'casualty', 'casualties', 'injured', 'damages', 'devastation', 'devastated'
   ];
   
-  // If title contains clear disaster keywords, maybe we can skip API check
+  // If title contains clear disaster keywords, we can skip API check to avoid rate limits
   const isLikelyDisaster = disasterKeywords.some(keyword => 
     title.toLowerCase().includes(keyword.toLowerCase())
   );
   
-  // For now, we'll still validate with the API regardless, but we could optimize this later
+  // Content analysis for better accuracy
+  const contentContainsDisasterKeywords = disasterKeywords.some(keyword => 
+    content.toLowerCase().includes(keyword.toLowerCase())
+  );
+  
+  // If it's clearly a disaster based on title and content, return true immediately
+  // This helps reduce API calls to avoid rate limits
+  if (isLikelyDisaster && contentContainsDisasterKeywords) {
+    // Extract disaster type from the title
+    let disasterType = null;
+    for (const keyword of disasterKeywords) {
+      if (title.toLowerCase().includes(keyword.toLowerCase())) {
+        disasterType = keyword.charAt(0).toUpperCase() + keyword.slice(1);
+        break;
+      }
+    }
+    
+    return {
+      isDisaster: true,
+      disasterType,
+      confidence: 0.85, // Pretty high confidence since both title and content match
+      details: `Disaster news detected by keyword analysis in both title and content: ${disasterType || 'unknown disaster'}`
+    };
+  }
   
   // Prepare the system and user message for the API
   const systemMessage = `
