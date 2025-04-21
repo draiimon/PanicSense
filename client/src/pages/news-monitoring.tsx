@@ -1,5 +1,22 @@
 import { useState, useEffect } from "react";
-import { Loader, ArrowUpRight, AlertTriangle, Zap, Clock, Image as ImageIcon, ExternalLink, Newspaper, Map, Rss } from "lucide-react";
+import { 
+  Loader, 
+  ArrowUpRight, 
+  AlertTriangle, 
+  Zap, 
+  Clock, 
+  Image as ImageIcon, 
+  ExternalLink, 
+  Newspaper, 
+  Map, 
+  Rss,
+  Cloud,
+  Droplets,
+  Flame,
+  Mountain,
+  LifeBuoy,
+  Thermometer
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -780,7 +797,7 @@ export default function NewsMonitoringPage() {
                                           combinedText.includes('storm') || combinedText.includes('tropical cyclone')) {
                                         return (
                                           <Badge className="bg-blue-600 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
-                                            <Cloud className="h-3 w-3" />
+                                            <AlertTriangle className="h-3 w-3" />
                                             WEATHER ALERT
                                           </Badge>
                                         );
@@ -795,14 +812,14 @@ export default function NewsMonitoringPage() {
                                       } else if (combinedText.includes('flood') || combinedText.includes('baha')) {
                                         return (
                                           <Badge className="bg-blue-700 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
-                                            <Droplets className="h-3 w-3" />
+                                            <AlertTriangle className="h-3 w-3" />
                                             FLOOD WARNING
                                           </Badge>
                                         );
                                       } else if (combinedText.includes('fire') || combinedText.includes('sunog')) {
                                         return (
                                           <Badge className="bg-red-600 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
-                                            <Flame className="h-3 w-3" />
+                                            <AlertTriangle className="h-3 w-3" />
                                             FIRE ALERT
                                           </Badge>
                                         );
@@ -810,21 +827,21 @@ export default function NewsMonitoringPage() {
                                                 combinedText.includes('phivolcs')) {
                                         return (
                                           <Badge className="bg-red-700 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
-                                            <Mountain className="h-3 w-3" />
+                                            <AlertTriangle className="h-3 w-3" />
                                             VOLCANO ALERT
                                           </Badge>
                                         );
                                       } else if (combinedText.includes('heat') || combinedText.includes('temperature')) {
                                         return (
                                           <Badge className="bg-amber-600 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
-                                            <Thermometer className="h-3 w-3" />
+                                            <AlertTriangle className="h-3 w-3" />
                                             HEAT ADVISORY
                                           </Badge>
                                         );
                                       } else if (combinedText.includes('evacuate') || combinedText.includes('evacuation')) {
                                         return (
                                           <Badge className="bg-purple-600 text-white px-2 py-1 text-xs font-bold flex items-center gap-1 animate-pulse">
-                                            <LifeBuoy className="h-3 w-3" />
+                                            <AlertTriangle className="h-3 w-3" />
                                             EVACUATION
                                           </Badge>
                                         );
