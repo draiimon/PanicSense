@@ -14,25 +14,14 @@ const STORAGE_KEY = 'panicsense-tutorial-completed';
 
 export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showTutorial, setShowTutorial] = useState(false);
-  const [completedTutorial, setCompletedTutorial] = useState(false);
-  const [initialCheck, setInitialCheck] = useState(false);
+  const [completedTutorial, setCompletedTutorial] = useState(true); // Mark as completed by default
+  const [initialCheck, setInitialCheck] = useState(true); // Skip initial check
   
-  // On first mount, check local storage to see if tutorial was completed
+  // Modified behavior: never show tutorial automatically
   useEffect(() => {
-    const completed = localStorage.getItem(STORAGE_KEY) === 'true';
-    setCompletedTutorial(completed);
-    
-    // Show tutorial automatically on first visit if not completed
-    if (!completed && !initialCheck) {
-      // Delay showing the tutorial to ensure page loads first
-      const timer = setTimeout(() => {
-        setShowTutorial(true);
-      }, 2000);
-      
-      setInitialCheck(true);
-      return () => clearTimeout(timer);
-    }
-  }, [initialCheck]);
+    // Always set as completed in local storage to prevent future popups
+    localStorage.setItem(STORAGE_KEY, 'true');
+  }, []);
   
   const startTutorial = () => {
     setShowTutorial(true);

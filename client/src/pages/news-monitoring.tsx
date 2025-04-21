@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader, ArrowUpRight, AlertTriangle, Zap, Clock, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { Loader, ArrowUpRight, AlertTriangle, Zap, Clock, Image as ImageIcon, ExternalLink, Newspaper, Map, Rss } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -153,48 +153,47 @@ const newsImageMap: Record<string, string> = {
 
 // Function to extract og:image meta tag from URL - REALTIME IMAGE GRABBER
 const extractOgImageUrl = (url: string): string => {
-  // Para realtime talaga ang kuha natin, gagamitin natin ang high-quality image services
+  // MOST RELIABLE API - will prevent placeholders by using a proxy pattern for CORS
+  // We use the consistent URLbox API with specific selectors for each news source
   
-  // SUPER ADVANCED IMAGE CAPTURING - direct screenshot ito for the actual web page
-  // Iba't ibang services para kung mabagal ang isa, gagana ang iba
-  
-  // Service 1: ScreenshotOne - premium service for high quality website captures
+  // SPECIAL HANDLING PER SOURCE - Maximum optimization
   if (url.includes('inquirer.net')) {
-    return `https://api.screenshotone.com/take?access_key=S4HRGQDOU6Z9FPNN&url=${encodeURIComponent(url)}&viewport_width=1200&viewport_height=800&device_scale_factor=1&format=jpg&block_ads=true&async=false&cache=false&full_page=false&extract_from_html=og:image&quality=90`;
+    // Inquirer has consistent image structure in article-body-main
+    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.article-body-main+img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
   }
   
-  // Service 2: URLbox API - salamat sa beta key para sa high-quality images
   if (url.includes('philstar.com')) {
-    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&wait_for=.article-content&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc`;
+    // PhilStar has .article-body section containing images
+    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.article-body img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
   }
   
-  // Service 3: Screenshotapi.net - mabilis ito at reliable
   if (url.includes('abs-cbn.com')) {
-    return `https://shot.screenshotapi.net/screenshot?token=PFSDWT8-K8DMJPM-JD1GEWN-DZ1X995&url=${encodeURIComponent(url)}&width=1200&height=800&output=image&file_type=jpg&wait_for_event=load&cache_ttl=0`;
+    // ABS-CBN uses specific article image containers  
+    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.article-main-img img, .article-body img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
   }
   
-  // Service 4: Microlink.io - maganda talaga sa mobile display
   if (url.includes('rappler.com')) {
-    return `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&embed=screenshot.url&waitUntil=networkidle0&overlay.browser=false&screenshot.type=jpeg&fullPage=false`;
+    // Rappler has specific article-main-image
+    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.article-main-image img, .rappler-main-image img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
   }
   
-  // Service 5: Cloudinary API - image transformation with live screenshot
   if (url.includes('gmanetwork.com')) {
-    return `https://res.cloudinary.com/demo/image/fetch/w_1200,h_800,q_auto,f_auto,c_fill/${encodeURIComponent(url)}`;
+    // GMA has very specific image containers
+    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.article-main img, .story__header__image img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
   }
   
-  // Service 6: APIFlash - meron silang libreng credits para sa high quality image
   if (url.includes('manilatimes.net') || url.includes('mb.com.ph')) {
-    return `https://api.apiflash.com/v1/urltoimage?access_key=6348169f40414f5ab28f60c07cd0f0c2&url=${encodeURIComponent(url)}&format=jpeg&width=1200&height=800&full_page=false&fresh=true&response_type=image&quality=100&ttl=0`;
+    // Manila Times and MB have featured images
+    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.featured-image img, .article-featured-image img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
   }
   
-  // Service 7: Pagic.org - mabilis ang API na ito para sa PH sites
   if (url.includes('pna.gov.ph') || url.includes('pagasa.dost.gov.ph')) {
-    return `https://api.pagic.org/v1/screenshot?url=${encodeURIComponent(url)}&width=1200&height=800&image=true&refresh=true`;
+    // PNA and PAGASA have specific image containers
+    return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=.article-image img, .featured-image-container img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=85&disable_js=true&device_scale=1`;
   }
   
-  // Default to ScreenshotMachine - premium service, guaranteed to work
-  return `https://api.screenshotmachine.com/?key=af2bb9&url=${encodeURIComponent(url)}&dimension=1200x800&format=jpg&cacheLimit=0&delay=2000&isResponsive=true`;
+  // CATCH ALL for any other news source - target the largest image on the page
+  return `https://api.urlbox.io/v1/render?url=${encodeURIComponent(url)}&format=jpeg&full_page=false&selector=img&width=1200&height=800&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc&quality=80&disable_js=true&device_scale=1`;
 };
 
 // Get news image based on URL patterns or direct mappings - with REALTIME options
@@ -436,29 +435,34 @@ export default function NewsMonitoringPage() {
 
   return (
     <div className="relative min-h-screen">
-      {/* ENHANCED Animated Background with Floating Elements */}
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-violet-50 to-pink-50 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/15 via-teal-500/10 to-rose-500/15 animate-gradient"
-          style={{ backgroundSize: '400% 400%', animation: 'gradient 15s ease infinite' }}
-        />
-        <div className="absolute inset-0 opacity-25">
-          <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]" />
+      {/* DASHBOARD STYLE BACKGROUND - Similar to Dashboard page */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        {/* Main dark gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900"></div>
+        
+        {/* Dot pattern overlay */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px]" />
         </div>
         
-        {/* Floating Gradient Orbs */}
-        <div className="absolute h-60 w-60 rounded-full bg-indigo-500/20 filter blur-3xl animate-float-slow will-change-transform"
-          style={{ top: "20%", left: "15%" }} />
+        {/* Animated gradient overlay */}
+        <div 
+          className="absolute inset-0 opacity-10 bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-700 animate-gradient"
+          style={{ backgroundSize: '400% 400%', animation: 'gradient 15s ease infinite' }}
+        />
         
-        <div className="absolute h-52 w-52 rounded-full bg-blue-500/20 filter blur-3xl animate-float-slow-reverse will-change-transform"
-          style={{ top: "45%", right: "20%" }} />
+        {/* Animated glass-like orbs */}
+        <div className="absolute h-64 w-64 rounded-full bg-blue-400/10 filter blur-3xl animate-float-slow will-change-transform"
+          style={{ top: "15%", left: "10%" }} />
         
-        <div className="absolute h-48 w-48 rounded-full bg-pink-500/20 filter blur-3xl animate-float-4 will-change-transform"
-          style={{ top: "65%", left: "25%" }} />
+        <div className="absolute h-56 w-56 rounded-full bg-indigo-500/10 filter blur-3xl animate-float-slow-reverse will-change-transform"
+          style={{ bottom: "15%", right: "10%" }} />
+        
+        <div className="absolute h-48 w-48 rounded-full bg-purple-500/10 filter blur-3xl animate-float-4 will-change-transform"
+          style={{ top: "60%", left: "25%" }} />
           
-        <div className="absolute h-40 w-40 rounded-full bg-yellow-400/15 filter blur-3xl animate-float-5 will-change-transform"
-          style={{ top: "30%", left: "40%" }} />
-          
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="absolute h-72 w-72 rounded-full bg-violet-400/10 filter blur-3xl animate-float-5 will-change-transform"
+          style={{ top: "30%", right: "25%" }} />
       </div>
       
       <div className="relative pb-10">
@@ -481,12 +485,12 @@ export default function NewsMonitoringPage() {
               
               <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm shadow-inner">
-                    <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  <div className="p-2 rounded-full bg-gradient-to-br from-blue-500 to-teal-400 backdrop-blur-sm shadow-lg">
+                    <Newspaper className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                   </div>
                   <div>
                     <h1 className="text-lg sm:text-xl font-bold text-white">
-                      Disaster News Monitoring
+                      News Monitoring
                     </h1>
                     <p className="text-xs sm:text-sm text-indigo-100 mt-0.5 sm:mt-1">
                       Real-time updates from official agencies and media sources across the Philippines
@@ -517,7 +521,7 @@ export default function NewsMonitoringPage() {
               
                 <div className="relative z-10">
                   <h2 className="text-xl font-semibold mb-4 text-white flex items-center">
-                    <AlertTriangle className="h-5 w-5 mr-2" />
+                    <Rss className="h-5 w-5 mr-2" />
                     Latest Disaster Alerts
                   </h2>
                   
