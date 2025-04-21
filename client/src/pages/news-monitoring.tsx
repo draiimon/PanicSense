@@ -622,12 +622,8 @@ export default function NewsMonitoringPage() {
                                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                                   
                                   <div className="absolute bottom-0 left-0 p-4 w-full">
-                                    <div className="flex justify-between items-start">
-                                      <Badge 
-                                        className="mb-2 text-white bg-red-500/80 hover:bg-red-600/80 transition-colors"
-                                      >
-                                        {formatDisasterType(item.disasterType)}
-                                      </Badge>
+                                    <div className="flex justify-end items-start">
+                                      {/* Disaster type removed to improve reliability */}
                                       <Badge className="bg-black/50 flex items-center gap-1 text-white text-xs">
                                         <Clock className="h-3 w-3" />
                                         {formatDate(item.timestamp)}
