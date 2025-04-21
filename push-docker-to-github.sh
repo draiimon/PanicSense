@@ -6,15 +6,14 @@ git config --global user.email "user@example.com"
 git config --global user.name "PanicSense Docker Setup"
 
 # Setup GitHub token
-GH_TOKEN="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"
+GH_TOKEN="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"
 
 # Get current branch
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo "Current branch: $CURRENT_BRANCH"
 
-# Create and checkout the DockerPS branch
-git checkout -b DockerPS
-echo "Created and switched to DockerPS branch"
+# We're already on the DockerPS branch
+echo "Already on DockerPS branch"
 
 # Add the Docker files
 git add Dockerfile docker-compose.yml start.sh .env.example docker-readme.md
