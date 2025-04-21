@@ -1,86 +1,72 @@
-# Docker & Render Deployment for PanicSense PH
+# PanicSense PH Deployment sa Render (Simplified)
 
-This repository contains the Docker configuration and deployment setup for deploying the PanicSense PH application to Render.com.
+Itong documentation ang magpapaliwanag kung paano i-deploy ang PanicSense PH sa Render.com ng madali at mabilis.
 
-## Docker Configuration
+## Optimization at Highlights
 
-The Docker setup consists of:
+Ang Docker setup ay optimized para sa:
 
-1. **Dockerfile**: A multi-stage build that:
-   - First stage: Builds the Node.js application
-   - Second stage: Creates a production image with both Node.js and Python
+1. **Mabilis na Deployment**: Optimized Docker image na light lang sa resources
+2. **Production-Ready**: Multi-stage build para sa optimized production image
+3. **Integrated Technologies**:
+   - React + TypeScript frontend
+   - Node.js Express backend
+   - Python ML capabilities
+   - PostgreSQL database
+4. **Automatic Setup**: Naka-configure para automatic ang deployment sa Render
 
-2. **docker-verify.sh**: A verification script to locally test your Docker setup before deploying to Render.
+## Deployment Steps
 
-3. **.dockerignore**: Specifies files and directories to exclude from the Docker image to keep it slim.
+### Render.com Deployment (Easiest Method)
 
-## Render Configuration
+1. **Connect Your GitHub Repository**:
+   - Sa Render Dashboard, click "New" → "Web Service"
+   - Connect your GitHub repo
+   
+2. **Configure Service**:
+   - Name: `panicsense-ph` (or anumang preferred name)
+   - Region: Manila (or closest to PH)
+   - Select "Docker" as the environment
+   - Click "Create Web Service"
 
-The Render deployment is configured with:
+3. **Environment Variables**:
+   - Sa Render dashboard, add the following environment variables:
+     - `DATABASE_URL`: (Ito ay automatically provided ng Render)
+     - `NODE_ENV`: `production`
+     - `PORT`: `5000`
+     - Iba pang needed API keys
 
-1. **render.yaml**: Defines the web service and database settings for Render Blueprint deployment.
+4. **Database Setup**:
+   - Sa Render dashboard, click "New" → "PostgreSQL"
+   - Link it to your web service
+   - The database will be auto-setup on first deploy
 
-2. **render-setup.sh**: A script that runs on startup in Render to set up the environment and run migrations.
+## Docker Image Optimizations
 
-3. **.env.example**: A template for required environment variables.
+Ang Docker image ay optimized para sa:
 
-## Key Features
-
-- **Multi-stage Docker build**: Efficiently creates a production-ready image
-- **PostgreSQL database**: Automatically provisioned by Render
-- **Python integration**: Includes Python 3.11 with PyTorch for ML features
-- **Automatic migrations**: Database schema is updated during deployment
-- **Environment variables**: Securely configured through Render
-
-## Deployment Process
-
-Detailed instructions for deploying to Render are provided in the [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md) file.
-
-In summary:
-1. Push your code to a Git repository
-2. Connect your repository to Render
-3. Render will detect your configuration and deploy automatically
-
-## Local Development & Testing
-
-To verify your Docker setup locally before deploying to Render:
-
-```bash
-# Make the verification script executable
-chmod +x docker-verify.sh
-
-# Run the verification script
-./docker-verify.sh
-```
-
-This will:
-1. Build your Docker image using the multi-stage Dockerfile
-2. Start a temporary PostgreSQL container for testing
-3. Run the application container and connect it to the database
-4. Test the API health endpoint to ensure everything works
-5. Clean up all test containers
-
-If the verification passes, your setup is ready for deployment to Render!
+1. **Smaller Size**: Gumagamit ng slim base images at optimized na layer caching
+2. **Faster Builds**: Efficient na multi-stage build process
+3. **Production-Ready**: Clean at minimal package installation
 
 ## Technology Stack
 
-- **Frontend**: React with TypeScript
-- **Backend**: Node.js (Express)
-- **Machine Learning**: Python with PyTorch
+- **Frontend**: React, TypeScript, TailwindCSS, Shadcn/UI
+- **Backend**: Node.js (Express), Drizzle ORM
+- **Machine Learning**: Python 3.11, PyTorch, NLTK
 - **Database**: PostgreSQL
 - **Deployment**: Docker on Render.com
 
-## Directory Structure
+## Important Files
 
-- `/client`: React frontend
-- `/server`: Node.js backend
+- **Dockerfile**: Multi-stage build configuration
+- **.env.example**: Template for required environment variables
+- **package.json**: Contains all the scripts and dependencies
+
+## Project Structure
+
+- `/client`: React frontend application
+- `/server`: Node.js backend at API
 - `/server/python`: Python ML components
 - `/shared`: Shared code between frontend and backend
 - `/migrations`: Database migrations
-- `/public`: Static assets
-
-## Additional Resources
-
-- [Render.com Documentation](https://render.com/docs)
-- [Docker Documentation](https://docs.docker.com/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
