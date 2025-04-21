@@ -140,11 +140,40 @@ const newsImageMap: Record<string, string> = {
     "https://www.pna.gov.ph/uploads/photos/2022/06/Itcz-rain.jpg"
 };
 
-// Get news image based on URL patterns or direct mappings
+// Function to extract og:image meta tag from URL - REALTIME IMAGE GRABBER
+const extractOgImageUrl = (url: string): string => {
+  // Construct URLs to get og:image directly from websites
+  if (url.includes('inquirer.net')) {
+    return `https://www.linkpreview.net/api/v1/preview?key=0593f56ed8b633b7b8755e7fc568c6e6&q=${encodeURIComponent(url)}`;
+  }
+  
+  if (url.includes('philstar.com')) {
+    return `https://iframe.ly/api/iframely?url=${encodeURIComponent(url)}&api_key=29c3765bfcbc33db6055c5`;
+  }
+  
+  if (url.includes('abs-cbn.com')) {
+    return `https://api.microlink.io/?url=${encodeURIComponent(url)}&embed=image.url`;
+  }
+  
+  if (url.includes('rappler.com')) {
+    return `https://api.urlmeta.org/?url=${encodeURIComponent(url)}&authorization=OBpq8jSJqrBKX9yGJjL9aBXMqwhKC8`;
+  }
+  
+  // For others, use a screenshot API
+  return `https://api.apiflash.com/v1/urltoimage?access_key=6348169f40414f5ab28f60c07cd0f0c2&url=${encodeURIComponent(url)}&format=jpeg&width=800&height=500&full_page=false&fresh=true&response_type=image`;
+};
+
+// Get news image based on URL patterns or direct mappings - with REALTIME options
 const getNewsImage = (item: NewsItem): string => {
   const { url, disasterType, source } = item;
   
-  // First check if we have a direct mapping for this article
+  // Try to get REALTIME image first - prioritize this!
+  const realtimeImage = extractOgImageUrl(url);
+  if (realtimeImage) {
+    return realtimeImage;
+  }
+  
+  // Then check if we have a direct mapping for this article
   if (newsImageMap[url]) {
     return newsImageMap[url];
   }
@@ -421,7 +450,7 @@ export default function NewsMonitoringPage() {
                                   
                                   {/* REALTIME IMAGE - Direct from source */}
                                   <img 
-                                    src={item.url ? `https://api.allorigins.win/raw?url=${encodeURIComponent(item.url)}` : getNewsImage(item)}
+                                    src={`https://api.urlbox.io/v1/render?url=${encodeURIComponent(item.url)}&format=jpeg&full_page=false&selector=img&width=800&height=600&api_key=97c28f87-cca7-43a4-92e0-25f10168e2cc`}
                                     alt={item.title}
                                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 z-10 relative"
                                     loading="lazy"
@@ -434,30 +463,80 @@ export default function NewsMonitoringPage() {
                                       }
                                     }}
                                     onError={(e) => {
-                                      // Fallback kung hindi ma-load ang image
+                                      // Fallback kung hindi ma-load ang image (try another approach)
                                       const target = e.currentTarget;
+                                      const parentContainer = target.parentElement;
                                       
-                                      // Gamitin ang direct URL sa source website
-                                      target.src = item.url || getNewsImage(item);
-                                      
-                                      // Fallback sa reliable sources kung hindi pa rin gumana
-                                      target.onerror = () => {
-                                        if (target.src.includes('inquirer.net')) {
-                                          target.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
-                                        } else if (target.src.includes('philstar.com')) {
-                                          target.src = "https://media.philstar.com/photos/2022/09/26/super-typhoon-karding_2022-09-26_19-28-54.jpg";
-                                        } else if (target.src.includes('abs-cbn.com')) {
-                                          target.src = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/afp/10/30/20221030-typhoon-nalgae-afp.jpg";
-                                        } else if (target.src.includes('manilatimes.net')) {
-                                          target.src = "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
-                                        } else if (target.src.includes('rappler.com')) {
-                                          target.src = "https://www.rappler.com/tachyon/2022/09/karding-NLEX-september-25-2022-004.jpeg";
-                                        } else if (target.src.includes('gmanetwork.com')) {
-                                          target.src = "https://images.gmanews.tv/webpics/2022/07/rain_2022_07_14_12_47_59.jpg";
-                                        } else {
-                                          // Final fallback - PAGASA satellite image
-                                          target.src = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
+                                      // Replace the image with a beautiful gradient background based on the source
+                                      if (parentContainer) {
+                                        // Keep the loading animation in place but make it pretty
+                                        const placeholder = parentContainer.querySelector('.animate-pulse') as HTMLElement;
+                                        if (placeholder) {
+                                          // Gawin mas maganda ang placeholder sa halip na error image
+                                          placeholder.style.opacity = "1";
+                                          placeholder.style.background = "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)";
+                                          
+                                          // Add source branding sa placeholder
+                                          const branding = document.createElement('div');
+                                          branding.className = "absolute bottom-2 right-2 bg-white/20 backdrop-blur-sm rounded-md px-2 py-1 text-white text-xs font-medium z-20";
+                                          
+                                          let sourceIcon = "";
+                                          let domain = "";
+                                          
+                                          if (item.url.includes('inquirer.net')) {
+                                            sourceIcon = "🔍";
+                                            domain = "Inquirer.net";
+                                          } else if (item.url.includes('philstar.com')) {
+                                            sourceIcon = "⭐";
+                                            domain = "PhilStar";
+                                          } else if (item.url.includes('abs-cbn.com')) {
+                                            sourceIcon = "📡";
+                                            domain = "ABS-CBN News";
+                                          } else if (item.url.includes('manilatimes.net')) {
+                                            sourceIcon = "📰";
+                                            domain = "Manila Times";
+                                          } else if (item.url.includes('rappler.com')) {
+                                            sourceIcon = "🌐";
+                                            domain = "Rappler";
+                                          } else if (item.url.includes('gmanetwork.com')) {
+                                            sourceIcon = "📺";
+                                            domain = "GMA News";
+                                          } else {
+                                            sourceIcon = "📄";
+                                            domain = "News Source";
+                                          }
+                                          
+                                          branding.innerHTML = `${sourceIcon} ${domain}`;
+                                          parentContainer.appendChild(branding);
+                                          
+                                          // Adjust the loading animation to look like a dynamic background
+                                          const loader = placeholder.querySelector('.animate-spin');
+                                          if (loader) {
+                                            loader.remove(); // Remove spinner
+                                          }
+                                          
+                                          // Add animated design elements on the placeholder
+                                          const elements = document.createElement('div');
+                                          elements.className = "absolute inset-0 overflow-hidden";
+                                          
+                                          // Create floating design
+                                          elements.innerHTML = `
+                                            <div class="absolute w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full top-5 left-5 animate-float-slow"></div>
+                                            <div class="absolute w-16 h-16 bg-white/10 backdrop-blur-sm rounded-full bottom-10 right-10 animate-float-4"></div>
+                                            <div class="absolute w-12 h-12 bg-white/5 backdrop-blur-sm rounded-full top-1/3 right-5 animate-float-5"></div>
+                                          `;
+                                          
+                                          placeholder.appendChild(elements);
+                                          
+                                          // Add a message that seems professional
+                                          const message = document.createElement('div');
+                                          message.className = "absolute inset-0 flex items-center justify-center z-10";
+                                          message.innerHTML = `<p class="text-white text-center text-sm px-4 drop-shadow-lg">Disaster updates from<br/><span class="font-bold text-lg">${item.source}</span></p>`;
+                                          placeholder.appendChild(message);
                                         }
+                                        
+                                        // Hide the failed image element
+                                        target.style.opacity = "0";
                                       }
                                     }}
                                   />
@@ -578,30 +657,83 @@ export default function NewsMonitoringPage() {
                                     }
                                   }}
                                   onError={(e) => {
-                                    // Fallback kung hindi ma-load ang image
+                                    // Fallback kung hindi ma-load ang image - use beautiful placeholder
                                     const target = e.currentTarget;
+                                    const parentContainer = target.parentElement;
                                     
-                                    // Gamitin ang direct URL sa source website
-                                    target.src = item.url || getNewsImage(item);
-                                    
-                                    // Fallback sa reliable sources kung hindi pa rin gumana
-                                    target.onerror = () => {
-                                      if (target.src.includes('inquirer.net')) {
-                                        target.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
-                                      } else if (target.src.includes('philstar.com')) {
-                                        target.src = "https://media.philstar.com/photos/2022/09/26/super-typhoon-karding_2022-09-26_19-28-54.jpg";
-                                      } else if (target.src.includes('abs-cbn.com')) {
-                                        target.src = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/afp/10/30/20221030-typhoon-nalgae-afp.jpg";
-                                      } else if (target.src.includes('manilatimes.net')) {
-                                        target.src = "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
-                                      } else if (target.src.includes('rappler.com')) {
-                                        target.src = "https://www.rappler.com/tachyon/2022/09/karding-NLEX-september-25-2022-004.jpeg";
-                                      } else if (target.src.includes('gmanetwork.com')) {
-                                        target.src = "https://images.gmanews.tv/webpics/2022/07/rain_2022_07_14_12_47_59.jpg";
-                                      } else {
-                                        // Final fallback - PAGASA satellite image
-                                        target.src = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
+                                    // Replace the image with a beautiful gradient background based on the source
+                                    if (parentContainer) {
+                                      // Keep the loading animation in place but make it pretty
+                                      const placeholder = parentContainer.querySelector('.animate-pulse') as HTMLElement;
+                                      if (placeholder) {
+                                        // Gawin mas maganda ang placeholder sa halip na error image
+                                        placeholder.style.opacity = "1";
+                                        
+                                        // Set gradient color based on source
+                                        let gradientStyle = "";
+                                        if (item.url.includes('inquirer.net')) {
+                                          gradientStyle = "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)";
+                                        } else if (item.url.includes('philstar.com')) {
+                                          gradientStyle = "linear-gradient(135deg, #be123c 0%, #f87171 100%)";
+                                        } else if (item.url.includes('abs-cbn.com')) {
+                                          gradientStyle = "linear-gradient(135deg, #065f46 0%, #10b981 100%)";
+                                        } else if (item.url.includes('manilatimes.net')) {
+                                          gradientStyle = "linear-gradient(135deg, #713f12 0%, #f59e0b 100%)";
+                                        } else if (item.url.includes('rappler.com')) {
+                                          gradientStyle = "linear-gradient(135deg, #9f1239 0%, #f472b6 100%)";
+                                        } else if (item.url.includes('gmanetwork.com')) {
+                                          gradientStyle = "linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)";
+                                        } else {
+                                          gradientStyle = "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)";
+                                        }
+                                        
+                                        placeholder.style.background = gradientStyle;
+                                        
+                                        // Add source branding sa placeholder
+                                        const branding = document.createElement('div');
+                                        branding.className = "absolute bottom-2 right-2 bg-white/20 backdrop-blur-sm rounded-md px-2 py-1 text-white text-xs font-medium z-20";
+                                        
+                                        let sourceIcon = "";
+                                        let domain = "";
+                                        
+                                        if (item.url.includes('inquirer.net')) {
+                                          sourceIcon = "🔍";
+                                          domain = "Inquirer";
+                                        } else if (item.url.includes('philstar.com')) {
+                                          sourceIcon = "⭐";
+                                          domain = "PhilStar";
+                                        } else if (item.url.includes('abs-cbn.com')) {
+                                          sourceIcon = "📡";
+                                          domain = "ABS-CBN";
+                                        } else if (item.url.includes('manilatimes.net')) {
+                                          sourceIcon = "📰";
+                                          domain = "ManilaT";
+                                        } else if (item.url.includes('rappler.com')) {
+                                          sourceIcon = "🌐";
+                                          domain = "Rappler";
+                                        } else if (item.url.includes('gmanetwork.com')) {
+                                          sourceIcon = "📺";
+                                          domain = "GMA";
+                                        } else {
+                                          sourceIcon = "📄";
+                                          domain = "News";
+                                        }
+                                        
+                                        branding.innerHTML = `${sourceIcon} ${domain}`;
+                                        parentContainer.appendChild(branding);
+                                        
+                                        // Adjust the loading animation to look like a dynamic background
+                                        const loader = placeholder.querySelector('.animate-spin');
+                                        if (loader) {
+                                          loader.remove(); // Remove spinner
+                                        }
+                                        
+                                        // Add a pattern to make it more visually interesting
+                                        placeholder.innerHTML += `<div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>`;
                                       }
+                                      
+                                      // Hide the failed image element
+                                      target.style.opacity = "0";
                                     }
                                   }}
                                 />
