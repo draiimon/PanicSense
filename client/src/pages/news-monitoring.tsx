@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader, ArrowUpRight, AlertTriangle, Zap, Clock, Image as ImageIcon, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -28,7 +28,7 @@ interface NewsItem {
   url: string;
   disasterType?: string;
   location?: string;
-  imageUrl?: string;
+  imageUrl?: string; // For news image
 }
 
 // Format disaster type for display
@@ -107,95 +107,126 @@ const getDisasterTypeColor = (type: string | undefined) => {
   return "bg-indigo-500/10 text-indigo-500";
 };
 
-// Get actual news images based on domain patterns and content
+// Map to store news article URLs to real image URLs
+const newsImageMap: Record<string, string> = {
+  // Actual news images for specific articles
+  "https://cebudailynews.inquirer.net/633876/itcz-to-bring-rains-across-mindanao": 
+    "https://cebudailynews.inquirer.net/files/2024/12/weather-update-rain2-1024x600.jpg",
+    
+  // Add more direct image mappings here as you discover them
+  "https://www.manilatimes.net/2025/04/21/news/scattered-rains-thunderstorms-likely-over-mindanao-due-to-itcz/2095551":
+    "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg",
+    
+  "https://newsinfo.inquirer.net/1893357/what-went-before-3": 
+    "https://newsinfo.inquirer.net/files/2023/03/Cadiz-City-PHL-Navy-Base.jpg",
+    
+  "https://www.manilatimes.net/2025/04/21/news/pnp-forms-special-committees-vs-kidnapping-fake-news/2095555":
+    "https://www.pna.gov.ph/uploads/photos/2023/12/PNP-patrol-car.jpg"
+};
+
+// Get news image based on URL patterns or direct mappings
 const getNewsImage = (item: NewsItem): string => {
   const { url, disasterType, source } = item;
   
-  // Actual news and disaster photos from Philippine news sites
+  // First check if we have a direct mapping for this article
+  if (newsImageMap[url]) {
+    return newsImageMap[url];
+  }
+  
+  // Based on the URL pattern and domain, return appropriate images
   if (url.includes('inquirer.net')) {
-    // Different images for Inquirer news based on content
-    if (disasterType?.toLowerCase().includes('typhoon') || disasterType?.toLowerCase().includes('bagyo')) {
+    if (url.includes('itcz') || url.includes('rain') || url.includes('storm')) {
+      return "https://cebudailynews.inquirer.net/files/2024/12/weather-update-rain2-1024x600.jpg";
+    }
+    
+    if (url.includes('typhoon') || url.includes('bagyo')) {
       return "https://newsinfo.inquirer.net/files/2022/09/Typhoon-Karding.jpg";
     }
-    if (disasterType?.toLowerCase().includes('flood') || disasterType?.toLowerCase().includes('baha')) {
-      return "https://newsinfo.inquirer.net/files/2023/07/gmanetwork-baha-manila.jpg";
-    }
-    if (disasterType?.toLowerCase().includes('earthquake') || disasterType?.toLowerCase().includes('lindol')) {
+    
+    if (url.includes('earthquake') || url.includes('lindol')) {
       return "https://newsinfo.inquirer.net/files/2022/07/310599.jpg";
     }
+    
+    if (url.includes('volcano') || url.includes('bulkan')) {
+      return "https://newsinfo.inquirer.net/files/2020/01/taal-volcano-jan-12-2020.jpg";
+    }
+    
     return "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
   }
   
   if (url.includes('philstar.com')) {
-    // Different images for PhilStar news
-    if (disasterType?.toLowerCase().includes('typhoon') || disasterType?.toLowerCase().includes('bagyo')) {
+    if (url.includes('rains') || url.includes('storm')) {
+      return "https://media.philstar.com/photos/2023/07/29/storm_2023-07-29_18-10-58.jpg";
+    }
+    
+    if (url.includes('typhoon')) {
       return "https://media.philstar.com/photos/2022/09/26/super-typhoon-karding_2022-09-26_19-28-54.jpg";
     }
-    if (disasterType?.toLowerCase().includes('flood') || disasterType?.toLowerCase().includes('baha')) {
-      return "https://media.philstar.com/photos/2023/07/29/flood1_2023-07-29_17-10-58.jpg";
+    
+    if (url.includes('quake') || url.includes('earthquake')) {
+      return "https://media.philstar.com/photos/2023/11/17/earthquake_2023-11-17_13-37-07.jpg";
     }
+    
     return "https://media.philstar.com/photos/2022/04/pagasa-bulletin_2022-04-08_23-06-27.jpg";
   }
   
-  if (url.includes('abs-cbn.com')) {
-    // ABS-CBN News actual disaster photos
-    if (disasterType?.toLowerCase().includes('typhoon') || disasterType?.toLowerCase().includes('bagyo')) {
-      return "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/afp/10/30/20221030-typhoon-nalgae-afp.jpg";
+  if (url.includes('gmanetwork.com')) {
+    if (url.includes('bagyo') || url.includes('ulan')) {
+      return "https://images.gmanews.tv/webpics/2022/07/rain_2022_07_14_12_47_59.jpg";
     }
-    if (disasterType?.toLowerCase().includes('flood') || disasterType?.toLowerCase().includes('baha')) {
-      return "https://sa.kapamilya.com/absnews/abscbnnews/media/2023/news/08/01/20230801-manila-flood-jl-5.jpg";
+    
+    if (url.includes('lindol')) {
+      return "https://images.gmanews.tv/webpics/2022/07/earthquake_2022_07_27_08_57_56.jpg";
     }
-    if (disasterType?.toLowerCase().includes('quake') || disasterType?.toLowerCase().includes('earthquake') || disasterType?.toLowerCase().includes('lindol')) {
-      return "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/27/earthquakeph.jpg";
-    }
-    return "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg";
-  }
-  
-  if (url.includes('gmanetwork.com') || url.includes('gmanews.tv')) {
-    // GMA News actual disaster photos
-    if (disasterType?.toLowerCase().includes('typhoon') || disasterType?.toLowerCase().includes('bagyo')) {
-      return "https://images.gmanews.tv/webpics/2022/09/super_typhoon_karding_2022_09_25_16_48_43.jpg";
-    }
-    if (disasterType?.toLowerCase().includes('flood') || disasterType?.toLowerCase().includes('baha')) {
-      return "https://images.gmanews.tv/webpics/2023/08/manila_flood_2023_08_05_21_57_56.jpg";
-    }
+    
+    // Default GMA news image for disasters
     return "https://images.gmanews.tv/webpics/2022/06/NDRRMC_2022_06_29_23_01_42.jpg";
   }
   
-  if (url.includes('rappler.com')) {
-    // Rappler actual disaster photos
-    if (disasterType?.toLowerCase().includes('typhoon') || disasterType?.toLowerCase().includes('bagyo')) {
-      return "https://www.rappler.com/tachyon/2022/09/karding-NLEX-september-25-2022-004.jpeg";
+  if (url.includes('abs-cbn.com')) {
+    if (url.includes('typhoon') || url.includes('bagyo')) {
+      return "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/afp/10/30/20221030-typhoon-nalgae-afp.jpg";
     }
-    if (disasterType?.toLowerCase().includes('flood') || disasterType?.toLowerCase().includes('baha')) {
-      return "https://www.rappler.com/tachyon/2023/07/manila-flood-july-24-2023-003.jpeg";
+    
+    if (url.includes('baha') || url.includes('flood')) {
+      return "https://sa.kapamilya.com/absnews/abscbnnews/media/2023/news/08/01/20230801-manila-flood-jl-5.jpg";
     }
-    return "https://www.rappler.com/tachyon/2023/02/disaster-drill-february-23-2023-002.jpeg";
-  }
-  
-  if (url.includes('cnnphilippines.com')) {
-    // CNN Philippines actual disaster photos
-    if (disasterType?.toLowerCase().includes('typhoon') || disasterType?.toLowerCase().includes('bagyo')) {
-      return "https://cnnphilippines.com/.imaging/mte/demo-cnn-new/750x450/dam/cnn/2022/9/25/Karding-impacts_CNNPH.jpg/jcr:content/Karding-impacts_CNNPH.jpg";
+    
+    if (url.includes('lindol') || url.includes('earthquake')) {
+      return "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/27/earthquakeph.jpg";
     }
-    if (disasterType?.toLowerCase().includes('flood') || disasterType?.toLowerCase().includes('baha')) {
-      return "https://cnnphilippines.com/.imaging/mte/demo-cnn-new/750x450/dam/cnn/2023/8/1/Manila-Flood-August-1-2023_CNNPH.jpg/jcr:content/Manila-Flood-August-1-2023_CNNPH.jpg";
-    }
-    return "https://cnnphilippines.com/.imaging/mte/demo-cnn-new/750x450/dam/cnn/2022/7/NDRRMC-monitoring_CNNPH.jpg/jcr:content/NDRRMC-monitoring_CNNPH.jpg";
+    
+    // Default ABS-CBN disaster image
+    return "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg";
   }
   
   if (url.includes('manilatimes.net')) {
-    // Manila Times actual disaster photos
-    if (disasterType?.toLowerCase().includes('typhoon') || disasterType?.toLowerCase().includes('bagyo')) {
+    if (url.includes('itcz') || url.includes('rain')) {
+      return "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
+    }
+    
+    if (url.includes('typhoon')) {
       return "https://www.manilatimes.net/manilatimes/uploads/images/2022/09/26/135682.jpg";
     }
-    if (disasterType?.toLowerCase().includes('flood') || disasterType?.toLowerCase().includes('baha')) {
-      return "https://www.manilatimes.net/manilatimes/uploads/images/2023/08/01/136123.jpg";
-    }
-    return "https://www.manilatimes.net/manilatimes/uploads/images/2022/04/19/138225.jpg";
+    
+    // Default Manila Times disaster image
+    return "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
   }
   
-  // Default disaster photos by type as fallback
+  if (url.includes('rappler.com')) {
+    if (url.includes('flood') || url.includes('baha')) {
+      return "https://www.rappler.com/tachyon/2023/07/manila-flood-july-24-2023-003.jpeg";
+    }
+    
+    if (url.includes('typhoon') || url.includes('storm')) {
+      return "https://www.rappler.com/tachyon/2022/09/karding-NLEX-september-25-2022-004.jpeg";
+    }
+    
+    // Default Rappler disaster image
+    return "https://www.rappler.com/tachyon/2023/02/disaster-drill-february-23-2023-002.jpeg";
+  }
+  
+  // Default image based on disaster type
   if (disasterType) {
     const type = disasterType.toLowerCase();
     
@@ -215,8 +246,8 @@ const getNewsImage = (item: NewsItem): string => {
       return "https://sa.kapamilya.com/absnews/abscbnnews/media/2020/news/01/12/taal-2.jpg";
   }
   
-  // Default fallback is the NDRRMC image
-  return "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
+  // Final fallback is the PAGASA satellite image
+  return "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
 };
 
 // Filter only disaster-related news
@@ -321,8 +352,22 @@ export default function NewsMonitoringPage() {
                                 alt={item.title}
                                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                                 onError={(e) => {
-                                  // Fallback if image fails to load
-                                  e.currentTarget.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
+                                  // Fallback if the primary image fails to load
+                                  const target = e.currentTarget;
+                                  
+                                  // Attempt to fix image URL if it's from a known source
+                                  if (target.src.includes('inquirer.net')) {
+                                    target.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
+                                  } else if (target.src.includes('philstar.com')) {
+                                    target.src = "https://media.philstar.com/photos/2022/04/pagasa-bulletin_2022-04-08_23-06-27.jpg";
+                                  } else if (target.src.includes('abs-cbn.com')) {
+                                    target.src = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg";
+                                  } else if (target.src.includes('manilatimes.net')) {
+                                    target.src = "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
+                                  } else {
+                                    // Final fallback
+                                    target.src = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
+                                  }
                                 }}
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
@@ -419,8 +464,22 @@ export default function NewsMonitoringPage() {
                             alt={item.title}
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             onError={(e) => {
-                              // Fallback if image fails to load
-                              e.currentTarget.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
+                              // Fallback if the primary image fails to load
+                              const target = e.currentTarget;
+                              
+                              // Check source to use appropriate fallback
+                              if (target.src.includes('inquirer.net')) {
+                                target.src = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
+                              } else if (target.src.includes('philstar.com')) {
+                                target.src = "https://media.philstar.com/photos/2022/04/pagasa-bulletin_2022-04-08_23-06-27.jpg";
+                              } else if (target.src.includes('abs-cbn.com')) {
+                                target.src = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg";
+                              } else if (target.src.includes('manilatimes.net')) {
+                                target.src = "https://www.pna.gov.ph/uploads/photos/2023/04/OCD-NDRRMC.jpg";
+                              } else {
+                                // Final fallback
+                                target.src = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
+                              }
                             }}
                           />
                           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70"></div>
@@ -485,7 +544,8 @@ export default function NewsMonitoringPage() {
       </Container>
 
       {/* CSS Animations */}
-      <style>{`
+      <style>
+        {`
         @keyframes gradient {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
@@ -505,7 +565,8 @@ export default function NewsMonitoringPage() {
           0%, 100% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 }
