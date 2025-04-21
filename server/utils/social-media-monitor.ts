@@ -302,17 +302,9 @@ if __name__ == "__main__":
 async function ensureScriptExists(): Promise<string> {
   const scriptPath = path.join(process.cwd(), 'server', 'python', 'social_media_scraper.py');
   
-  // Check if script exists
+  // Always use existing script - don't overwrite with simulation code
   if (!fs.existsSync(scriptPath)) {
-    // Create directory if needed
-    const dir = path.dirname(scriptPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    
-    // Write the script
-    fs.writeFileSync(scriptPath, PYTHON_SCRIPT_CONTENT);
-    log(`Created social media scraper script at ${scriptPath}`, 'social-media');
+    log(`Warning: Social media scraper script not found at ${scriptPath}`, 'social-media');
   }
   
   return scriptPath;
