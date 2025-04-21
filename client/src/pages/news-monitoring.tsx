@@ -1196,7 +1196,10 @@ export default function NewsMonitoringPage() {
                       }}
                     >
                       <CarouselContent>
-                        {allNews.filter(item => !isDisasterRelated(item)).slice(0, 10).map((item: NewsItem, index: number) => (
+                        {allNews
+                         .filter(item => item.title && item.content && !isDisasterRelated(item))
+                         .slice(0, 10)
+                         .map((item, index) => (
                           <CarouselItem key={item.id || index} className="md:basis-1/2 lg:basis-1/3">
                             <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
                               {/* Card Image */}
