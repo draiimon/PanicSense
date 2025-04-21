@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: panicsense
+    name: panicsense-ph
     env: docker
     plan: free
-    region: Singapore
+    region: singapore
     dockerfilePath: ./Dockerfile
     dockerContext: .
     envVars:
@@ -17,6 +17,24 @@ services:
         value: 5
       - key: DB_CONNECTION_RETRY_DELAY_MS
         value: 3000
+      - key: RUNTIME_ENV
+        value: render
+      - key: DB_SSL_REQUIRED
+        value: true
+      - key: HOST
+        value: 0.0.0.0
       # DATABASE_URL should be setup as a secret in Render.com dashboard
     healthCheckPath: /api/health
     autoDeploy: true
+    domains:
+      - panicsense.ph
+    buildFilter:
+      paths:
+        - ./**
+      ignoredPaths:
+        - PanicSense/**
+        - my_panicsense_clone/**
+        - github_fix/**
+        - temp_github_push/**
+        - node_modules/**
+        - .git/**

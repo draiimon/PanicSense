@@ -1,131 +1,130 @@
-# Professional Deployment Guide for PanicSense PH on Render.com
+# PanicSense Deployment Guide for Render.com
 
-This guide provides detailed, step-by-step instructions for deploying the PanicSense PH application to Render.com without using Blueprints (no credit card required).
+This guide provides step-by-step instructions for deploying PanicSense to Render.com using the free tier.
 
-## Pre-Deployment Checklist ✅
+## Prerequisites
 
-Verify these requirements before deployment:
+1. A Render.com account
+2. A PostgreSQL database (either on Render or elsewhere like Neon.tech)
+3. Git repository for your PanicSense project
 
-1. **Github Repository**: Complete code pushed to a GitHub repository
-2. **Docker Configuration**: Optimized Dockerfile is present in repository
-3. **Database Structure**: Drizzle ORM schemas prepared in `/shared/schema.ts`
-4. **Environment Variables**: Prepare required environment variables (listed below)
-5. **Deployment Optimizations**: All optimizations for smooth Docker and Render deployment are included:
-   - Enhanced database connection reliability
-   - Robust health checks
-   - Optimized build process
-   - Advanced error handling
+## Deployment Steps
 
-## Deployment Process
+### 1. Set Up Your Database
 
-### Step 1: Setup Database on Render
+**If using Render's PostgreSQL:**
 
-1. Log in to your [Render Dashboard](https://dashboard.render.com)
-2. Select **New** and choose **PostgreSQL**
-3. Configure the database:
-   - **Name**: `panicsense-database` (or your preferred name)
-   - **Database**: `panicsense` (default database name)
-   - **User**: Auto-generated (record for later use)
-   - **Region**: Southeast Asia (closest to Philippines)
-   - **PostgreSQL Version**: 15 (recommended for best compatibility)
-   - **Instance Type**: Free tier is sufficient for testing
-4. Click **Create Database**
-5. On the database info page, note down:
-   - **Internal Database URL** (for use in web service)
-   - **External Database URL** (for administration)
-   - **Username** and **Password**
+1. Log in to your Render dashboard
+2. Navigate to "Databases" on the left sidebar
+3. Click "New Database"
+4. Select PostgreSQL
+5. Fill in:
+   - Name: `panicsense-db`
+   - Database: `panicsense`
+   - User: Leave as default
+   - Region: Choose a region close to your users (e.g., Singapore for PH users)
+   - Plan: Free tier
+6. Click "Create Database"
+7. Once created, note your Internal Database URL
 
-### Step 2: Deploy Web Service on Render
+**If using Neon.tech or other PostgreSQL provider:**
 
-1. From your Render Dashboard, select **New** and choose **Web Service**
-2. Connect your GitHub repository
-3. Configure the Web Service:
-   - **Name**: `panicsense-ph` (or your preferred name)
-   - **Region**: Southeast Asia (closest to Philippines)
-   - **Branch**: `main` (or your primary branch)
-   - **Runtime**: `Docker`
-   - **Instance Type**: Free (for testing) or Standard (for production)
-4. Add environment variables:
-   - `DATABASE_URL`: *Copy the Internal Database URL from Step 1*
-   - `NODE_ENV`: `production`
-   - `PORT`: `5000`
-   - `PYTHON_PATH`: `python3`
-   - `TZ`: `Asia/Manila`
-   - `SESSION_SECRET`: Generate a strong random string (you can use: `openssl rand -base64 32`)
-5. Optional: If you're experiencing database connection delays during startup, add:
-   - `DB_CONNECTION_RETRY_ATTEMPTS`: `5`
-   - `DB_CONNECTION_RETRY_DELAY_MS`: `3000`
-6. Click **Create Web Service**
+1. Create a PostgreSQL database with your provider
+2. Note your database connection string
 
-### Step 3: Monitor Deployment
+### 2. Deploy to Render
 
-1. Render will build your Docker image (this may take 5-10 minutes)
-2. Monitor the build logs for any errors
-3. Once deployed, Render provides a URL (e.g., `https://panicsense-ph.onrender.com`)
-4. Verify the application is working by accessing the provided URL
+#### Option 1: Direct from GitHub
 
-### Step 4: Post-Deployment Tasks
+1. Log in to your Render dashboard
+2. Navigate to "Web Services" on the left sidebar
+3. Click "New Web Service"
+4. Connect your GitHub repository
+5. Configure your web service:
+   - Name: `panicsense-ph`
+   - Environment: Docker
+   - Region: Singapore (or closest to your users)
+   - Branch: `main` (or your default branch)
+   - Plan: Free
+6. Under "Advanced" settings, add environment variables:
+   - `DATABASE_URL`: Your database connection string
+   - (All other variables are already defined in render.yaml)
+7. Click "Create Web Service"
 
-1. **Test the Application**:
-   - Verify all pages load correctly
-   - Test data uploads and analysis functionality
-   - Ensure real-time monitoring works
+#### Option 2: Using render.yaml (Blueprint)
 
-2. **Configure Custom Domain** (optional):
-   - In your Web Service settings, go to "Custom Domain"
-   - Add your domain and follow Render's instructions for DNS setup
+1. Log in to your Render dashboard
+2. Navigate to "Blueprints" on the left sidebar
+3. Click "New Blueprint Instance"
+4. Connect your GitHub repository
+5. Render will automatically detect the render.yaml file
+6. Add your required environment secrets:
+   - `DATABASE_URL`: Your database connection string
+7. Click "Apply"
 
-## Environment Variables Reference
+### 3. Setup SSL and Custom Domain (Optional)
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgres://user:password@host:port/database` |
-| `NODE_ENV` | Environment mode | `production` |
-| `PORT` | Application port | `5000` |
-| `PYTHON_PATH` | Path to Python executable | `python3` |
-| `TZ` | Timezone for logs and data | `Asia/Manila` |
-| `SESSION_SECRET` | Secret for session security | `a-very-long-secure-random-string` |
+If you have a custom domain for your PanicSense application:
+
+1. From your web service page, click on "Settings"
+2. Scroll to "Custom Domains"
+3. Click "Add Custom Domain"
+4. Enter your domain name (e.g., panicsense.ph)
+5. Follow the DNS configuration instructions
+6. Render will automatically provision a free SSL certificate
+
+### 4. Verify Deployment
+
+1. Once deployment is complete, click on your service URL
+2. Verify that the application is working correctly
+3. Check the logs for any errors or warnings
 
 ## Troubleshooting
 
 ### Database Connection Issues
 
-If you encounter database connection errors:
+If your application cannot connect to the database:
 
-1. Verify the `DATABASE_URL` is correct in your environment variables
-2. Ensure your database is running (check status in Render Dashboard)
-3. Check if your IP is whitelisted in Render's database settings
+1. Verify your DATABASE_URL is correct
+2. Make sure SSL is enabled (should be handled by start.sh)
+3. Check that your database is accessible from Render
 
 ### Build Failures
 
 If your Docker build fails:
 
-1. Check build logs for specific errors
-2. Verify Docker image configurations
-3. Ensure all required files are in your repository
+1. Check Render logs for specific error messages
+2. Verify that the Dockerfile is correctly set up
+3. Make sure your repository doesn't exceed size limits
 
-### Application Crashes
+### Application Errors
 
-If the application crashes after deployment:
+If the application deploys but doesn't work correctly:
 
-1. Check logs in the Render Dashboard
-2. Verify all environment variables are properly set
-3. Ensure the database migration has completed successfully
+1. Check Render logs for runtime errors
+2. Verify all required environment variables are set
+3. Make sure your database schema is correctly set up
 
 ## Maintenance
 
-For ongoing maintenance:
+### Updating Your Application
 
-1. **Scaling**: Adjust instance type as needed in Render Dashboard
-2. **Updates**: Push updates to your GitHub repository, and Render will automatically rebuild
-3. **Monitoring**: Use Render's built-in monitoring for resource usage
+1. Push changes to your GitHub repository
+2. Render will automatically deploy updates (if auto-deploy is enabled)
 
-## Reminder
+### Database Backups
 
-* The free tier of Render has resource limitations and will automatically spin down after periods of inactivity
-* Your application will spin up again when accessed, but this may take 30-60 seconds
-* For production use, consider using the Standard tier to avoid spin-down
+If using Render PostgreSQL:
 
----
+1. Backups are automatically created daily
+2. You can create manual backups from the database dashboard
 
-For more information, visit the [Render Documentation](https://docs.render.com/web-services)
+## Support
+
+If you encounter issues with your Render deployment, you can:
+
+1. Check Render documentation at https://render.com/docs
+2. Contact Render support through your dashboard
+3. Review application logs in the Render dashboard
+
+For application-specific issues, please refer to the PanicSense documentation or contact the development team.
