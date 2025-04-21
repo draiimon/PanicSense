@@ -176,41 +176,96 @@ class AIDisasterDetector {
   
   /**
    * Fallback to rule-based analysis if AI is unavailable
+   * Enhanced version with better Filipino-specific keywords and context
    */
   _fallbackAnalysis(newsItem: NewsItem): DisasterAnalysis {
     const combinedText = `${newsItem.title || ''} ${newsItem.content || ''}`.toLowerCase();
     
-    // Simple keyword-based detection
+    // Enhanced keyword-based detection for Filipino context
     const disasterKeywords: Record<string, string[]> = {
-      'typhoon': ['typhoon', 'bagyo', 'storm', 'cyclone'],
-      'earthquake': ['earthquake', 'lindol', 'quake', 'tremor', 'magnitude'],
-      'flood': ['flood', 'baha', 'rising water', 'overflow'],
-      'fire': ['fire', 'sunog', 'blaze', 'burning'],
-      'landslide': ['landslide', 'mudslide', 'rockfall', 'erosion'],
-      'volcanic eruption': ['volcano', 'eruption', 'ash', 'lava', 'phivolcs', 'bulkan'],
-      'drought': ['drought', 'dry', 'water shortage', 'tagtuyot'],
-      'extreme heat': ['heat wave', 'extreme heat', 'high temperature']
+      'typhoon': ['typhoon', 'bagyo', 'storm', 'cyclone', 'hurricane', 'pag-asa', 'signal no.', 'weather disturbance'],
+      'earthquake': ['earthquake', 'lindol', 'quake', 'tremor', 'magnitude', 'intensity', 'aftershock', 'phivolcs'],
+      'flood': ['flood', 'baha', 'rising water', 'overflow', 'tubig', 'binaha', 'water level', 'pag-apaw'],
+      'fire': ['fire', 'sunog', 'blaze', 'burning', 'flame', 'smoke', 'apoy', 'nasusunog', 'nagliliyab'],
+      'landslide': ['landslide', 'mudslide', 'rockfall', 'erosion', 'pagguho', 'guho', 'collapsed', 'bumigay'],
+      'volcanic eruption': ['volcano', 'eruption', 'ash', 'lava', 'phivolcs', 'bulkan', 'magma', 'ashfall', 'alert level'],
+      'tsunami': ['tsunami', 'tidal wave', 'sea level', 'alon', 'daluyong'],
+      'drought': ['drought', 'dry', 'water shortage', 'tagtuyot', 'water crisis', 'water supply', 'kakapusan ng tubig'],
+      'extreme heat': ['heat wave', 'extreme heat', 'high temperature', 'init', 'mainit', 'temperature']
     };
+    
+    // Emergency and disaster-related keywords (expanded)
+    const emergencyKeywords = [
+      'emergency', 'disaster', 'calamity', 'evacuate', 'evacuation', 'ndrrmc', 'pagasa', 'phivolcs',
+      'warning', 'alert', 'rescue', 'relief', 'casualty', 'victim', 'damage', 'destroyed', 'affected',
+      'state of calamity', 'crisis', 'disaster response', 'kagawaran ng disaster', 'disaster risk reduction',
+      'suspension', 'suspende', 'casualties', 'fatalities', 'injured', 'stranded', 'trapped', 'missing',
+      'sakuna', 'kalamidad', 'babala', 'ligtas', 'nasalanta', 'nasiraan', 'nawasak', 'evacuation center',
+      'red alert', 'orange alert', 'hazard', 'panganib', 'delikado', 'malubha'
+    ];
     
     // Check for disaster types
     let matchedType = 'other';
     let highestConfidence = 0.5; // Default confidence
+    let severity = 1; // Default severity
     
+    // Check for direct keyword matches
     for (const [type, keywords] of Object.entries(disasterKeywords)) {
       for (const keyword of keywords) {
         if (combinedText.includes(keyword)) {
           matchedType = type;
           highestConfidence = 0.7; // Higher confidence for keyword match
+          severity = 2; // Moderate severity
           break;
         }
       }
       if (matchedType !== 'other') break;
     }
     
-    // Simple location detection (very basic)
+    // Check for emergency keywords to increase confidence and severity
+    let emergencyCount = 0;
+    for (const keyword of emergencyKeywords) {
+      if (combinedText.includes(keyword)) {
+        emergencyCount++;
+        if (emergencyCount >= 2) {
+          highestConfidence = Math.min(0.9, highestConfidence + 0.1);
+          severity = Math.min(5, severity + 1);
+        }
+      }
+    }
+    
+    // If no disaster type is matched but emergency keywords are found
+    if (matchedType === 'other' && emergencyCount > 0) {
+      matchedType = 'emergency';
+      highestConfidence = 0.6; // Moderate confidence for emergency-only detection
+      severity = 2; // Low-moderate severity
+    }
+    
+    // Enhanced location detection
     const locationKeywords = [
-      'Manila', 'Quezon City', 'Cebu', 'Davao', 'Luzon', 'Visayas', 'Mindanao',
-      'Batangas', 'Laguna', 'Cavite', 'Rizal', 'Pampanga', 'Bulacan', 'Bicol'
+      // Major cities and urban areas
+      'Manila', 'Quezon City', 'Cebu', 'Davao', 'Makati', 'Taguig', 'Pasig',
+      'Mandaluyong', 'San Juan', 'Marikina', 'Parañaque', 'Pasay', 'Caloocan',
+      'Muntinlupa', 'Las Piñas', 'Valenzuela', 'Navotas', 'Malabon', 'Baguio',
+      'Iloilo', 'Bacolod', 'Cagayan de Oro', 'Zamboanga', 'General Santos',
+      
+      // Major regions and islands
+      'Luzon', 'Visayas', 'Mindanao', 'NCR', 'Metro Manila', 'Calabarzon',
+      'Central Luzon', 'Western Visayas', 'Central Visayas', 'Eastern Visayas',
+      'Northern Mindanao', 'Southern Mindanao', 'ARMM', 'BARMM', 'CAR',
+      
+      // Provinces
+      'Batangas', 'Laguna', 'Cavite', 'Rizal', 'Bulacan', 'Pampanga', 'Nueva Ecija',
+      'Pangasinan', 'Ilocos Norte', 'Ilocos Sur', 'La Union', 'Isabela', 'Cagayan',
+      'Albay', 'Camarines Sur', 'Camarines Norte', 'Sorsogon', 'Catanduanes',
+      'Leyte', 'Southern Leyte', 'Samar', 'Eastern Samar', 'Northern Samar',
+      'Iloilo', 'Negros Occidental', 'Negros Oriental', 'Cebu', 'Bohol',
+      'Zamboanga del Norte', 'Zamboanga del Sur', 'Zamboanga Sibugay',
+      'Bukidnon', 'Misamis Oriental', 'Misamis Occidental', 'Lanao del Norte',
+      'Lanao del Sur', 'Maguindanao', 'Cotabato', 'Sultan Kudarat', 'South Cotabato',
+      'Davao del Norte', 'Davao del Sur', 'Davao Oriental', 'Davao Occidental',
+      'Davao de Oro', 'Benguet', 'Ifugao', 'Mountain Province', 'Kalinga', 'Apayao',
+      'Abra', 'Bataan', 'Aurora', 'Quirino', 'Nueva Vizcaya', 'Palawan'
     ];
     
     let location = 'Philippines';
@@ -221,17 +276,31 @@ class AIDisasterDetector {
       }
     }
     
-    const isDisasterRelated = matchedType !== 'other' || 
-      ['emergency', 'disaster', 'calamity', 'evacuate', 'evacuation', 'ndrrmc', 'pagasa', 'phivolcs']
-        .some(term => combinedText.includes(term));
+    // Determine if disaster-related
+    const isDisasterRelated = matchedType !== 'other' || emergencyCount > 0;
+    
+    // Enhance explanation
+    let explanation = "Fallback keyword-based analysis: ";
+    
+    if (isDisasterRelated) {
+      if (matchedType !== 'other') {
+        explanation += `Identified as ${matchedType} event`;
+      } else {
+        explanation += "Emergency situation detected";
+      }
+      
+      explanation += ` in ${location} with ${emergencyCount} emergency indicators.`;
+    } else {
+      explanation = "No disaster-related content detected using keyword analysis.";
+    }
     
     return {
       is_disaster_related: isDisasterRelated,
       disaster_type: matchedType,
       location: location,
-      severity: isDisasterRelated ? 3 : 0,
+      severity: severity,
       confidence: highestConfidence,
-      explanation: "Fallback rule-based analysis"
+      explanation: explanation
     };
   }
   
