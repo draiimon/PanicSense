@@ -146,13 +146,24 @@ class SocialMediaScraper:
                     date_element = tweet_element.select_one(".tweet-date")
                     date_str = datetime.now().isoformat()
                     if date_element and date_element.find('a'):
-                        tweet_url = date_element.find('a')['href']
-                        # Extract the tweet ID from URL
-                        tweet_id = tweet_url.split('/')[-1]
+                        date_link = date_element.find('a')
+                        tweet_url = ""
+                        if date_link and date_link.has_attr('href'):
+                            tweet_url = date_link['href']
+                            # Extract the tweet ID from URL if URL exists
+                            if isinstance(tweet_url, str):
+                                tweet_id = tweet_url.split('/')[-1]
+                            else:
+                                tweet_id = str(int(time.time() * 1000))
+                        else:
+                            tweet_id = str(int(time.time() * 1000))
                         
                         # Try to parse the date
-                        date_text = date_element.find('a').get('title', '')
-                        if date_text:
+                        date_text = ""
+                        if date_link and date_link.has_attr('title'):
+                            date_text = date_link['title']
+                        
+                        if date_text and isinstance(date_text, str):
                             try:
                                 # Convert to ISO format
                                 parsed_date = datetime.strptime(date_text, '%b %d, %Y · %I:%M %p %Z')
@@ -244,12 +255,24 @@ class SocialMediaScraper:
                         tweet_id = str(int(time.time() * 1000))
                         
                         if date_element and date_element.find('a'):
-                            tweet_url = date_element.find('a')['href']
-                            tweet_id = tweet_url.split('/')[-1]
+                            date_link = date_element.find('a')
+                            tweet_url = ""
+                            if date_link and date_link.has_attr('href'):
+                                tweet_url = date_link['href']
+                                # Extract the tweet ID from URL if URL exists
+                                if isinstance(tweet_url, str):
+                                    tweet_id = tweet_url.split('/')[-1]
+                                else:
+                                    tweet_id = str(int(time.time() * 1000))
+                            else:
+                                tweet_id = str(int(time.time() * 1000))
                             
                             # Try to parse the date
-                            date_text = date_element.find('a').get('title', '')
-                            if date_text:
+                            date_text = ""
+                            if date_link and date_link.has_attr('title'):
+                                date_text = date_link['title']
+                            
+                            if date_text and isinstance(date_text, str):
                                 try:
                                     # Convert to ISO format
                                     parsed_date = datetime.strptime(date_text, '%b %d, %Y · %I:%M %p %Z')

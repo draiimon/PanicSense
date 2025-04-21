@@ -47,6 +47,23 @@ const NEWS_SOURCES = [
     url: 'https://www.bworldonline.com/feed/',
     source: 'BusinessWorld'
   },
+  // Dagdag na malalaking news sources
+  {
+    name: 'ABS-CBN News',
+    url: 'https://news.abs-cbn.com/rss/news',
+    source: 'ABS-CBN News'
+  },
+  {
+    name: 'Rappler',
+    url: 'https://www.rappler.com/nation/feed/',
+    source: 'Rappler'
+  },
+  // Weather and Disaster agencies
+  {
+    name: 'PAGASA News',
+    url: 'https://bagong.pagasa.dost.gov.ph/press-release-archive/?format=feed&type=rss',
+    source: 'PAGASA'
+  },
   
   // Malalaking news agencies sa Pilipinas
   {
