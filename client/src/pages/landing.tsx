@@ -698,10 +698,53 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
+// Update notification banner component
+const UpdateNotification = ({ onClose }: { onClose: () => void }) => {
+  return (
+    <div className="fixed top-20 right-5 z-50 w-80 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg shadow-xl overflow-hidden transform transition-all duration-500 animate-fade-in-down">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-cyan-300 animate-pulse"></div>
+      <div className="p-4">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center">
+            <Sparkles className="h-5 w-5 text-white mr-2" />
+            <h3 className="text-white font-semibold">April 2025 Updates</h3>
+          </div>
+          <button onClick={onClose} className="text-white/80 hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-2 text-white/90 text-sm space-y-1">
+          <p className="flex items-center"><Check className="h-3 w-3 mr-1.5 text-cyan-300" /> Fixed news image loading issues</p>
+          <p className="flex items-center"><Check className="h-3 w-3 mr-1.5 text-cyan-300" /> Enhanced UI consistency across all pages</p>
+          <p className="flex items-center"><Check className="h-3 w-3 mr-1.5 text-cyan-300" /> Added Newspaper icon for News section</p>
+          <p className="flex items-center"><Check className="h-3 w-3 mr-1.5 text-cyan-300" /> Optimized Render.com deployment</p>
+          <p className="flex items-center"><Check className="h-3 w-3 mr-1.5 text-cyan-300" /> Cleaned up codebase and removed duplicates</p>
+        </div>
+        <div className="mt-3 flex justify-end">
+          <Link href="/dashboard" className="text-xs bg-white/20 hover:bg-white/30 text-white rounded px-2 py-1 inline-flex items-center">
+            Check it out <ArrowRight className="h-3 w-3 ml-1" />
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function LandingPage() {
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showUpdateNotification, setShowUpdateNotification] = useState(true);
   const [activeFeature, setActiveFeature] = useState<'monitoring' | 'geographic' | 'analytics'>('monitoring');
   const parallaxRef = useRef<HTMLDivElement>(null);
+  
+  // Auto-dismiss update notification after 12 seconds
+  useEffect(() => {
+    if (showUpdateNotification) {
+      const timer = setTimeout(() => {
+        setShowUpdateNotification(false);
+      }, 12000);
+      return () => clearTimeout(timer);
+    }
+  }, [showUpdateNotification]);
   
   // Auto-rotate feature cards
   useEffect(() => {
@@ -750,6 +793,13 @@ export default function LandingPage() {
   
   return (
     <div className="min-h-screen overflow-hidden bg-slate-50">
+      {/* Show update notification */}
+      <AnimatePresence>
+        {showUpdateNotification && (
+          <UpdateNotification onClose={() => setShowUpdateNotification(false)} />
+        )}
+      </AnimatePresence>
+      
       {/* Header with same style as main pages */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-lg py-3 px-4">
         <div className="max-w-[2000px] mx-auto flex justify-between items-center">
