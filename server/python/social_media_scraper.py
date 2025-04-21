@@ -3,7 +3,7 @@
 """
 Real-Time Social Media Scraper for Disaster Monitoring
 This script scrapes disaster-related tweets and posts from various social media platforms
-focusing on Philippine disaster hashtags.
+focusing on Philippine natural disaster hashtags using snscrape.
 """
 
 import json
@@ -14,8 +14,9 @@ import re
 import logging
 import requests
 from datetime import datetime, timedelta
-from bs4 import BeautifulSoup
 from urllib.parse import quote
+from bs4 import BeautifulSoup
+import snscrape.modules.twitter as sntwitter
 import random
 
 # Configure logging
@@ -25,16 +26,99 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Common Philippine disaster-related hashtags
+# Enhanced Philippine natural disaster-related hashtags with Tagalog terms
 DEFAULT_HASHTAGS = [
-    "BagyoPH", "LindolPH", "BahaPH", "SakunaPH", 
-    "ReliefPH", "RescuePH", "FloodPH", "TyphoonPH"
+    # Weather/Typhoon related
+    "BagyoPH",       # Typhoon
+    "TyphoonPH",     # Typhoon (English)
+    "HabagaPH",      # Monsoon
+    "SalantaPH",     # Tropical cyclone/Storm 
+    "UnusPH",        # Storm surge
+    "AmahanPH",      # Southwest monsoon
+    
+    # Earthquake related
+    "LindolPH",      # Earthquake
+    "EarthquakePH",  # Earthquake (English)
+    "YugyugPH",      # Shake/tremor
+    
+    # Flood related  
+    "BahaPH",        # Flood
+    "FloodPH",       # Flood (English)
+    "DelubiyoPH",    # Flood (biblical term)
+    "PagbahaPH",     # Flooding
+    
+    # Fire related
+    "SunogPH",       # Fire
+    "SunoqPH",       # Fire (alternative spelling)
+    "FirePH",        # Fire (English)
+    
+    # Landslide related
+    "GumuhoPH",      # Landslide
+    "LandslidePH",   # Landslide (English)
+    "PagguhoTalobPH", # Landslide (formal)
+    
+    # Volcano related
+    "BulkanPH",      # Volcano
+    "VolcanoPH",     # Volcano (English)
+    "PagputokBulkanPH", # Volcanic eruption
+    "AshfallPH",     # Volcanic ashfall
+    
+    # Tsunami related
+    "TsunamiPH",     # Tsunami
+    "AlonBundolPH",  # Tidal wave
+    
+    # Drought/Heat
+    "TagtuyotPH",    # Drought
+    "ElNinoPH",      # El Niño
+    "InitPH",        # Heat
+    "HeatwavePH",    # Heatwave (English)
+    
+    # General disaster terms
+    "SakunaPH",      # General disaster term
+    "KalamidadPH",   # Calamity
+    "DisasterPH",    # Disaster (English)
+    "EmergencyPH",   # Emergency
+    "AlertPH",       # Alert
+    
+    # Response related
+    "RescuePH",      # Rescue operations
+    "ReliefPH",      # Relief efforts
+    "EvacuatePH",    # Evacuation
+    "LikasPH",       # Evacuation (Tagalog)
+    "TulongPH",      # Help
+    
+    # Agency related
+    "PagasaPH",      # PAGASA (weather agency)
+    "PhivolcsPH",    # PHIVOLCS (volcano/earthquake agency)
+    "NDRRMC_Alert",  # NDRRMC alerts
+    "MMDA"           # Metro Manila Development Authority
 ]
 
 # Social media accounts to monitor specifically
 OFFICIAL_ACCOUNTS = [
-    "phivolcs_dost", "dost_pagasa", "ndrrmc_opcen", "philredcross",
-    "mmda", "dzbb", "cnnphilippines", "gmanews", "inquirerdotnet"
+    # Government Disaster Management Agencies
+    "phivolcs_dost",   # PHIVOLCS - Philippine Institute of Volcanology and Seismology
+    "dost_pagasa",     # PAGASA - Philippine Atmospheric, Geophysical and Astronomical Services Administration
+    "ndrrmc_opcen",    # NDRRMC - National Disaster Risk Reduction and Management Council
+    "OCD_PH",          # Office of Civil Defense Philippines
+    "mmda",            # Metro Manila Development Authority
+    
+    # Humanitarian/Emergency Response
+    "philredcross",    # Philippine Red Cross
+    "PH_response",     # Emergency response coordination
+    
+    # News Organizations (for disaster coverage)
+    "dzbb",            # DZBB Super Radyo
+    "cnnphilippines",  # CNN Philippines
+    "gmanews",         # GMA News
+    "inquirerdotnet",  # Inquirer
+    "abscbnnews",      # ABS-CBN News
+    "rapplerdotcom",   # Rappler
+    
+    # Regional Information Centers
+    "cebudailynews",   # Cebu Daily News
+    "mindanews",       # Mindanao News
+    "visayasdaily"     # Visayas Daily
 ]
 
 # List of locations in the Philippines
@@ -97,119 +181,90 @@ class SocialMediaScraper:
             # Fallback to a known reliable instance
             return ["https://nitter.projectsegfau.lt"]
     
-    def search_twitter_via_nitter(self, hashtag, count=5):
-        """Search Twitter posts via Nitter for a specific hashtag"""
+    def search_twitter_with_snscrape(self, hashtag, count=5):
+        """Search Twitter posts using snscrape for a specific hashtag"""
         try:
             tweets = []
-            nitter_instances = self.get_nitter_instances()
+            query = f"#{hashtag} lang:en OR lang:tl OR lang:fil"
             
-            # Randomly select an instance to distribute load
-            instance = random.choice(nitter_instances)
-            search_url = f"{instance}/search?f=tweets&q=%23{quote(hashtag)}"
+            # Add location filtering for Philippines
+            query += " near:Philippines within:200km"
             
-            logger.info(f"Searching for #{hashtag} via {instance}")
-            response = self.session.get(search_url, timeout=10)
+            # Restrict to recent tweets (last 48 hours)
+            two_days_ago = datetime.now() - timedelta(days=2)
+            date_str = two_days_ago.strftime("%Y-%m-%d")
+            query += f" since:{date_str}"
             
-            if response.status_code != 200:
-                logger.error(f"Failed to get results from {instance}: {response.status_code}")
-                return []
+            logger.info(f"Searching for tweets with #{hashtag} using snscrape")
             
-            soup = BeautifulSoup(response.text, "html.parser")
-            timeline = soup.select(".timeline-item")
-            
-            for i, tweet_element in enumerate(timeline):
-                if i >= count:
+            # Use snscrape to get tweets
+            tweet_count = 0
+            for tweet in sntwitter.TwitterSearchScraper(query).get_items():
+                if tweet_count >= count:
                     break
                 
                 try:
-                    # Extract tweet data
-                    username_element = tweet_element.select_one(".username")
-                    username = username_element.text.strip() if username_element else "unknown"
-                    
-                    fullname_element = tweet_element.select_one(".fullname")
-                    fullname = fullname_element.text.strip() if fullname_element else "Unknown User"
-                    
-                    content_element = tweet_element.select_one(".tweet-content")
-                    content = content_element.text.strip() if content_element else ""
-                    
                     # Look for location mentions in the tweet
                     found_location = None
                     for loc in LOCATIONS:
-                        if loc.lower() in content.lower():
+                        if tweet.content and loc.lower() in tweet.content.lower():
                             found_location = loc
                             break
                     
+                    # If no specific location found but user has location info
+                    if not found_location and tweet.user and tweet.user.location:
+                        for loc in LOCATIONS:
+                            if loc.lower() in tweet.user.location.lower():
+                                found_location = loc
+                                break
+                    
+                    # Default to Philippines if no specific location found
                     if not found_location:
-                        found_location = "Philippines"  # Default location
+                        found_location = "Philippines"
                     
-                    # Get the tweet date
-                    date_element = tweet_element.select_one(".tweet-date")
-                    date_str = datetime.now().isoformat()
-                    if date_element and date_element.find('a'):
-                        date_link = date_element.find('a')
-                        tweet_url = ""
-                        if date_link and date_link.has_attr('href'):
-                            tweet_url = date_link['href']
-                            # Extract the tweet ID from URL if URL exists
-                            if isinstance(tweet_url, str):
-                                tweet_id = tweet_url.split('/')[-1]
-                            else:
-                                tweet_id = str(int(time.time() * 1000))
-                        else:
-                            tweet_id = str(int(time.time() * 1000))
-                        
-                        # Try to parse the date
-                        date_text = ""
-                        if date_link and date_link.has_attr('title'):
-                            date_text = date_link['title']
-                        
-                        if date_text and isinstance(date_text, str):
-                            try:
-                                # Convert to ISO format
-                                parsed_date = datetime.strptime(date_text, '%b %d, %Y · %I:%M %p %Z')
-                                date_str = parsed_date.isoformat()
-                            except Exception:
-                                pass
-                    else:
-                        tweet_id = str(int(time.time() * 1000))
+                    # Extract hashtags from content
+                    hashtags = []
+                    if tweet.content:
+                        hashtags = re.findall(r'#(\w+)', tweet.content)
                     
-                    # Extract possible hashtags from content
-                    hashtags = re.findall(r'#(\w+)', content)
-                    if not hashtags:
-                        hashtags = [hashtag]
+                    # Add searched hashtag if not found in content
+                    if hashtag not in hashtags:
+                        hashtags.append(hashtag)
                     
-                    # Create tweet object
-                    tweet = {
-                        "url": f"https://twitter.com/{username}/status/{tweet_id}",
-                        "date": date_str,
-                        "content": content,
-                        "renderedContent": content,
-                        "id": tweet_id,
+                    # Create tweet object with more available metadata from snscrape
+                    tweet_obj = {
+                        "url": f"https://twitter.com/user/status/{tweet.id}",
+                        "date": tweet.date.isoformat() if tweet.date else datetime.now().isoformat(),
+                        "content": tweet.content,
+                        "renderedContent": tweet.renderedContent if hasattr(tweet, 'renderedContent') else tweet.content,
+                        "id": str(tweet.id),
                         "user": {
-                            "username": username,
-                            "displayname": fullname,
-                            "id": username,
-                            "description": f"Twitter/X user - Disaster updates",
-                            "verified": username in OFFICIAL_ACCOUNTS,
-                            "followersCount": 0,  # We can't get this without logging in
-                            "location": "Philippines"
+                            "username": tweet.user.username if tweet.user else "unknown",
+                            "displayname": tweet.user.displayname if tweet.user else "Unknown User",
+                            "id": str(tweet.user.id) if tweet.user else "unknown",
+                            "description": tweet.user.description if tweet.user and hasattr(tweet.user, 'description') else "Twitter/X user - Disaster updates",
+                            "verified": tweet.user.username in OFFICIAL_ACCOUNTS if tweet.user else False,
+                            "followersCount": tweet.user.followersCount if tweet.user and hasattr(tweet.user, 'followersCount') else 0,
+                            "location": tweet.user.location if tweet.user and hasattr(tweet.user, 'location') else "Philippines"
                         },
-                        "replyCount": 0,  # We can't get this without logging in
-                        "retweetCount": 0,
-                        "likeCount": 0,
-                        "source": "Twitter Web App",
+                        "replyCount": tweet.replyCount if hasattr(tweet, 'replyCount') else 0,
+                        "retweetCount": tweet.retweetCount if hasattr(tweet, 'retweetCount') else 0,
+                        "likeCount": tweet.likeCount if hasattr(tweet, 'likeCount') else 0,
+                        "source": tweet.source if hasattr(tweet, 'source') else "Twitter Web App",
                         "hashtags": hashtags,
                         "location": found_location
                     }
                     
-                    tweets.append(tweet)
+                    tweets.append(tweet_obj)
+                    tweet_count += 1
                 except Exception as tweet_error:
                     logger.error(f"Error processing tweet: {tweet_error}")
                     continue
             
+            logger.info(f"Found {len(tweets)} tweets for #{hashtag}")
             return tweets
         except Exception as e:
-            logger.error(f"Error searching Twitter via Nitter: {e}")
+            logger.error(f"Error searching Twitter with snscrape: {e}")
             return []
     
     def scrape_official_accounts(self, count=3):
@@ -344,24 +399,51 @@ class SocialMediaScraper:
         return display_names.get(username, username.capitalize())
     
     def scrape_tweets_for_hashtags(self, hashtags=None, count=5):
-        """Scrape tweets for a list of hashtags"""
+        """Scrape tweets for a list of hashtags using snscrape"""
         if hashtags is None:
             hashtags = DEFAULT_HASHTAGS
         
         all_tweets = []
         
         # Limit the number of hashtags to avoid too many requests
-        for hashtag in hashtags[:min(len(hashtags), 3)]:
+        # Focus on the top Filipino disaster hashtags
+        priority_hashtags = ["BagyoPH", "LindolPH", "BahaPH"]
+        
+        # Make sure we try the priority hashtags first
+        hashtag_list = []
+        for h in priority_hashtags:
+            if h in hashtags:
+                hashtag_list.append(h)
+                
+        # Then add others until we reach our limit
+        for h in hashtags:
+            if h not in hashtag_list:
+                hashtag_list.append(h)
+                if len(hashtag_list) >= 5:  # Limit to 5 hashtags total
+                    break
+        
+        # Use the snscrape method to search for tweets
+        for hashtag in hashtag_list:
             try:
-                tweets = self.search_twitter_via_nitter(hashtag, count=count)
+                logger.info(f"Searching for tweets with #{hashtag}")
+                tweets = self.search_twitter_with_snscrape(hashtag, count=count)
                 all_tweets.extend(tweets)
                 
-                # Add a delay between requests to avoid rate limiting
-                time.sleep(3)
+                # Add a small delay between requests
+                time.sleep(1)
             except Exception as e:
                 logger.error(f"Error scraping tweets for hashtag #{hashtag}: {e}")
+                
+                # If snscrape fails, fall back to Nitter as backup
+                try:
+                    logger.info(f"Falling back to Nitter for #{hashtag}")
+                    nitter_tweets = self.search_twitter_via_nitter(hashtag, count=count)
+                    all_tweets.extend(nitter_tweets)
+                except Exception as ne:
+                    logger.error(f"Nitter fallback also failed for #{hashtag}: {ne}")
         
-        # Also get tweets from official accounts
+        # Also get tweets from official accounts using existing method
+        # We'll keep the original method for now as a backup
         official_tweets = self.scrape_official_accounts(count=2)
         all_tweets.extend(official_tweets)
         
@@ -376,8 +458,8 @@ class SocialMediaScraper:
         
         unique_tweets.sort(key=lambda x: x["date"], reverse=True)
         
-        # Return limited number
-        return unique_tweets[:count]
+        # Return more tweets since we're searching multiple hashtags
+        return unique_tweets[:count * 3]
 
 def main():
     """Main function to execute when script is run directly"""
