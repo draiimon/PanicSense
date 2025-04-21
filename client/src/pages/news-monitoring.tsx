@@ -329,25 +329,84 @@ const getNewsImage = (item: NewsItem): string => {
   return "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
 };
 
-// Filter only disaster-related news
+// Filter ONLY disaster-related news - ADVANCED FILTERING
 const isDisasterRelated = (item: NewsItem): boolean => {
   if (!item.title && !item.content) return false;
   
+  // Combine title and content for stronger context analysis
   const combinedText = `${item.title} ${item.content}`.toLowerCase();
   
-  const disasterKeywords = [
-    // Tagalog terms
-    'bagyo', 'lindol', 'baha', 'sunog', 'sakuna', 'kalamidad', 'pagsabog', 'bulkan',
-    'pagputok', 'guho', 'tagtuyot', 'init', 'pagguho', 'habagat', 'pinsala', 'tsunami',
-    'salanta', 'ulan', 'dagundong', 'likas', 'evacuate', 'evacuation',
-    
-    // English terms
-    'typhoon', 'earthquake', 'flood', 'fire', 'disaster', 'calamity', 'eruption', 'volcano',
-    'landslide', 'drought', 'heat wave', 'tsunami', 'storm', 'damage', 'tremor', 'aftershock',
-    'evacuation', 'emergency', 'relief', 'rescue', 'warning', 'alert', 'ndrrmc', 'pagasa', 'phivolcs'
+  // CHECKING CONTEXT: Need at least one PRIMARY disaster keyword
+  const primaryDisasterKeywords = [
+    // Malalaking disasters - PRIMARY KEYWORDS
+    'bagyo', 'typhoon', 'bagyong', 'storm', 
+    'lindol', 'earthquake', 'intensity', 'magnitude',
+    'baha', 'flood', 'binaha', 'pagbaha', 'tubig-baha',
+    'sunog', 'fire', 'nasusunog', 'wildfire',
+    'sakuna', 'disaster', 'kalamidad', 'calamity',
+    'pagsabog', 'eruption', 'bulkan', 'volcano',
+    'guho', 'landslide', 'pagguho', 'collapse',
+    'tsunami', 'tidal wave',
+    'drought', 'tagtuyot', 'el niño',
+    'evacuate', 'evacuation', 'ilikas', 'lumikas',
+    'aftershock', 'landfall', 'signal no', 'warning'
   ];
   
-  return disasterKeywords.some(keyword => combinedText.includes(keyword));
+  // MAGANDANG ADDITIONAL CONTEXT - mga kaakibat ng disaster events
+  const secondaryDisasterKeywords = [
+    // Secondary disaster contexts
+    'inundated', 'water level', 'rising water', 'tubig-baha',
+    'pag-aalburuto', 'rumbling', 'dagundong',
+    'rescue', 'relief', 'emergency', 'evacuees',
+    'damage', 'pinsala', 'nasira', 'casualties',
+    'stranded', 'na-strand', 'naputol', 'washed out', 
+    'trapped', 'nasira', 'destroyed',
+    'suspend', 'suspendido', 'closed', 'sarado',
+    'red alert', 'orange alert', 'yellow alert',
+    'habagat', 'amihan', 'monsoon', 'ulan', 'heavy rain',
+    
+    // Agency-based disaster context
+    'ndrrmc', 'pagasa', 'phivolcs', 'ocd',
+    'red cross', 'warning', 'advisory', 'hazard',
+    'alert level', 'raised alert', 'signal', 'bulletin',
+    'weatherforecast', 'weatherupdate', 'walangpasok'
+  ];
+  
+  // MGA HINDI KASAMA - NOT CONSIDERED DISASTER CONTEXT
+  const negativeKeywords = [
+    'basketball', 'concert', 'celebrity', 'showbiz',
+    'stock market', 'inflation', 'economic', 'election',
+    'campaign', 'politics', 'rally', 'protest',
+    'traffic', 'congestion', 'metro rail', 'lrt', 'mrt',
+    'tourism', 'exhibit', 'movie', 'festival',
+    'viral', 'trending', 'social media'
+  ];
+  
+  // Check for negative context first - if strong non-disaster context, exclude it immediately
+  const hasStrongNegativeContext = negativeKeywords.some(keyword => {
+    // If the negative keyword appears multiple times, it's probably not a disaster story
+    const matches = (combinedText.match(new RegExp(keyword, 'g')) || []).length;
+    return matches >= 2; // If keyword appears 2+ times, probably not disaster-related
+  });
+  
+  if (hasStrongNegativeContext) return false;
+  
+  // MUST have at least one primary disaster keyword
+  const hasPrimaryKeyword = primaryDisasterKeywords.some(keyword => combinedText.includes(keyword));
+  
+  // IF no primary keyword, check for strong secondary context (multiple secondary keywords)
+  if (!hasPrimaryKeyword) {
+    // Count how many secondary keywords appear
+    const secondaryKeywordCount = secondaryDisasterKeywords.filter(keyword => 
+      combinedText.includes(keyword)
+    ).length;
+    
+    // Only consider as disaster-related if it has multiple secondary keywords
+    return secondaryKeywordCount >= 3;
+  }
+  
+  // Has primary keyword, so it's disaster-related
+  return true;
 };
 
 export default function NewsMonitoringPage() {
