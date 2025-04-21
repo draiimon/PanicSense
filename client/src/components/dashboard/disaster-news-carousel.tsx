@@ -86,6 +86,7 @@ const isDisasterRelated = (item: NewsItem): boolean => {
 
 export function DisasterNewsCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   
   // Fetch news data from API
   const { data: newsData = [], isLoading } = useQuery({
@@ -93,24 +94,24 @@ export function DisasterNewsCarousel() {
     refetchInterval: 60000, // Refetch every minute
   });
   
-  // Filter for disaster-related news only
+  // Filter for disaster-related news only - showing only 5 articles as requested
   const allNews = Array.isArray(newsData) ? newsData : [];
-  const disasterNews = allNews.filter(isDisasterRelated).slice(0, 10); // Take the first 10 disaster news items
+  const disasterNews = allNews.filter(isDisasterRelated).slice(0, 5); // Take only the first 5 disaster news items
   
-  // Auto-rotation
+  // Auto-rotation with pause on hover
   useEffect(() => {
-    if (disasterNews.length <= 1) return;
+    if (disasterNews.length <= 1 || isPaused) return;
     
     const timer = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % disasterNews.length);
     }, 5000); // Change every 5 seconds
     
     return () => clearInterval(timer);
-  }, [disasterNews.length]);
+  }, [disasterNews.length, isPaused]);
   
   if (isLoading) {
     return (
-      <div className="bg-gradient-to-r from-violet-600/90 via-blue-600/90 to-purple-600/90 p-6 h-[280px] flex justify-center items-center">
+      <div className="bg-blue-900 p-6 h-[280px] flex justify-center items-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-white mx-auto animate-spin mb-2" />
           <p className="text-white">Loading disaster updates...</p>
@@ -121,7 +122,7 @@ export function DisasterNewsCarousel() {
   
   if (disasterNews.length === 0) {
     return (
-      <div className="bg-gradient-to-r from-violet-600/90 via-blue-600/90 to-purple-600/90 p-6 h-[280px]">
+      <div className="bg-blue-900 p-6 h-[280px]">
         <div className="text-center text-white">
           <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
           <h3 className="text-xl font-bold mb-2">No Active Disaster Alerts</h3>
@@ -132,9 +133,13 @@ export function DisasterNewsCarousel() {
   }
   
   return (
-    <div className="relative overflow-hidden rounded-xl shadow-xl">
-      {/* Background gradient that matches the image */}
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-600/90 via-blue-600/90 to-purple-600/90"></div>
+    <div 
+      className="relative overflow-hidden rounded-xl shadow-xl"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      {/* Background color - dark blue as requested */}
+      <div className="absolute inset-0 bg-blue-900"></div>
       
       {/* Pattern overlay for texture */}
       <div className="absolute inset-0 opacity-5 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC41Ij48cGF0aCBkPSJNMzYgMzR2Nmg2di02aC02em02IDZ2Nmg2di02aC02em0tMTIgMGg2djZoLTZ2LTZ6bTEyIDBoNnY2aC02di02eiIvPjwvZz48L2c+PC9zdmc+')]"></div>
