@@ -12,6 +12,20 @@ echo "=============================================="
 echo "Creating necessary directories..."
 mkdir -p /data/uploads/temp
 
+# Verify index.js exists and has correct ES Module format
+echo "Verifying ES Module format for index.js..."
+if grep -q "import express from 'express'" index.js; then
+  echo "✅ index.js has correct ES Module imports"
+else
+  echo "⚠️ WARNING: index.js might not have proper ES Module imports"
+fi
+
+if grep -q "type.*:.*module" package.json; then
+  echo "✅ package.json has type: module configuration"
+else
+  echo "⚠️ WARNING: package.json might not have type: module configuration" 
+fi
+
 # Check database connection
 echo "Checking database connection..."
 max_retries=10

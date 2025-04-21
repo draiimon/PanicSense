@@ -127,7 +127,34 @@ For a complete guide on using Docker with this project, see [DOCKER_README.md](.
 
 ## 🚀 Deployment to Render
 
-This project is configured for easy deployment to Render.com. For detailed instructions, see [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md).
+This project is configured for easy deployment to Render.com. Follow these steps:
+
+1. **Push your code to a Git repository** (GitHub, GitLab, etc.)
+2. **Connect to Render.com**:
+   - Create a new account or log in to Render
+   - Click "New" and select "Blueprint"
+   - Connect to your Git repository
+   - Select the repository with this project
+   - Render will automatically detect the `render.yaml` configuration
+
+3. **Configure Environment Variables**:
+   - Once the service is created, go to the "Environment" tab
+   - Add the following environment variables:
+     - `NODE_ENV`: Set to `production`
+     - `DATABASE_URL`: Your PostgreSQL connection string
+     - Any API keys needed for external services
+
+4. **Wait for deployment to complete**:
+   - Render will automatically build and deploy the application
+   - You can monitor the build progress in the "Logs" tab
+
+5. **Verify the Deployment**:
+   - Once deployed, visit the provided Render URL
+   - Test the application functionality
+
+For more detailed instructions, see [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md).
+
+> **IMPORTANT**: Render deployment uses a special startup script (`npm run startRender`) that bootstraps both the PostgreSQL database and Node.js application correctly. The entire setup is handled in `index.js` and `render-setup.sh`.
 
 ## 🔒 Security
 
