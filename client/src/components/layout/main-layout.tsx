@@ -18,8 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useDeviceCapability } from "@/hooks/use-device-capability";
-import { useTutorial } from "@/context/tutorial-context";
-import { TutorialGuide } from "@/components/dashboard/tutorial-guide";
+
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -29,7 +28,6 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location] = useLocation();
   const { isCapableDevice } = useDeviceCapability();
-  const { showTutorial, closeTutorial, completeTutorial, startTutorial } = useTutorial();
 
   const menuItems = [
     {
@@ -70,7 +68,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     {
       path: "/news-monitoring",
       label: "News Monitoring",
-      icon: <Globe className="w-4 h-4" />,
+      icon: <Map className="w-4 h-4" />,
     },
     {
       path: "/about",
@@ -405,25 +403,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         </main>
       </div>
       
-      {/* Interactive Tutorial Guide */}
-      {showTutorial && (
-        <TutorialGuide 
-          onClose={closeTutorial}
-          onComplete={completeTutorial}
-        />
-      )}
-      
-      {/* Mobile-only fixed floating tutorial button - More visible */}
-      <button
-        onClick={startTutorial}
-        className="md:hidden fixed bottom-16 right-4 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full p-3 shadow-lg animate-pulse"
-        aria-label="Start tutorial"
-        style={{ 
-          boxShadow: '0 0 15px rgba(59, 130, 246, 0.5)'
-        }}
-      >
-        <HelpCircle className="h-6 w-6" />
-      </button>
+      {/* Removed tutorial guide and tutorial button as requested */}
 
       {/* Footer */}
       <footer
