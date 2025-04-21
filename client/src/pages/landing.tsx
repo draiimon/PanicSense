@@ -732,7 +732,7 @@ const UpdateNotification = ({ onClose }: { onClose: () => void }) => {
 
 export default function LandingPage() {
   const [showTutorial, setShowTutorial] = useState(false);
-  const [showUpdateNotification, setShowUpdateNotification] = useState(true);
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
   const [activeFeature, setActiveFeature] = useState<'monitoring' | 'geographic' | 'analytics'>('monitoring');
   const parallaxRef = useRef<HTMLDivElement>(null);
   
