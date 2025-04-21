@@ -1,5 +1,5 @@
 /**
- * Database setup script for Render deployment
+ * Database setup script for Replit deployment
  * This script creates necessary tables if they don't exist
  */
 
@@ -19,7 +19,7 @@ async function setupDatabase() {
     console.log("Connecting to database...");
     pool = new Pool({
       connectionString: databaseUrl,
-      ssl: { rejectUnauthorized: false }
+      ssl: process.env.DB_SSL_REQUIRED === 'true' ? { rejectUnauthorized: false } : false
     });
 
     // Test connection

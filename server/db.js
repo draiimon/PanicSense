@@ -1,16 +1,16 @@
 /**
  * Simple ES Module compatible database connection
- * This is a direct fallback file for Render.com deployment
+ * For use with Replit and Neon PostgreSQL
  */
 
 import pg from 'pg';
 const { Pool } = pg;
 
-// Prioritize Neon database URL if available, fall back to regular DATABASE_URL
-let databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+// Use DATABASE_URL from environment variables
+let databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  console.error("⚠️ WARNING: No DATABASE_URL or NEON_DATABASE_URL environment variable found");
+  console.error("⚠️ WARNING: No DATABASE_URL environment variable found");
   databaseUrl = ""; // Empty string will cause connect error later, but prevent crash here
 }
 
@@ -22,10 +22,10 @@ if (databaseUrl.startsWith('DATABASE_URL=')) {
 // Log database type but not the connection string (for security)
 console.log(`Using database connection type: ${databaseUrl.split(':')[0]}`);
 
-// Create the pool with SSL enabled (important for Neon.tech and Render.com PostgreSQL)
+// Create the pool with SSL enabled (important for Neon.tech PostgreSQL)
 export const pool = new Pool({ 
   connectionString: databaseUrl,
-  ssl: { rejectUnauthorized: false } // Always use SSL 
+  ssl: process.env.DB_SSL_REQUIRED === 'true' ? { rejectUnauthorized: false } : false
 });
 
 // Export in a way compatible with older requires

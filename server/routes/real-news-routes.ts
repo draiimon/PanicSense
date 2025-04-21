@@ -27,8 +27,8 @@ export async function registerRealNewsRoutes(app: Express): Promise<void> {
       
       // Sort by timestamp (newest first)
       const sorted = [...newsItems].sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
+        const dateA = new Date(a.timestamp || a.publishedAt || "").getTime();
+        const dateB = new Date(b.timestamp || b.publishedAt || "").getTime();
         return dateB - dateA;
       });
       
@@ -71,11 +71,11 @@ export async function registerRealNewsRoutes(app: Express): Promise<void> {
     }
   });
 
-  // Enhanced logging for Render deployment
+  // Enhanced logging for development
   console.log('=== REAL NEWS SERVICE INITIALIZATION ===');
   console.log('✅ Real news feed routes registered successfully');
   
-  // Schedule periodic news fetching to keep logs visible in Render
+  // Schedule periodic news fetching
   const FETCH_INTERVAL = 10 * 60 * 1000; // 10 minutes
   
   // Initial fetch on startup
@@ -100,19 +100,17 @@ export async function registerRealNewsRoutes(app: Express): Promise<void> {
     }
   }, 5000); // 5 second delay after server start
   
-  // Schedule periodic fetches to maintain activity logs in Render
-  if (process.env.NODE_ENV === 'production') {
-    console.log(`⏰ Scheduling news fetches every ${FETCH_INTERVAL/60000} minutes`);
-    setInterval(async () => {
-      try {
-        console.log('🔄 Performing scheduled news fetch...');
-        const news = await realNewsService.getLatestNews();
-        console.log(`📰 Retrieved ${news.length} news items`);
-      } catch (error) {
-        console.error('❌ Error during scheduled news fetch:', error);
-      }
-    }, FETCH_INTERVAL);
-  }
+  // Schedule periodic fetches to keep data fresh
+  console.log(`⏰ Scheduling news fetches every ${FETCH_INTERVAL/60000} minutes`);
+  setInterval(async () => {
+    try {
+      console.log('🔄 Performing scheduled news fetch...');
+      const news = await realNewsService.getLatestNews();
+      console.log(`📰 Retrieved ${news.length} news items`);
+    } catch (error) {
+      console.error('❌ Error during scheduled news fetch:', error);
+    }
+  }, FETCH_INTERVAL);
   
   return Promise.resolve();
 }

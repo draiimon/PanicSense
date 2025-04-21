@@ -1,6 +1,6 @@
 /**
- * Database fix for "created_at" column errors in Render deployment
- * This script directly fixes the SQL queries in the server.js file
+ * Database fix for "created_at" column errors
+ * This script directly fixes the SQL queries in the server.js file if needed
  */
 
 import fs from 'fs';
