@@ -21,6 +21,7 @@ export interface NewsItem {
   source: string;
   timestamp: string;
   url: string;
+  imageUrl?: string; // Added for storing the actual image URL from the news source
   disasterType?: string;
   location?: string;
 }
