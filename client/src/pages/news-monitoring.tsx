@@ -750,27 +750,34 @@ export default function NewsMonitoringPage() {
                                         }
                                       }}
                                       onError={(e) => {
-                                        // If direct image fails, try a second approach with a reliable fallback
+                                        // FALLBACK IMAGES system - use site-specific images
                                         const target = e.currentTarget;
+                                        const sourceUrl = item.url;
                                         
-                                        // Try a fallback source based on the disaster type
+                                        // Guaranteed fallback images for each news source
                                         let fallbackUrl = "";
-                                        
-                                        if (item.disasterType?.toLowerCase().includes('typhoon') || 
-                                            item.disasterType?.toLowerCase().includes('bagyo')) {
-                                          fallbackUrl = "https://newsinfo.inquirer.net/files/2022/09/Typhoon-Karding.jpg";
-                                        } else if (item.disasterType?.toLowerCase().includes('flood') || 
-                                                  item.disasterType?.toLowerCase().includes('baha')) {
-                                          fallbackUrl = "https://sa.kapamilya.com/absnews/abscbnnews/media/2023/news/08/01/20230801-manila-flood-jl-5.jpg";
-                                        } else if (item.disasterType?.toLowerCase().includes('earthquake') || 
-                                                  item.disasterType?.toLowerCase().includes('lindol')) {
-                                          fallbackUrl = "https://newsinfo.inquirer.net/files/2022/07/310599.jpg";
+                                        if (sourceUrl.includes('inquirer.net')) {
+                                          fallbackUrl = "https://newsinfo.inquirer.net/files/2022/04/NDRRMC-monitoring.jpg";
+                                        } else if (sourceUrl.includes('philstar.com')) {
+                                          fallbackUrl = "https://media.philstar.com/photos/2022/09/26/super-typhoon-karding_2022-09-26_19-28-54.jpg";
+                                        } else if (sourceUrl.includes('abs-cbn.com')) {
+                                          fallbackUrl = "https://sa.kapamilya.com/absnews/abscbnnews/media/2022/news/07/emergency.jpg";
+                                        } else if (sourceUrl.includes('rappler.com')) {
+                                          fallbackUrl = "https://www.rappler.com/tachyon/2022/09/karding-NLEX-september-25-2022-004.jpeg";
+                                        } else if (sourceUrl.includes('gmanetwork.com')) {
+                                          fallbackUrl = "https://images.gmanews.tv/webpics/2022/07/rain_2022_07_14_12_47_59.jpg";
+                                        } else if (sourceUrl.includes('manilatimes.net')) {
+                                          fallbackUrl = "https://www.pna.gov.ph/uploads/photos/2023/12/PNP-patrol-car.jpg";
+                                        } else if (sourceUrl.includes('panaynews.net')) {
+                                          fallbackUrl = "https://www.panaynews.net/wp-content/uploads/2023/08/RAIN-IN-FLOOD.jpg";
                                         } else {
                                           fallbackUrl = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
                                         }
                                         
-                                        // Set fallback source
-                                        target.src = fallbackUrl;
+                                        // Apply the fallback
+                                        if (fallbackUrl) {
+                                          target.src = fallbackUrl;
+                                        }
                                         
                                         // Apply branded source indicator
                                         const parentContainer = target.parentElement?.parentElement;
