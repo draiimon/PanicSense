@@ -21,7 +21,7 @@ const parser = new Parser({
 
 // List of Philippines news sources with disaster-related content
 const NEWS_SOURCES = [
-  // These sources are working:
+  // Mga pangunahing news sources na gumagana
   {
     name: 'PhilStar Nation',
     url: 'https://www.philstar.com/rss/nation',
@@ -32,7 +32,6 @@ const NEWS_SOURCES = [
     url: 'https://www.inquirer.net/fullfeed',
     source: 'Inquirer'
   },
-  // Additional backup sources:
   {
     name: 'Manila Times',
     url: 'https://www.manilatimes.net/news/feed',
@@ -48,32 +47,100 @@ const NEWS_SOURCES = [
     url: 'https://www.bworldonline.com/feed/',
     source: 'BusinessWorld'
   },
-  // Karagdagang Philippine News Sources
+  
+  // Malalaking news agencies sa Pilipinas
   {
     name: 'GMA News',
     url: 'https://www.gmanetwork.com/news/rss',
     source: 'GMA News'
   },
-  {
+  // ABS-CBN may be returning a 500 error, temporarily disabling
+  /*{
     name: 'ABS-CBN News',
     url: 'https://news.abs-cbn.com/rss',
     source: 'ABS-CBN'
-  },
-  {
+  },*/
+  // Manila Bulletin returning error
+  /*{
     name: 'Manila Bulletin',
     url: 'https://mb.com.ph/feed',
     source: 'Manila Bulletin'
-  },
+  },*/
   {
+    name: 'PNA',
+    url: 'https://pna.gov.ph/rss',
+    source: 'Philippine News Agency'
+  },
+  
+  // Regional news sources
+  // SunStar returning 404 error
+  /*{
     name: 'SunStar Philippines',
     url: 'https://www.sunstar.com.ph/rss',
     source: 'SunStar'
-  },
+  },*/
   {
     name: 'Cebu Daily News',
     url: 'https://cebudailynews.inquirer.net/feed',
     source: 'Cebu Daily News'
+  },
+  {
+    name: 'Mindanao Times',
+    url: 'https://mindanaotimes.com.ph/feed',
+    source: 'Mindanao Times'
+  },
+  {
+    name: 'Panay News',
+    url: 'https://www.panaynews.net/feed',
+    source: 'Panay News'
+  },
+  {
+    name: 'Bohol Chronicle',
+    url: 'https://boholchronicle.com.ph/feed',
+    source: 'Bohol Chronicle'
+  },
+  {
+    name: 'Punto Central Luzon',
+    url: 'https://punto.com.ph/feed',
+    source: 'Punto Central Luzon'
+  },
+  {
+    name: 'Journal Online',
+    url: 'https://journal.com.ph/feed',
+    source: 'Journal Online'
+  },
+  {
+    name: 'Metro Cebu News',
+    url: 'https://metrocebu.news/feed',
+    source: 'Metro Cebu News'
+  },
+  {
+    name: 'Baguio Midland Courier',
+    url: 'https://baguiomidlandcourier.com.ph/feed',
+    source: 'Baguio Midland Courier'
+  },
+  
+  // Mga internacional at disaster-specific feeds
+  {
+    name: 'ReliefWeb Philippines',
+    url: 'https://reliefweb.int/updates/rss?search=philippines',
+    source: 'ReliefWeb'
   }
+  
+  // Mga karagdagang feed ay sinubukan pero hindi compatible sa kasalukuyang RSS parser
+  // Kaya kinomento muna para hindi maantala ang mga gumaganang feed
+  /*
+  {
+    name: 'PAGASA Forecasts',
+    url: 'https://bagong.pagasa.dost.gov.ph/rss',
+    source: 'PAGASA'
+  },
+  {
+    name: 'GDACS Global Disasters',
+    url: 'https://www.gdacs.org/rss.aspx',
+    source: 'GDACS'
+  }
+  */
 ];
 
 // Filter keywords STRICTLY related to NATURAL DISASTERS in the Philippines
@@ -81,40 +148,49 @@ const DISASTER_KEYWORDS = [
   // Typhoons & Storms
   'bagyo', 'typhoon', 'storm', 'cyclone', 'hurricane', 'habagat', 'monsoon',
   'signal no. 1', 'signal no. 2', 'signal no. 3', 'signal no. 4', 'signal no. 5',
+  'tropical depression', 'low pressure area', 'amihan', 'malakas na hangin',
   
   // Flooding & Rain
   'flood', 'baha', 'tubig', 'binaha', 'heavy rain', 'malakas na ulan', 'bumuhos', 
   'pag-ulan', 'naapektuhan ng baha', 'flashflood', 'rising water level',
+  'high tide', 'tumataas na tubig', 'tubig-baha', 'nabaha',
   
   // Landslides
   'landslide', 'pagguho', 'guho', 'mudslide', 'erosion', 'soil erosion', 
-  'nakabaon', 'nadaganan', 'gumuho ang lupa',
+  'nakabaon', 'nadaganan', 'gumuho ang lupa', 'pagguho ng lupa', 'landslip',
   
   // Earthquakes
   'earthquake', 'lindol', 'magnitude', 'intensity', 'aftershock', 'tremor',
   'lumindol', 'yumanig', 'phivolcs', 'fault line', 'epicenter', 'seismic',
+  'ground shaking', 'quake', 'temblor',
   
   // Tsunamis
   'tsunami', 'tidal wave', 'storm surge', 'sea level rise', 'coastal flooding',
+  'daluyong', 'alat', 'alon', 'tubig-dagat',
   
   // Volcanic Activity
   'volcanic', 'bulkan', 'volcano', 'ash fall', 'pyroclastic flow', 'lava', 
   'eruption', 'pumutok', 'taal', 'mayon', 'kanlaon', 'bulusan', 'alert level',
+  'phreatic', 'magma', 'abo', 'ashfall', 'lahar',
   
-  // Drought & El Niño
+  // Drought & El Niño / Extreme Heat
   'drought', 'tagtuyot', 'el nino', 'el niño', 'water shortage', 'kakulangan ng tubig',
-  'dry spell', 'crop failure', 'kakapusan ng tubig',
+  'dry spell', 'crop failure', 'kakapusan ng tubig', 'heatwave', 'heat index',
+  'heat stroke', 'extreme heat', 'matinding init', 'nakamamatay na init',
   
   // Disaster Response Terms
   'evacuated', 'evacuation', 'evacuees', 'rescue', 'nasalanta', 'stranded',
   'relief', 'casualties', 'fatalities', 'injured', 'missing', 'displaced',
   'destroyed homes', 'damages', 'relief goods', 'relief operations',
+  'emergency shelter', 'relief center', 'evacuation center',
   
   // Government Agencies
   'ndrrmc', 'pagasa', 'phivolcs', 'disaster agency', 'ocd', 'red cross',
+  'disaster response', 'disaster management', 'LGU disaster', 'DOST disaster',
   
   // Warning Levels
-  'red alert', 'orange alert', 'warning', 'disaster', 'calamity', 'state of calamity'
+  'red alert', 'orange alert', 'warning', 'disaster', 'calamity', 'state of calamity',
+  'weather alert', 'weather warning', 'weather advisory'
 ];
 
 /**
@@ -187,7 +263,9 @@ function containsDisasterKeywords(text: string): boolean {
     'typhoon', 'bagyo', 'flood', 'baha', 'landslide', 'guho', 'earthquake', 'lindol',
     'volcanic', 'eruption', 'tsunami', 'storm', 'monsoon', 'habagat', 'cyclone',
     'drought', 'el nino', 'el niño', 'forest fire', 'wildfire', 'sunog', 'magnitude',
-    'pagasa', 'phivolcs', 'ndrrmc', 'evacuate', 'evacuees', 'evacuation'
+    'pagasa', 'phivolcs', 'ndrrmc', 'evacuate', 'evacuees', 'evacuation',
+    'heatwave', 'heat index', 'heat stroke', 'extreme heat', 'matinding init',
+    'alert level', 'disaster', 'calamity', 'rising water', 'rising sea'
   ];
   
   return strongNaturalDisasterIndicators.some(term => lowerText.includes(term));
