@@ -39,13 +39,61 @@ export class PythonService {
   private activeProcesses: Map<string, { process: any, tempFilePath: string, startTime: Date }>;  // Track active Python processes with start times
 
   constructor() {
-    // Use the virtual environment python in production, otherwise use system python
-    this.pythonBinary = process.env.NODE_ENV === 'production' 
-      ? '/app/venv/bin/python3'
-      : 'python3';
+    // Enhanced Python binary detection with fallbacks for different environments
+    if (process.env.NODE_ENV === 'production') {
+      // Try multiple production python paths
+      const possiblePythonPaths = [
+        '/app/venv/bin/python3',  // Default venv path
+        '/usr/bin/python3',       // System python
+        'python3',                // PATH-based python
+        'python'                  // Generic fallback
+      ];
+      
+      // Use the first Python binary that exists
+      this.pythonBinary = process.env.PYTHON_PATH || possiblePythonPaths[0];
+      console.log(`🐍 Using Python binary in production: ${this.pythonBinary}`);
+    } else {
+      this.pythonBinary = 'python3';
+      console.log(`🐍 Using development Python binary: ${this.pythonBinary}`);
+    }
     
+    // Create temp dir if it doesn't exist
     this.tempDir = path.join(os.tmpdir(), 'disaster-sentiment');
-    this.scriptPath = path.join(process.cwd(), 'server', 'python', 'process.py');
+    try {
+      if (!fs.existsSync(this.tempDir)) {
+        fs.mkdirSync(this.tempDir, { recursive: true });
+      }
+    } catch (err) {
+      console.warn(`⚠️ Unable to create temp directory: ${err.message}`);
+      // Fallback to OS temp dir directly
+      this.tempDir = os.tmpdir();
+    }
+    console.log(`📁 Using temp directory: ${this.tempDir}`);
+    
+    // Script path with better error handling and logging
+    const scriptPath = path.join(process.cwd(), 'server', 'python', 'process.py');
+    if (!fs.existsSync(scriptPath)) {
+      console.warn(`⚠️ Python script not found at ${scriptPath}, trying alternatives...`);
+      // Try alternative paths
+      const alternatives = [
+        path.join(__dirname, 'python', 'process.py'),
+        path.join(process.cwd(), 'python', 'process.py'),
+        path.join(__dirname, '../python', 'process.py')
+      ];
+      
+      const foundPath = alternatives.find(p => fs.existsSync(p));
+      if (foundPath) {
+        this.scriptPath = foundPath;
+        console.log(`✅ Found Python script at alternative path: ${foundPath}`);
+      } else {
+        console.error('❌ Could not find Python script in any location!');
+        this.scriptPath = scriptPath; // Use the original path anyway
+      }
+    } else {
+      this.scriptPath = scriptPath;
+      console.log(`✅ Found Python script at: ${scriptPath}`);
+    }
+    
     this.confidenceCache = new Map();  // Initialize confidence cache
     this.similarityCache = new Map();  // Initialize similarity cache
     this.activeProcesses = new Map();  // Initialize active processes map
