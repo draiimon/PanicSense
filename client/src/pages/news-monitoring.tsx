@@ -221,7 +221,7 @@ const addSourceBranding = (container: HTMLElement | null, url: string) => {
   
   // Create branding element
   const branding = document.createElement('div');
-  branding.className = "source-branding absolute bottom-2 right-2 bg-white/20 backdrop-blur-sm rounded-md px-2 py-1 text-white text-xs font-medium z-20";
+  branding.className = "source-branding absolute bottom-2 right-2 bg-white/20 backdrop-blur-sm rounded-md px-2 py-1 text-white text-xs font-medium z-30";
   
   // Determine source icon and name
   let sourceIcon = "";
@@ -253,6 +253,33 @@ const addSourceBranding = (container: HTMLElement | null, url: string) => {
   branding.innerHTML = `${sourceIcon} ${sourceName}`;
   container.appendChild(branding);
 };
+
+// Speed up image loading with preconnect
+document.addEventListener('DOMContentLoaded', () => {
+  const preconnectHosts = [
+    'https://newsinfo.inquirer.net',
+    'https://media.philstar.com',
+    'https://sa.kapamilya.com',
+    'https://www.rappler.com',
+    'https://images.gmanews.tv',
+    'https://www.manilatimes.net',
+    'https://www.pagasa.dost.gov.ph'
+  ];
+  
+  // Add preconnect links
+  preconnectHosts.forEach(host => {
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = host;
+    document.head.appendChild(link);
+    
+    // Also add DNS prefetch as fallback
+    const dns = document.createElement('link');
+    dns.rel = 'dns-prefetch';
+    dns.href = host;
+    document.head.appendChild(dns);
+  });
+});
 
 // Get news image based on URL patterns or direct mappings - with REALTIME options
 const getNewsImage = (item: NewsItem): string => {
@@ -792,10 +819,11 @@ export default function NewsMonitoringPage() {
                                         }
                                       }}
                                       onError={(e) => {
-                                        // If direct image fails, try a second approach with a reliable fallback
+                                        // ⚠️ TRIPLE FALLBACK SYSTEM - LEVEL 1: Original image failed
                                         const target = e.currentTarget;
+                                        console.log('First level image failed, trying second level');
                                         
-                                        // Try a fallback source based on the disaster type
+                                        // LEVEL 2: Try a source-specific and disaster-type-specific fallback
                                         let fallbackUrl = "";
                                         
                                         if (item.disasterType?.toLowerCase().includes('typhoon') || 
@@ -811,44 +839,30 @@ export default function NewsMonitoringPage() {
                                           fallbackUrl = "https://www.pagasa.dost.gov.ph/images/bulletin-images/satellite-images/himawari-visible.jpg";
                                         }
                                         
-                                        // Set fallback source
+                                        // Add a second error handler for the final PanicSense logo fallback
+                                        target.onerror = () => {
+                                          // LEVEL 3: Final fallback to PanicSense logo
+                                          console.log('Second level image failed, using PanicSense logo fallback');
+                                          target.src = '/images/fallback/panicsense-logo.svg';
+                                          
+                                          // Remove error handler to prevent infinite loop
+                                          target.onerror = null;
+                                          
+                                          // Add subtle animation for transition
+                                          target.classList.add('animate-pulse');
+                                          setTimeout(() => {
+                                            target.classList.remove('animate-pulse');
+                                          }, 800);
+                                        };
+                                        
+                                        // Set second level fallback source
                                         target.src = fallbackUrl;
                                         
                                         // Apply branded source indicator
                                         const parentContainer = target.parentElement?.parentElement;
                                         if (parentContainer) {
-                                          // Add source indicator
-                                          const sourceIndicator = document.createElement('div');
-                                          sourceIndicator.className = "absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm rounded-md px-2 py-1 text-white text-xs font-medium z-20";
-                                          
-                                          let sourceIcon = "";
-                                          let domain = "";
-                                          
-                                          if (item.url.includes('inquirer.net')) {
-                                            sourceIcon = "🔍";
-                                            domain = "Inquirer.net";
-                                          } else if (item.url.includes('philstar.com')) {
-                                            sourceIcon = "⭐";
-                                            domain = "PhilStar";
-                                          } else if (item.url.includes('abs-cbn.com')) {
-                                            sourceIcon = "📡";
-                                            domain = "ABS-CBN News";
-                                          } else if (item.url.includes('manilatimes.net')) {
-                                            sourceIcon = "📰";
-                                            domain = "Manila Times";
-                                          } else if (item.url.includes('rappler.com')) {
-                                            sourceIcon = "🌐";
-                                            domain = "Rappler";
-                                          } else if (item.url.includes('gmanetwork.com')) {
-                                            sourceIcon = "📺";
-                                            domain = "GMA News";
-                                          } else {
-                                            sourceIcon = "📄";
-                                            domain = "News Source";
-                                          }
-                                          
-                                          sourceIndicator.innerHTML = `${sourceIcon} ${domain}`;
-                                          parentContainer.appendChild(sourceIndicator);
+                                          // Use our utility function
+                                          addSourceBranding(parentContainer, item.url);
                                         }
                                       }}
                                     />
