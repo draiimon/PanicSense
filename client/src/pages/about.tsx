@@ -341,8 +341,8 @@ export default function About() {
                       <Sparkles className="h-4 w-4 text-pink-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800">Dockerized Deployment</p>
-                      <p className="text-sm text-slate-600 mt-1">Simplified local setup with containerized architecture for seamless distribution</p>
+                      <p className="font-medium text-slate-800">Cloud Integration</p>
+                      <p className="text-sm text-slate-600 mt-1">Optimized for deployment on modern cloud platforms with auto-scaling</p>
                     </div>
                   </li>
                   <li className="flex items-center space-x-4">
@@ -409,7 +409,7 @@ export default function About() {
                   <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-indigo-200">Automated Disaster Detection</span>
                   <span className="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-violet-200">Multilingual Analysis</span>
                   <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-green-200">Geographic Visualization</span>
-                  <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-orange-200">Docker-based Deployment</span>
+                  <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-orange-200">Enhanced Performance</span>
                 </div>
               </div>
             </CardContent>
