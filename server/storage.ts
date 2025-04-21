@@ -774,85 +774,13 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async deleteAllSentimentPosts(): Promise<void> {
-    try {
-      // Try using Drizzle ORM first
-      await db.delete(sentimentPosts);
-    } catch (error) {
-      console.error("Error deleting sentiment posts with Drizzle:", error);
-      // Fallback to raw SQL
-      try {
-        await pool.query("DELETE FROM sentiment_posts");
-        console.log("Deleted all sentiment posts using raw SQL");
-      } catch (sqlError) {
-        console.error("Error deleting sentiment posts with raw SQL:", sqlError);
-      }
-    }
-  }
-
-  async deleteAllDisasterEvents(): Promise<void> {
-    try {
-      // Try using Drizzle ORM first
-      await db.delete(disasterEvents);
-    } catch (error) {
-      console.error("Error deleting disaster events with Drizzle:", error);
-      // Fallback to raw SQL
-      try {
-        await pool.query("DELETE FROM disaster_events");
-        console.log("Deleted all disaster events using raw SQL");
-      } catch (sqlError) {
-        console.error("Error deleting disaster events with raw SQL:", sqlError);
-      }
-    }
-  }
-
-  async deleteAllAnalyzedFiles(): Promise<void> {
-    try {
-      // Try using Drizzle ORM first
-      await db.delete(analyzedFiles);
-    } catch (error) {
-      console.error("Error deleting analyzed files with Drizzle:", error);
-      // Fallback to raw SQL
-      try {
-        await pool.query("DELETE FROM analyzed_files");
-        console.log("Deleted all analyzed files using raw SQL");
-      } catch (sqlError) {
-        console.error("Error deleting analyzed files with raw SQL:", sqlError);
-      }
-    }
-  }
-
   async deleteAllData(): Promise<void> {
-    try {
-      console.log("Starting DELETE ALL DATA operation...");
-      
-      // First attempt with raw SQL for maximum reliability
-      try {
-        await pool.query("DELETE FROM sentiment_feedback");
-        await pool.query("DELETE FROM training_examples");
-        await pool.query("DELETE FROM upload_sessions");
-        await pool.query("DELETE FROM sentiment_posts");
-        await pool.query("DELETE FROM disaster_events");
-        await pool.query("DELETE FROM analyzed_files");
-        console.log("Successfully deleted all data using raw SQL");
-        return;
-      } catch (sqlError) {
-        console.error("Error deleting data with raw SQL, falling back to ORM:", sqlError);
-      }
-      
-      // Fallback to ORM
-      await db.delete(sentimentFeedback);
-      await db.delete(trainingExamples);
-      await db.delete(uploadSessions);
-      await this.deleteAllSentimentPosts();
-      await this.deleteAllDisasterEvents();
-      await this.deleteAllAnalyzedFiles();
-      
-      console.log("✅ Successfully deleted all data");
-    } catch (error) {
-      console.error("❌ Error in deleteAllData:", error);
-      throw new Error("Failed to delete all data: " + String(error));
-    }
+    await db.delete(sentimentFeedback);
+    await db.delete(trainingExamples);
+    await db.delete(uploadSessions);
+    await this.deleteAllSentimentPosts();
+    await this.deleteAllDisasterEvents();
+    await this.deleteAllAnalyzedFiles();
   }
 }
 

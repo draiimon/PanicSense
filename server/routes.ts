@@ -146,12 +146,7 @@ function broadcastUpdate(data: any) {
   }
 }
 
-// Import direct analysis router
-import directAnalysisRouter from './routes/direct-analysis.js';
-
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Use direct analysis router
-  app.use(directAnalysisRouter);
   // Add health check endpoint for Render
   app.get('/api/health', (req: Request, res: Response) => {
     res.status(200).json({ 
@@ -171,7 +166,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await registerRealNewsRoutes(app);
 
   // Create WebSocket server
-  const { wss, broadcast } = createWebSocketServer(httpServer);
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws'  
+  });
   
   // Real news feed routes are already registered above
 
