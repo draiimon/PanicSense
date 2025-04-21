@@ -132,7 +132,7 @@ export async function emergencyDatabaseFix() {
       // Insert sample sentiment post
       await client.query(`
         INSERT INTO sentiment_posts (text, source, language, sentiment, confidence, disaster_type, location)
-        VALUES ('My prayers to our brothers and sisters in Visayas region..', 'Twitter', 'en', 'neutral', 0.85, 'Typhoon', 'Visayas, Philippines')
+        VALUES ('My prayers to our brothers and sisters in Visayas region..', 'News', 'en', 'neutral', 0.85, 'Typhoon', 'Visayas, Philippines')
       `);
     }
     
