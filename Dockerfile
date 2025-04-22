@@ -22,6 +22,7 @@ COPY package.json package-lock.json ./
 
 # Install Node.js dependencies
 RUN npm ci
+RUN npm install -g ts-node
 
 # Copy Python requirements
 COPY requirements.txt* ./
@@ -56,11 +57,12 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/python ./python
 
+# Install ts-node for TypeScript execution
+RUN npm install -g ts-node
+
 # Copy necessary files for runtime
 COPY package.json ./
-COPY server/index-wrapper.js ./server/
-COPY server/direct-db-fix.js ./server/
-COPY server/db-setup.js ./server/
+COPY server ./server
 
 # Expose port 5000 as the application uses this port
 EXPOSE 5000
@@ -74,4 +76,4 @@ RUN chmod +x /docker-entrypoint.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Default command
-CMD ["npm", "start"]
+CMD ["node", "--experimental-specifier-resolution=node", "--loader", "ts-node/esm", "server/index.ts"]

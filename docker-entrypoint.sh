@@ -44,7 +44,7 @@ if [ ! -z "$DATABASE_URL" ]; then
   
   # Run emergency database fix if needed
   echo "Running database fixes if necessary..."
-  node -e "import('./server/direct-db-fix.js').then(m => m.emergencyDatabaseFix())"
+  NODE_PATH=. node -e "import('./server/direct-db-fix.js').then(m => m.emergencyDatabaseFix()).catch(e => console.error('Error running database fix:', e))"
 fi
 
 # Install NLTK data if needed
