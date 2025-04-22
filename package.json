@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "rest-express",
   "version": "1.0.0",
   "type": "module",
@@ -120,5 +121,19 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+=======
+  "name": "workspace",
+  "version": "1.0.0",
+  "main": "hello-world.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "tsx": "^4.19.3"
+>>>>>>> 35b994c (Enable an interactive application with Python and JavaScript)
   }
 }

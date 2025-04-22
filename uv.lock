@@ -1,6 +1,7 @@
 version = 1
 requires-python = ">=3.11"
 resolution-markers = [
+<<<<<<< HEAD
     "python_full_version >= '3.12' and sys_platform == 'linux'",
     "python_full_version < '3.12' and sys_platform == 'linux'",
     "python_full_version >= '3.12' and sys_platform != 'linux'",
@@ -260,6 +261,10 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/64/33/60135848598c076ce4b231e1b1895170f45fbcaeaa2c9d5e38b04db70c35/joblib-1.4.2.tar.gz", hash = "sha256:2382c5816b2636fbd20a09e0f4e9dad4736765fdfb7dca582943b9c1366b3f0e", size = 2116621 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/91/29/df4b9b42f2be0b623cbd5e2140cafcaa2bef0759a00b7b70104dcfe2fb51/joblib-1.4.2-py3-none-any.whl", hash = "sha256:06d478d5674cbc267e7496a410ee875abd68e4340feff4490bcb7afb88060ae6", size = 301817 },
+=======
+    "python_full_version >= '3.12'",
+    "python_full_version < '3.12'",
+>>>>>>> 35b994c (Enable an interactive application with Python and JavaScript)
 ]
 
 [[package]]
@@ -272,6 +277,7 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/0e/72/a3add0e4eec4eb9e2569554f7c70f4a3c27712f40e3284d483e88094cc0e/langdetect-1.0.9.tar.gz", hash = "sha256:cbc1fef89f8d062739774bd51eda3da3274006b3661d199c2655f6b3f6d605a0", size = 981474 }
 
 [[package]]
+<<<<<<< HEAD
 name = "lxml"
 version = "5.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -412,6 +418,8 @@ wheels = [
 ]
 
 [[package]]
+=======
+>>>>>>> 35b994c (Enable an interactive application with Python and JavaScript)
 name = "numpy"
 version = "2.2.5"
 source = { registry = "https://pypi.org/simple" }
@@ -460,6 +468,7 @@ wheels = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "openai"
 version = "1.75.0"
 source = { registry = "https://pypi.org/simple" }
@@ -479,6 +488,8 @@ wheels = [
 ]
 
 [[package]]
+=======
+>>>>>>> 35b994c (Enable an interactive application with Python and JavaScript)
 name = "pandas"
 version = "2.2.3"
 source = { registry = "https://pypi.org/simple" }
@@ -520,6 +531,7 @@ wheels = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "pydantic"
 version = "2.11.3"
 source = { registry = "https://pypi.org/simple" }
@@ -609,6 +621,8 @@ wheels = [
 ]
 
 [[package]]
+=======
+>>>>>>> 35b994c (Enable an interactive application with Python and JavaScript)
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -621,6 +635,7 @@ wheels = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "python-dotenv"
 version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -630,6 +645,8 @@ wheels = [
 ]
 
 [[package]]
+=======
+>>>>>>> 35b994c (Enable an interactive application with Python and JavaScript)
 name = "pytz"
 version = "2025.2"
 source = { registry = "https://pypi.org/simple" }
@@ -639,6 +656,7 @@ wheels = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "regex"
 version = "2024.11.6"
 source = { registry = "https://pypi.org/simple" }
@@ -692,10 +710,13 @@ wheels = [
 ]
 
 [[package]]
+=======
+>>>>>>> 35b994c (Enable an interactive application with Python and JavaScript)
 name = "repl-nix-workspace"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+<<<<<<< HEAD
     { name = "beautifulsoup4" },
     { name = "langdetect" },
     { name = "nltk" },
@@ -710,10 +731,16 @@ dependencies = [
     { name = "torch", version = "2.6.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux'" },
     { name = "torch", version = "2.6.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux'" },
     { name = "tqdm" },
+=======
+    { name = "langdetect" },
+    { name = "numpy" },
+    { name = "pandas" },
+>>>>>>> 35b994c (Enable an interactive application with Python and JavaScript)
 ]
 
 [package.metadata]
 requires-dist = [
+<<<<<<< HEAD
     { name = "beautifulsoup4", specifier = ">=4.13.4" },
     { name = "langdetect", specifier = ">=1.0.9" },
     { name = "nltk", specifier = ">=3.9.1" },
@@ -837,6 +864,11 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/7d/19/fecb7e2825616270f34512b3394cdcf6f45a79b5b6d94fdbd86a509e67b5/setuptools-79.0.0.tar.gz", hash = "sha256:9828422e7541213b0aacb6e10bbf9dd8febeaa45a48570e09b6d100e063fc9f9", size = 1367685 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cc/ea/d53f2f8897c46a36df085964d07761ea4c2d1f2cf92019693b6742b7aabb/setuptools-79.0.0-py3-none-any.whl", hash = "sha256:b9ab3a104bedb292323f53797b00864e10e434a3ab3906813a7169e4745b912a", size = 1256065 },
+=======
+    { name = "langdetect", specifier = ">=1.0.9" },
+    { name = "numpy", specifier = ">=2.2.5" },
+    { name = "pandas", specifier = ">=2.2.3" },
+>>>>>>> 35b994c (Enable an interactive application with Python and JavaScript)
 ]
 
 [[package]]
@@ -849,6 +881,7 @@ wheels = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "sniffio"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -990,6 +1023,8 @@ wheels = [
 ]
 
 [[package]]
+=======
+>>>>>>> 35b994c (Enable an interactive application with Python and JavaScript)
 name = "tzdata"
 version = "2025.2"
 source = { registry = "https://pypi.org/simple" }
@@ -997,6 +1032,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/95/32/1a225d6164441be76
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/23/c7abc0ca0a1526a0774eca151daeb8de62ec457e77262b66b359c3c7679e/tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8", size = 347839 },
 ]
+<<<<<<< HEAD
 
 [[package]]
 name = "urllib3"
@@ -1006,3 +1042,5 @@ sdist = { url = "https://files.pythonhosted.org/packages/8a/78/16493d9c386d8e60e
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6b/11/cc635220681e93a0183390e26485430ca2c7b5f9d33b15c74c2861cb8091/urllib3-2.4.0-py3-none-any.whl", hash = "sha256:4e16665048960a0900c702d4a66415956a584919c03361cac9f1df5c5dd7e813", size = 128680 },
 ]
+=======
+>>>>>>> 35b994c (Enable an interactive application with Python and JavaScript)

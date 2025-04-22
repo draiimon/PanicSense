@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
+<<<<<<< HEAD
     "beautifulsoup4>=4.13.4",
     "langdetect>=1.0.9",
     "nltk>=3.9.1",
@@ -1140,3 +1141,9 @@ yta-general-utils = [{ index = "pytorch-cpu", marker = "platform_system == 'Linu
 zensvi = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 zetascale = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
 zuko = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
+=======
+    "langdetect>=1.0.9",
+    "numpy>=2.2.5",
+    "pandas>=2.2.3",
+]
+>>>>>>> 35b994c (Enable an interactive application with Python and JavaScript)
