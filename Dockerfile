@@ -62,6 +62,43 @@ EXPOSE $PORT
 RUN mkdir -p /app/uploads/data /app/uploads/profile_images /app/uploads/temp
 RUN chmod -R 777 /app/uploads
 
+# Create special fix scripts for Render database issues
+RUN echo '#!/bin/bash\n\
+echo "🔧 Running Render-specific database fixes..."\n\
+\n\
+# Function to fix timestamp columns in tables\n\
+fix_timestamp_columns() {\n\
+  local table_name=$1\n\
+  echo "🔧 Checking $table_name table structure..."\n\
+  psql $DATABASE_URL -c "ALTER TABLE $table_name ADD COLUMN IF NOT EXISTS timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"\n\
+  psql $DATABASE_URL -c "UPDATE $table_name SET timestamp = created_at WHERE timestamp IS NULL AND created_at IS NOT NULL;"\n\
+  echo "✅ Fixed timestamp column in $table_name"\n\
+}\n\
+\n\
+# Connect to database and run fixes\n\
+if [ ! -z "$DATABASE_URL" ]; then\n\
+  echo "🔄 Connecting to PostgreSQL database..."\n\
+  psql $DATABASE_URL -c "SELECT NOW() as server_time;"\n\
+  \n\
+  # Fix disaster_events table\n\
+  fix_timestamp_columns "disaster_events"\n\
+  \n\
+  # Fix analyzed_files table\n\
+  fix_timestamp_columns "analyzed_files"\n\
+  \n\
+  # Create missing upload_sessions table if needed\n\
+  echo "🔧 Creating upload_sessions table if needed..."\n\
+  psql $DATABASE_URL -c "CREATE TABLE IF NOT EXISTS upload_sessions (\n\
+    id SERIAL PRIMARY KEY,\n\
+    session_id TEXT UNIQUE NOT NULL,\n\
+    file_id INTEGER,\n\
+    status TEXT DEFAULT '\''active'\'',\n\
+    progress JSONB DEFAULT '\''{}'\'' );"
+else\n\
+  echo "❌ DATABASE_URL not set, skipping database fixes"\n\
+fi\n\
+' > /app/render-db-fix.sh && chmod +x /app/render-db-fix.sh
+
 # Copy and set execute permission for startup script
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
