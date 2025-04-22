@@ -1,7 +1,9 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
+NU nano 7.2                                   db.ts                                            import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
+import dotenv from 'dotenv';
+dotenv.config();
 
 neonConfig.webSocketConstructor = ws;
 
@@ -21,7 +23,7 @@ if (databaseUrl.startsWith('DATABASE_URL=')) {
 
 console.log(`Using database connection type: ${databaseUrl.split(':')[0]}`);
 
-export const pool = new Pool({ 
+export const pool = new Pool({
   connectionString: databaseUrl,
   ssl: process.env.DB_SSL_REQUIRED === 'true' ? { rejectUnauthorized: false } : false
 });
