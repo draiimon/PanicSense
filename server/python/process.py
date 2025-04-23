@@ -2320,44 +2320,30 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                 "text": text  # Add text for confidence adjustment in metrics calculation
                             }
                         else:
-                            # Run sentiment analysis with persistent retry mechanism
-                            max_retries = 5
-                            retry_count = 0
-                            analysis_success = False
-
-                            while not analysis_success and retry_count < max_retries:
-                                try:
-                                    # This calls the API with racing mechanism
-                                    analysis_result = self.analyze_sentiment(
-                                        text)
-                                    analysis_success = True
-                                except Exception as analysis_err:
-                                    retry_count += 1
-                                    logging.error(
-                                        f"API analysis attempt {retry_count} failed: {str(analysis_err)}"
-                                    )
-                                    if retry_count < max_retries:
-                                        logging.info(
-                                            f"Retrying analysis (attempt {retry_count+1}/{max_retries})..."
-                                        )
-                                        time.sleep(
-                                            2 *
-                                            retry_count)  # Exponential backoff
-                                    else:
-                                        logging.error(
-                                            "Maximum retries reached, falling back to rule-based analysis"
-                                        )
-                                        # Create a fallback analysis
-                                        # Fallback to rule-based with consistent confidence format
-                                        analysis_result = {
-                                            "sentiment": "Neutral",
-                                            "confidence": 0.75,  # Establish minimum reasonable confidence
-                                            "explanation": "Fallback after API failures",
-                                            "disasterType": self.extract_disaster_type(text),
-                                            "location": self.extract_location(text),
-                                            "language": "English",
-                                            "text": text  # Include text for confidence adjustment
-                                        }
+                            # CHANGE: For CSV uploads, directly use rule-based analysis instead of AI
+                            # Detect language first
+                            try:
+                                language_detected = detect(text)
+                                if language_detected in ['tl', 'fil']:
+                                    language = "Filipino"
+                                else:
+                                    language = "English"
+                            except:
+                                language = "English"
+                                
+                            # Get sentiment using rule-based analysis
+                            rule_based_result = self._rule_based_sentiment_analysis(text, language)
+                            
+                            # Create the final analysis result with disaster and location
+                            analysis_result = {
+                                "sentiment": rule_based_result["sentiment"],
+                                "confidence": rule_based_result["confidence"],
+                                "explanation": "Rule-based analysis for CSV upload: " + rule_based_result.get("explanation", ""),
+                                "disasterType": self.extract_disaster_type(text),
+                                "location": self.extract_location(text),
+                                "language": language,
+                                "text": text  # Include text for confidence adjustment
+                            }
 
                         # Store the processed result
                         # CRITICAL: Make sure we use the exact same processing as single text analysis
@@ -2540,41 +2526,30 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                             else:
                                 csv_language = "English"
 
-                        # Apply same persistent retry mechanism to failed records
-                        max_retries = 5
-                        retry_count = 0
-                        analysis_success = False
-
-                        while not analysis_success and retry_count < max_retries:
-                            try:
-                                analysis_result = self.analyze_sentiment(text)
-                                analysis_success = True
-                            except Exception as analysis_err:
-                                retry_count += 1
-                                logging.error(
-                                    f"API analysis retry attempt {retry_count} failed: {str(analysis_err)}"
-                                )
-                                if retry_count < max_retries:
-                                    logging.info(
-                                        f"Retrying failed record analysis (attempt {retry_count+1}/{max_retries})..."
-                                    )
-                                    time.sleep(
-                                        3 * retry_count
-                                    )  # Even longer backoff for previous failures
-                                else:
-                                    logging.error(
-                                        "Maximum retries reached for failed record, falling back to neutral sentiment"
-                                    )
-                                    # Fallback to rule-based with consistent confidence format
-                                    analysis_result = {
-                                        "sentiment": "Neutral",
-                                        "confidence": 0.75,  # Establish minimum reasonable confidence
-                                        "explanation": "Failed after maximum retries",
-                                        "disasterType": self.extract_disaster_type(text),
-                                        "location": self.extract_location(text),
-                                        "language": "English",
-                                        "text": text  # Include text for confidence adjustment
-                                    }
+                        # CHANGE: For CSV uploads, directly use rule-based analysis for retries too
+                        # Detect language first
+                        try:
+                            language_detected = detect(text)
+                            if language_detected in ['tl', 'fil']:
+                                language = "Filipino"
+                            else:
+                                language = "English"
+                        except:
+                            language = "English"
+                            
+                        # Get sentiment using rule-based analysis
+                        rule_based_result = self._rule_based_sentiment_analysis(text, language)
+                        
+                        # Create the final analysis result with disaster and location
+                        analysis_result = {
+                            "sentiment": rule_based_result["sentiment"],
+                            "confidence": rule_based_result["confidence"],
+                            "explanation": "Rule-based analysis for CSV upload (retry): " + rule_based_result.get("explanation", ""),
+                            "disasterType": self.extract_disaster_type(text),
+                            "location": self.extract_location(text),
+                            "language": language,
+                            "text": text  # Include text for confidence adjustment
+                        }
 
                         # Get sentiment and apply post-processing
                         sentiment = analysis_result.get("sentiment", "Neutral")
