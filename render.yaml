@@ -3,15 +3,13 @@ services:
     name: panicsense
     env: node
     plan: free
-    buildCommand: node render-install.js
-    startCommand: NODE_ENV=production node server/index-wrapper.js
+    buildCommand: node render-setup.js
+    startCommand: NODE_ENV=production node start-prod.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
-      - key: PATH
-        value: /opt/render/project/node_modules/.bin:${PATH}
       - key: DATABASE_URL
         sync: false
       - key: GROQ_API_KEY

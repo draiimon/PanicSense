@@ -1,88 +1,94 @@
-# PanicSense - FREE TIER Render Deployment Guide
+# Step-by-Step Guide: Deploying PanicSense on Render
 
-This guide is specifically for deploying PanicSense on Render's **FREE TIER** using the Web Service deployment method.
+This guide provides a comprehensive walkthrough for deploying PanicSense on Render's free tier.
 
-## Pre-Deployment Checklist
+## Prerequisites
 
-Before deploying to Render, make sure:
-1. Your code is pushed to a GitHub repository
-2. You have a Neon PostgreSQL database setup with connection details ready
-3. You have your Groq API key available
+1. GitHub account with the PanicSense repository
+2. Render.com account
+3. Neon.tech PostgreSQL database
+4. Groq API key for AI functions
 
-## Quick Deployment Steps for FREE TIER
+## Step 1: Set Up Your Render Account
 
-### 1. Sign Up for Render
+1. Navigate to [render.com](https://render.com) and sign up/log in
+2. Click "New" and select "Web Service"
 
-If you don't have a Render account, sign up at [render.com](https://render.com)
+## Step 2: Connect Your GitHub Repository
 
-### 2. Create a New Web Service (NOT Blueprint)
+1. Click "Connect account" and choose GitHub
+2. Find your PanicSense repository and connect it
 
-1. From the Render dashboard, click **New** and select **Web Service**
-2. Connect your GitHub repository
-3. Choose the repository containing your PanicSense application
+## Step 3: Configure the Web Service
 
-### 3. Configure FREE TIER Settings
-
-Enter the following information:
+Enter the following settings:
 
 - **Name**: PanicSense (or your preferred name)
 - **Environment**: Node
-- **Region**: Choose the region closest to your users
-- **Branch**: main (or your preferred branch)
-- **Build Command**: `chmod +x ./build.sh && ./build.sh`
-- **Start Command**: `NODE_ENV=production node server/index-wrapper.js`
-- **Instance Type**: Free
+- **Region**: Choose the closest to your location
+- **Branch**: main
 
-### 4. Add Environment Variables
+### CRITICAL SETTINGS:
 
-Click **Advanced** and add these environment variables:
+- **Build Command**: `node render-setup.js`
+- **Start Command**: `NODE_ENV=production node start-prod.js`
+- **Plan**: Free (middle of page)
 
-| Variable | Value |
-|---------|-------------|
-| `NODE_ENV` | `production` |
-| `DATABASE_URL` | Your Neon PostgreSQL connection string |
-| `GROQ_API_KEY` | Your Groq API key |
-| `SESSION_SECRET` | Any random string |
+## Step 4: Set Environment Variables
 
-### 5. Create Free Tier Web Service
+Click "Advanced" and add the following:
 
-Click **Create Web Service** to start the deployment. The free tier has these limitations:
-- 512 MB RAM
-- Spins down after inactivity
-- Slower cold starts
-- Limited bandwidth
+- `NODE_ENV` = production
+- `DATABASE_URL` = (your Neon PostgreSQL connection string)
+- `GROQ_API_KEY` = (your Groq API key)
+- `SESSION_SECRET` = (any random string)
 
-### 6. Monitor Deployment
+## Step 5: Create Web Service
 
-Monitor the logs to ensure your application deploys successfully.
+Click "Create Web Service"
 
-## FREE TIER Troubleshooting
+## Step 6: Monitor Deployment
 
-If you encounter issues on the free tier:
+- Check the logs for any errors
+- Once deployment is successful, your app will be available at <service-name>.onrender.com
 
-1. **"Vite not found" Error**: If you see this error in your build logs, use one of these fixes:
-   - Use our updated `build.sh` script which explicitly installs Vite globally
-   - If that fails, try the Render web dashboard and change the start command to: `NODE_ENV=production node start.js`
-   - For manual build, update the build command to: `npm install -g vite esbuild && chmod +x ./build.sh && ./build.sh`
+## Step 7: Database Setup
 
-2. **Resource Limits**: The free tier has limited resources (512MB RAM). If your app is crashing, it might be hitting memory limits.
+If you haven't already:
 
-3. **Cold Starts**: Your app will spin down after inactivity. The first request after inactivity will take longer.
+1. Go to [neon.tech](https://neon.tech)
+2. Create a new PostgreSQL database
+3. Get the connection string and add it to your environment variables
 
-4. **Database Connection**: Make sure your PostgreSQL database allows connections from Render's IPs.
+## Step 8: Custom Domain (Optional)
 
-5. **Build Timeout**: Free tier has a 15-minute build limit. If your build is timing out, optimize it.
+If you want to use a custom domain:
 
-## Important Notes for FREE TIER
+1. Click "Settings" in the Render dashboard
+2. Scroll down to the "Custom Domains" section
+3. Click "Add Custom Domain"
+4. Follow the instructions provided
 
-1. Your app on free tier will sleep after 15 minutes of inactivity.
+## Troubleshooting
 
-2. The free instance has limited processing power - complex operations may be slower.
+If you encounter errors:
 
-3. Free tier web services have a shared CPU, so performance can vary.
+1. Check the logs in the Render dashboard
+2. Verify all environment variables are correctly set
+3. If you see "vite not found" errors, the fallback mechanism will still work
 
-4. There is a soft bandwidth limit of 100 GB/month on the free tier.
+## Key Files We Created
+
+These are the most important files for your Render deployment:
+
+1. `render-setup.js` - Ultra-simplified setup script
+2. `start-prod.js` - Production startup script
+3. `render.yaml` - Render configuration file
+
+## Support
+
+If you encounter issues, check the logs in the Render dashboard to see what's going wrong.
 
 ---
 
-**Note**: The `build.sh` script and `Procfile` we've created are specifically designed to work well with Render's free tier.
+Congratulations! You now have your own PanicSense deployment!
