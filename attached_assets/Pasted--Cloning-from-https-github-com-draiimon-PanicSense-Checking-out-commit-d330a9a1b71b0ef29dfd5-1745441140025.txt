@@ -1,0 +1,93 @@
+> Cloning from https://github.com/draiimon/PanicSense
+==> Checking out commit d330a9a1b71b0ef29dfd5ccdaa37533303e142f8 in branch main
+==> Downloading cache...
+==> Transferred 2.9GB in 16s. Extraction took 18s.
+==> Using Node.js version 22.14.0 (default)
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Using Bun version 1.1.0 (default)
+==> Docs on specifying a bun version: https://render.com/docs/bun-version
+==> Running build command 'bash ./render_setup/build_command.sh'...
+=== Preparing environment ===
+Creating requirements.txt from template...
+=== Installing Python dependencies ===
+==> Installing Python version 3.11.11...
+==> Using Python version 3.11.11 (default)
+==> Docs on specifying a Python version: https://render.com/docs/python-version
+==> Using Poetry version 1.7.1 (default)
+==> Docs on specifying a Poetry version: https://render.com/docs/poetry-version
+==> Installing Poetry version 1.7.1
+Retrieving Poetry metadata
+# Welcome to Poetry!
+This will download and install the latest version of Poetry,
+a dependency and package manager for Python.
+It will add the `poetry` command to Poetry's bin directory, located at:
+/opt/render/project/poetry/bin
+You can uninstall at any time by executing this script with the --uninstall option,
+and these changes will be reverted.
+Installing Poetry (1.7.1)
+Installing Poetry (1.7.1): Creating environment
+Installing Poetry (1.7.1): Installing Poetry
+Installing Poetry (1.7.1): Creating script
+Installing Poetry (1.7.1): Done
+Poetry (1.7.1) is installed now. Great!
+To get started you need Poetry's bin directory (/opt/render/project/poetry/bin) in your `PATH`
+environment variable.
+Add `export PATH="/opt/render/project/poetry/bin:$PATH"` to your shell configuration file.
+Alternatively, you can call Poetry explicitly with `/opt/render/project/poetry/bin/poetry`.
+You can test that everything is set up by executing:
+`poetry --version`
+ERROR: Could not find a version that satisfies the requirement anthropic==0.19.4 (from versions: 0.2.2, 0.2.3, 0.2.4, 0.2.5, 0.2.6, 0.2.7, 0.2.8, 0.2.9, 0.2.10, 0.3.0, 0.3.1, 0.3.2, 0.3.3, 0.3.4, 0.3.5, 0.3.6, 0.3.7, 0.3.8, 0.3.9, 0.3.10, 0.3.11, 0.4.1, 0.5.0, 0.6.0, 0.7.0, 0.7.1, 0.7.2, 0.7.3, 0.7.4, 0.7.5, 0.7.6, 0.7.7, 0.7.8, 0.8.0, 0.8.1, 0.9.0, 0.10.0, 0.11.0, 0.12.0, 0.13.0, 0.14.0, 0.14.1, 0.15.0, 0.15.1, 0.16.0, 0.17.0, 0.18.0, 0.18.1, 0.19.0, 0.19.1, 0.19.2, 0.20.0, 0.21.0, 0.21.1, 0.21.2, 0.21.3, 0.22.0, 0.22.1, 0.23.0, 0.23.1, 0.24.0, 0.25.0, 0.25.1, 0.25.2, 0.25.3, 0.25.4, 0.25.5, 0.25.6, 0.25.7, 0.25.8, 0.25.9, 0.26.0, 0.26.1, 0.27.0, 0.28.0, 0.28.1, 0.29.0, 0.29.2, 0.30.0, 0.30.1, 0.31.0, 0.31.1, 0.31.2, 0.32.0, 0.33.0, 0.33.1, 0.34.0, 0.34.1, 0.34.2, 0.35.0, 0.36.0, 0.36.1, 0.36.2, 0.37.0, 0.37.1, 0.38.0, 0.39.0, 0.40.0, 0.41.0, 0.42.0, 0.43.0, 0.43.1, 0.44.0, 0.45.0, 0.45.1, 0.45.2, 0.46.0, 0.47.0, 0.47.1, 0.47.2, 0.48.0, 0.49.0, 0.50.0)
+ERROR: No matching distribution found for anthropic==0.19.4
+[notice] A new release of pip is available: 24.0 -> 25.0.1
+[notice] To update, run: pip install --upgrade pip
+=== Installing Node.js dependencies ===
+changed 1 package, and audited 503 packages in 1s
+71 packages are looking for funding
+  run `npm fund` for details
+found 0 vulnerabilities
+=== Building React app ===
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+sh: 1: vite: not found
+=== Checking Python directories ===
+=== Build completed successfully ===
+==> Uploading build...
+==> Uploaded in 16.2s. Compression took 5.9s
+==> Build successful 🎉
+==> Deploying...
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node server/index-wrapper.js
+node:internal/modules/cjs/loader:1228
+  throw err;
+  ^
+Error: Cannot find module '/opt/render/project/src/server/index-wrapper.js'
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1225:15)
+    at Function._load (node:internal/modules/cjs/loader:1055:27)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:220:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:170:5)
+    at node:internal/main/run_main_module:36:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+Node.js v22.14.0
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node server/index-wrapper.js
+node:internal/modules/cjs/loader:1228
+  throw err;
+  ^
+Error: Cannot find module '/opt/render/project/src/server/index-wrapper.js'
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1225:15)
+    at Function._load (node:internal/modules/cjs/loader:1055:27)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:220:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:170:5)
+    at node:internal/main/run_main_module:36:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+Node.js v22.14.0

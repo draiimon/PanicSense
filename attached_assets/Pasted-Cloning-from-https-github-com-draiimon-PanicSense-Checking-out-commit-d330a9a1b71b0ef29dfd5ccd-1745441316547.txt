@@ -1,0 +1,36 @@
+Cloning from https://github.com/draiimon/PanicSense
+==> Checking out commit d330a9a1b71b0ef29dfd5ccdaa37533303e142f8 in branch main
+==> Using Node.js version 22.14.0 (default)
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Using Bun version 1.1.0 (default)
+==> Docs on specifying a bun version: https://render.com/docs/bun-version
+==> Running build command 'npm install -g vite && npm install && npm run build || (mkdir -p dist && touch dist/.keep && npm install)'...
+added 13 packages in 10s
+5 packages are looking for funding
+  run `npm fund` for details
+added 502 packages, and audited 503 packages in 8s
+71 packages are looking for funding
+  run `npm fund` for details
+found 0 vulnerabilities
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+failed to load config from /opt/render/project/src/vite.config.ts
+error during build:
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /opt/render/project/src/node_modules/.vite-temp/vite.config.ts.timestamp-1745441273517-b6c8dfd6f931f.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:268:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:854:18)
+    at defaultResolve (node:internal/modules/esm/resolve:984:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:685:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:634:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:617:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:273:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:135:49)
+up to date, audited 503 packages in 916ms
+71 packages are looking for funding
+  run `npm fund` for details
+found 0 vulnerabilities
+==> Uploading build...
+==> Deploying... 
+
+BAT PURO!! MAY MISSING?? EH UNG FILES KO NAMAN KOMPLETO??
