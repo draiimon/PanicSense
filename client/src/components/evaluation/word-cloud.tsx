@@ -560,50 +560,9 @@ export const WordCloud: React.FC<WordCloudProps> = ({
   return (
     <Card className="h-full overflow-hidden">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Cloud className="h-5 w-5 text-indigo-500" />
-            <CardTitle className="text-base font-medium">{title}</CardTitle>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 w-8 p-0" 
-              onClick={toggleAnimation}
-              title={animation ? "Pause Animation" : "Play Animation"}
-            >
-              {animation ? (
-                <motion.div
-                  initial={{ scale: 1 }}
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  <Sparkles className="h-4 w-4 text-indigo-500" />
-                </motion.div>
-              ) : (
-                <Sparkles className="h-4 w-4 text-slate-400" />
-              )}
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 w-8 p-0" 
-              onClick={cycleColorScheme}
-              title="Change Color Scheme"
-            >
-              <Palette className="h-4 w-4 text-indigo-500" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 w-8 p-0" 
-              onClick={() => drawWordCloud()}
-              title="Refresh Cloud"
-            >
-              <RefreshCw className="h-4 w-4 text-indigo-500" />
-            </Button>
-          </div>
+        <div className="flex items-center">
+          <Cloud className="h-5 w-5 text-indigo-500" />
+          <CardTitle className="text-base font-medium ml-2">{title}</CardTitle>
         </div>
         <p className="text-sm text-slate-500">{description}</p>
       </CardHeader>
