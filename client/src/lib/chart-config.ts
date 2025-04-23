@@ -11,6 +11,9 @@ export const ChartConfig = {
     red: '#dc2626',
     violet: '#8b5cf6',
     pink: '#ec4899',
+    indigo: '#6366f1',
+    cyan: '#06b6d4',
+    gray: '#6b7280',
     
     // Sentiment colors (for consistency across charts)
     "Panic": '#dc2626', // red-600

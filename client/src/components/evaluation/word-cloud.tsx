@@ -115,9 +115,9 @@ export const WordCloud: React.FC<WordCloudProps> = ({
           .toLowerCase()
           .replace(/[^\w\s]/g, '') // Remove punctuation
           .split(/\s+/) // Split by whitespace
-          .filter(word => word.length > 2 && !stopwords.has(word)); // Filter out stopwords and short words
+          .filter((word: string) => word.length > 2 && !stopwords.has(word)); // Filter out stopwords and short words
         
-        words.forEach(word => {
+        words.forEach((word: string) => {
           wordCounts[word] = (wordCounts[word] || 0) + 1;
         });
       }

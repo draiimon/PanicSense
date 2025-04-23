@@ -264,8 +264,8 @@ export const SentimentLabelCount: React.FC<SentimentLabelCountProps> = ({
             {sentimentCounts.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 
-                fill={sentimentColors[entry.name] || ChartConfig.colors.primary} 
-                stroke={sentimentSolidColors[entry.name] || ChartConfig.colors.primary}
+                fill={sentimentColors[entry.name as keyof typeof sentimentColors] || ChartConfig.colors.primary} 
+                stroke={sentimentSolidColors[entry.name as keyof typeof sentimentSolidColors] || ChartConfig.colors.primary}
                 strokeWidth={1}
               />
             ))}
