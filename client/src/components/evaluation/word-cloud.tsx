@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Cloud, Download, Sparkles, RefreshCw, Palette } from "lucide-react";
+import { Cloud, Sparkles, RefreshCw, Palette } from "lucide-react";
 import { Button } from "../ui/button";
 import { motion } from "framer-motion";
 import { ChartConfig } from "@/lib/chart-config";
@@ -383,24 +383,7 @@ export const WordCloud: React.FC<WordCloudProps> = ({
     }
   }, [colorAngle]);
 
-  // Function to handle downloading the word cloud as an image
-  const handleDownload = () => {
-    if (!canvasRef.current) return;
-    
-    // Create a temporary link element
-    const link = document.createElement('a');
-    
-    // Name file based on selected color scheme
-    link.download = `word-cloud-${colorScheme}.png`;
-    
-    // Convert canvas to data URL
-    link.href = canvasRef.current.toDataURL('image/png');
-    
-    // Trigger download
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  // No export function needed
 
   // Toggle animation effect
   const toggleAnimation = () => {
@@ -451,16 +434,7 @@ export const WordCloud: React.FC<WordCloudProps> = ({
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleDownload} 
-              className="h-8"
-              title="Save as image"
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Save
-            </Button>
+
           </div>
         </div>
         <p className="text-sm text-slate-500">{description}</p>

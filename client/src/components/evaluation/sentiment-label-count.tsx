@@ -9,21 +9,15 @@ import {
   ResponsiveContainer,
   Cell,
   LabelList,
-  CartesianGrid,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis
+  CartesianGrid
 } from "recharts";
 import { ChartConfig } from "@/lib/chart-config";
 import { 
   BarChart4, 
-  Download,
-  Sparkles, 
-  PieChart as PieChartIcon
+  Sparkles
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { motion } from "framer-motion";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
 interface SentimentLabelCountProps {
   data: any[];
@@ -37,7 +31,6 @@ export const SentimentLabelCount: React.FC<SentimentLabelCountProps> = ({
   description = "Distribution of sentiment labels across the dataset"
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
-  const [viewMode, setViewMode] = useState<'bar' | 'radial'>('bar');
 
   const sentimentCounts = useMemo(() => {
     if (!Array.isArray(data)) return [];
@@ -74,13 +67,13 @@ export const SentimentLabelCount: React.FC<SentimentLabelCountProps> = ({
     "Resilience": 'url(#resilienceGradient)'
   };
 
-  // Solid colors for labels and legend
+  // Updated solid colors as requested
   const sentimentSolidColors = {
-    "Panic": ChartConfig.colors.red,
-    "Fear/Anxiety": ChartConfig.colors.orange,
-    "Disbelief": ChartConfig.colors.yellow,
-    "Neutral": ChartConfig.colors.blue,
-    "Resilience": ChartConfig.colors.green
+    "Panic": "#ef4444", // Red
+    "Fear/Anxiety": "#f97316", // Orange
+    "Disbelief": "#8b5cf6", // Purple
+    "Neutral": "#6b7280", // Gray
+    "Resilience": "#22c55e" // Green (unchanged)
   };
 
   // Emoji icons for each sentiment category
@@ -137,55 +130,6 @@ export const SentimentLabelCount: React.FC<SentimentLabelCountProps> = ({
     return null;
   };
 
-  // Function to handle download as image
-  const handleDownload = () => {
-    const svgElement = document.querySelector('.sentiment-chart svg');
-    if (!svgElement) return;
-    
-    // Create a canvas element
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    // Set canvas dimensions to match the SVG
-    canvas.width = svgElement.clientWidth * 2; // Scale up for better quality
-    canvas.height = svgElement.clientHeight * 2;
-    ctx.scale(2, 2);
-    
-    // Create an image from the SVG
-    const svgData = new XMLSerializer().serializeToString(svgElement);
-    const img = new Image();
-    
-    img.onload = () => {
-      // Draw a white background
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Draw the image
-      ctx.drawImage(img, 0, 0);
-      
-      // Add title and timestamp
-      ctx.font = 'bold 16px Inter, sans-serif';
-      ctx.fillStyle = '#333';
-      ctx.textAlign = 'center';
-      ctx.fillText(title, canvas.width / 4, 20);
-      
-      ctx.font = '12px Inter, sans-serif';
-      ctx.fillStyle = '#666';
-      ctx.fillText(`Generated on ${new Date().toLocaleDateString()}`, canvas.width / 4, 40);
-      
-      // Create download link
-      const link = document.createElement('a');
-      link.download = 'sentiment-distribution.png';
-      link.href = canvas.toDataURL('image/png');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    };
-    
-    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-  };
-
   // Function to trigger animation effect
   const triggerAnimation = () => {
     setIsAnimating(true);
@@ -203,24 +147,24 @@ export const SentimentLabelCount: React.FC<SentimentLabelCountProps> = ({
           <defs>
             {/* Define gradients for each sentiment category */}
             <linearGradient id="panicGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ef4444" />
-              <stop offset="100%" stopColor="#b91c1c" />
+              <stop offset="0%" stopColor="#f87171" />
+              <stop offset="100%" stopColor="#dc2626" />
             </linearGradient>
             <linearGradient id="anxietyGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f97316" />
-              <stop offset="100%" stopColor="#c2410c" />
+              <stop offset="0%" stopColor="#fb923c" />
+              <stop offset="100%" stopColor="#ea580c" />
             </linearGradient>
             <linearGradient id="disbeliefGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#eab308" />
-              <stop offset="100%" stopColor="#a16207" />
+              <stop offset="0%" stopColor="#a78bfa" />
+              <stop offset="100%" stopColor="#7c3aed" />
             </linearGradient>
             <linearGradient id="neutralGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3b82f6" />
-              <stop offset="100%" stopColor="#1e40af" />
+              <stop offset="0%" stopColor="#9ca3af" />
+              <stop offset="100%" stopColor="#4b5563" />
             </linearGradient>
             <linearGradient id="resilienceGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#22c55e" />
-              <stop offset="100%" stopColor="#15803d" />
+              <stop offset="0%" stopColor="#4ade80" />
+              <stop offset="100%" stopColor="#16a34a" />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -312,75 +256,6 @@ export const SentimentLabelCount: React.FC<SentimentLabelCountProps> = ({
     </div>
   );
 
-  // Render the radial chart
-  const renderRadialChart = () => (
-    <div className="w-full h-[350px] sentiment-chart">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart 
-          data={sentimentCounts} 
-          margin={{ top: 30, right: 30, bottom: 30, left: 30 }}
-          layout="radial"
-          barCategoryGap={15}
-        >
-          <defs>
-            {/* Define gradients for each sentiment category */}
-            <linearGradient id="panicRadial" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#ef4444" />
-              <stop offset="100%" stopColor="#b91c1c" />
-            </linearGradient>
-            <linearGradient id="anxietyRadial" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#f97316" />
-              <stop offset="100%" stopColor="#c2410c" />
-            </linearGradient>
-            <linearGradient id="disbeliefRadial" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#eab308" />
-              <stop offset="100%" stopColor="#a16207" />
-            </linearGradient>
-            <linearGradient id="neutralRadial" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#3b82f6" />
-              <stop offset="100%" stopColor="#1e40af" />
-            </linearGradient>
-            <linearGradient id="resilienceRadial" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#22c55e" />
-              <stop offset="100%" stopColor="#15803d" />
-            </linearGradient>
-          </defs>
-          <PolarGrid stroke="#e2e8f0" />
-          <PolarAngleAxis 
-            dataKey="name" 
-            tick={{ fontSize: 12, fill: '#64748b' }}
-          />
-          <PolarRadiusAxis angle={90} domain={[0, 'auto']} />
-          <Tooltip content={<CustomTooltip />} />
-          <Bar 
-            dataKey="value" 
-            barSize={20}
-            animationDuration={isAnimating ? 1500 : 500} 
-            animationBegin={0}
-            animationEasing="ease-out"
-          >
-            {sentimentCounts.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={`url(#${entry.name.toLowerCase().replace(/[^a-z]/g, '')}Radial)`} 
-                stroke={sentimentSolidColors[entry.name as keyof typeof sentimentSolidColors] || ChartConfig.colors.primary}
-                strokeWidth={1}
-              />
-            ))}
-            <LabelList 
-              dataKey="value" 
-              position="outside" 
-              fill="#64748b" 
-              fontSize={12} 
-              fontWeight={600}
-              formatter={(value: number) => (value > 0 ? value : '')}
-            />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-
   return (
     <Card className="h-full overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pb-0">
@@ -399,47 +274,15 @@ export const SentimentLabelCount: React.FC<SentimentLabelCountProps> = ({
             >
               <Sparkles className="h-4 w-4 text-amber-500" />
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleDownload} 
-              className="h-8"
-              title="Download Chart"
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Save
-            </Button>
           </div>
         </div>
         <p className="text-sm text-slate-500 mt-2">{description}</p>
       </CardHeader>
       <CardContent className="p-6">
-        <Tabs 
-          defaultValue="bar" 
-          value={viewMode}
-          onValueChange={(val) => setViewMode(val as 'bar' | 'radial')}
-          className="mt-2"
-        >
-          <TabsList className="grid w-[180px] grid-cols-2 mb-6">
-            <TabsTrigger value="bar" className="flex items-center gap-1">
-              <BarChart4 className="h-3.5 w-3.5" />
-              <span>Bar</span>
-            </TabsTrigger>
-            <TabsTrigger value="radial" className="flex items-center gap-1">
-              <PieChartIcon className="h-3.5 w-3.5" />
-              <span>Radial</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="bar" className="flex flex-col lg:flex-row justify-between">
-            {renderBarChart()}
-            {renderSentimentLegend()}
-          </TabsContent>
-          
-          <TabsContent value="radial">
-            {renderRadialChart()}
-          </TabsContent>
-        </Tabs>
+        <div className="flex flex-col lg:flex-row justify-between">
+          {renderBarChart()}
+          {renderSentimentLegend()}
+        </div>
       </CardContent>
     </Card>
   );
