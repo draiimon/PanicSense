@@ -2374,9 +2374,9 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                             analysis_result.get("location")
                         })
 
-                        # Add a substantial delay for sequential processing
-                        # Each record needs time to be displayed on the frontend
-                        time.sleep(3)  # 3-second delay between records
+                        # Reduced delay for faster CSV processing with rule-based analysis
+                        # Brief pause to avoid overwhelming the system
+                        time.sleep(0.1)  # Reduced from 3 seconds to 0.1 seconds
 
                         # Report completed using the actual processed_count 
                         # Instead of using progress_pct for first parameter, use the actual processed count
@@ -2586,7 +2586,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                             "location": csv_location if csv_location else analysis_result.get("location")
                         })
 
-                        time.sleep(1.0)  # Wait 1 second between retries
+                        time.sleep(0.1)  # Reduced from 1 second to 0.1 seconds for faster retry processing
 
                     except Exception as e:
                         logging.error(
