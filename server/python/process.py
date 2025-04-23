@@ -806,10 +806,37 @@ class DisasterSentimentBackend:
                 "language": "English"
             }
 
-        # Detect language - handle both English and Filipino/Tagalog
+        # Detect language - handle English, Filipino/Tagalog, and Taglish (mixed)
         try:
+            # First check if the text has Taglish characteristics (mix of English and Filipino)
+            # Simple Taglish detection - check for Filipino words/patterns in primarily English text
+            tagalog_markers = ['naman', 'daw', 'po', 'nga', 'talaga', 'lang', 'sana', 
+                              'yung', 'kasi', 'raw', 'din', 'rin', 'hindi', 'mga', 'natin',
+                              'ako', 'ikaw', 'siya', 'kami', 'tayo', 'kayo', 'sila',
+                              'na ', ' ba ', 'dito', 'diyan', 'doon', 'pala']
+            
+            # Check for English words commonly used in Taglish
+            english_markers = ['the', 'and', 'you', 'for', 'that', 'have', 'with', 'this',
+                              'what', 'how', 'when', 'why', 'who', 'they', 'from', 'will',
+                              'would', 'could', 'should']
+            
+            text_lower = text.lower()
+            
+            # Count Tagalog markers
+            tagalog_count = sum(1 for marker in tagalog_markers if f" {marker} " in f" {text_lower} " or 
+                               f" {marker}." in text_lower or f" {marker}," in text_lower)
+            
+            # Count English markers
+            english_count = sum(1 for marker in english_markers if f" {marker} " in f" {text_lower} " or 
+                               f" {marker}." in text_lower or f" {marker}," in text_lower)
+            
+            # Get language detection result
             lang_code = detect(text)
-            if lang_code in ['tl', 'fil']:
+            
+            # Classify as Taglish if we detect both Filipino and English patterns
+            if (tagalog_count >= 1 and english_count >= 1) or (lang_code in ['tl', 'fil'] and english_count >= 2) or (lang_code == 'en' and tagalog_count >= 2):
+                language = "Taglish"
+            elif lang_code in ['tl', 'fil']:
                 language = "Filipino"
             else:
                 language = "English"
@@ -888,7 +915,7 @@ class DisasterSentimentBackend:
                 try:
                     import requests
                     
-                    # Use specialized prompt for Llama 4 Maverick
+                    # Use specialized prompt based on language (Filipino, Taglish, or English)
                     if language == "Filipino":
                         system_message = """Ikaw ay isang dalubhasa sa pagsusuri ng damdamin sa panahon ng sakuna sa Pilipinas.
 
@@ -904,6 +931,26 @@ MAHALAGANG KONTEKSTO:
 - Mga mensaheng may "TULONG!" o "HELP!" ay madalas na Panic.
 - Mga mensaheng nag-aalok na tumulong ("tulungan natin sila") ay Resilience, samantalang mga nanghihingi ng tulong ("tulungan niyo kami") ay Panic o Fear.
 - Madalas na may mga mixed message na Tagalog at English (Taglish) na kailangang bigyan ng cultural context.
+
+Suriin mo rin kung may nabanggit na uri ng sakuna (Flood, Typhoon, Fire, Volcanic Eruption, Earthquake, Landslide) at lokasyon sa Pilipinas.
+
+Ang response mo ay dapat nasa JSON format lang na may: "sentiment", "confidence", "explanation", "disasterType", "location" """
+                    elif language == "Taglish":
+                        system_message = """Ikaw ay isang dalubhasa sa pagsusuri ng damdamin sa panahon ng sakuna sa Pilipinas, particularly for mixed Tagalog and English (Taglish) messages.
+
+MAHALAGA (IMPORTANT): Ang sistema ay nakatuon sa pag-classify ng Taglish messages sa isa sa limang kategorya:
+- Panic: Matinding pag-aalala, pagkatakot at paghingi ng tulong, like "OMG sobrang scary ng earthquake kagabi!" or "HELP NAMAN PO! Trapped kami dito sa second floor!"
+- Fear/Anxiety: Nakakaramdam ng takot o pag-aalala ngunit may control pa rin, like "Kinakabahan ako kasi rising yung water level" or "Medyo worried kami dito sa situation."
+- Disbelief: Pagkagulat, pagdududa, sarkasmo, like "Seryoso ba? Another typhoon daw according to PAGASA?" or "Hindi ako makapaniwala sa damage ng bagyo."
+- Resilience: Pagpapakita ng lakas-loob, pagkakaisa at pag-asa, like "Kakayanin natin to! Let's help each other" or "Malalagpasan din natin itong disaster."
+- Neutral: Simpleng pahayag ng impormasyon walang emosyon, like "May reported na 3 injured sa area" or "According to news, cancelled ang flights today."
+
+MAHALAGANG KONTEKSTO FOR TAGLISH ANALYSIS:
+- Context matters more than individual words in Taglish. A mix of English and Tagalog can express strong emotions.
+- Tagalog emotional markers (like "natatakot," "nakakatakot," "kabado") combined with English factual statements still indicate Fear/Anxiety.
+- Conversational markers like "naman," "po," "kasi," combined with disaster terms show cultural context.
+- Informal expressions like "grabe yung flooding" or "ang lala ng situation" often indicate emotional reactions.
+- Pay attention to Filipino cultural expressions of anxiety that may be mixed with English technical terms.
 
 Suriin mo rin kung may nabanggit na uri ng sakuna (Flood, Typhoon, Fire, Volcanic Eruption, Earthquake, Landslide) at lokasyon sa Pilipinas.
 
@@ -2676,14 +2723,42 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                 }
             }
         
-        # Detect language for appropriate training
+        # Detect language for appropriate training (including Taglish)
         try:
+            # First check if the text has Taglish characteristics (mix of English and Filipino)
+            # Simple Taglish detection - check for Filipino words/patterns in primarily English text
+            tagalog_markers = ['naman', 'daw', 'po', 'nga', 'talaga', 'lang', 'sana', 
+                              'yung', 'kasi', 'raw', 'din', 'rin', 'hindi', 'mga', 'natin',
+                              'ako', 'ikaw', 'siya', 'kami', 'tayo', 'kayo', 'sila',
+                              'na ', ' ba ', 'dito', 'diyan', 'doon', 'pala']
+            
+            # Check for English words commonly used in Taglish
+            english_markers = ['the', 'and', 'you', 'for', 'that', 'have', 'with', 'this',
+                              'what', 'how', 'when', 'why', 'who', 'they', 'from', 'will',
+                              'would', 'could', 'should']
+            
+            text_lower = original_text.lower()
+            
+            # Count Tagalog markers
+            tagalog_count = sum(1 for marker in tagalog_markers if f" {marker} " in f" {text_lower} " or 
+                               f" {marker}." in text_lower or f" {marker}," in text_lower)
+            
+            # Count English markers
+            english_count = sum(1 for marker in english_markers if f" {marker} " in f" {text_lower} " or 
+                               f" {marker}." in text_lower or f" {marker}," in text_lower)
+            
+            # Get language detection result
             lang_code = detect(original_text)
-            if lang_code in ['tl', 'fil']:
+            
+            # Classify as Taglish if we detect both Filipino and English patterns
+            if (tagalog_count >= 1 and english_count >= 1) or (lang_code in ['tl', 'fil'] and english_count >= 2) or (lang_code == 'en' and tagalog_count >= 2):
+                language = "Taglish"
+            elif lang_code in ['tl', 'fil']:
                 language = "Filipino"
             else:
                 language = "English"
         except:
+            # Default to English if detection fails
             language = "English"
         
         # Log the feedback for training
