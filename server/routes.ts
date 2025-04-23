@@ -14,6 +14,8 @@ import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFee
 import { uploadSessionManager } from "./utils/upload-session-manager";
 import { EventEmitter } from 'events';
 import { registerRealNewsRoutes } from "./routes/real-news-routes";
+// Import Taglish fix utility
+import { preserveTaglishEntries } from "./fix-taglish";
 
 // Extend global to support our connection counter
 declare global {
