@@ -338,12 +338,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Process the speed based on actual calculation but with sensible limits
                 rawSpeed = progress.processed / elapsed;
                 
-                // For CSV uploads using rule-based analysis, we process at ~10 records per second (0.1s each)
-                // This is much faster than the previous AI-based processing that was 1-4 records/second
-                progress.currentSpeed = Math.min(Math.max(rawSpeed, 10.0), 20.0);
+                // For rule-based analysis, actual speed is around 20 records/second
+                // Use actual measured speed but ensure it doesn't go below 10 or above 30
+                const measuredSpeed = rawSpeed > 0 ? rawSpeed : 20.0;
+                progress.currentSpeed = Math.min(Math.max(measuredSpeed, 10.0), 30.0);
                 
-                // Add small random variation for more natural feel (±0.5)
-                const randomVariation = (Math.random() * 1.0) - 0.5;
+                // Add very small random variation for natural feel (±0.2)
+                const randomVariation = (Math.random() * 0.4) - 0.2; 
                 progress.currentSpeed = Math.max(10.0, progress.currentSpeed + randomVariation);
               } else {
                 // For other states, calculate but keep it consistent
@@ -374,12 +375,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const timeForCurrentBatch = recordsLeftInCurrentBatch * timePerRecord;
               const timeForRemainingBatches = remainingFullBatches * (recordsPerBatch * timePerRecord + pauseTimePerBatch);
               
-              // Calculate direct time using fixed 0.1 seconds per record for rule-based analysis
-              const fixedTimePerRecord = 0.1; // Exactly 0.1 seconds per record
-              const directEstimatedTime = remainingRecords * fixedTimePerRecord;
+              // Use timePerRecord based on the actual measured speed
+              // timePerRecord is already calculated above as 1 / progress.currentSpeed
+              const complexEstimatedTime = timeForCurrentBatch + timeForRemainingBatches;
               
-              // Use the direct calculation instead of the complex calculation
-              let estimatedTimeRemaining = directEstimatedTime;
+              // Use the complex calculation with actual current speed for more accuracy
+              let estimatedTimeRemaining = complexEstimatedTime;
               
               // CRITICAL: Prevent time remaining from going up - only allow it to go down
               // This ensures a smooth countdown experience for users
