@@ -1,0 +1,85 @@
+3.2.1 Data Cleaning
+The data cleaning process will remove irrelevant content, such as advertisements, URLs, and special characters, to maintain focus on disaster-related discussions within the Philippine context. Posts identified as spam or duplicates will be filtered out to retain relevant and unique content.
+To enhance consistency, all text will be converted to lowercase, standardizing the text for easier processing. Tokenization may also be applied, breaking down sentences into individual words or tokens, facilitating further natural language processing tasks.
+Additionally, emojis, which carry significant emotional context, will be retained and processed for sentiment analysis. The Hugging Face lexicon tool will be used to convert emojis into descriptive text representations, preserving their sentiment value for accurate interpretation in the analysis. This approach enriches the dataset by incorporating non-verbal cues, ensuring that emotional nuances expressed through emojis are effectively captured for machine learning models
+Raw Data 
+Cleaned Data 
+"OMG!! The typhoon is getting worse! 😩😩 Be safe everyone!! #StayStrong"
+"oh my god the typhoon is getting worse :weary: :weary: be safe everyone"
+"Nakakatakot na talaga yung bagyo! 😱 Paano na kaya ang pamilya ko? #PrayForSafety"
+"nakakatakot na talaga yung bagyo :face screaming:  paano na kaya ang pamilya ko PrayForSafety"
+
+Table 3: Data Cleaning from Raw Data to Cleaned Data
+	3.2.2 Normalization 
+Normalization will be applied to standardize the text. This includes converting all text to lowercase, removing extra spaces, and standardizing slang or colloquial Filipino terms commonly used on social media platforms. This step ensures consistency in data formatting across the entire dataset.
+Expand abbreviations and contractions: Convert abbreviations like "omg" to "oh my god," "im" to "i am," and so on.
+Standardize slang and casual terms: Replace casual terms like "dyan" with "sa," "yung" with "ang," etc., to keep language more formal and consistent.
+Correct grammatical forms: Apply standard grammar, e.g., converting "ko na alam" to "hindi ko na alam."
+Translate local language phrases (if required): Optional step to ensure language consistency, especially in models that are not bilingual.
+Raw Data 
+Normalized Data 
+"omg the typhoon is getting worse :weary: :weary: be safe everyone"
+"oh my god the typhoon is getting worse weary stay safe everyone"
+"nakakatakot na talaga yung bagyo paano na kaya ang pamilya ko"
+"nakakatakot na talaga ang bagyo face screaming paano na kaya ang pamilya ko"
+
+
+Table 4: Normalized Data
+	3.2.3 Tokenization
+Tokenization will involve splitting posts into individual words or subwords. This step is crucial for feeding the processed data into neural networks, enabling the models to understand the structure and context of the social media posts better.
+Separate each word or meaningful phrase: Each word becomes a token, which is essential for models to understand and analyze context.
+Handle bilingual data: Filipino and English words are kept as individual tokens, preserving the bilingual nature of the data.
+Optional token filtering: In some cases, you might remove stop words like "ang," "sa," or "na" if they don’t contribute meaningfully to sentiment analysis.
+Normalized Data 
+Tokenized Data
+"oh my god the typhoon is getting worse weary stay safe everyone"
+["oh", "my", "god", "the", "typhoon", "is", "getting", "worse", “weary”, "stay", "safe", "everyone"]
+"nakakatakot na talaga ang bagyo face screaming paano na kaya ang pamilya ko"
+["nakakatakot", "na", "talaga", "ang", "bagyo",”face”, “screaming”, "paano", "na", "kaya", "ang", "pamilya", "ko"]
+
+Table 5: Tokenization of Normalized Data
+
+3.2.4 Stemming and Lemmatization
+Stemming and lemmatization are processes used in natural language processing (NLP) to reduce words to their base or root forms, which simplifies text analysis and improves model consistency, especially when handling informal language.
+Stemming: Stemming is the process of removing suffixes and affixes to bring a word to its base form. For Filipino, stemming is helpful when dealing with inflected words or slang variations. For instance, the word "nakakatakot" (scary) could be stemmed to "takot" (fear). Developing a custom stemmer or adapting existing algorithms (like Porter Stemmer or Snowball Stemmer) for Filipino can help, but fine-tuning is often needed for optimal results.
+Lemmatization: Lemmatization goes beyond stemming by considering the word’s context to reduce it to a meaningful root or dictionary form, which may require a more sophisticated approach. For example, "bagyo" (storm) would remain as "bagyo," but slang or colloquial words like "nakakatakot" can be lemmatized more accurately to "takot." Lemmatization is especially useful when handling verbs in Filipino, as verbs change forms based on tense, aspect, and mood.
+Normalized Data 
+Stemmed Data
+Lemmatized Data
+"oh my god the typhoon is getting worse weary stay safe everyone"
+["oh", "my", "god", "the", "typhoon", "get", "worse", “weary” "stay", "safe", "everyone"]
+["oh", "my", "god", "the", "typhoon", "getting", "worse", “weary”, "stay", "safe", "everyone"]
+"nakakatakot na talaga ang bagyo face screaming paano na kaya ang pamilya ko"
+["takot", "na", "talaga", "ang", "bagyo", ”face”, “screaming” "paano", "na", "kaya", "ang", "pamilya", "ko"]
+["nakakatakot", "na", "talaga", "ang", "bagyo", ”face”,“screaming”,"paano", "na", "kaya", "ang", "pamilya", "ko"]
+
+
+Table 6: Stemming and Lemmatized Data
+3.2.5 Removing of Stop Words
+Researchers analyzing the text of comments and posts will encounter many stopwords, such as common words like "the," "is," and "and," which carry little meaning for sentiment analysis. To improve the accuracy of emotion detection, they will implement a preprocessing step to systematically remove these stopwords, allowing the analysis to focus on more meaningful content and enhancing the dataset's effectiveness for sentiment and emotion classification.
+In tackling the challenges of Natural Language Processing (NLP) for the Filipino language, especially in stopword removal, researchers face limitations due to the lack of specialized NLP resources for Tagalog. Despite these limitations, promising tools have emerged. Notably, a GitHub repository created by Gene Diaz in 2016, under the MIT license, provides an extensive list of stopwords for various languages, including Tagalog. This resource is particularly useful for Filipino data, offering a reliable method for removing common Filipino stop words such as "ang," "ka," "sa," "may," "iyan," "yan," and "kung." Proper use of this tool can significantly enhance Tagalog data processing and serve as a valuable foundation for future NLP research and applications.
+Normalized Data 
+Stop Words Removal
+"oh my god the typhoon is getting worse stay safe everyone"
+["oh", "god", "typhoon", "getting", "worse", "stay", "safe", "everyone"]
+"nakakatakot na talaga ang bagyo paano na kaya ang pamilya ko"
+["nakakatakot", "talaga", "bagyo", "paano", "kaya", "pamilya"]
+
+
+Table 7: Removing of Stop Words
+3.2.6 Language Detection
+Given the multilingual nature of the Philippines, language detection will be employed to classify posts based on the language used (e.g., English, Tagalog, or code-switching between the two). This will allow the models to handle multilingual data more effectively.
+Tokenized Data
+Detected Language
+["oh", "my", "god", "the", "typhoon", "getting", "worse", “weary”, "stay", "safe", "everyone"]
+English
+
+
+["nakakatakot", "na", "talaga", "ang", "bagyo", "paano", "na", "kaya", "ang", "pamilya", "ko"]
+Filipino
+
+Table 8:Language Detection of Tokenized Data
+3.2.7 Importance of Handling Negation in n-Grams
+In sentiment analysis, negation can completely change the meaning of a sentence, such as turning a positive sentiment into a negative one. Words like "not," "no," "never," and "without" can alter the interpretation of nearby words. n-Gram analysis helps capture these negation patterns by grouping words together, which is particularly useful in understanding complex emotional expressions in disaster-related posts.
+3.2.8 Negation-Aware n-Grams in This Study
+To accurately capture negated emotions, this study will incorporate negation-aware n-grams by combining words with negation markers. For instance, if "not" appears before a word like "safe," we create a combined token "not_safe" to preserve the negation effect. This approach ensures that the model interprets negated phrases accurately, reflecting true public sentiment.
