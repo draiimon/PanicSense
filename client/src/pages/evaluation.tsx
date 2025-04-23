@@ -3,6 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useDisasterContext } from "@/context/disaster-context";
 import { getAnalyzedFile, getSentimentPostsByFileId, getSentimentPosts } from "@/lib/api";
 import { ConfusionMatrix } from "@/components/evaluation/confusion-matrix";
+import { SentimentLabelCount } from "@/components/evaluation/sentiment-label-count";
+import { LanguageLabelCount } from "@/components/evaluation/language-label-count";
+import { WordCloud } from "@/components/evaluation/word-cloud";
+import { DownloadableMetrics } from "@/components/evaluation/downloadable-metrics";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileUploader } from "@/components/file-uploader";
@@ -14,7 +18,9 @@ import {
   LineChart, 
   FileCheck2, 
   BarChart4,
-  Gauge
+  Gauge,
+  Download,
+  PieChart
 } from "lucide-react";
 import { AnimatedBackground } from "@/components/layout/animated-background";
 
@@ -325,6 +331,85 @@ const Evaluation: React.FC = () => {
                     }
                     allDatasets={selectedFileId === "all"}
                   />
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+          
+          {/* New Visualization Components */}
+          {selectedFileId && (
+            <motion.div variants={itemVariants}>
+              <Card className="overflow-hidden shadow-lg border-0 bg-white/90 backdrop-blur-sm mt-6">
+                <CardHeader className="p-4 bg-gradient-to-r from-indigo-600/90 via-blue-600/90 to-purple-600/90 border-b border-gray-200/40">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm shadow-inner">
+                        <BarChart4 className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base sm:text-lg font-bold text-white">
+                          Comparative Disaster Analysis
+                        </CardTitle>
+                        <p className="text-xs sm:text-sm text-indigo-100 mt-0.5 sm:mt-1">
+                          {isAll 
+                            ? "Advanced visual analysis of sentiment distribution and language patterns" 
+                            : `Advanced visual analysis for ${name}`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="hidden sm:flex items-center">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="bg-white/20 hover:bg-white/30 text-white border-white/20 ml-2"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Analysis
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Sentiment Label Count */}
+                    <div className="col-span-1">
+                      <SentimentLabelCount 
+                        data={posts}
+                        title="Sentiment Distribution"
+                        description={`Distribution of sentiment categories in ${isAll ? 'all datasets' : name}`}
+                      />
+                    </div>
+                    
+                    {/* Language Label Count */}
+                    <div className="col-span-1">
+                      <LanguageLabelCount 
+                        data={posts}
+                        title="Language Distribution"
+                        description={`Distribution of language categories in ${isAll ? 'all datasets' : name}`}
+                      />
+                    </div>
+                    
+                    {/* Word Cloud */}
+                    <div className="col-span-1 lg:col-span-2">
+                      <WordCloud 
+                        data={posts}
+                        title="Word Cloud Visualization"
+                        description="Real-time visualization of the most frequent words in the dataset"
+                      />
+                    </div>
+                    
+                    {/* Downloadable Metrics */}
+                    <div className="col-span-1 lg:col-span-2">
+                      <DownloadableMetrics 
+                        data={posts}
+                        metrics={selectedFile?.evaluationMetrics}
+                        title="Downloadable Evaluation Metrics"
+                        description="Generate visual metrics reports in matplotlib style for download"
+                      />
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
