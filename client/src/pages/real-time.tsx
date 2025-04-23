@@ -90,11 +90,10 @@ export default function RealTime() {
             </div>
           </motion.div>
 
-          {/* Text Processing and Realtime Monitor Components - Side by Side */}
+          {/* Realtime Monitor Component */}
           <motion.div
             variants={itemVariants}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TextProcessor />
+            className="w-full">
             <RealtimeMonitor />
           </motion.div>
 
@@ -190,6 +189,11 @@ export default function RealTime() {
                 </div>
               </CardContent>
             </Card>
+            
+            {/* Text Processing Component at the bottom */}
+            <motion.div variants={itemVariants} className="mt-8">
+              <TextProcessor />
+            </motion.div>
           </motion.div>
         </motion.div>
       </div>
