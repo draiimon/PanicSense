@@ -55,9 +55,9 @@ router.post('/process', async (req, res) => {
 
     // Return the processed data
     return res.json(response.data);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Text processing error:', error);
-    return res.status(500).json({ error: 'Failed to process text', details: error.message });
+    return res.status(500).json({ error: 'Failed to process text', details: error.message || String(error) });
   }
 });
 

@@ -14,6 +14,7 @@ import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFee
 import { uploadSessionManager } from "./utils/upload-session-manager";
 import { EventEmitter } from 'events';
 import { registerRealNewsRoutes } from "./routes/real-news-routes";
+import textProcessingRoutes from "./routes/text-processing";
 // Import Taglish fix utility
 import { preserveTaglishEntries } from "./fix-taglish";
 
@@ -166,6 +167,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register our real-time news monitoring routes
   await registerRealNewsRoutes(app);
+  
+  // Register text processing routes
+  app.use('/api/text-processing', textProcessingRoutes);
 
   // Create WebSocket server
   const wss = new WebSocketServer({ 
