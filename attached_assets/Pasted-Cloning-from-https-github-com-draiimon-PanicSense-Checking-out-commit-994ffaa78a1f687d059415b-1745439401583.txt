@@ -1,0 +1,40 @@
+Cloning from https://github.com/draiimon/PanicSense
+==> Checking out commit 994ffaa78a1f687d059415bd757ec917ac247488 in branch main
+==> Downloading cache...
+==> Transferred 5.6GB in 25s. Extraction took 56s.
+==> Using Node.js version 22.14.0 (default)
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Using Bun version 1.1.0 (default)
+==> Docs on specifying a bun version: https://render.com/docs/bun-version
+==> Running build command 'pip3 install -r requirements.txt && npm install && npm run build'...
+==> Installing Python version 3.11.11...
+==> Using Python version 3.11.11 (default)
+==> Docs on specifying a Python version: https://render.com/docs/python-version
+==> Using Poetry version 1.7.1 (default)
+==> Docs on specifying a Poetry version: https://render.com/docs/poetry-version
+==> Installing Poetry version 1.7.1
+Retrieving Poetry metadata
+# Welcome to Poetry!
+This will download and install the latest version of Poetry,
+a dependency and package manager for Python.
+It will add the `poetry` command to Poetry's bin directory, located at:
+/opt/render/project/poetry/bin
+You can uninstall at any time by executing this script with the --uninstall option,
+and these changes will be reverted.
+Installing Poetry (1.7.1)
+Installing Poetry (1.7.1): Creating environment
+Installing Poetry (1.7.1): Installing Poetry
+Installing Poetry (1.7.1): Creating script
+Installing Poetry (1.7.1): Done
+Poetry (1.7.1) is installed now. Great!
+To get started you need Poetry's bin directory (/opt/render/project/poetry/bin) in your `PATH`
+environment variable.
+Add `export PATH="/opt/render/project/poetry/bin:$PATH"` to your shell configuration file.
+Alternatively, you can call Poetry explicitly with `/opt/render/project/poetry/bin/poetry`.
+You can test that everything is set up by executing:
+`poetry --version`
+ERROR: Could not open requirements file: [Errno 2] No such file or directory: 'requirements.txt'
+[notice] A new release of pip is available: 24.0 -> 25.0.1
+[notice] To update, run: pip install --upgrade pip
+==> Build failed 😞
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
