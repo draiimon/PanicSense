@@ -147,6 +147,9 @@ export const DownloadableMetrics: React.FC<DownloadableMetricsProps> = ({
   
   // Draw bar chart for sentiment distribution
   const drawBarChart = (ctx: CanvasRenderingContext2D, data: any[], subtitle: string) => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    
     const chartTop = 120;
     const chartBottom = 500;
     const chartLeft = 100;
@@ -225,6 +228,9 @@ export const DownloadableMetrics: React.FC<DownloadableMetricsProps> = ({
   
   // Draw pie chart for language distribution
   const drawPieChart = (ctx: CanvasRenderingContext2D, data: any[], subtitle: string) => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    
     const centerX = canvas.width / 2;
     const centerY = 300;
     const radius = 180;
@@ -295,6 +301,9 @@ export const DownloadableMetrics: React.FC<DownloadableMetricsProps> = ({
   
   // Draw metrics table
   const drawMetricsTable = (ctx: CanvasRenderingContext2D, metrics?: any) => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    
     if (!metrics) {
       ctx.font = '16px Arial';
       ctx.fillStyle = '#666';
@@ -370,6 +379,9 @@ export const DownloadableMetrics: React.FC<DownloadableMetricsProps> = ({
   
   // Draw top posts table
   const drawTopPostsTable = (ctx: CanvasRenderingContext2D, data: any[]) => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    
     // Add subtitle
     ctx.font = 'bold 18px Arial';
     ctx.fillStyle = '#333';
