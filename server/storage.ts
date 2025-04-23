@@ -66,6 +66,7 @@ export interface IStorage {
   
   // Upload Sessions Management
   getUploadSession(sessionId: string): Promise<UploadSession | undefined>;
+  getAllActiveSessions(): Promise<UploadSession[]>;
   createUploadSession(session: InsertUploadSession): Promise<UploadSession>;
   updateUploadSession(sessionId: string, status: string, progress: any): Promise<UploadSession | undefined>;
   deleteUploadSession(sessionId: string): Promise<void>;

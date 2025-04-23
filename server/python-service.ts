@@ -926,8 +926,8 @@ export class PythonService {
         }
       }
       
-      // Define batch size - process in chunks for large files
-      const BATCH_SIZE = 100; // Process 100 records at a time
+      // Define batch size - use larger batches for speed
+      const BATCH_SIZE = 1000; // Process 1000 records at a time (10x faster)
       const totalBatches = Math.ceil(effectiveTotalRecords / BATCH_SIZE);
       
       log(`Processing CSV in ${totalBatches} batches (batch size: ${BATCH_SIZE})`, 'python-service');

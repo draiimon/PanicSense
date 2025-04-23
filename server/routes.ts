@@ -2175,28 +2175,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 1. Cancel all Python processes
       pythonService.cancelAllProcesses();
       
-      // 2. Mark all sessions as complete or error in database
-      await pool.query("UPDATE upload_sessions SET status = 'error' WHERE status = 'active'");
+      // 2. Mark all sessions as error in database through storage layer
+      try {
+        // Use the storage API instead of direct pool access
+        // Reset all active sessions to error status
+        const activeSessions = await storage.getAllActiveSessions();
+        console.log(`Found ${activeSessions.length} active sessions to reset`);
+        
+        for (const session of activeSessions) {
+          await storage.updateUploadSession(session.id, 'error', {
+            processed: 0,
+            total: 0,
+            stage: 'Reset by emergency cleanup',
+            timestamp: Date.now(),
+            batchNumber: 0,
+            totalBatches: 0,
+            batchProgress: 0,
+            currentSpeed: 0,
+            timeRemaining: 0,
+            processingStats: {
+              successCount: 0,
+              errorCount: 0,
+              lastBatchDuration: 0,
+              averageSpeed: 0
+            }
+          });
+          console.log(`Reset session ${session.id} to error status`);
+        }
+      } catch (dbError) {
+        console.error('Error resetting database sessions:', dbError);
+        // Continue with reset - we'll handle in memory anyway
+      }
       
       // 3. Clear all progress maps and in-memory state
       uploadProgressMap.clear();
+      console.log('Cleared in-memory upload progress map');
       
-      // 4. Close all SSE connections
-      [...sseClients.keys()].forEach(clientId => {
-        const client = sseClients.get(clientId);
-        if (client) {
-          try {
-            client.write('event: close\ndata: {"reason":"Emergency reset activated"}\n\n');
-            client.end();
-          } catch (e) {
-            console.error('Error closing SSE client:', e);
-          }
-        }
-        sseClients.delete(clientId);
-      });
+      // 4. Reset any stuck UI state through broadcasting
+      try {
+        broadcastUpdate({
+          type: 'reset',
+          message: 'Emergency reset activated by user'
+        });
+        console.log('Broadcast reset signal to all clients');
+      } catch (broadcastError) {
+        console.error('Error broadcasting reset:', broadcastError);
+      }
       
-      // Wait a bit to ensure all connections are properly closed
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait a bit to ensure everything is processed
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       return res.json({
         success: true,
