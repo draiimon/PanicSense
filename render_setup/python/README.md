@@ -1,1 +1,0 @@
-# Python directory structure check
