@@ -877,6 +877,8 @@ export class PythonService {
     storedFilename: string,
     recordCount: number
   }> {
+    // IMPORTANT: This method now uses rule-based fallback processing for all CSV data
+    // It does NOT use AI processing at all, making it fast and reliable for large datasets
     const uniqueId = nanoid();
     const storedFilename = `${uniqueId}-${originalFilename}`;
     const tempFilePath = path.join(this.tempDir, storedFilename);

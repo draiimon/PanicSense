@@ -586,8 +586,52 @@ if __name__ == "__main__":
                         if not text.strip():
                             continue
                             
-                        # Analyze sentiment
-                        result = backend.analyze_sentiment(text)
+                        # HIGH-SPEED CSV PROCESSING - NO AI, NO DELAYS!
+                        # Determine language - check for Taglish first
+                        language = "English" # Default
+                        
+                        # Check for Taglish using word markers
+                        text_lower = text.lower()
+                        filipino_markers = ['ang', 'ng', 'mga', 'sa', 'ko', 'mo', 'naman', 'po', 'na', 'ay', 'at', 'ito', 'yung', 'kasi']
+                        english_content = any(word in text_lower for word in ['the', 'is', 'are', 'and', 'or', 'to', 'for', 'in', 'on', 'at', 'with'])
+                        filipino_content = any(word in text_lower for word in filipino_markers)
+                        
+                        # Determine language based on content
+                        if filipino_content and english_content:
+                            language = "Taglish"
+                        elif filipino_content:
+                            language = "Filipino"
+                        else:
+                            language = "English"
+                            
+                        # Quick disaster type extraction using keywords
+                        disaster_type = "UNKNOWN"
+                        if any(word in text_lower for word in ['lindol', 'earthquake', 'quake']):
+                            disaster_type = "Earthquake"
+                        elif any(word in text_lower for word in ['baha', 'flood', 'tubig']):
+                            disaster_type = "Flood"
+                        elif any(word in text_lower for word in ['bagyo', 'typhoon', 'storm']):
+                            disaster_type = "Typhoon"
+                        elif any(word in text_lower for word in ['sunog', 'fire', 'apoy']):
+                            disaster_type = "Fire"
+                        
+                        # Basic location extraction
+                        location = "UNKNOWN"
+                        common_locations = ['Manila', 'Quezon City', 'Cebu', 'Davao', 'Makati', 'Taguig', 'Pasig', 'Cavite', 'Laguna', 'Batangas', 'Bicol', 'Luzon', 'Visayas', 'Mindanao']
+                        for loc in common_locations:
+                            if loc.lower() in text_lower:
+                                location = loc
+                                break
+                        
+                        # Create result with rule-based values
+                        result = {
+                            'sentiment': 'Neutral',  # Default sentiment for CSV
+                            'confidence': 0.85,      # Default confidence
+                            'explanation': "Fast CSV processing (no AI)",
+                            'language': language,
+                            'disasterType': disaster_type,
+                            'location': location
+                        }
                         
                         # Add metadata from CSV
                         result['text'] = text

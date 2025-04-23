@@ -1834,7 +1834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastBatchDuration: 0, // Required field
           averageSpeed: 0
         },
-        autoCloseDelay: 3000 // Auto-close after 3 seconds, just like "Analysis complete"
+        autoCloseDelay: 500 // Quick auto-close for immediate feedback
       };
       
       // Update the progress map
@@ -1893,15 +1893,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create a special progress update that shows as Complete despite the error
       if (sessionId) {
         try {
-          // Create "Analysis complete" state with 3-second lifetime for error scenario
-          console.log('⏱️ Creating ANALYSIS COMPLETE state for error scenario - will show for EXACTLY 3 seconds');
+          // Create "Analysis complete" state with quick feedback
+          console.log('⏱️ Creating ANALYSIS COMPLETE state for error scenario - fast feedback');
           
           const finalProgress = {
             processed: 10, // Show full completion
             total: 10,
             stage: 'Analysis complete', // Exact wording for client detection
             timestamp: Date.now(),
-            autoCloseDelay: 3000, // Signal to client that this will auto-close after 3 seconds
+            autoCloseDelay: 500, // Fast auto-close for better performance
             batchNumber: 1,
             totalBatches: 1,
             batchProgress: 100,
@@ -1940,7 +1940,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "File processed with warnings that were automatically corrected",
         details: errorMsg, // Include the error details for logging purposes
         errorRecovered: true,
-        autoCloseDelay: 3000 // 3-second delay just like Analysis complete
+        autoCloseDelay: 500 // Quick auto-close for immediate feedback
       });
     } finally {
       setTimeout(() => {
