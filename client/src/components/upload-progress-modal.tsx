@@ -870,31 +870,25 @@ export function UploadProgressModal() {
     // Mas mabagal na transition para sa estimated time
     const randomVariance = Math.random() * 0.02 - 0.01; // -1% to +1% very small changes only
     
-    if (currentSpeed > 0 && total > processedCount) {
+    // Prefer direct time calculation from the server - it uses 0.1 seconds per record now
+    if (seconds > 0) {
+      // Use the server-provided time as the primary source with slight client-side smoothing
+      calculatedTimeRemaining = (seconds * 0.9) + (calculatedTimeRemaining * 0.1);
+    } else if (currentSpeed > 0 && total > processedCount) {
       try {
-        // For rule-based processing with faster speed, use 0.1-sec-per-record model
-        // and consider the actual observed speed as a major factor
+        // For rule-based processing with faster speed (avg 20 records/sec)
+        // Server is sending time based on 0.1 sec per record, but calculate here as backup
         const speedBasedTime = recordsRemaining / currentSpeed;
         
-        // Use a weighted average: 30% based on our 0.1-second model, 70% on observed speed
-        // This gives more weight to the actual server speed which is around 10-20 records/sec
-        let baseTime = (calculatedTimeRemaining * 0.3) + (speedBasedTime * 0.7);
-        
-        // No cooldown between batches for rule-based analysis
-        let cooldownEstimate = 0;
-        
-        // Calculate total time with our model plus cooldown
-        baseTime = baseTime + cooldownEstimate;
+        // For speed-based calculation, heavily weight actual observed speed
+        calculatedTimeRemaining = speedBasedTime;
         
         // Add small random variance to make it look more natural
-        calculatedTimeRemaining = baseTime * (1 + randomVariance);
+        calculatedTimeRemaining = calculatedTimeRemaining * (1 + randomVariance);
       } catch (e) {
         // If calculation error, fall back to our 0.1-second model
         calculatedTimeRemaining = (recordsRemaining * timePerRecord) * (1 + randomVariance);
       }
-    } else if (seconds > 0) {
-      // If server provides time, use it as a factor but still prioritize our model
-      calculatedTimeRemaining = (calculatedTimeRemaining * 0.7) + (seconds * 0.3);
     }
     
     // Ensure we have a reasonable positive value
