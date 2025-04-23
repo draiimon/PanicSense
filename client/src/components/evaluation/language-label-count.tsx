@@ -67,15 +67,15 @@ export const LanguageLabelCount: React.FC<LanguageLabelCountProps> = ({
   // Dynamic colors based on language
   const languageColors: Record<string, string> = {
     "English": ChartConfig.colors.blue,
-    "Filipino": ChartConfig.colors.indigo,
+    "Filipino": ChartConfig.colors.indigo as string,
     "Taglish": ChartConfig.colors.violet,
     "Bisaya": ChartConfig.colors.yellow,
     "Cebuano": ChartConfig.colors.green,
     "Waray": ChartConfig.colors.red,
     "Hiligaynon": ChartConfig.colors.orange,
-    "Ilocano": ChartConfig.colors.cyan,
+    "Ilocano": ChartConfig.colors.cyan as string,
     "Spanish": ChartConfig.colors.pink,
-    "Unknown": ChartConfig.colors.gray
+    "Unknown": ChartConfig.colors.gray as string
   };
 
   // Total records count
