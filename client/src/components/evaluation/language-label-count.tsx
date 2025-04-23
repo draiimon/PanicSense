@@ -9,7 +9,7 @@ import {
   Legend
 } from "recharts";
 import { ChartConfig } from "@/lib/chart-config";
-import { Globe, Download, Sparkles } from "lucide-react";
+import { Globe, Sparkles } from "lucide-react";
 import { Button } from "../ui/button";
 import { motion } from "framer-motion";
 
@@ -50,17 +50,17 @@ export const LanguageLabelCount: React.FC<LanguageLabelCountProps> = ({
       .sort((a, b) => b.value - a.value); // Sort by highest count first
   }, [data]);
 
-  // Language emoji mapping
+  // Language icon mapping
   const languageEmojis: Record<string, string> = {
-    "English": "🇬🇧",
-    "Filipino": "🇵🇭",
-    "Taglish": "🇵🇭🇬🇧",
+    "English": "🔤",
+    "Filipino": "🔠",
+    "Taglish": "🔡",
     "Bisaya": "🏝️",
     "Cebuano": "🌊",
     "Waray": "🌴",
     "Hiligaynon": "🌺",
     "Ilocano": "🌄",
-    "Spanish": "🇪🇸",
+    "Spanish": "🔠",
     "Unknown": "❓"
   };
 
@@ -183,54 +183,7 @@ export const LanguageLabelCount: React.FC<LanguageLabelCountProps> = ({
     setTimeout(() => setIsAnimating(false), 1500);
   };
 
-  // Function to handle downloading the chart as an image
-  const handleDownload = () => {
-    const svgElement = document.querySelector('.language-chart svg');
-    if (!svgElement) return;
-    
-    // Create a canvas element
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    // Set canvas dimensions to match the SVG
-    canvas.width = svgElement.clientWidth * 2; // Scale up for better quality
-    canvas.height = svgElement.clientHeight * 2;
-    ctx.scale(2, 2);
-    
-    // Create an image from the SVG
-    const svgData = new XMLSerializer().serializeToString(svgElement);
-    const img = new Image();
-    
-    img.onload = () => {
-      // Draw a white background
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Draw the image
-      ctx.drawImage(img, 0, 0);
-      
-      // Add title and timestamp
-      ctx.font = 'bold 16px Inter, sans-serif';
-      ctx.fillStyle = '#333';
-      ctx.textAlign = 'center';
-      ctx.fillText(title, canvas.width / 4, 20);
-      
-      ctx.font = '12px Inter, sans-serif';
-      ctx.fillStyle = '#666';
-      ctx.fillText(`Generated on ${new Date().toLocaleDateString()}`, canvas.width / 4, 40);
-      
-      // Create download link
-      const link = document.createElement('a');
-      link.download = 'language-distribution.png';
-      link.href = canvas.toDataURL('image/png');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    };
-    
-    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-  };
+  // No export functionality needed
 
   return (
     <Card className="h-full overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow">
@@ -249,16 +202,6 @@ export const LanguageLabelCount: React.FC<LanguageLabelCountProps> = ({
               title="Animate Chart"
             >
               <Sparkles className="h-4 w-4 text-amber-500" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleDownload} 
-              className="h-8"
-              title="Download Chart"
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Save
             </Button>
           </div>
         </div>
