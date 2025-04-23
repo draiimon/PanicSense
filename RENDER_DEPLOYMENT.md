@@ -1,4 +1,4 @@
-# PanicSense - Simple Render Deployment
+# PanicSense - Super Simple Render Deployment
 
 ## Deployment sa Render.com
 
@@ -30,13 +30,14 @@ I-add ang mga sumusunod na environment variables:
 
 Gumawa tayo ng dalawang key files para sa deployment:
 
-1. **render-package.js**:
+1. **render-setup.js**:
    - Nag-setup ng lahat ng dependencies (Node.js at Python)
-   - Ginagawa ang file structure (python folder, client/dist folder, etc.)
+   - Ginagawa ang file structure (python folder, client/dist folder, uploads, temp_files)
    - I-install ang Python packages na kailangan
+   - May fallback na minimal packages kung may errors
 
 2. **run.js**:
-   - Tinatawag ang render-package.js para sa setup
+   - Tinatawag ang render-setup.js para sa setup
    - Tinatawag ang main index.js para patakbuhin ang application
    
 Sa ganitong approach, napaka-simple lang ng deployment process:

@@ -1,11 +1,14 @@
 /**
- * PanicSense Runner
- * This file automatically sets up and runs PanicSense
- * For Render.com deployment
+ * PanicSense Runner - Single Entry Point for Render.com
+ * Handles all necessary setup and starts the application
+ * 
+ * Usage on Render.com:
+ * - Build Command: npm install
+ * - Start Command: node run.js
  */
 
-// First run setup
-require('./render-package.js');
+// Run setup first
+require('./render-setup.js');
 
-// Then load the main index
+// Then start the main application
 require('./index.js');
