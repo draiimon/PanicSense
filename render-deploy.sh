@@ -20,7 +20,13 @@ mkdir -p python
 
 # Build the frontend
 echo "Building frontend..."
-npm run build || echo "Frontend build failed, continuing with backend only"
+if command -v vite &> /dev/null; then
+  echo "Using vite command directly..."
+  vite build || npm run build || echo "Frontend build failed, continuing with backend only"
+else
+  echo "Trying build with npm..."
+  npm run build || echo "Frontend build failed, continuing with backend only"
+fi
 
 # Copy frontend files if build succeeded
 if [ -d "dist" ]; then
@@ -41,8 +47,12 @@ elif [ -d "python" ]; then
   fi
 fi
 
-# Create requirements.txt if it doesn't exist
-if [ ! -f "requirements.txt" ]; then
+# Use the requirements from render_setup folder
+echo "Setting up Python requirements..."
+if [ -f "render_setup/render-requirements.txt" ]; then
+  echo "Using requirements from render_setup folder..."
+  cp render_setup/render-requirements.txt requirements.txt
+else
   echo "Creating requirements.txt..."
   cat > requirements.txt << 'EOL'
 anthropic>=0.19.0
@@ -65,7 +75,12 @@ fi
 
 # Install Python dependencies
 echo "Installing Python dependencies..."
-pip install -r requirements.txt || echo "Python dependencies installation failed, continuing"
+pip install -r requirements.txt || echo "Python dependencies installation failed, continuing with minimal requirements"
+# Try installing with minimal requirements if full installation fails
+if [ $? -ne 0 ]; then
+  echo "Installing minimal Python dependencies..."
+  pip install anthropic beautifulsoup4 langdetect nltk numpy openai pandas python-dotenv requests scikit-learn
+fi
 
 # Ensure Node.js server files are correctly installed
 echo "Preparing server files..."
