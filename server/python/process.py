@@ -2379,7 +2379,11 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                             csv_disaster = None  # Reset and let our analyzer determine it
 
                         if csv_language:
-                            if csv_language.lower() in [
+                            # Preserve Taglish exactly as-is
+                            if csv_language.lower() == "taglish":
+                                # Keep Taglish value unchanged but ensure proper capitalization
+                                csv_language = "Taglish"
+                            elif csv_language.lower() in [
                                     "tagalog", "tl", "fil", "filipino"
                             ]:
                                 csv_language = "Filipino"
@@ -2589,7 +2593,11 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                             csv_disaster = None  # Reset and let our analyzer determine it
 
                         if csv_language:
-                            if csv_language.lower() in [
+                            # Preserve Taglish exactly as-is
+                            if csv_language.lower() == "taglish":
+                                # Keep Taglish value unchanged but ensure proper capitalization
+                                csv_language = "Taglish"
+                            elif csv_language.lower() in [
                                     "tagalog", "tl", "fil", "filipino"
                             ]:
                                 csv_language = "Filipino"

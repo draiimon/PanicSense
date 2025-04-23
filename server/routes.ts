@@ -1583,8 +1583,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Usage tracking removed
           
+          // Apply Taglish language preservation fix
+          let processedResults = preserveTaglishEntries(batchResults);
+          
           // Filter out non-disaster content
-          const filteredResults = batchResults.filter(post => {
+          const filteredResults = processedResults.filter(post => {
             const isNonDisasterInput = post.text.length < 9 || 
                                        !post.explanation || 
                                        post.disasterType === "Not Specified" ||

@@ -6,7 +6,7 @@
  */
 
 // Ensure Taglish is treated as a valid language
-function preserveTaglishEntries(results) {
+export function preserveTaglishEntries(results) {
   if (!results || !Array.isArray(results)) return results;
   
   // Process each entry to ensure Taglish is respected
@@ -18,5 +18,3 @@ function preserveTaglishEntries(results) {
     return entry;
   });
 }
-
-module.exports = { preserveTaglishEntries };
