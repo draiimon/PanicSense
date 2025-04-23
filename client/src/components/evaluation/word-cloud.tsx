@@ -210,28 +210,24 @@ export const WordCloud: React.FC<WordCloudProps> = ({
         ctx.restore();
       };
       
-      // Draw multiple clouds of varying sizes
-      const cloudCount = 6 + Math.floor(canvas.width / 150);
+      // Draw a single large cloud that fills most of the canvas
+      // Time-based animation offset using colorAngle as a time factor but make it very slow
+      const timeOffset = colorAngle / 1800; // Much slower animation
       
-      // Time-based animation offset using colorAngle as a time factor
-      const timeOffset = colorAngle / 360;
+      // Draw one large central cloud
+      const size = canvas.width * 0.8; // Large cloud size
+      const x = canvas.width / 2;
+      const y = canvas.height / 2;
       
-      // Draw clouds with slight animation
-      for (let i = 0; i < cloudCount; i++) {
-        const size = (canvas.width * 0.15) + (Math.random() * canvas.width * 0.1);
-        const xBase = (i * (canvas.width / cloudCount)) - (size / 2);
-        
-        // Use colorAngle to create slow-moving clouds
-        const xOffset = Math.sin(timeOffset + i * 0.5) * 10;
-        const x = (xBase + xOffset) % (canvas.width + size) - size/2;
-        
-        const yBase = (canvas.height * 0.1) + (Math.random() * canvas.height * 0.3);
-        const yOffset = Math.cos(timeOffset + i * 0.7) * 5;
-        const y = yBase + yOffset;
-        
-        const opacity = 0.5 + (Math.random() * 0.4);
-        drawCloud(x, y, size, opacity);
-      }
+      // Very subtle slow movement for the cloud
+      const xOffset = Math.sin(timeOffset) * 3;
+      const yOffset = Math.cos(timeOffset) * 2;
+      
+      drawCloud(x + xOffset, y + yOffset, size, 0.8);
+      
+      // Add a few subtle shading clouds around the edges for depth
+      drawCloud(x * 0.5 + xOffset * 0.7, y * 0.6 + yOffset * 0.7, size * 0.5, 0.4);
+      drawCloud(x * 1.3 - xOffset * 0.5, y * 0.7 - yOffset * 0.5, size * 0.4, 0.3);
     };
     
     // Draw the cloud background
@@ -406,12 +402,12 @@ export const WordCloud: React.FC<WordCloudProps> = ({
       }
       
       if (attempts < maxAttempts) {
-        // Add floating animation to the words if animation is enabled
+        // Add much slower floating animation to the words if animation is enabled
         if (animation) {
-          // Create subtle floating movement based on word index and animation angle
-          // This creates a gentle bobbing effect like words floating in clouds
-          const floatOffsetX = Math.sin((idx * 0.7 + colorAngle * 0.01)) * (3 + normalizedValue * 2);
-          const floatOffsetY = Math.cos((idx * 0.5 + colorAngle * 0.01)) * (2 + normalizedValue * 2);
+          // Create very subtle and slow floating movement
+          // This creates a very gentle bobbing effect like words floating in clouds
+          const floatOffsetX = Math.sin((idx * 0.3 + colorAngle * 0.005)) * (1 + normalizedValue * 1);
+          const floatOffsetY = Math.cos((idx * 0.2 + colorAngle * 0.003)) * (0.7 + normalizedValue * 0.8);
           
           x += floatOffsetX;
           y += floatOffsetY;
@@ -509,13 +505,21 @@ export const WordCloud: React.FC<WordCloudProps> = ({
     };
   }, [wordFrequencies]);
 
-  // Animation effect for color cycling
+  // Animation effect for color cycling - much slower
   useEffect(() => {
     let animationFrame: number;
+    let frameCount = 0;
+    const frameSkip = 5; // Only update every 5 frames for slower animation
     
     const animate = () => {
       if (animation) {
-        setColorAngle(prev => (prev + 1) % 360);
+        frameCount++;
+        
+        // Only update angle every few frames to slow down the animation
+        if (frameCount % frameSkip === 0) {
+          setColorAngle(prev => (prev + 1) % 360);
+        }
+        
         animationFrame = requestAnimationFrame(animate);
       }
     };
