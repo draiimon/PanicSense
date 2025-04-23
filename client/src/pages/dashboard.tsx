@@ -3,7 +3,7 @@ import { StatusCard } from "@/components/dashboard/status-card";
 import { OptimizedSentimentChart } from "@/components/dashboard/optimized-sentiment-chart";
 import { RecentPostsTable } from "@/components/dashboard/recent-posts-table";
 import { AffectedAreasCard } from "@/components/dashboard/affected-areas-card-new";
-import { UsageStatsCard } from "@/components/dashboard/usage-stats-card";
+// Usage stats card removed
 import { DisasterNewsCarousel } from "@/components/dashboard/disaster-news-carousel";
 import { FileUploader } from "@/components/file-uploader";
 import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
@@ -1036,10 +1036,7 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Usage Stats Card - Separate row */}
-      <div className="mb-6">
-        <UsageStatsCard />
-      </div>
+      {/* Usage Stats Card removed */}
 
       {/* Flexbox layout for main content with improved proportions */}
       <div className="flex flex-col lg:flex-row gap-6">

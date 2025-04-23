@@ -10,7 +10,7 @@ import fs from "fs";
 import { nanoid } from 'nanoid';
 import { pythonService, pythonConsoleMessages } from "./python-service";
 import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts, uploadSessions, analyzedFiles, type SentimentPost } from "@shared/schema";
-import { usageTracker } from "./utils/usage-tracker";
+// Usage tracker removed
 import { uploadSessionManager } from "./utils/upload-session-manager";
 import { EventEmitter } from 'events';
 import { registerRealNewsRoutes } from "./routes/real-news-routes";
@@ -2168,29 +2168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Endpoint to get Python console messages
-  // API endpoint to get daily usage stats
-  app.get('/api/usage-stats', async (req: Request, res: Response) => {
-    try {
-      // Get the latest usage stats directly from the tracker
-      const stats = usageTracker.getUsageStats();
-      
-      // Enhanced logging - always log usage stats to ensure consistent tracking
-      console.log(`📊 USAGE STATS: ${stats.used}/${stats.limit} rows (${stats.remaining} remaining), resets at ${stats.resetAt}`);
-      
-      // Check for anomalies - if used count is 0 but we know we've processed data
-      const files = await storage.getAnalyzedFiles();
-      const totalRecordsInDb = files.reduce((total, file) => total + (file.recordCount || 0), 0);
-      
-      if (totalRecordsInDb > 0 && stats.used === 0) {
-        console.warn(`⚠️ USAGE TRACKING ANOMALY: Database shows ${totalRecordsInDb} processed records but usage counter is 0. This may indicate a tracking issue.`);
-      }
-      
-      res.json(stats);
-    } catch (error) {
-      console.error('Error fetching usage stats:', error);
-      res.status(500).json({ error: "Failed to fetch usage statistics" });
-    }
-  });
+  // Usage stats endpoint removed
   
   // EMERGENCY RESET ENDPOINT - Clears all hanging sessions and processes
   app.post('/api/emergency-reset', async (req: Request, res: Response) => {

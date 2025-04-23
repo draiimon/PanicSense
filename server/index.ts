@@ -10,7 +10,7 @@ import { simpleDbFix } from "./db-simple-fix";
 // Import Python service for shutdown handling
 import { pythonService } from "./python-service";
 // Import rate limiter middleware
-import { createRateLimiter, dailyUsageCheck } from "./middleware/rate-limiter";
+import { createRateLimiter } from "./middleware/rate-limiter";
 
 // Create a global server start timestamp for detecting restarts
 // This will be used by routes.ts to detect server restarts
@@ -72,16 +72,7 @@ app.use('/api/delete-all-data', createRateLimiter('admin'));
 app.use('/api/cleanup-error-sessions', createRateLimiter('admin'));
 app.use('/api/untrained-feedback', createRateLimiter('admin'));
 
-// Track these endpoints for usage limits
-const dataProcessingEndpoints = [
-  '/api/upload-csv', 
-  '/api/analyze-text',
-  '/api/sentiment-feedback',
-  '/api/untrained-feedback'
-];
-
-// Apply daily usage check to data processing endpoints
-app.use(dataProcessingEndpoints, dailyUsageCheck);
+// Daily usage tracking removed
 
 // Enhanced logging middleware with better performance metrics
 app.use((req, res, next) => {
