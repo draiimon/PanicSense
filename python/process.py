@@ -266,11 +266,12 @@ class DisasterSentimentBackend:
                 "evacuate due to storm", "matinding ulan"
             ],
             "Fire": [
-                "fire", "blaze", "burning", "sunog", "nasusunog", "nasunog",
-                "nagliliyab", "flame", "apoy", "burning building",
+                "fire", "blaze", "burning", "sunog", "nasusunog", "nasunog", "naususnog",
+                "may sunog", "may nasusunog", "meron sunog", "may nasunog",
+                "nagliliyab", "flame", "apoy", "burning building", 
                 "burning house", "tulong sunog", "house fire", "fire truck",
                 "fire fighter", "building fire", "fire alarm", "burning",
-                "nagliliyab", "sinusunog", "smoke", "usok"
+                "nagliliyab", "sinusunog", "smoke", "usok", "nag-aapoy"
             ],
             "Volcanic Eruptions": [
                 "volcano", "eruption", "lava", "ash", "bulkan", "ashfall",
