@@ -404,7 +404,12 @@ const Evaluation: React.FC = () => {
                     <div className="col-span-1 lg:col-span-2">
                       <DownloadableMetrics 
                         data={posts}
-                        metrics={selectedFile?.evaluationMetrics}
+                        metrics={{
+                          accuracy: selectedFile?.evaluationMetrics?.accuracy || 0,
+                          precision: selectedFile?.evaluationMetrics?.precision || 0, 
+                          recall: selectedFile?.evaluationMetrics?.recall || 0,
+                          f1Score: selectedFile?.evaluationMetrics?.f1Score || 0
+                        }}
                         title="Downloadable Evaluation Metrics"
                         description="Generate visual metrics reports in matplotlib style for download"
                       />
