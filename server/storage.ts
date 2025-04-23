@@ -704,6 +704,19 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
   }
+  
+  async getAllActiveSessions(): Promise<UploadSession[]> {
+    try {
+      const result = await pool.query(`
+        SELECT * FROM upload_sessions WHERE status = 'active'
+      `);
+      
+      return result.rows;
+    } catch (error) {
+      console.error("Error in getAllActiveSessions (table may not exist):", error);
+      return []; // Return empty array if error
+    }
+  }
 
   async createUploadSession(session: InsertUploadSession): Promise<UploadSession> {
     try {
