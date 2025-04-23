@@ -54,6 +54,7 @@ interface DataTableProps {
 }
 
 const EMOTIONS = ["All", "Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"];
+const LANGUAGES = ["All", "English", "Filipino", "Taglish", "Unknown"];
 
 export function DataTable({ 
   data, 
@@ -65,6 +66,7 @@ export function DataTable({
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSentiment, setSelectedSentiment] = useState<string>("All");
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("All");
   const [isDeleting, setIsDeleting] = useState(false);
   
   // Performance optimization - memoize expensive operations
@@ -95,17 +97,23 @@ export function DataTable({
     }
   };
 
-  // Filter data based on search term and sentiment filter
+  // Filter data based on search term, sentiment filter, and language filter
   const filteredData = data.filter(item => {
     const matchesSearch = 
       item.text.toLowerCase().includes(searchTerm.toLowerCase()) || 
       item.source?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.disasterType?.toLowerCase().includes(searchTerm.toLowerCase());
+      item.disasterType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      // Add language field to the search
+      (item.language && item.language.toLowerCase().includes(searchTerm.toLowerCase()));
 
+    // Filter by sentiment
     const matchesSentiment = selectedSentiment === "All" ? true : item.sentiment === selectedSentiment;
+    
+    // Filter by language
+    const matchesLanguage = selectedLanguage === "All" ? true : item.language === selectedLanguage;
 
-    return matchesSearch && matchesSentiment;
+    return matchesSearch && matchesSentiment && matchesLanguage;
   });
 
   // Pagination
@@ -161,7 +169,7 @@ export function DataTable({
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="w-[180px] bg-white border-slate-200 rounded-lg shadow-sm">
+              <SelectTrigger className="w-[150px] bg-white border-slate-200 rounded-lg shadow-sm">
                 <Filter className="h-4 w-4 mr-2 text-slate-500" />
                 <SelectValue placeholder="Filter by emotion" />
               </SelectTrigger>
@@ -169,6 +177,27 @@ export function DataTable({
                 {EMOTIONS.map((emotion) => (
                   <SelectItem key={emotion} value={emotion} className="focus:bg-blue-50">
                     {emotion}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* New Language Filter */}
+            <Select
+              value={selectedLanguage}
+              onValueChange={(value) => {
+                setSelectedLanguage(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[150px] bg-white border-slate-200 rounded-lg shadow-sm">
+                <Languages className="h-4 w-4 mr-2 text-slate-500" />
+                <SelectValue placeholder="Filter by language" />
+              </SelectTrigger>
+              <SelectContent className="rounded-lg border-slate-200 shadow-md">
+                {LANGUAGES.map((language) => (
+                  <SelectItem key={language} value={language} className="focus:bg-blue-50">
+                    {language}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -202,12 +231,12 @@ export function DataTable({
                         <Search className="h-8 w-8 text-slate-300" />
                       </div>
                       <p className="text-xl font-medium bg-gradient-to-r from-slate-700 to-slate-600 bg-clip-text text-transparent">
-                        {searchTerm || selectedSentiment !== "All"
+                        {searchTerm || selectedSentiment !== "All" || selectedLanguage !== "All"
                           ? "No results match your search criteria" 
                           : "No data available"}
                       </p>
                       <p className="text-sm text-slate-500 max-w-md text-center">
-                        {searchTerm || selectedSentiment !== "All" 
+                        {searchTerm || selectedSentiment !== "All" || selectedLanguage !== "All"
                           ? "Try adjusting your search terms or filters to find what you're looking for" 
                           : "Upload a CSV file using the upload button to analyze sentiment data"}
                       </p>
