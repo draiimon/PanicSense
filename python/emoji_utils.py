@@ -99,10 +99,10 @@ def preserve_exclamations(text):
     # Replace patterns like !!! with a normalized form that will be recognized by sentiment analysis
     exclamation_pattern = re.compile(r'(!{2,})')
     
-    # For !!! or more, add [STRONG EMPHASIS] marker
+    # For !!! or more, add [EMPHASIS_STRONG] marker (simplified tag)
     if exclamation_pattern.search(text):
         # Replace consecutive exclamations but preserve at least one
-        processed_text = exclamation_pattern.sub(r'! [STRONG EMPHASIS]', text)
+        processed_text = exclamation_pattern.sub(r'! [EMPHASIS_STRONG]', text)
         return processed_text
     
     return text
