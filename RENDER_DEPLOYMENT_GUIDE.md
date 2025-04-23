@@ -30,8 +30,8 @@ Enter the following settings:
 
 ### CRITICAL SETTINGS:
 
-- **Build Command**: `node render-setup.js`
-- **Start Command**: `NODE_ENV=production node start-prod.js`
+- **Build Command**: `node render-setup.cjs`
+- **Start Command**: `NODE_ENV=production node start-prod.cjs`
 - **Plan**: Free (middle of page)
 
 ## Step 4: Set Environment Variables

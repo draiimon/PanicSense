@@ -28,8 +28,8 @@ Ilagay ang mga sumusunod:
 
 ### NAPAKAIMPORTANTE NA SETTINGS:
 
-- **Build Command**: `node render-setup.js`
-- **Start Command**: `NODE_ENV=production node start-prod.js`
+- **Build Command**: `node render-setup.cjs`
+- **Start Command**: `NODE_ENV=production node start-prod.cjs`
 - **Plan**: Free (kalagitnaan ng page)
 
 ## Hakbang 4: Environment Variables

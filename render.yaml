@@ -3,8 +3,8 @@ services:
     name: panicsense
     env: node
     plan: free
-    buildCommand: node render-setup.js
-    startCommand: NODE_ENV=production node start-prod.js
+    buildCommand: node render-setup.cjs
+    startCommand: NODE_ENV=production node start-prod.cjs
     envVars:
       - key: NODE_ENV
         value: production
