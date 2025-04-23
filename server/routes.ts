@@ -374,8 +374,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const timeForCurrentBatch = recordsLeftInCurrentBatch * timePerRecord;
               const timeForRemainingBatches = remainingFullBatches * (recordsPerBatch * timePerRecord + pauseTimePerBatch);
               
-              // Total estimated time
-              let estimatedTimeRemaining = timeForCurrentBatch + timeForRemainingBatches;
+              // Calculate direct time using fixed 0.1 seconds per record for rule-based analysis
+              const fixedTimePerRecord = 0.1; // Exactly 0.1 seconds per record
+              const directEstimatedTime = remainingRecords * fixedTimePerRecord;
+              
+              // Use the direct calculation instead of the complex calculation
+              let estimatedTimeRemaining = directEstimatedTime;
               
               // CRITICAL: Prevent time remaining from going up - only allow it to go down
               // This ensures a smooth countdown experience for users
