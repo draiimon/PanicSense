@@ -2,8 +2,9 @@ services:
   - type: web
     name: panicsense
     env: node
-    buildCommand: npm install && npm run build
-    startCommand: NODE_ENV=production node server/index-wrapper.js
+    plan: free
+    buildCommand: node production-build.js
+    startCommand: NODE_ENV=production node run.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -16,3 +17,4 @@ services:
       - key: SESSION_SECRET
         generateValue: true
     autoDeploy: true
+    healthCheckPath: /api/health

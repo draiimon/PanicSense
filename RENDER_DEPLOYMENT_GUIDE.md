@@ -60,13 +60,18 @@ Monitor the logs to ensure your application deploys successfully.
 
 If you encounter issues on the free tier:
 
-1. **Resource Limits**: The free tier has limited resources (512MB RAM). If your app is crashing, it might be hitting memory limits.
+1. **"Vite not found" Error**: If you see this error in your build logs, use one of these fixes:
+   - Use our updated `build.sh` script which explicitly installs Vite globally
+   - If that fails, try the Render web dashboard and change the start command to: `NODE_ENV=production node start.js`
+   - For manual build, update the build command to: `npm install -g vite esbuild && chmod +x ./build.sh && ./build.sh`
 
-2. **Cold Starts**: Your app will spin down after inactivity. The first request after inactivity will take longer.
+2. **Resource Limits**: The free tier has limited resources (512MB RAM). If your app is crashing, it might be hitting memory limits.
 
-3. **Database Connection**: Make sure your PostgreSQL database allows connections from Render's IPs.
+3. **Cold Starts**: Your app will spin down after inactivity. The first request after inactivity will take longer.
 
-4. **Build Timeout**: Free tier has a 15-minute build limit. If your build is timing out, optimize it.
+4. **Database Connection**: Make sure your PostgreSQL database allows connections from Render's IPs.
+
+5. **Build Timeout**: Free tier has a 15-minute build limit. If your build is timing out, optimize it.
 
 ## Important Notes for FREE TIER
 

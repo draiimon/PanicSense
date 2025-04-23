@@ -1,0 +1,229 @@
+ Cloning from https://github.com/draiimon/PanicSense
+==> Checking out commit 7ce57ed3ccd2051fdc8a313c92cb419d9fcfdd82 in branch main
+==> Using Node.js version 22.14.0 (default)
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Using Bun version 1.1.0 (default)
+==> Docs on specifying a bun version: https://render.com/docs/bun-version
+==> Running build command 'chmod +x ./build.sh && ./build.sh'...
+=== 🚀 PanicSense FREE TIER Build Process ===
+added 502 packages, and audited 503 packages in 8s
+71 packages are looking for funding
+  run `npm fund` for details
+found 0 vulnerabilities
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+sh: 1: vite: not found
+==> Installing Python version 3.11.11...
+==> Using Python version 3.11.11 (default)
+==> Docs on specifying a Python version: https://render.com/docs/python-version
+==> Using Poetry version 1.7.1 (default)
+==> Docs on specifying a Poetry version: https://render.com/docs/poetry-version
+==> Installing Poetry version 1.7.1
+Retrieving Poetry metadata
+# Welcome to Poetry!
+This will download and install the latest version of Poetry,
+a dependency and package manager for Python.
+It will add the `poetry` command to Poetry's bin directory, located at:
+/opt/render/project/poetry/bin
+You can uninstall at any time by executing this script with the --uninstall option,
+and these changes will be reverted.
+Installing Poetry (1.7.1)
+Installing Poetry (1.7.1): Creating environment
+Installing Poetry (1.7.1): Installing Poetry
+Installing Poetry (1.7.1): Creating script
+Installing Poetry (1.7.1): Done
+Poetry (1.7.1) is installed now. Great!
+To get started you need Poetry's bin directory (/opt/render/project/poetry/bin) in your `PATH`
+environment variable.
+Add `export PATH="/opt/render/project/poetry/bin:$PATH"` to your shell configuration file.
+Alternatively, you can call Poetry explicitly with `/opt/render/project/poetry/bin/poetry`.
+You can test that everything is set up by executing:
+`poetry --version`
+Collecting anthropic (from -r requirements.txt (line 1))
+  Downloading anthropic-0.50.0-py3-none-any.whl.metadata (25 kB)
+Collecting beautifulsoup4 (from -r requirements.txt (line 2))
+  Downloading beautifulsoup4-4.13.4-py3-none-any.whl.metadata (3.8 kB)
+Collecting langdetect (from -r requirements.txt (line 3))
+  Downloading langdetect-1.0.9.tar.gz (981 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 981.5/981.5 kB 36.7 MB/s eta 0:00:00
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting nltk (from -r requirements.txt (line 4))
+  Downloading nltk-3.9.1-py3-none-any.whl.metadata (2.9 kB)
+Collecting numpy (from -r requirements.txt (line 5))
+  Downloading numpy-2.2.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (62 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 62.0/62.0 kB 8.4 MB/s eta 0:00:00
+Collecting openai (from -r requirements.txt (line 6))
+  Downloading openai-1.76.0-py3-none-any.whl.metadata (25 kB)
+Collecting pandas (from -r requirements.txt (line 7))
+  Downloading pandas-2.2.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (89 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 89.9/89.9 kB 11.1 MB/s eta 0:00:00
+Collecting python-dotenv (from -r requirements.txt (line 8))
+  Downloading python_dotenv-1.1.0-py3-none-any.whl.metadata (24 kB)
+Collecting pytz (from -r requirements.txt (line 9))
+  Downloading pytz-2025.2-py2.py3-none-any.whl.metadata (22 kB)
+Collecting requests (from -r requirements.txt (line 10))
+  Using cached requests-2.32.3-py3-none-any.whl.metadata (4.6 kB)
+Collecting scikit-learn (from -r requirements.txt (line 11))
+  Downloading scikit_learn-1.6.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (18 kB)
+Collecting snscrape (from -r requirements.txt (line 12))
+  Downloading snscrape-0.7.0.20230622-py3-none-any.whl.metadata (4.9 kB)
+Collecting tqdm (from -r requirements.txt (line 13))
+  Downloading tqdm-4.67.1-py3-none-any.whl.metadata (57 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 57.7/57.7 kB 9.1 MB/s eta 0:00:00
+Collecting anyio<5,>=3.5.0 (from anthropic->-r requirements.txt (line 1))
+  Downloading anyio-4.9.0-py3-none-any.whl.metadata (4.7 kB)
+Collecting distro<2,>=1.7.0 (from anthropic->-r requirements.txt (line 1))
+  Downloading distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+Collecting httpx<1,>=0.25.0 (from anthropic->-r requirements.txt (line 1))
+  Downloading httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+Collecting jiter<1,>=0.4.0 (from anthropic->-r requirements.txt (line 1))
+  Downloading jiter-0.9.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (5.2 kB)
+Collecting pydantic<3,>=1.9.0 (from anthropic->-r requirements.txt (line 1))
+  Downloading pydantic-2.11.3-py3-none-any.whl.metadata (65 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 65.2/65.2 kB 9.7 MB/s eta 0:00:00
+Collecting sniffio (from anthropic->-r requirements.txt (line 1))
+  Downloading sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting typing-extensions<5,>=4.10 (from anthropic->-r requirements.txt (line 1))
+  Downloading typing_extensions-4.13.2-py3-none-any.whl.metadata (3.0 kB)
+Collecting soupsieve>1.2 (from beautifulsoup4->-r requirements.txt (line 2))
+  Downloading soupsieve-2.7-py3-none-any.whl.metadata (4.6 kB)
+Collecting six (from langdetect->-r requirements.txt (line 3))
+  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting click (from nltk->-r requirements.txt (line 4))
+  Downloading click-8.1.8-py3-none-any.whl.metadata (2.3 kB)
+Collecting joblib (from nltk->-r requirements.txt (line 4))
+  Downloading joblib-1.4.2-py3-none-any.whl.metadata (5.4 kB)
+Collecting regex>=2021.8.3 (from nltk->-r requirements.txt (line 4))
+  Downloading regex-2024.11.6-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (40 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 40.5/40.5 kB 5.5 MB/s eta 0:00:00
+Collecting python-dateutil>=2.8.2 (from pandas->-r requirements.txt (line 7))
+  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting tzdata>=2022.7 (from pandas->-r requirements.txt (line 7))
+  Downloading tzdata-2025.2-py2.py3-none-any.whl.metadata (1.4 kB)
+Collecting charset-normalizer<4,>=2 (from requests->-r requirements.txt (line 10))
+  Using cached charset_normalizer-3.4.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (35 kB)
+Collecting idna<4,>=2.5 (from requests->-r requirements.txt (line 10))
+  Using cached idna-3.10-py3-none-any.whl.metadata (10 kB)
+Collecting urllib3<3,>=1.21.1 (from requests->-r requirements.txt (line 10))
+  Using cached urllib3-2.4.0-py3-none-any.whl.metadata (6.5 kB)
+Collecting certifi>=2017.4.17 (from requests->-r requirements.txt (line 10))
+  Using cached certifi-2025.1.31-py3-none-any.whl.metadata (2.5 kB)
+Collecting scipy>=1.6.0 (from scikit-learn->-r requirements.txt (line 11))
+  Downloading scipy-1.15.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (61 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 62.0/62.0 kB 8.9 MB/s eta 0:00:00
+Collecting threadpoolctl>=3.1.0 (from scikit-learn->-r requirements.txt (line 11))
+  Downloading threadpoolctl-3.6.0-py3-none-any.whl.metadata (13 kB)
+Collecting lxml (from snscrape->-r requirements.txt (line 12))
+  Downloading lxml-5.4.0-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (3.5 kB)
+Collecting filelock (from snscrape->-r requirements.txt (line 12))
+  Using cached filelock-3.18.0-py3-none-any.whl.metadata (2.9 kB)
+Collecting httpcore==1.* (from httpx<1,>=0.25.0->anthropic->-r requirements.txt (line 1))
+  Downloading httpcore-1.0.8-py3-none-any.whl.metadata (21 kB)
+Collecting h11<0.15,>=0.13 (from httpcore==1.*->httpx<1,>=0.25.0->anthropic->-r requirements.txt (line 1))
+  Downloading h11-0.14.0-py3-none-any.whl.metadata (8.2 kB)
+Collecting annotated-types>=0.6.0 (from pydantic<3,>=1.9.0->anthropic->-r requirements.txt (line 1))
+  Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.33.1 (from pydantic<3,>=1.9.0->anthropic->-r requirements.txt (line 1))
+  Downloading pydantic_core-2.33.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.8 kB)
+Collecting typing-inspection>=0.4.0 (from pydantic<3,>=1.9.0->anthropic->-r requirements.txt (line 1))
+  Downloading typing_inspection-0.4.0-py3-none-any.whl.metadata (2.6 kB)
+Collecting PySocks!=1.5.7,>=1.5.6 (from requests[socks]->snscrape->-r requirements.txt (line 12))
+  Downloading PySocks-1.7.1-py3-none-any.whl.metadata (13 kB)
+Downloading anthropic-0.50.0-py3-none-any.whl (245 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 245.3/245.3 kB 31.9 MB/s eta 0:00:00
+Downloading beautifulsoup4-4.13.4-py3-none-any.whl (187 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 187.3/187.3 kB 25.5 MB/s eta 0:00:00
+Downloading nltk-3.9.1-py3-none-any.whl (1.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.5/1.5 MB 52.2 MB/s eta 0:00:00
+Downloading numpy-2.2.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (16.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.4/16.4 MB 102.1 MB/s eta 0:00:00
+Downloading openai-1.76.0-py3-none-any.whl (661 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 661.2/661.2 kB 58.0 MB/s eta 0:00:00
+Downloading pandas-2.2.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (13.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 13.1/13.1 MB 119.2 MB/s eta 0:00:00
+Downloading python_dotenv-1.1.0-py3-none-any.whl (20 kB)
+Downloading pytz-2025.2-py2.py3-none-any.whl (509 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 509.2/509.2 kB 58.5 MB/s eta 0:00:00
+Using cached requests-2.32.3-py3-none-any.whl (64 kB)
+Downloading scikit_learn-1.6.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (13.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 13.5/13.5 MB 109.0 MB/s eta 0:00:00
+Downloading snscrape-0.7.0.20230622-py3-none-any.whl (74 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 74.8/74.8 kB 12.4 MB/s eta 0:00:00
+Downloading tqdm-4.67.1-py3-none-any.whl (78 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 78.5/78.5 kB 11.3 MB/s eta 0:00:00
+Downloading anyio-4.9.0-py3-none-any.whl (100 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100.9/100.9 kB 17.0 MB/s eta 0:00:00
+Using cached certifi-2025.1.31-py3-none-any.whl (166 kB)
+Using cached charset_normalizer-3.4.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (143 kB)
+Downloading distro-1.9.0-py3-none-any.whl (20 kB)
+Downloading httpx-0.28.1-py3-none-any.whl (73 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 73.5/73.5 kB 12.2 MB/s eta 0:00:00
+Downloading httpcore-1.0.8-py3-none-any.whl (78 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 78.7/78.7 kB 11.8 MB/s eta 0:00:00
+Using cached idna-3.10-py3-none-any.whl (70 kB)
+Downloading jiter-0.9.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (351 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 351.8/351.8 kB 48.8 MB/s eta 0:00:00
+Downloading joblib-1.4.2-py3-none-any.whl (301 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 301.8/301.8 kB 40.8 MB/s eta 0:00:00
+Downloading pydantic-2.11.3-py3-none-any.whl (443 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 443.6/443.6 kB 58.3 MB/s eta 0:00:00
+Downloading pydantic_core-2.33.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 99.0 MB/s eta 0:00:00
+Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 229.9/229.9 kB 14.6 MB/s eta 0:00:00
+Downloading regex-2024.11.6-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (792 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 792.7/792.7 kB 75.4 MB/s eta 0:00:00
+Downloading scipy-1.15.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (37.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 37.6/37.6 MB 74.1 MB/s eta 0:00:00
+Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Downloading sniffio-1.3.1-py3-none-any.whl (10 kB)
+Downloading soupsieve-2.7-py3-none-any.whl (36 kB)
+Downloading threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+Downloading typing_extensions-4.13.2-py3-none-any.whl (45 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 45.8/45.8 kB 6.9 MB/s eta 0:00:00
+Downloading tzdata-2025.2-py2.py3-none-any.whl (347 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 347.8/347.8 kB 44.2 MB/s eta 0:00:00
+Using cached urllib3-2.4.0-py3-none-any.whl (128 kB)
+Downloading click-8.1.8-py3-none-any.whl (98 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 98.2/98.2 kB 16.6 MB/s eta 0:00:00
+Using cached filelock-3.18.0-py3-none-any.whl (16 kB)
+Downloading lxml-5.4.0-cp311-cp311-manylinux_2_28_x86_64.whl (4.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.9/4.9 MB 131.1 MB/s eta 0:00:00
+Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+Downloading PySocks-1.7.1-py3-none-any.whl (16 kB)
+Downloading typing_inspection-0.4.0-py3-none-any.whl (14 kB)
+Downloading h11-0.14.0-py3-none-any.whl (58 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 58.3/58.3 kB 10.0 MB/s eta 0:00:00
+Building wheels for collected packages: langdetect
+  Building wheel for langdetect (pyproject.toml): started
+  Building wheel for langdetect (pyproject.toml): finished with status 'done'
+  Created wheel for langdetect: filename=langdetect-1.0.9-py3-none-any.whl size=993332 sha256=36bd2c933213e40aceee7ca60ae40613261a1bed87e98dc0b41d271a771c4d2b
+  Stored in directory: /opt/render/.cache/wheels/0a/f2/b2/e5ca405801e05eb7c8ed5b3b4bcf1fcabcd6272c167640072e
+Successfully built langdetect
+Installing collected packages: pytz, urllib3, tzdata, typing-extensions, tqdm, threadpoolctl, soupsieve, sniffio, six, regex, python-dotenv, PySocks, numpy, lxml, joblib, jiter, idna, h11, filelock, distro, click, charset-normalizer, certifi, annotated-types, typing-inspection, scipy, requests, python-dateutil, pydantic-core, nltk, langdetect, httpcore, beautifulsoup4, anyio, scikit-learn, pydantic, pandas, httpx, snscrape, openai, anthropic
+Successfully installed PySocks-1.7.1 annotated-types-0.7.0 anthropic-0.50.0 anyio-4.9.0 beautifulsoup4-4.13.4 certifi-2025.1.31 charset-normalizer-3.4.1 click-8.1.8 distro-1.9.0 filelock-3.18.0 h11-0.14.0 httpcore-1.0.8 httpx-0.28.1 idna-3.10 jiter-0.9.0 joblib-1.4.2 langdetect-1.0.9 lxml-5.4.0 nltk-3.9.1 numpy-2.2.5 openai-1.76.0 pandas-2.2.3 pydantic-2.11.3 pydantic-core-2.33.1 python-dateutil-2.9.0.post0 python-dotenv-1.1.0 pytz-2025.2 regex-2024.11.6 requests-2.32.3 scikit-learn-1.6.1 scipy-1.15.2 six-1.17.0 sniffio-1.3.1 snscrape-0.7.0.20230622 soupsieve-2.7 threadpoolctl-3.6.0 tqdm-4.67.1 typing-extensions-4.13.2 typing-inspection-0.4.0 tzdata-2025.2 urllib3-2.4.0
+[notice] A new release of pip is available: 24.0 -> 25.0.1
+[notice] To update, run: pip install --upgrade pip
+=== ✅ Build complete - FREE TIER READY ===
+==> Uploading build...
+==> Uploaded in 22.3s. Compression took 8.0s
+==> Build successful 🎉
+==> Deploying...
+==> Running 'NODE_ENV=production node server/index-wrapper.js'
+file:///opt/render/project/src/server/index-wrapper.js:7
+const express = require('express');
+                ^
+ReferenceError: require is not defined in ES module scope, you can use import instead
+This file is being treated as an ES module because it has a '.js' file extension and '/opt/render/project/src/package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
+    at file:///opt/render/project/src/server/index-wrapper.js:7:17
+    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)
+Node.js v22.14.0
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
