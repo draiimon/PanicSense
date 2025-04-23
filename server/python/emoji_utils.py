@@ -127,15 +127,22 @@ def clean_text_preserve_indicators(text):
     # Then ensure exclamation points are preserved
     processed_text = preserve_exclamations(processed_text)
     
-    # Preserve ALL CAPS as it's an important indicator of emphasis/panic
-    # This is done by noting the ALL CAPS sections rather than normalizing them
-    caps_pattern = re.compile(r'\b[A-Z]{2,}\b')
-    for caps_word in caps_pattern.findall(processed_text):
-        # Mark words that are ALL CAPS but don't change them
-        if len(caps_word) >= 3:  # Only mark if at least 3 letters to avoid acronyms
-            processed_text = processed_text.replace(caps_word, f"{caps_word} [EMPHASIS]")
+    # Simplified all caps handling - just add EMPHASIS tags once per word
+    # Now process with a simple regex to tag all-caps words (3+ letters) once
+    # Avoid adding emphasis more than once
+    words = processed_text.split()
+    result = []
     
-    return processed_text
+    for word in words:
+        # Check if it's an ALL CAPS word (at least 3 letters)
+        if word.isupper() and len(word) >= 3 and not '[EMPHASIS]' in word:
+            # Add the EMPHASIS tag
+            result.append(f"{word} [EMPHASIS]")
+        else:
+            # Keep as is
+            result.append(word)
+    
+    return ' '.join(result)
 
 if __name__ == "__main__":
     # Test the utility functions
