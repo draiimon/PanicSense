@@ -146,8 +146,8 @@ export const WordCloud: React.FC<WordCloudProps> = ({
     return gradient;
   };
 
-  // Draw the word cloud
-  const drawWordCloud = () => {
+  // Draw the word cloud with optional highlight for hovered word
+  const drawWordCloud = (highlightWord?: string) => {
     if (!canvasRef.current || !containerRef.current || wordFrequencies.length === 0) return;
     
     setIsGenerating(true);
@@ -238,6 +238,12 @@ export const WordCloud: React.FC<WordCloudProps> = ({
       
       return false;
     };
+    
+    // Special handling for highlighted word if needed
+    if (highlightWord) {
+      // Add visual enhancement for the highlighted word later in the loop
+      canvas.dataset.hovering = 'true';
+    }
     
     // Place words using archimedean spiral placement with better font scaling
     wordFrequencies.forEach((word, idx) => {
@@ -352,9 +358,52 @@ export const WordCloud: React.FC<WordCloudProps> = ({
   };
 
   // Draw initial word cloud when data changes
+  // Auto redraw word cloud when data changes, container resizes, or window resizes
   useEffect(() => {
+    if (!canvasRef.current || !containerRef.current) return;
+    const canvas = canvasRef.current;
+    
     drawWordCloud();
-  }, [wordFrequencies, colorScheme]);
+    
+    // Set default animation and color scheme
+    setAnimation(true);
+    setColorScheme('vibrant');
+    
+    // Handle window resize events
+    const handleResize = () => {
+      drawWordCloud();
+    };
+    
+    // Add hoverable functionality with mousemove event
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current || !canvasRef.current) return;
+      
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      // Change cursor to pointer when over a word
+      canvas.style.cursor = 'pointer';
+    };
+    
+    // Reset cursor when mouse leaves
+    const handleMouseLeave = () => {
+      if (canvas) {
+        canvas.style.cursor = 'default';
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [wordFrequencies]);
 
   // Animation effect for color cycling
   useEffect(() => {
@@ -408,36 +457,7 @@ export const WordCloud: React.FC<WordCloudProps> = ({
             <Cloud className="h-5 w-5 text-indigo-500" />
             <CardTitle className="text-base font-medium">{title}</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={cycleColorScheme} 
-              className="h-8 px-2"
-              title="Change color scheme"
-            >
-              <Palette className={`h-4 w-4 ${animation ? 'text-indigo-500' : ''}`} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={toggleAnimation} 
-              className="h-8 px-2"
-              title={animation ? "Stop animation" : "Start animation"}
-            >
-              <Sparkles className={`h-4 w-4 ${animation ? 'text-amber-500' : ''}`} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={drawWordCloud} 
-              className="h-8 px-2"
-              title="Regenerate layout"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-
-          </div>
+          {/* Removed all buttons */}
         </div>
         <p className="text-sm text-slate-500">{description}</p>
       </CardHeader>

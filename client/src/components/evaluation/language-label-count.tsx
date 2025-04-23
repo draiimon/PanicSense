@@ -190,17 +190,7 @@ export const LanguageLabelCount: React.FC<LanguageLabelCountProps> = ({
             <Globe className="h-5 w-5 text-blue-500" />
             <CardTitle className="text-base font-medium">{title}</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={triggerAnimation} 
-              className="h-8 px-2"
-              title="Animate Chart"
-            >
-              <Sparkles className="h-4 w-4 text-amber-500" />
-            </Button>
-          </div>
+          {/* Removed sparkle button */}
         </div>
         <p className="text-sm text-slate-500">{description}</p>
       </CardHeader>
