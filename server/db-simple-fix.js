@@ -5,7 +5,7 @@
  * @returns Promise<boolean> True if the fix was applied successfully
  */
 
-export async function simpleDbFix() {
+async function simpleDbFix() {
   try {
     // Silent operation for production
     // Add retry logic for better deployment reliability
@@ -18,3 +18,5 @@ export async function simpleDbFix() {
     return true;
   }
 }
+
+module.exports = { simpleDbFix };

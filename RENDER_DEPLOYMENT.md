@@ -1,4 +1,4 @@
-# PanicSense - Super Simple Render Deployment
+# PanicSense - Render Deployment
 
 ## Deployment sa Render.com
 
@@ -7,6 +7,20 @@
 Sa Render dashboard, i-add ang new web service at i-point ito sa GitHub repository mo.
 
 ### Step 2: Configure ang deployment
+
+#### OPTION 1: Gamit ang package.json scripts (RECOMMENDED)
+
+**Build Command:**
+```
+npm run build
+```
+
+**Start Command:**
+```
+npm run start
+```
+
+#### OPTION 2: Gamit ang run.cjs (Alternative/Fallback)
 
 **Build Command:**
 ```
@@ -28,17 +42,22 @@ I-add ang mga sumusunod na environment variables:
 
 ## Paano Gumagana Ang Deployment?
 
-Gumawa tayo ng isang key file para sa deployment:
+### Option 1: package.json scripts (RECOMMENDED)
+Ginagamit nito ang sarili mong scripts na nakadeclare sa package.json:
 
-**run.cjs**:
-   - Super simple na file na nagko-connect sa main application
-   - Direkta na tinatawag ang main index.js para patakbuhin ang application
-   - CommonJS format para compatible sa kahit anong environment
-   - Ginagamit ang .cjs extension para masabi kay Node.js na iba ito sa ES modules
-   - Compatible sa Render kahit may "type": "module" sa package.json
-   
-Sa ganitong approach, napaka-simple lang ng deployment process:
-- `npm install` para sa build command
-- `node run.cjs` para sa start command
+- **build**: Nagbi-build ng client React application at server TypeScript files
+- **start**: Pinapatakbo ang application sa production mode
+
+Advantages:
+- Full build process with proper optimization
+- TypeScript compilation with proper type-checking
+- Cleaner deployment workflow
+
+### Option 2: run.cjs (Simple Fallback)
+Simpleng file na nagko-connect sa main application:
+
+- CommonJS format para compatible kahit may "type": "module" sa package.json 
+- Direkta na tinatawag ang main index.js para patakbuhin ang application
+- .cjs extension para masabi kay Node.js na iba ito sa ES modules
 
 Lahat ng files ay makikita ni Render, walang hidden files o complex setup scripts!
