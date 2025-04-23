@@ -50,18 +50,18 @@ export const LanguageLabelCount: React.FC<LanguageLabelCountProps> = ({
       .sort((a, b) => b.value - a.value); // Sort by highest count first
   }, [data]);
 
-  // Language icon mapping
+  // Language icon mapping - empty now as per user request
   const languageEmojis: Record<string, string> = {
-    "English": "🔤",
-    "Filipino": "🔠",
-    "Taglish": "🔡",
-    "Bisaya": "🏝️",
-    "Cebuano": "🌊",
-    "Waray": "🌴",
-    "Hiligaynon": "🌺",
-    "Ilocano": "🌄",
-    "Spanish": "🔠",
-    "Unknown": "❓"
+    "English": "",
+    "Filipino": "",
+    "Taglish": "",
+    "Bisaya": "",
+    "Cebuano": "",
+    "Waray": "",
+    "Hiligaynon": "",
+    "Ilocano": "",
+    "Spanish": "",
+    "Unknown": ""
   };
 
   // Dynamic colors based on language
@@ -94,7 +94,6 @@ export const LanguageLabelCount: React.FC<LanguageLabelCountProps> = ({
           className="custom-tooltip bg-white p-4 border border-slate-200 rounded-md shadow-lg"
         >
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-            <span className="text-xl">{languageEmojis[data.name] || "🌐"}</span>
             <span className="font-medium text-base">{data.name}</span>
           </div>
           <div className="pt-2 space-y-1">

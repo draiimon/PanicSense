@@ -163,32 +163,79 @@ export const WordCloud: React.FC<WordCloudProps> = ({
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
     
-    // Clear canvas with a subtle gradient background
-    const bgGradient = ctx.createRadialGradient(
-      canvas.width / 2, 
-      canvas.height / 2, 
-      0, 
-      canvas.width / 2, 
-      canvas.height / 2, 
-      canvas.width / 2
-    );
+    // Create a cloud-like background
+    const drawCloudBackground = () => {
+      // Create a soft blue sky gradient background
+      const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      
+      if (colorScheme === 'vibrant') {
+        skyGradient.addColorStop(0, 'rgba(224, 242, 254, 1)'); // sky-100
+        skyGradient.addColorStop(1, 'rgba(186, 230, 253, 0.8)'); // sky-200
+      } else if (colorScheme === 'pastel') {
+        skyGradient.addColorStop(0, 'rgba(240, 249, 255, 1)'); // lighter sky
+        skyGradient.addColorStop(1, 'rgba(224, 242, 254, 0.8)'); // sky-100
+      } else if (colorScheme === 'gradient') {
+        skyGradient.addColorStop(0, 'rgba(239, 246, 255, 1)'); // blue-50
+        skyGradient.addColorStop(1, 'rgba(219, 234, 254, 0.8)'); // blue-100
+      } else {
+        skyGradient.addColorStop(0, 'rgba(248, 250, 252, 1)'); // slate-50
+        skyGradient.addColorStop(1, 'rgba(241, 245, 249, 0.8)'); // slate-100
+      }
+      
+      ctx.fillStyle = skyGradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw cloud-like shapes
+      const drawCloud = (x: number, y: number, size: number, opacity: number) => {
+        ctx.save();
+        ctx.globalAlpha = opacity;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        
+        // Draw multiple overlapping circles to create cloud shape
+        ctx.beginPath();
+        ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
+        ctx.arc(x + size * 0.4, y - size * 0.1, size * 0.6, 0, Math.PI * 2);
+        ctx.arc(x + size * 0.8, y, size * 0.4, 0, Math.PI * 2);
+        ctx.arc(x + size * 0.5, y + size * 0.2, size * 0.5, 0, Math.PI * 2);
+        ctx.arc(x - size * 0.3, y + size * 0.1, size * 0.4, 0, Math.PI * 2);
+        ctx.closePath();
+        
+        // Add soft shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+        ctx.shadowBlur = size * 0.3;
+        ctx.shadowOffsetX = size * 0.05;
+        ctx.shadowOffsetY = size * 0.05;
+        
+        ctx.fill();
+        ctx.restore();
+      };
+      
+      // Draw multiple clouds of varying sizes
+      const cloudCount = 6 + Math.floor(canvas.width / 150);
+      
+      // Time-based animation offset using colorAngle as a time factor
+      const timeOffset = colorAngle / 360;
+      
+      // Draw clouds with slight animation
+      for (let i = 0; i < cloudCount; i++) {
+        const size = (canvas.width * 0.15) + (Math.random() * canvas.width * 0.1);
+        const xBase = (i * (canvas.width / cloudCount)) - (size / 2);
+        
+        // Use colorAngle to create slow-moving clouds
+        const xOffset = Math.sin(timeOffset + i * 0.5) * 10;
+        const x = (xBase + xOffset) % (canvas.width + size) - size/2;
+        
+        const yBase = (canvas.height * 0.1) + (Math.random() * canvas.height * 0.3);
+        const yOffset = Math.cos(timeOffset + i * 0.7) * 5;
+        const y = yBase + yOffset;
+        
+        const opacity = 0.5 + (Math.random() * 0.4);
+        drawCloud(x, y, size, opacity);
+      }
+    };
     
-    if (colorScheme === 'vibrant') {
-      bgGradient.addColorStop(0, 'rgba(244, 244, 255, 1)');
-      bgGradient.addColorStop(1, 'rgba(240, 240, 252, 1)');
-    } else if (colorScheme === 'pastel') {
-      bgGradient.addColorStop(0, 'rgba(248, 250, 252, 1)');
-      bgGradient.addColorStop(1, 'rgba(241, 245, 249, 1)');
-    } else if (colorScheme === 'gradient') {
-      bgGradient.addColorStop(0, 'rgba(239, 246, 255, 1)');
-      bgGradient.addColorStop(1, 'rgba(243, 244, 246, 1)');
-    } else {
-      bgGradient.addColorStop(0, 'rgba(250, 250, 250, 1)');
-      bgGradient.addColorStop(1, 'rgba(245, 245, 245, 1)');
-    }
-    
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Draw the cloud background
+    drawCloudBackground();
     
     // Settings for text
     ctx.textAlign = 'center';
@@ -245,7 +292,7 @@ export const WordCloud: React.FC<WordCloudProps> = ({
       canvas.dataset.hovering = 'true';
     }
     
-    // Place words using archimedean spiral placement with better font scaling
+    // Place words using archimedean spiral placement with floating cloud-like animation
     wordFrequencies.forEach((word, idx) => {
       // More nuanced scaling based on frequency
       // This will make the most frequent words larger, with a smoother distribution
@@ -271,6 +318,32 @@ export const WordCloud: React.FC<WordCloudProps> = ({
         // For other schemes, use a rotating pattern with small randomization
         colorIndex = (idx + Math.floor(Math.random() * 2)) % COLORS.length;
       }
+      
+      // Create a more cloud-like appearance for words
+      const addCloudEffect = (x: number, y: number, width: number, height: number) => {
+        // Only add cloud effect to more important words
+        if (normalizedValue > 0.4) {
+          ctx.save();
+          
+          // Add a soft white glow behind the text to create a cloud-like appearance
+          const gradientRadius = Math.max(width, height) * 0.7;
+          const glow = ctx.createRadialGradient(
+            x, y, 0,
+            x, y, gradientRadius
+          );
+          
+          glow.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
+          glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          
+          ctx.globalCompositeOperation = 'destination-over';
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(x, y, gradientRadius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.restore();
+        }
+      };
       
       // Apply special effects for important words
       if (normalizedValue > 0.75 && colorScheme === 'vibrant') {
@@ -312,6 +385,8 @@ export const WordCloud: React.FC<WordCloudProps> = ({
       // Use a different angle for each word to space them better initially
       let angle = idx * 0.15 * Math.PI;
       let radius = 0;
+      
+      // Base position at center
       let x = centerX;
       let y = centerY;
       
@@ -331,23 +406,52 @@ export const WordCloud: React.FC<WordCloudProps> = ({
       }
       
       if (attempts < maxAttempts) {
+        // Add floating animation to the words if animation is enabled
+        if (animation) {
+          // Create subtle floating movement based on word index and animation angle
+          // This creates a gentle bobbing effect like words floating in clouds
+          const floatOffsetX = Math.sin((idx * 0.7 + colorAngle * 0.01)) * (3 + normalizedValue * 2);
+          const floatOffsetY = Math.cos((idx * 0.5 + colorAngle * 0.01)) * (2 + normalizedValue * 2);
+          
+          x += floatOffsetX;
+          y += floatOffsetY;
+        }
+        
+        // Add a cloud-like glow effect behind important words
+        addCloudEffect(x, y, width, height);
+        
+        // Apply a thicker shadow for depth perception
+        const originalShadow = ctx.shadowBlur;
+        const originalShadowColor = ctx.shadowColor;
+        
+        // Enhance shadow for key words
+        if (normalizedValue > 0.6) {
+          ctx.shadowColor = 'rgba(0,0,0,0.15)';
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetX = 2;
+          ctx.shadowOffsetY = 2;
+        }
+        
         // Draw text with a subtle shadow for depth and include the count
         ctx.fillText(`${word.text} (${word.value})`, x, y);
         
         // For important words, add a subtle glow effect
         if (normalizedValue > 0.6 && colorScheme === 'vibrant') {
           const originalGlobalAlpha = ctx.globalAlpha;
-          const originalShadowBlur = ctx.shadowBlur;
           
-          ctx.globalAlpha = 0.1;
-          ctx.shadowBlur = 10;
+          ctx.globalAlpha = 0.2;
+          ctx.shadowBlur = 12;
           ctx.shadowColor = COLORS[colorIndex];
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
           ctx.fillText(`${word.text} (${word.value})`, x, y);
           
           // Restore original settings
           ctx.globalAlpha = originalGlobalAlpha;
-          ctx.shadowBlur = originalShadowBlur;
-          ctx.shadowColor = 'rgba(0,0,0,0.1)';
+          ctx.shadowBlur = originalShadow;
+          ctx.shadowColor = originalShadowColor;
+          ctx.shadowOffsetX = 1;
+          ctx.shadowOffsetY = 1;
         }
         
         placedWords.push({ text: textWithCount, x, y, width, height });
@@ -457,7 +561,45 @@ export const WordCloud: React.FC<WordCloudProps> = ({
             <Cloud className="h-5 w-5 text-indigo-500" />
             <CardTitle className="text-base font-medium">{title}</CardTitle>
           </div>
-          {/* Removed all buttons */}
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={toggleAnimation}
+              title={animation ? "Pause Animation" : "Play Animation"}
+            >
+              {animation ? (
+                <motion.div
+                  initial={{ scale: 1 }}
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  <Sparkles className="h-4 w-4 text-indigo-500" />
+                </motion.div>
+              ) : (
+                <Sparkles className="h-4 w-4 text-slate-400" />
+              )}
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={cycleColorScheme}
+              title="Change Color Scheme"
+            >
+              <Palette className="h-4 w-4 text-indigo-500" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={() => drawWordCloud()}
+              title="Refresh Cloud"
+            >
+              <RefreshCw className="h-4 w-4 text-indigo-500" />
+            </Button>
+          </div>
         </div>
         <p className="text-sm text-slate-500">{description}</p>
       </CardHeader>
