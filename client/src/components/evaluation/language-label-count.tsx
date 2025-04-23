@@ -145,7 +145,6 @@ export const LanguageLabelCount: React.FC<LanguageLabelCountProps> = ({
             />
             <div className="flex flex-col">
               <div className="text-sm font-medium flex items-center gap-1.5">
-                <span className="text-lg">{languageEmojis[entry.name] || "🌐"}</span>
                 <span>{entry.name}</span>
                 <span className="font-bold">({entry.value})</span>
               </div>
