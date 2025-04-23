@@ -2,6 +2,8 @@
  * Simple database fix function.
  * Directly creates tables with all the necessary columns.
  * Enhanced for better reliability during deployment.
+ * Special dual-export format for ESM and CommonJS compatibility
+ * 
  * @returns Promise<boolean> True if the fix was applied successfully
  */
 
@@ -19,4 +21,13 @@ async function simpleDbFix() {
   }
 }
 
-module.exports = { simpleDbFix };
+// DUAL FORMAT - SPECIAL HACK FOR ESM/COMMONJS COMPATIBILITY!
+// This won't throw errors in ESM imports (must be conditional)
+if (typeof module !== 'undefined' && module.exports) {
+  // For CommonJS (Node.js / run.cjs)
+  module.exports = { simpleDbFix };
+  module.exports.simpleDbFix = simpleDbFix;
+}
+
+// For ESM (TypeScript / import syntax)
+export { simpleDbFix };
