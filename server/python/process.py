@@ -2167,7 +2167,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
 
             # Set batch size to 20 as per requirements
             BATCH_SIZE = 30
-            BATCH_COOLDOWN = 60  # 60-second cooldown between batches of 30 records
+            BATCH_COOLDOWN = 0  # No cooldown needed for rule-based processing
 
             # Report column identification progress
             report_progress(5, "Identified data columns", total_records)
