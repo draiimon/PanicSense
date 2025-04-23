@@ -852,13 +852,13 @@ export function UploadProgressModal() {
   
   // Calculate time remaining in human-readable format with improved batch-aware logic
   const formatTimeRemaining = (seconds: number): string => {
-    // Initialize with a more realistic estimation based on 3 seconds per record
-    // Use a more realistic default based on 3 seconds per record
+    // Initialize with a faster estimation based on 0.1 seconds per record for rule-based processing
+    // Use 0.1 seconds per record which matches the server processing speed
     const recordsRemaining = total - processedCount;
-    // Default to 3 seconds per record as mentioned by the user
-    const timePerRecord = 3; 
+    // Default to 0.1 seconds per record for rule-based analysis
+    const timePerRecord = 0.1; 
     
-    // Calculate time more accurately 
+    // Calculate time more accurately with new faster processing
     let calculatedTimeRemaining = recordsRemaining * timePerRecord;
     
     // If we're in a batch pause state, show cooldown directly
@@ -872,21 +872,16 @@ export function UploadProgressModal() {
     
     if (currentSpeed > 0 && total > processedCount) {
       try {
-        // For normal processing with speed, we'll still use our 3-second-per-record model
-        // but we'll consider the actual observed speed as a minor factor
+        // For rule-based processing with faster speed, use 0.1-sec-per-record model
+        // and consider the actual observed speed as a major factor
         const speedBasedTime = recordsRemaining / currentSpeed;
         
-        // Use a weighted average: 80% based on our 3-second model, 20% on observed speed
-        let baseTime = (calculatedTimeRemaining * 0.8) + (speedBasedTime * 0.2);
+        // Use a weighted average: 30% based on our 0.1-second model, 70% on observed speed
+        // This gives more weight to the actual server speed which is around 10-20 records/sec
+        let baseTime = (calculatedTimeRemaining * 0.3) + (speedBasedTime * 0.7);
         
-        // Add batch cooldown estimation based on remaining batches
+        // No cooldown between batches for rule-based analysis
         let cooldownEstimate = 0;
-        if (totalBatches > 1) {
-          const remainingBatches = Math.ceil(recordsRemaining / 30);
-          if (remainingBatches > 0) {
-            cooldownEstimate = (remainingBatches - 1) * 60; // 60 sec cooldown between batches
-          }
-        }
         
         // Calculate total time with our model plus cooldown
         baseTime = baseTime + cooldownEstimate;
@@ -894,7 +889,7 @@ export function UploadProgressModal() {
         // Add small random variance to make it look more natural
         calculatedTimeRemaining = baseTime * (1 + randomVariance);
       } catch (e) {
-        // If calculation error, fall back to our 3-second model
+        // If calculation error, fall back to our 0.1-second model
         calculatedTimeRemaining = (recordsRemaining * timePerRecord) * (1 + randomVariance);
       }
     } else if (seconds > 0) {
