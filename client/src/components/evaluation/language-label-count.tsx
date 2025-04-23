@@ -138,7 +138,7 @@ export const LanguageLabelCount: React.FC<LanguageLabelCountProps> = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
-            onClick={() => handleSectionClick(index)}
+            onClick={() => setExploded(exploded === index ? null : index)}
           >
             <div 
               className="h-3 w-3 rounded-full" 
@@ -167,10 +167,7 @@ export const LanguageLabelCount: React.FC<LanguageLabelCountProps> = ({
     </div>
   );
 
-  // Function to handle clicking on a pie section
-  const handleSectionClick = (index: number) => {
-    setExploded(exploded === index ? null : index);
-  };
+  // Function to toggle exploded sections through UI interaction
 
   // Function to calculate the offset for "exploded" pie sections
   const getExplodedOffset = (index: number) => {
