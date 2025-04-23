@@ -1329,6 +1329,32 @@ export class PythonService {
       }
 
       // Pass text directly to Python script
+      // Ensure the scriptPath is set to the server/python location
+      // If using the root script, it will use the modified version we just updated to import from server/python
+      if (!this.scriptPath || !fs.existsSync(this.scriptPath)) {
+        // Re-check for script path if it's not set or doesn't exist
+        const possibleScriptPaths = [
+          path.join(process.cwd(), 'server', 'python', 'process.py'),  // Standard path
+          path.join(process.cwd(), 'python', 'process.py'),            // Root python folder path
+        ];
+        
+        // Try each path and use the first one that exists
+        for (const scriptPath of possibleScriptPaths) {
+          try {
+            if (fs.existsSync(scriptPath)) {
+              this.scriptPath = scriptPath;
+              log(`✅ Found Python script at: ${scriptPath}`, 'python-service');
+              break;
+            }
+          } catch (error) {
+            const err = error as Error;
+            log(`⚠️ Error checking path ${scriptPath}: ${err.message}`, 'python-service');
+          }
+        }
+      }
+
+      log(`Using Python script at ${this.scriptPath} for sentiment analysis`, 'python-service');
+      
       const pythonProcess = spawn(this.pythonBinary, [
         this.scriptPath,
         '--text', text
@@ -1392,34 +1418,76 @@ export class PythonService {
       log(`📊 USAGE TRACKING: Single text analysis - incrementing by 1`, 'python-service');
       log(`📊 USAGE TRACKING: Daily usage changed from ${beforeUsage} to ${afterUsage} (limit: ${usageTracker.getUsageStats().limit} rows)`, 'python-service');
 
-      const analysisResult = JSON.parse(result);
+      try {
+        const analysisResult = JSON.parse(result);
 
-      // Add slight random variation to confidence score to make it more realistic
-      if (analysisResult.confidence) {
-        const baseConfidence = analysisResult.confidence;
-        // Ensure the base confidence doesn't exceed 0.87 (87%)
-        const cappedBaseConfidence = Math.min(0.87, baseConfidence);
-        const randomOffset = Math.random() * 0.02 - 0.01; // Random -1% to +1%
-        const adjustedConfidence = Math.min(0.88, Math.max(0.30, cappedBaseConfidence + randomOffset));
-        
-        // Update the confidence score
-        analysisResult.confidence = adjustedConfidence;
-        
-        // Store the adjusted confidence score in cache
-        this.setCachedConfidence(text, adjustedConfidence);
-        log(`Adjusted confidence from ${baseConfidence.toFixed(3)} to ${adjustedConfidence.toFixed(3)}`, 'python-service');
-      }
+        // Add slight random variation to confidence score to make it more realistic
+        if (analysisResult.confidence) {
+          const baseConfidence = analysisResult.confidence;
+          // Ensure the base confidence doesn't exceed 0.87 (87%)
+          const cappedBaseConfidence = Math.min(0.87, baseConfidence);
+          const randomOffset = Math.random() * 0.02 - 0.01; // Random -1% to +1%
+          const adjustedConfidence = Math.min(0.88, Math.max(0.30, cappedBaseConfidence + randomOffset));
+          
+          // Update the confidence score
+          analysisResult.confidence = adjustedConfidence;
+          
+          // Store the adjusted confidence score in cache
+          this.setCachedConfidence(text, adjustedConfidence);
+          log(`Adjusted confidence from ${baseConfidence.toFixed(3)} to ${adjustedConfidence.toFixed(3)}`, 'python-service');
+        }
 
-      // Make sure None values are converted to user-friendly "Unknown" values
-      if (!analysisResult.disasterType || analysisResult.disasterType === "None" || analysisResult.disasterType === "UNKNOWN") {
-        analysisResult.disasterType = "Unknown Disaster";
+        // Make sure None values are converted to user-friendly "Unknown" values
+        if (!analysisResult.disasterType || analysisResult.disasterType === "None" || analysisResult.disasterType === "UNKNOWN") {
+          analysisResult.disasterType = "Unknown Disaster";
+        }
+        
+        if (!analysisResult.location || analysisResult.location === "None" || analysisResult.location === "UNKNOWN") {
+          analysisResult.location = "Unknown Location";
+        }
+        
+        // Ensure the language value is properly set (important for Taglish detection)
+        if (!analysisResult.language || analysisResult.language === "None") {
+          // Make a smart guess about the language based on text content
+          // This is a fallback for when language detection fails in Python
+          const tagalogMarkers = ['naman', 'daw', 'po', 'nga', 'talaga', 'lang', 'sana', 
+                                'yung', 'kasi', 'raw', 'din', 'rin', 'hindi', 'mga'];
+          const englishMarkers = ['the', 'and', 'you', 'for', 'that', 'have', 'with', 'this',
+                               'what', 'how', 'when', 'why', 'who'];
+          
+          const textLower = text.toLowerCase();
+          const tagalogCount = tagalogMarkers.filter(word => textLower.includes(` ${word} `) || 
+                                                   textLower.includes(` ${word}.`) || 
+                                                   textLower.includes(` ${word},`)).length;
+          const englishCount = englishMarkers.filter(word => textLower.includes(` ${word} `) || 
+                                                   textLower.includes(` ${word}.`) || 
+                                                   textLower.includes(` ${word},`)).length;
+          
+          // Determine language based on detected markers
+          if (tagalogCount > 0 && englishCount > 0) {
+            analysisResult.language = "Taglish";
+          } else if (tagalogCount > englishCount) {
+            analysisResult.language = "Filipino";
+          } else {
+            analysisResult.language = "English";
+          }
+          
+          log(`No language detected, guessed language as: ${analysisResult.language}`, 'python-service');
+        }
+        
+        return analysisResult;
+      } catch (jsonError) {
+        log(`Failed to parse Python output as JSON: ${jsonError}. Raw output: ${result}`, 'python-service');
+        // Create a fallback result to prevent app from crashing
+        return {
+          sentiment: "Neutral",
+          confidence: 0.5,
+          explanation: "Failed to analyze text due to technical error.",
+          language: "English", // Default to English when detection fails
+          disasterType: "Unknown",
+          location: "Unknown"
+        };
       }
-      
-      if (!analysisResult.location || analysisResult.location === "None" || analysisResult.location === "UNKNOWN") {
-        analysisResult.location = "Unknown Location";
-      }
-      
-      return analysisResult;
     } catch (error) {
       log(`Sentiment analysis failed: ${error}`, 'python-service');
       

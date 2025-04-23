@@ -557,12 +557,52 @@ if __name__ == "__main__":
     if args.text:
         print(json.dumps(backend.analyze_sentiment(args.text)))
     elif args.file:
-        # Use server method directly instead of a process_csv method
-        # This allows the python/process.py to use the same code as server/python/process.py
-        # without duplicating methods
-        from server.python.process import DisasterSentimentBackend as ServerBackend
-        server_backend = ServerBackend()
-        print(json.dumps(server_backend.process_csv(args.file)))
+        # Add a process_csv method to our local instance for compatibility
+        if not hasattr(backend, 'process_csv'):
+            # Define a process_csv method that uses the module path of server version
+            def process_csv(file_path):
+                try:
+                    # Try to import server version
+                    logging.info(f"Importing process_csv from server module")
+                    # Use relative import (without 'server.' prefix) to be more flexible
+                    sys.path.append(os.path.join(os.getcwd(), 'server'))
+                    from python.process import DisasterSentimentBackend as ServerBackend
+                    server_backend = ServerBackend()
+                    return server_backend.process_csv(file_path)
+                except ImportError as e:
+                    logging.error(f"Failed to import from server module: {e}")
+                    # Fallback to direct implementation - simplified
+                    logging.info("Using fallback CSV processing")
+                    import pandas as pd
+                    
+                    # Read CSV file
+                    df = pd.read_csv(file_path)
+                    
+                    # Process each row
+                    results = []
+                    for _, row in df.iterrows():
+                        # Get text from row
+                        text = str(row.get('text', '') or '')
+                        if not text.strip():
+                            continue
+                            
+                        # Analyze sentiment
+                        result = backend.analyze_sentiment(text)
+                        
+                        # Add metadata from CSV
+                        result['text'] = text
+                        result['timestamp'] = str(row.get('timestamp', ''))
+                        result['source'] = str(row.get('source', 'CSV Import'))
+                        
+                        results.append(result)
+                        
+                    return {"results": results}
+            
+            # Add the method to our backend instance
+            backend.process_csv = process_csv
+            
+        # Call the method
+        print(json.dumps(backend.process_csv(args.file)))
     else:
         print("Error: Please provide either --text or --file argument")
         sys.exit(1)
