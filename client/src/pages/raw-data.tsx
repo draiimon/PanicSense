@@ -64,6 +64,10 @@ const AnimatedCard = motion(Card);
 const languageMap: Record<string, string> = {
   en: "English",
   tl: "Filipino",
+  // Keep these direct mappings to ensure they're preserved
+  "English": "English",
+  "Filipino": "Filipino",
+  "Taglish": "Taglish",
 };
 
 // Get sentiment color
@@ -186,7 +190,8 @@ export default function RawData() {
         post.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.sentiment?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.disasterType?.toLowerCase().includes(searchQuery.toLowerCase())
+        post.disasterType?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.language?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : filteredPosts;
 
