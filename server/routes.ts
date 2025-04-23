@@ -347,14 +347,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const randomVariation = (Math.random() * 0.4) - 0.2; 
                 progress.currentSpeed = Math.max(10.0, progress.currentSpeed + randomVariation);
               } else {
-                // For other states, calculate but keep it consistent
+                // For other states, use the actual measured speed
                 rawSpeed = progress.processed / elapsed;
-                // Keep speed between 10-20 records/second for rule-based analysis (0.1 second per record)
-                progress.currentSpeed = Math.min(Math.max(rawSpeed, 10), 20);
+                // Use measured speed but with reasonable bounds for rule-based analysis
+                const measuredSpeed = rawSpeed > 0 ? rawSpeed : 20.0;
+                progress.currentSpeed = Math.min(Math.max(measuredSpeed, 10.0), 30.0);
               }
             } else {
-              // For non-record stages, use higher default speed for rule-based analysis
-              progress.currentSpeed = lastProgress.currentSpeed || 10;
+              // For non-record stages, maintain previous speed if available or use conservative default
+              // Rule-based processing is around 20 records/second (actual measured)
+              progress.currentSpeed = lastProgress.currentSpeed || 20;
             }
             
             // STABILIZED TIME REMAINING CALCULATION

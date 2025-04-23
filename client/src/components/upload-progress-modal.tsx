@@ -852,13 +852,13 @@ export function UploadProgressModal() {
   
   // Calculate time remaining in human-readable format with improved batch-aware logic
   const formatTimeRemaining = (seconds: number): string => {
-    // Initialize with a faster estimation based on 0.1 seconds per record for rule-based processing
-    // Use 0.1 seconds per record which matches the server processing speed
+    // Use the real measured processing speed (approximately 20 records/sec)
     const recordsRemaining = total - processedCount;
-    // Default to 0.1 seconds per record for rule-based analysis
-    const timePerRecord = 0.1; 
     
-    // Calculate time more accurately with new faster processing
+    // Base calculations on actual current speed if available
+    const timePerRecord = currentSpeed > 0 ? (1 / currentSpeed) : 0.05; // Default is 20 records/sec (0.05s per record)
+    
+    // Calculate time more accurately with real speed
     let calculatedTimeRemaining = recordsRemaining * timePerRecord;
     
     // If we're in a batch pause state, show cooldown directly
@@ -866,28 +866,27 @@ export function UploadProgressModal() {
       return `${cooldownTime} sec cooldown`;
     }
     
-    // Add a very small random value for natural transitions
-    // Mas mabagal na transition para sa estimated time
-    const randomVariance = Math.random() * 0.02 - 0.01; // -1% to +1% very small changes only
+    // Small random variation for natural transitions (less than before)
+    const randomVariance = Math.random() * 0.01 - 0.005; // Only ±0.5% variation for stability
     
-    // Prefer direct time calculation from the server - it uses 0.1 seconds per record now
+    // Prefer server-provided time as it's now based on actual measured speed
     if (seconds > 0) {
-      // Use the server-provided time as the primary source with slight client-side smoothing
-      calculatedTimeRemaining = (seconds * 0.9) + (calculatedTimeRemaining * 0.1);
+      // Heavily weight server time (95%) with just a tiny bit of client calculation (5%)
+      // for smoother updates
+      calculatedTimeRemaining = (seconds * 0.95) + (calculatedTimeRemaining * 0.05);
     } else if (currentSpeed > 0 && total > processedCount) {
       try {
-        // For rule-based processing with faster speed (avg 20 records/sec)
-        // Server is sending time based on 0.1 sec per record, but calculate here as backup
+        // Calculate based on actual observed speed
         const speedBasedTime = recordsRemaining / currentSpeed;
         
-        // For speed-based calculation, heavily weight actual observed speed
+        // Use speed-based calculation directly
         calculatedTimeRemaining = speedBasedTime;
         
-        // Add small random variance to make it look more natural
+        // Minimal random variance for natural feel
         calculatedTimeRemaining = calculatedTimeRemaining * (1 + randomVariance);
       } catch (e) {
-        // If calculation error, fall back to our 0.1-second model
-        calculatedTimeRemaining = (recordsRemaining * timePerRecord) * (1 + randomVariance);
+        // Fallback calculation based on default speed
+        calculatedTimeRemaining = recordsRemaining * 0.05; // 20 records/sec
       }
     }
     
