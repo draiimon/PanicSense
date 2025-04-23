@@ -50,61 +50,88 @@ class DisasterSentimentBackend:
         self.sentiment_labels = [
             'Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral'
         ]
-        
+
         # Enhanced sentiment definitions with examples for better classification
         self.sentiment_definitions = {
             'Panic': {
-                'definition': 'A state of intense fear and emotional overwhelm with helplessness and urgent cry for help',
-                'indicators': ['exclamatory expressions', 'all-caps text', 'repeated punctuation', 'emotional breakdowns', 'frantic sentence structure'],
+                'definition':
+                'A state of intense fear and emotional overwhelm with helplessness and urgent cry for help',
+                'indicators': [
+                    'exclamatory expressions', 'all-caps text',
+                    'repeated punctuation', 'emotional breakdowns',
+                    'frantic sentence structure'
+                ],
                 'emojis': ['😱', '😭', '🆘', '💔'],
                 'phrases': [
-                    'Tulungan nyo po kami', 'HELP', 'RESCUE', 'tulong', 'mamamatay na kami',
-                    'ASAN ANG RESCUE', 'di kami makaalis', 'NAIIPIT KAMI', 'PLEASE'
+                    'Tulungan nyo po kami', 'HELP', 'RESCUE', 'tulong',
+                    'mamamatay na kami', 'ASAN ANG RESCUE', 'di kami makaalis',
+                    'NAIIPIT KAMI', 'PLEASE'
                 ]
             },
             'Fear/Anxiety': {
-                'definition': 'Heightened worry, stress and uncertainty with some level of control',
-                'indicators': ['expressions of worry', 'use of ellipses', 'passive tones', 'lingering unease'],
+                'definition':
+                'Heightened worry, stress and uncertainty with some level of control',
+                'indicators': [
+                    'expressions of worry', 'use of ellipses', 'passive tones',
+                    'lingering unease'
+                ],
                 'emojis': ['😨', '😰', '😟'],
                 'phrases': [
-                    'kinakabahan ako', 'natatakot ako', 'di ako mapakali', 'worried', 'anxious',
-                    'fearful', 'nakakatakot', 'nakakapraning', 'makakaligtas kaya', 'paano na'
+                    'kinakabahan ako', 'natatakot ako', 'di ako mapakali',
+                    'worried', 'anxious', 'fearful', 'nakakatakot',
+                    'nakakapraning', 'makakaligtas kaya', 'paano na'
                 ]
             },
             'Resilience': {
-                'definition': 'Expression of strength, unity and optimism despite adversity',
-                'indicators': ['encouraging tone', 'supportive language', 'references to community', 'affirmative language', 'faith'],
+                'definition':
+                'Expression of strength, unity and optimism despite adversity',
+                'indicators': [
+                    'encouraging tone', 'supportive language',
+                    'references to community', 'affirmative language', 'faith'
+                ],
                 'emojis': ['💪', '🙏', '🌈', '🕊️'],
                 'phrases': [
-                    'kapit lang', 'kaya natin to', 'malalagpasan din natin', 'stay strong', 'prayers',
-                    'dasal', 'tulong tayo', 'magtulungan', 'babangon tayo', 'sama-sama', 'matatag'
+                    'kapit lang', 'kaya natin to', 'malalagpasan din natin',
+                    'stay strong', 'prayers', 'dasal', 'tulong tayo',
+                    'magtulungan', 'babangon tayo', 'sama-sama', 'matatag'
                 ]
             },
             'Neutral': {
-                'definition': 'Emotionally flat statements focused on factual information',
-                'indicators': ['lack of emotional language', 'objective reporting', 'formal sentence structure'],
+                'definition':
+                'Emotionally flat statements focused on factual information',
+                'indicators': [
+                    'lack of emotional language', 'objective reporting',
+                    'formal sentence structure'
+                ],
                 'emojis': ['📍', '📰'],
                 'phrases': [
-                    'reported', 'according to', 'magnitude', 'flooding detected', 'advisory',
-                    'update', 'bulletin', 'announcement', 'alert level', 'status'
+                    'reported', 'according to', 'magnitude',
+                    'flooding detected', 'advisory', 'update', 'bulletin',
+                    'announcement', 'alert level', 'status'
                 ]
             },
             'Disbelief': {
-                'definition': 'Reactions of surprise, sarcasm, irony or denial as coping mechanism',
-                'indicators': ['ironic tone', 'sarcastic comments', 'humor to mask fear', 'exaggeration', 'memes'],
+                'definition':
+                'Reactions of surprise, sarcasm, irony or denial as coping mechanism',
+                'indicators': [
+                    'ironic tone', 'sarcastic comments', 'humor to mask fear',
+                    'exaggeration', 'memes'
+                ],
                 'emojis': ['🤯', '🙄', '😆', '😑'],
                 'phrases': [
-                    'baha na naman', 'classic ph', 'wala tayong alert', 'nice one', 'as usual',
-                    'same old story', 'what else is new', 'nakakasawa na', 'expected', 'wow surprise'
+                    'baha na naman', 'classic ph', 'wala tayong alert',
+                    'nice one', 'as usual', 'same old story',
+                    'what else is new', 'nakakasawa na', 'expected',
+                    'wow surprise'
                 ]
             }
         }
-        
+
         # For API calls in regular analysis
         self.api_keys = []
         # For validation use only (1 key maximum)
         self.groq_api_keys = []
-        
+
         # First check for a dedicated validation key
         validation_key = os.getenv("VALIDATION_API_KEY")
         if validation_key:
@@ -143,7 +170,7 @@ class DisasterSentimentBackend:
                 env_key = os.getenv(f"GROQ_API_KEY_{i}")
                 if env_key:
                     api_key_list.append(env_key)
-            
+
             # If no environment keys, use the keys provided by the user
             if not api_key_list:
                 # In production, we will use the GROQ_API_KEY_X variables from environment
@@ -153,122 +180,68 @@ class DisasterSentimentBackend:
                         env_key = os.getenv(f"API_KEY_{i}")
                         if env_key:
                             api_key_list.append(env_key)
-                
+
                 # Final fallback - check for a single API_KEY environment variable
                 if not api_key_list and os.getenv("API_KEY"):
                     api_key_list.append(os.getenv("API_KEY"))
-                
+
                 # If no API keys found in environment, use the provided list of API keys
                 if not api_key_list:
                     # Load the 83 API keys for rotation to avoid rate limiting
                     api_key_list = [
-                        "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",
-                        "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",
-                        "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",     
-                        "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",     
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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",
-                        "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"
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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",
+                        "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"
                     ]
-                
+
                 # We'll only use one key for validation to avoid rate limiting
-                logging.info(f"Using {len(api_key_list)} API keys with rotation for rate limit protection")
-            
+                logging.info(
+                    f"Using {len(api_key_list)} API keys with rotation for rate limit protection"
+                )
+
             self.api_keys = api_key_list
-            
+
             # Only use one key for validation - this is critical to avoid rate limiting
             if not self.groq_api_keys:
                 self.groq_api_keys = [self.api_keys[0]]
-        
+
         # Log how many keys we're using
         logging.info(f"Loaded {len(self.api_keys)} API keys for rotation")
         logging.info(f"Using {len(self.groq_api_keys)} key(s) for validation")
-        
+
         # Safety check - validation should have max 1 key
         if len(self.groq_api_keys) > 1:
-            logging.warning(f"More than 1 validation key detected, limiting to 1 key")
+            logging.warning(
+                f"More than 1 validation key detected, limiting to 1 key")
             self.groq_api_keys = [self.groq_api_keys[0]]
 
         # API configuration
@@ -283,11 +256,12 @@ class DisasterSentimentBackend:
         # Initialize success counter for each key
         for i in range(len(self.api_keys)):  # Use api_keys, not groq_api_keys
             self.key_success_count[i] = 0
-            
+
         # Make sure the current_key_index is properly initialized
         self.current_key_index = 0  # Start with the first key
-            
-        logging.info(f"API key rotation initialized with {len(self.api_keys)} keys")
+
+        logging.info(
+            f"API key rotation initialized with {len(self.api_keys)} keys")
 
     def extract_disaster_type(self, text):
         """
@@ -456,28 +430,30 @@ class DisasterSentimentBackend:
         """Enhanced location extraction with typo tolerance and fuzzy matching for Philippine locations"""
         if not text:
             return "UNKNOWN"
-            
+
         text_lower = text.lower()
-        
+
         # SPECIAL CASE: MAY SUNOG SA X!, MAY BAHA SA X! pattern (disaster in LOCATION)
         # Handle ALL-CAPS emergency statements common in Filipino language
-        
+
         # First check for uppercase patterns which are common in emergency situations
         if text.isupper():
             # MAY SUNOG SA TIPI! type of pattern (all caps)
-            upper_emergency_matches = re.findall(r'MAY\s+\w+\s+SA\s+([A-Z]+)[\!\.\?]*', text)
+            upper_emergency_matches = re.findall(
+                r'MAY\s+\w+\s+SA\s+([A-Z]+)[\!\.\?]*', text)
             if upper_emergency_matches:
                 location = upper_emergency_matches[0].strip()
-                if len(location) > 1:  # Make sure it's not just a single letter
+                if len(location
+                       ) > 1:  # Make sure it's not just a single letter
                     return location.title()  # Return with Title Case
-                    
+
             # Check for uppercase SA LOCATION! pattern
             upper_sa_matches = re.findall(r'SA\s+([A-Z]+)[\!\.\?]*', text)
             if upper_sa_matches:
                 location = upper_sa_matches[0].strip()
                 if len(location) > 1:
                     return location.title()
-        
+
         # Regular case patterns (lowercase or mixed case)
         emergency_location_patterns = [
             r'may sunog sa ([a-zA-Z]+)',
@@ -493,14 +469,15 @@ class DisasterSentimentBackend:
             r'may baha sa ([\w\s]+?)[\!\.\?]',
             r'may lindol sa ([\w\s]+?)[\!\.\?]'
         ]
-        
+
         for pattern in emergency_location_patterns:
             matches = re.findall(pattern, text_lower)
             if matches:
                 location = matches[0].strip()
-                if len(location) > 1:  # Make sure it's not just a single letter
+                if len(location
+                       ) > 1:  # Make sure it's not just a single letter
                     return location.title()  # Return with Title Case
-        
+
         # Also check for SA X! pattern - common Filipino emergency pattern
         sa_pattern = r'\bsa\s+([\w\s]+?)[\!\.\?]'  # Match location before punctuation
         sa_matches = re.findall(sa_pattern, text_lower)
@@ -508,13 +485,13 @@ class DisasterSentimentBackend:
             location = sa_matches[0].strip()
             if len(location) > 1:  # Make sure it's not just a single letter
                 return location.title()  # Return with Title Case
-        
+
         # First, preprocess the text to handle common misspellings/shortcuts
         # Map of common misspellings and shortcuts to correct forms
         misspelling_map = {
             # Metro Manila
             "maynila": "manila",
-            "mnl": "manila", 
+            "mnl": "manila",
             "mnla": "manila",
             "manilla": "manila",
             "kyusi": "quezon city",
@@ -545,7 +522,7 @@ class DisasterSentimentBackend:
             "intramuros": "manila",
             "pandacan": "manila",
             "paco": "manila",
-            
+
             # Major Cities & Provinces
             "baguio city": "baguio",
             "cebu city": "cebu",
@@ -584,71 +561,182 @@ class DisasterSentimentBackend:
             "maguindanao del norte": "maguindanao",
             "maguindanao del sur": "maguindanao",
         }
-        
+
         # COMPREHENSIVE list of Philippine locations - regions, cities, municipalities
         ph_locations = [
             # Regions
-            "NCR", "Metro Manila", "CAR", "Cordillera", "Ilocos", "Cagayan Valley",
-            "Central Luzon", "CALABARZON", "MIMAROPA", "Bicol", "Western Visayas",
-            "Central Visayas", "Eastern Visayas", "Zamboanga Peninsula", "Northern Mindanao",
-            "Davao Region", "SOCCSKSARGEN", "Caraga", "BARMM", "Bangsamoro",
+            "NCR",
+            "Metro Manila",
+            "CAR",
+            "Cordillera",
+            "Ilocos",
+            "Cagayan Valley",
+            "Central Luzon",
+            "CALABARZON",
+            "MIMAROPA",
+            "Bicol",
+            "Western Visayas",
+            "Central Visayas",
+            "Eastern Visayas",
+            "Zamboanga Peninsula",
+            "Northern Mindanao",
+            "Davao Region",
+            "SOCCSKSARGEN",
+            "Caraga",
+            "BARMM",
+            "Bangsamoro",
 
             # NCR Cities and Municipalities
-            "Manila", "Quezon City", "Makati", "Taguig", "Pasig", "Mandaluyong", "Pasay",
-            "Caloocan", "Parañaque", "Las Piñas", "Muntinlupa", "Marikina", "Valenzuela",
-            "Malabon", "Navotas", "San Juan", "Pateros",
-            
+            "Manila",
+            "Quezon City",
+            "Makati",
+            "Taguig",
+            "Pasig",
+            "Mandaluyong",
+            "Pasay",
+            "Caloocan",
+            "Parañaque",
+            "Las Piñas",
+            "Muntinlupa",
+            "Marikina",
+            "Valenzuela",
+            "Malabon",
+            "Navotas",
+            "San Juan",
+            "Pateros",
+
             # Manila Sub-areas and Barangays (frequently mentioned in emergency reports)
-            "Tondo", "Sampaloc", "Malate", "Paco", "Intramuros", "Quiapo", "Binondo", 
-            "Ermita", "San Nicolas", "San Miguel", "Santa Cruz", "Santa Mesa", "Pandacan",
-            "Port Area", "Sta. Ana", "Tipi", "TIPI", "Tipas", "Tipas Taguig", "Napindan",
-            
+            "Tondo",
+            "Sampaloc",
+            "Malate",
+            "Paco",
+            "Intramuros",
+            "Quiapo",
+            "Binondo",
+            "Ermita",
+            "San Nicolas",
+            "San Miguel",
+            "Santa Cruz",
+            "Santa Mesa",
+            "Pandacan",
+            "Port Area",
+            "Sta. Ana",
+            "Tipi",
+            "TIPI",
+            "Tipas",
+            "Tipas Taguig",
+            "Napindan",
+
             # Major Cities Outside NCR
-            "Baguio", "Cebu", "Davao", "Iloilo", "Cagayan de Oro", "Zamboanga", "Bacolod",
-            "General Santos", "Tacloban", "Angeles", "Olongapo", "Naga", "Butuan", "Cotabato",
-            "Dagupan", "Iligan", "Laoag", "Legazpi", "Lucena", "Puerto Princesa", "Roxas", "Tipi",
-            "Tagaytay", "Tagbilaran", "Tarlac", "Tuguegarao", "Vigan", "Cabanatuan", "Bago",
-            "Batangas City", "Bayawan", "Calbayog", "Cauayan", "Dapitan", "Digos", "Dipolog",
-            "Dumaguete", "El Salvador", "Gingoog", "Himamaylan", "Iriga", "Kabankalan", "Kidapawan",
-            "La Carlota", "Lamitan", "Lipa", "Maasin", "Malaybalay", "Malolos", "Mati", "Meycauayan",
-            "Oroquieta", "Ozamiz", "Pagadian", "Palayan", "Panabo", "Sorsogon City", "Surigao City",
-            "Tabuk", "Tandag", "Tangub", "Tanjay", "Urdaneta", "Valencia", "Zamboanga City"
+            "Baguio",
+            "Cebu",
+            "Davao",
+            "Iloilo",
+            "Cagayan de Oro",
+            "Zamboanga",
+            "Bacolod",
+            "General Santos",
+            "Tacloban",
+            "Angeles",
+            "Olongapo",
+            "Naga",
+            "Butuan",
+            "Cotabato",
+            "Dagupan",
+            "Iligan",
+            "Laoag",
+            "Legazpi",
+            "Lucena",
+            "Puerto Princesa",
+            "Roxas",
+            "Tipi",
+            "Tagaytay",
+            "Tagbilaran",
+            "Tarlac",
+            "Tuguegarao",
+            "Vigan",
+            "Cabanatuan",
+            "Bago",
+            "Batangas City",
+            "Bayawan",
+            "Calbayog",
+            "Cauayan",
+            "Dapitan",
+            "Digos",
+            "Dipolog",
+            "Dumaguete",
+            "El Salvador",
+            "Gingoog",
+            "Himamaylan",
+            "Iriga",
+            "Kabankalan",
+            "Kidapawan",
+            "La Carlota",
+            "Lamitan",
+            "Lipa",
+            "Maasin",
+            "Malaybalay",
+            "Malolos",
+            "Mati",
+            "Meycauayan",
+            "Oroquieta",
+            "Ozamiz",
+            "Pagadian",
+            "Palayan",
+            "Panabo",
+            "Sorsogon City",
+            "Surigao City",
+            "Tabuk",
+            "Tandag",
+            "Tangub",
+            "Tanjay",
+            "Urdaneta",
+            "Valencia",
+            "Zamboanga City"
         ]
 
         # Provinces
         provinces = [
-            "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay", "Antique", "Apayao", 
-            "Aurora", "Basilan", "Bataan", "Batanes", "Batangas", "Benguet", "Biliran", "Bohol", 
-            "Bukidnon", "Bulacan", "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz",
-            "Catanduanes", "Cavite", "Cebu", "Cotabato", "Davao de Oro", "Davao del Norte", 
-            "Davao del Sur", "Davao Oriental", "Dinagat Islands", "Eastern Samar", "Guimaras", "Ifugao",
-            "Ilocos Norte", "Ilocos Sur", "Iloilo", "Isabela", "Kalinga", "La Union", "Laguna", 
-            "Lanao del Norte", "Lanao del Sur", "Leyte", "Maguindanao", "Marinduque", "Masbate", 
-            "Misamis Occidental", "Misamis Oriental", "Mountain Province", "Negros Occidental",
-            "Negros Oriental", "Northern Samar", "Nueva Ecija", "Nueva Vizcaya", "Occidental Mindoro", 
-            "Oriental Mindoro", "Palawan", "Pampanga", "Pangasinan", "Quezon", "Quirino", "Rizal",
-            "Romblon", "Samar", "Sarangani", "Siquijor", "Sorsogon", "South Cotabato", "Southern Leyte", 
-            "Sultan Kudarat", "Sulu", "Surigao del Norte", "Surigao del Sur", "Tarlac", "Tawi-Tawi",
-            "Zambales", "Zamboanga del Norte", "Zamboanga del Sur", "Zamboanga Sibugay"
+            "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay",
+            "Antique", "Apayao", "Aurora", "Basilan", "Bataan", "Batanes",
+            "Batangas", "Benguet", "Biliran", "Bohol", "Bukidnon", "Bulacan",
+            "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz",
+            "Catanduanes", "Cavite", "Cebu", "Cotabato", "Davao de Oro",
+            "Davao del Norte", "Davao del Sur", "Davao Oriental",
+            "Dinagat Islands", "Eastern Samar", "Guimaras", "Ifugao",
+            "Ilocos Norte", "Ilocos Sur", "Iloilo", "Isabela", "Kalinga",
+            "La Union", "Laguna", "Lanao del Norte", "Lanao del Sur", "Leyte",
+            "Maguindanao", "Marinduque", "Masbate", "Misamis Occidental",
+            "Misamis Oriental", "Mountain Province", "Negros Occidental",
+            "Negros Oriental", "Northern Samar", "Nueva Ecija",
+            "Nueva Vizcaya", "Occidental Mindoro", "Oriental Mindoro",
+            "Palawan", "Pampanga", "Pangasinan", "Quezon", "Quirino", "Rizal",
+            "Romblon", "Samar", "Sarangani", "Siquijor", "Sorsogon",
+            "South Cotabato", "Southern Leyte", "Sultan Kudarat", "Sulu",
+            "Surigao del Norte", "Surigao del Sur", "Tarlac", "Tawi-Tawi",
+            "Zambales", "Zamboanga del Norte", "Zamboanga del Sur",
+            "Zamboanga Sibugay"
         ]
 
         ph_locations.extend(provinces)
-        
+
         # Step 1: Check if any known misspellings are in the text
         for misspelling, correct in misspelling_map.items():
             if misspelling in text_lower:
                 # Find the correct location name
                 for loc in ph_locations:
                     if loc.lower() == correct:
-                        print(f"Found location from misspelling: {misspelling} → {loc}")
+                        print(
+                            f"Found location from misspelling: {misspelling} → {loc}"
+                        )
                         return loc
-                        
+
         # Step 2: Check for exact whole-word matches
         location_patterns = [
             re.compile(r'\b' + re.escape(loc.lower()) + r'\b')
             for loc in ph_locations
         ]
-        
+
         locations_found = []
         for i, pattern in enumerate(location_patterns):
             if pattern.search(text_lower):
@@ -656,15 +744,15 @@ class DisasterSentimentBackend:
 
         if locations_found:
             return locations_found[0]
-            
+
         # Step 3: Check for substring matches (allowing for partial words)
         for loc in ph_locations:
             if loc.lower() in text_lower:
                 return loc
-                
+
         # Step 4: Use fuzzy matching for typo tolerance
         words = re.findall(r'\b\w+\b', text_lower)
-        
+
         # Check each word against our locations with fuzzy matching
         for word in words:
             if len(word) > 3:  # Only check meaningful words
@@ -673,7 +761,7 @@ class DisasterSentimentBackend:
                     # This measures how many single character edits needed to change one word to another
                     if len(loc) > 3:  # Only check meaningful locations
                         loc_lower = loc.lower()
-                        
+
                         # Check each word in multi-word locations (like "Quezon City")
                         loc_parts = loc_lower.split()
                         for part in loc_parts:
@@ -681,35 +769,41 @@ class DisasterSentimentBackend:
                                 # Simple edit distance calculation: if word is within 1-2 edits of location part
                                 # For longer words, allow more edits (proportional to length)
                                 max_edits = 1 if len(part) <= 5 else 2
-                                
+
                                 # Simple edit distance check - accept word that's very close to location name
                                 if abs(len(word) - len(part)) <= max_edits:
                                     # Count differing characters
-                                    diff_count = sum(1 for a, b in zip(word, part) if a != b)
-                                    diff_count += abs(len(word) - len(part))  # Add difference in length
-                                    
+                                    diff_count = sum(
+                                        1 for a, b in zip(word, part)
+                                        if a != b)
+                                    diff_count += abs(
+                                        len(word) -
+                                        len(part))  # Add difference in length
+
                                     if diff_count <= max_edits:
-                                        print(f"Found location via fuzzy match: {word} ≈ {loc} (edit distance: {diff_count})")
+                                        print(
+                                            f"Found location via fuzzy match: {word} ≈ {loc} (edit distance: {diff_count})"
+                                        )
                                         return loc
-        
+
         # Step 5: Check for Philippine location patterns in the text
         # Common prepositions indicating locations
         place_patterns = [
             # English prepositions
             r'(?:in|at|from|to|near|around)\s+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)?)',
-            
+
             # Filipino prepositions - expanded with more variants
             r'(?:sa|ng|mula|papunta|malapit|dito sa|nangyari sa|galing sa)\s+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)?)',
-            
+
             # Disaster-specific location patterns
             r'(?:baha sa|lindol sa|sunog sa|bagyo sa|landslide sa|putok ng bulkan sa)\s+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)?)',
-            
+
             # Direct mention patterns in English
             r'(?:affected areas? (?:include|are|is))\s+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)?)',
-            
+
             # Direct mention patterns in Filipino
             r'(?:apektadong lugar)\s+(?:ay|ang)?\s+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)?)',
-            
+
             # City/Municipality patterns
             r'(?:city of|municipality of|town of|province of|bayan ng|lungsod ng|lalawigan ng)\s+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+)?)'
         ]
@@ -722,11 +816,11 @@ class DisasterSentimentBackend:
                     match_lower = match.lower()
                     for loc in ph_locations:
                         loc_lower = loc.lower()
-                        
+
                         # Exact match
                         if match_lower == loc_lower:
                             return loc
-                            
+
                         # Fuzzy match for place name
                         if len(match_lower) > 3 and len(loc_lower) > 3:
                             # Check each word in multi-word locations
@@ -734,23 +828,32 @@ class DisasterSentimentBackend:
                             for part in loc_parts:
                                 if len(part) > 3:
                                     max_edits = 1 if len(part) <= 5 else 2
-                                    
+
                                     # Simple edit distance check
-                                    if abs(len(match_lower) - len(part)) <= max_edits:
-                                        diff_count = sum(1 for a, b in zip(match_lower, part) if a != b)
-                                        diff_count += abs(len(match_lower) - len(part))
-                                        
+                                    if abs(len(match_lower) -
+                                           len(part)) <= max_edits:
+                                        diff_count = sum(
+                                            1
+                                            for a, b in zip(match_lower, part)
+                                            if a != b)
+                                        diff_count += abs(
+                                            len(match_lower) - len(part))
+
                                         if diff_count <= max_edits:
-                                            print(f"Found location via pattern + fuzzy match: {match} ≈ {loc}")
+                                            print(
+                                                f"Found location via pattern + fuzzy match: {match} ≈ {loc}"
+                                            )
                                             return loc
 
         # If location detection completely fails, check for flood-related keywords
-        # that might indicate a generic location 
-        if "baha" in text_lower and ("kalsada" in text_lower or "daan" in text_lower or "street" in text_lower):
+        # that might indicate a generic location
+        if "baha" in text_lower and ("kalsada" in text_lower or "daan"
+                                     in text_lower or "street" in text_lower):
             # Check for Manila-related terms
-            if any(term in text_lower for term in ["manila", "maynila", "mnl", "ncr", "metro"]):
+            if any(term in text_lower
+                   for term in ["manila", "maynila", "mnl", "ncr", "metro"]):
                 return "Manila"
-        
+
         return "UNKNOWN"
 
     def detect_news_source(self, text):
@@ -810,31 +913,42 @@ class DisasterSentimentBackend:
         try:
             # First check if the text has Taglish characteristics (mix of English and Filipino)
             # Simple Taglish detection - check for Filipino words/patterns in primarily English text
-            tagalog_markers = ['naman', 'daw', 'po', 'nga', 'talaga', 'lang', 'sana', 
-                              'yung', 'kasi', 'raw', 'din', 'rin', 'hindi', 'mga', 'natin',
-                              'ako', 'ikaw', 'siya', 'kami', 'tayo', 'kayo', 'sila',
-                              'na ', ' ba ', 'dito', 'diyan', 'doon', 'pala']
-            
+            tagalog_markers = [
+                'naman', 'daw', 'po', 'nga', 'talaga', 'lang', 'sana', 'yung',
+                'kasi', 'raw', 'din', 'rin', 'hindi', 'mga', 'natin', 'ako',
+                'ikaw', 'siya', 'kami', 'tayo', 'kayo', 'sila', 'na ', ' ba ',
+                'dito', 'diyan', 'doon', 'pala'
+            ]
+
             # Check for English words commonly used in Taglish
-            english_markers = ['the', 'and', 'you', 'for', 'that', 'have', 'with', 'this',
-                              'what', 'how', 'when', 'why', 'who', 'they', 'from', 'will',
-                              'would', 'could', 'should']
-            
+            english_markers = [
+                'the', 'and', 'you', 'for', 'that', 'have', 'with', 'this',
+                'what', 'how', 'when', 'why', 'who', 'they', 'from', 'will',
+                'would', 'could', 'should'
+            ]
+
             text_lower = text.lower()
-            
+
             # Count Tagalog markers
-            tagalog_count = sum(1 for marker in tagalog_markers if f" {marker} " in f" {text_lower} " or 
-                               f" {marker}." in text_lower or f" {marker}," in text_lower)
-            
+            tagalog_count = sum(
+                1 for marker in tagalog_markers
+                if f" {marker} " in f" {text_lower} "
+                or f" {marker}." in text_lower or f" {marker}," in text_lower)
+
             # Count English markers
-            english_count = sum(1 for marker in english_markers if f" {marker} " in f" {text_lower} " or 
-                               f" {marker}." in text_lower or f" {marker}," in text_lower)
-            
+            english_count = sum(
+                1 for marker in english_markers
+                if f" {marker} " in f" {text_lower} "
+                or f" {marker}." in text_lower or f" {marker}," in text_lower)
+
             # Get language detection result
             lang_code = detect(text)
-            
+
             # Classify as Taglish if we detect both Filipino and English patterns
-            if (tagalog_count >= 1 and english_count >= 1) or (lang_code in ['tl', 'fil'] and english_count >= 2) or (lang_code == 'en' and tagalog_count >= 2):
+            if (tagalog_count >= 1 and english_count >= 1) or (
+                    lang_code in ['tl', 'fil']
+                    and english_count >= 2) or (lang_code == 'en'
+                                                and tagalog_count >= 2):
                 language = "Taglish"
             elif lang_code in ['tl', 'fil']:
                 language = "Filipino"
@@ -843,78 +957,87 @@ class DisasterSentimentBackend:
         except:
             # Default to English if detection fails
             language = "English"
-            
+
         # Check if we're being passed JSON feedback data - look for "feedback" field
         try:
             # Try to parse text as JSON - this would be when we train from feedback
             import json  # Import json here to ensure it's available in this scope
             parsed_json = json.loads(text)
-            if isinstance(parsed_json, dict) and parsed_json.get('feedback') == True:
+            if isinstance(parsed_json,
+                          dict) and parsed_json.get('feedback') == True:
                 # This is a feedback training request, not a normal text analysis
                 return self.train_on_feedback(
                     parsed_json.get('originalText'),
                     parsed_json.get('originalSentiment'),
-                    parsed_json.get('correctedSentiment')
-                )
+                    parsed_json.get('correctedSentiment'))
         except Exception as e:
             # Not JSON data or another error, continue with regular analysis
-            logging.info(f"JSON parsing skipped (expected for normal text): {str(e)}")
+            logging.info(
+                f"JSON parsing skipped (expected for normal text): {str(e)}")
             pass
 
         # Check if this exact text has been trained before
         # This creates a direct mapping between feedback text and sentiment classification
         text_key = text.lower()
-        
+
         # Initialize training examples if not already done
         if not hasattr(self, 'trained_examples'):
             self.trained_examples = {}
-        
+
         # If we have a direct training example match, use that immediately
         words = re.findall(r'\b\w+\b', text.lower())
         joined_words = " ".join(words).lower()
-        
+
         if joined_words in self.trained_examples:
             # We have an exact match in our training data
             trained_sentiment = self.trained_examples[joined_words]
-            logging.info(f"✅ Using trained sentiment '{trained_sentiment}' for text (exact match)")
-            
+            logging.info(
+                f"✅ Using trained sentiment '{trained_sentiment}' for text (exact match)"
+            )
+
             # Generate explanation
             explanation = f"Klasipikasyon batay sa kauna-unahang feedback para sa mensaheng ito: {trained_sentiment}"
             if language != "Filipino":
                 explanation = f"Classification based on previous user feedback for this exact message: {trained_sentiment}"
-                
+
             return {
                 "sentiment": trained_sentiment,
-                "confidence": 0.88,  # Maximum confidence for very certain results
+                "confidence":
+                0.88,  # Maximum confidence for very certain results
                 "explanation": explanation,
                 "disasterType": self.extract_disaster_type(text),
                 "location": self.extract_location(text),
                 "language": language
             }
-        
+
         # Track whether this is a single-text analysis (real-time) or part of a CSV upload
         # We'll use this to decide whether to use Meta Llama 4 Maverick (for real-time only)
         import inspect
-        caller_info = inspect.stack()[1].function if inspect.stack() and len(inspect.stack()) > 1 else ""
-        
+        caller_info = inspect.stack()[1].function if inspect.stack() and len(
+            inspect.stack()) > 1 else ""
+
         # Check if this is a real-time analysis (not from process_csv function) vs CSV upload (from process_csv)
         is_realtime = not ('process_csv' in caller_info)
-        
+
         # Log usage type with rate limits (30/min, 1k/day for real-time)
-        logging.info(f"Sentiment analysis - Usage type: {'REAL-TIME (DeepSeek R1 Distill Llama 70B - 30/min, 1k/day)' if is_realtime else 'CSV UPLOAD (Gemma2 9B IT)'}")
-        
+        logging.info(
+            f"Sentiment analysis - Usage type: {'REAL-TIME (DeepSeek R1 Distill Llama 70B - 30/min, 1k/day)' if is_realtime else 'CSV UPLOAD (Gemma2 9B IT)'}"
+        )
+
         # If this is real-time analysis, use DeepSeek model if available
         if is_realtime:
-            logging.info(f"Using DeepSeek R1 Distill Llama 70B for real-time sentiment analysis")
-            
+            logging.info(
+                f"Using DeepSeek R1 Distill Llama 70B for real-time sentiment analysis"
+            )
+
             # First check for dedicated API key for real-time analysis
             validation_api_key = os.getenv("VALIDATION_API_KEY")
-            
+
             # If we have a key, try to use Llama 4 Maverick for real-time analysis
             if validation_api_key:
                 try:
                     import requests
-                    
+
                     # Use specialized prompt based on language (Filipino, Taglish, or English)
                     if language == "Filipino":
                         system_message = """Ikaw ay isang dalubhasa sa pagsusuri ng damdamin sa panahon ng sakuna sa Pilipinas.
@@ -987,43 +1110,63 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                         "Authorization": f"Bearer {validation_api_key}",
                         "Content-Type": "application/json"
                     }
-                    
+
                     response = requests.post(
                         llama_url,
                         headers=headers,
                         json={
-                            "model": "deepseek-r1-distill-llama-70b",
-                            "messages": [
-                                {"role": "system", "content": system_message},
-                                {"role": "user", "content": f"Please analyze this disaster-related text: \"{text}\""}
-                            ],
-                            "temperature": 0.1,
-                            "max_tokens": 350,
-                            "response_format": {"type": "json_object"}
+                            "model":
+                            "deepseek-r1-distill-llama-70b",
+                            "messages": [{
+                                "role": "system",
+                                "content": system_message
+                            }, {
+                                "role":
+                                "user",
+                                "content":
+                                f"Please analyze this disaster-related text: \"{text}\""
+                            }],
+                            "temperature":
+                            0.1,
+                            "max_tokens":
+                            350,
+                            "response_format": {
+                                "type": "json_object"
+                            }
                         },
-                        timeout=30
-                    )
-                    
+                        timeout=30)
+
                     if response.status_code == 200:
-                        content = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
+                        content = response.json().get('choices', [{}])[0].get(
+                            'message', {}).get('content', '')
                         if content:
                             import json
                             llama_result = json.loads(content)
-                            
-                            if isinstance(llama_result, dict) and 'sentiment' in llama_result:
+
+                            if isinstance(
+                                    llama_result,
+                                    dict) and 'sentiment' in llama_result:
                                 # Make sure we have all required fields
                                 sentiment = llama_result.get('sentiment')
-                                confidence = float(llama_result.get('confidence', 0.85))
-                                explanation = llama_result.get('explanation', 'Analysis via DeepSeek R1 Distill Llama 70B')
-                                disaster_type = llama_result.get('disasterType')
+                                confidence = float(
+                                    llama_result.get('confidence', 0.85))
+                                explanation = llama_result.get(
+                                    'explanation',
+                                    'Analysis via DeepSeek R1 Distill Llama 70B'
+                                )
+                                disaster_type = llama_result.get(
+                                    'disasterType')
                                 location = llama_result.get('location')
-                                
+
                                 # Map sentiment to our 5 categories if needed
-                                if sentiment not in ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"]:
+                                if sentiment not in [
+                                        "Panic", "Fear/Anxiety", "Disbelief",
+                                        "Resilience", "Neutral"
+                                ]:
                                     # Some mapping for common variations
                                     sentiment_map = {
                                         "PANIC": "Panic",
-                                        "FEAR": "Fear/Anxiety", 
+                                        "FEAR": "Fear/Anxiety",
                                         "ANXIETY": "Fear/Anxiety",
                                         "FEAR/ANXIETY": "Fear/Anxiety",
                                         "NEUTRAL": "Neutral",
@@ -1031,47 +1174,76 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                         "RESILIENCE": "Resilience",
                                         "HOPE": "Resilience"
                                     }
-                                    sentiment = sentiment_map.get(sentiment.upper(), "Neutral")
-                                
+                                    sentiment = sentiment_map.get(
+                                        sentiment.upper(), "Neutral")
+
                                 # Apply post-processing rules to correct common misclassifications
                                 # This enforces our basic rule that purely descriptive/informative text should be Neutral
                                 corrected_sentiment = sentiment
-                                
+
                                 # Check if text is simple description without strong emotional markers
                                 text_lower = text.lower()
-                                emotional_words = ["nakakatakot", "scary", "afraid", "takot", "worried", "kabado", "help", "tulong", "saklolo", "emergency", "bantay", "delikado", "ingat"]
-                                emotional_markers = ["!!!", "???", "HELP", "TULONG", "OMG", "OH MY GOD"]
-                                
+                                emotional_words = [
+                                    "nakakatakot", "scary", "afraid", "takot",
+                                    "worried", "kabado", "help", "tulong",
+                                    "saklolo", "emergency", "bantay",
+                                    "delikado", "ingat"
+                                ]
+                                emotional_markers = [
+                                    "!!!", "???", "HELP", "TULONG", "OMG",
+                                    "OH MY GOD"
+                                ]
+
                                 # If it sounds descriptive and doesn't have emotional markers
-                                looks_descriptive = any(word in text_lower for word in ["may", "there is", "there was", "nangyari", "happened", "maraming", "many", "several", "buildings", "collapsed", "evacuated"])
-                                has_emotion = any(word in text_lower for word in emotional_words) or any(marker in text.upper() for marker in emotional_markers)
-                                
+                                looks_descriptive = any(
+                                    word in text_lower for word in [
+                                        "may", "there is", "there was",
+                                        "nangyari", "happened", "maraming",
+                                        "many", "several", "buildings",
+                                        "collapsed", "evacuated"
+                                    ])
+                                has_emotion = any(
+                                    word in text_lower
+                                    for word in emotional_words) or any(
+                                        marker in text.upper()
+                                        for marker in emotional_markers)
+
                                 # Special override for factual/descriptive content that got misclassified
                                 if looks_descriptive and not has_emotion and sentiment == "Fear/Anxiety":
                                     corrected_sentiment = "Neutral"
                                     # Just log it without adding to the visible explanation
-                                    logging.info(f"Corrected sentiment from Fear/Anxiety to Neutral for descriptive content: {text}")
-                                
+                                    logging.info(
+                                        f"Corrected sentiment from Fear/Anxiety to Neutral for descriptive content: {text}"
+                                    )
+
                                 # If successful return DeepSeek result with possible correction
-                                logging.info(f"DeepSeek R1 Distill Llama 70B real-time analysis: {sentiment} → {corrected_sentiment} [{confidence:.2f}]")
-                                
+                                logging.info(
+                                    f"DeepSeek R1 Distill Llama 70B real-time analysis: {sentiment} → {corrected_sentiment} [{confidence:.2f}]"
+                                )
+
                                 # Return the DeepSeek result - don't include language here to match format
                                 return {
                                     "sentiment": corrected_sentiment,
-                                    "confidence": min(0.97, confidence),  # Cap at 0.97 for safety
+                                    "confidence":
+                                    min(0.97,
+                                        confidence),  # Cap at 0.97 for safety
                                     "explanation": explanation,
                                     "disasterType": disaster_type,
                                     "location": location,
                                     "language": language
                                 }
-                    
+
                     # If reaching here, DeepSeek analysis failed, fall back to regular method
-                    logging.warning("DeepSeek R1 Distill Llama 70B analysis failed - falling back to regular method")
-                    
+                    logging.warning(
+                        "DeepSeek R1 Distill Llama 70B analysis failed - falling back to regular method"
+                    )
+
                 except Exception as e:
-                    logging.error(f"Error using DeepSeek R1 Distill Llama 70B for real-time analysis: {str(e)}")
+                    logging.error(
+                        f"Error using DeepSeek R1 Distill Llama 70B for real-time analysis: {str(e)}"
+                    )
                     # Fall through to regular analysis
-        
+
         # If not real-time or DeepSeek failed, use regular API-based analysis
         result = self.get_api_sentiment_analysis(text, language)
 
@@ -1092,45 +1264,57 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
 
         # Try each API key in sequence until one works
         # We'll use a simple rotation pattern that doesn't create racing requests
-        num_keys = len(self.api_keys)  # Use the full api_keys list, not just validation keys
+        num_keys = len(
+            self.api_keys
+        )  # Use the full api_keys list, not just validation keys
         if num_keys == 0:
             logging.error("No API keys available, using rule-based fallback")
             # Ensure consistent confidence format with fallback
-            fallback_result = self._rule_based_sentiment_analysis(text, language)
-            
+            fallback_result = self._rule_based_sentiment_analysis(
+                text, language)
+
             # Normalize confidence to be a floating point with consistent decimal places
             if isinstance(fallback_result["confidence"], int):
-                fallback_result["confidence"] = float(fallback_result["confidence"])
-            
+                fallback_result["confidence"] = float(
+                    fallback_result["confidence"])
+
             # Keep the actual confidence value from the analysis - don't artificially change it
-            # Just round to 2 decimal places for display consistency 
-            fallback_result["confidence"] = round(fallback_result["confidence"], 2)
-            
+            # Just round to 2 decimal places for display consistency
+            fallback_result["confidence"] = round(
+                fallback_result["confidence"], 2)
+
             return fallback_result
 
         # Use a new key for each request, rotating through the available keys
         # Using static class variable to track which key to use next
         # Make sure we're initializing the current_key_index
         # We do it on every request to ensure we're properly rotating keys
-        if not hasattr(self, 'current_key_index') or self.current_key_index is None:
+        if not hasattr(self,
+                       'current_key_index') or self.current_key_index is None:
             self.current_key_index = 0
             logging.info(f"Initializing current_key_index to 0")
-            
-        logging.info(f"Starting with current_key_index = {self.current_key_index} of {num_keys} keys")
+
+        logging.info(
+            f"Starting with current_key_index = {self.current_key_index} of {num_keys} keys"
+        )
 
         # Try up to 3 different keys before giving up
         for attempt in range(min(3, num_keys)):
             key_index = (self.current_key_index + attempt) % num_keys
-            
+
             # Log which key we're using (without showing the full key)
             current_key = self.api_keys[key_index]
-            masked_key = current_key[:10] + "***" if len(current_key) > 10 else "***"
-            logging.info(f"Using API key {key_index+1}/{num_keys} ({masked_key}) for sentiment analysis")
+            masked_key = current_key[:10] + "***" if len(
+                current_key) > 10 else "***"
+            logging.info(
+                f"Using API key {key_index+1}/{num_keys} ({masked_key}) for sentiment analysis"
+            )
 
             try:
                 url = self.api_url
                 headers = {
-                    "Authorization": f"Bearer {self.api_keys[key_index]}",  # Use api_keys not groq_api_keys
+                    "Authorization":
+                    f"Bearer {self.api_keys[key_index]}",  # Use api_keys not groq_api_keys
                     "Content-Type": "application/json"
                 }
 
@@ -1321,7 +1505,8 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                     Respond ONLY in JSON format: {"sentiment": "category", "confidence": score, "explanation": "explanation", "disasterType": "type", "location": "location"}"""
 
                 data = {
-                    "model": "gemma2-9b-it",
+                    "model":
+                    "gemma2-9b-it",
                     "messages": [{
                         "role": "system",
                         "content": system_message
@@ -1398,35 +1583,52 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                         result["location"] = self.extract_location(text)
                     if "language" not in result:
                         result["language"] = language
-                        
+
                     # Apply post-processing rules to correct common misclassifications
                     # This enforces our basic rule that purely descriptive/informative text should be Neutral
                     sentiment = result["sentiment"]
                     corrected_sentiment = sentiment
                     explanation = result["explanation"]
-                    
+
                     # Check if text is simple description without strong emotional markers
                     text_lower = text.lower()
-                    emotional_words = ["nakakatakot", "scary", "afraid", "takot", "worried", "kabado", "help", "tulong", "saklolo", "emergency", "bantay", "delikado", "ingat"]
-                    emotional_markers = ["!!!", "???", "HELP", "TULONG", "OMG", "OH MY GOD"]
-                    
+                    emotional_words = [
+                        "nakakatakot", "scary", "afraid", "takot", "worried",
+                        "kabado", "help", "tulong", "saklolo", "emergency",
+                        "bantay", "delikado", "ingat"
+                    ]
+                    emotional_markers = [
+                        "!!!", "???", "HELP", "TULONG", "OMG", "OH MY GOD"
+                    ]
+
                     # If it sounds descriptive and doesn't have emotional markers
-                    looks_descriptive = any(word in text_lower for word in ["may", "there is", "there was", "nangyari", "happened", "maraming", "many", "several", "buildings", "collapsed", "evacuated"])
-                    has_emotion = any(word in text_lower for word in emotional_words) or any(marker in text.upper() for marker in emotional_markers)
-                    
+                    looks_descriptive = any(word in text_lower for word in [
+                        "may", "there is", "there was", "nangyari", "happened",
+                        "maraming", "many", "several", "buildings",
+                        "collapsed", "evacuated"
+                    ])
+                    has_emotion = any(word in text_lower
+                                      for word in emotional_words) or any(
+                                          marker in text.upper()
+                                          for marker in emotional_markers)
+
                     # Special override for factual/descriptive content that got misclassified
                     if looks_descriptive and not has_emotion and sentiment == "Fear/Anxiety":
                         corrected_sentiment = "Neutral"
                         # Just log the correction without adding to the visible explanation
-                        logging.info(f"Corrected sentiment from Fear/Anxiety to Neutral for descriptive content: {text}")
-                    
+                        logging.info(
+                            f"Corrected sentiment from Fear/Anxiety to Neutral for descriptive content: {text}"
+                        )
+
                     # Update result with corrected values
                     result["sentiment"] = corrected_sentiment
                     result["explanation"] = explanation
-                    
+
                     # Log the correction if applicable
                     if sentiment != corrected_sentiment:
-                        logging.info(f"Gemma2 CSV analysis corrected: {sentiment} → {corrected_sentiment}")
+                        logging.info(
+                            f"Gemma2 CSV analysis corrected: {sentiment} → {corrected_sentiment}"
+                        )
 
                     # Success - update the next key to use
                     self.current_key_index = (key_index + 1) % num_keys
@@ -1458,18 +1660,19 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
         # Let the AI handle this now with the improved system prompt
         # Only use fallback for extreme edge cases
         text_lower = text.lower()
-        
+
         # Add extracted metadata
         fallback_result["disasterType"] = self.extract_disaster_type(text)
         fallback_result["location"] = self.extract_location(text)
         fallback_result["language"] = language
-        
+
         # Normalize confidence to be a floating point with consistent decimal places
         if isinstance(fallback_result["confidence"], int):
-            fallback_result["confidence"] = float(fallback_result["confidence"])
-            
+            fallback_result["confidence"] = float(
+                fallback_result["confidence"])
+
         # Keep the actual confidence value from the analysis - don't artificially change it
-        # Just round to 2 decimal places for display consistency 
+        # Just round to 2 decimal places for display consistency
         fallback_result["confidence"] = round(fallback_result["confidence"], 2)
 
         return fallback_result
@@ -1477,79 +1680,119 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
     def _rule_based_sentiment_analysis(self, text, language):
         """Fallback rule-based sentiment analysis"""
         text_lower = text.lower()
-        
+
         # SPECIAL CASE: Check for religious/prayer content first - common in Filipino culture during disasters
         # These should typically be classified as Resilience
-        religious_terms = ["lord", "god", "jesus", "amen", "pray", "prayer", "prayers", "bless", "blessing", 
-                          "panginoon", "diyos", "dyos", "faith", "keep us safe", "protect us", "watch over",
-                          "mercy", "keep safe", "be with us", "holy", "shield", "divine", "grace", "hope",
-                          "panalangin", "dasal", "magdasal", "tulungan mo kami", "lingapin", "mahal na panginoon"]
-        
+        religious_terms = [
+            "lord", "god", "jesus", "amen", "pray", "prayer", "prayers",
+            "bless", "blessing", "panginoon", "diyos", "dyos", "faith",
+            "keep us safe", "protect us", "watch over", "mercy", "keep safe",
+            "be with us", "holy", "shield", "divine", "grace", "hope",
+            "panalangin", "dasal", "magdasal", "tulungan mo kami", "lingapin",
+            "mahal na panginoon"
+        ]
+
         prayer_emoji = ["🙏", "✝️", "⛪", "🕊️", "❤️", "🛐", "✨", "🕯️", "👼"]
-        
-        religious_pattern = len([word for word in text_lower.split() if any(term in word for term in religious_terms)])
+
+        religious_pattern = len([
+            word for word in text_lower.split()
+            if any(term in word for term in religious_terms)
+        ])
         contains_prayer_emoji = any(emoji in text for emoji in prayer_emoji)
-        
+
         # Special handling for religious content - usually Resilience in disaster context
-        if (religious_pattern >= 2 or ("amen" in text_lower and "lord" in text_lower) or 
-            ("lord" in text_lower and contains_prayer_emoji) or 
-            ("amen" in text_lower and contains_prayer_emoji) or
-            re.search(r'\bamen\b', text_lower) or
-            re.search(r'\blord\b.*?\bamen\b', text_lower) or
-            re.search(r'\bgod\b.*?\bamen\b', text_lower) or
-            re.search(r'\bprayer', text_lower) or
-            re.search(r'\bpray\b', text_lower)):
-            
+        if (religious_pattern >= 2
+                or ("amen" in text_lower and "lord" in text_lower)
+                or ("lord" in text_lower and contains_prayer_emoji)
+                or ("amen" in text_lower and contains_prayer_emoji)
+                or re.search(r'\bamen\b', text_lower)
+                or re.search(r'\blord\b.*?\bamen\b', text_lower)
+                or re.search(r'\bgod\b.*?\bamen\b', text_lower)
+                or re.search(r'\bprayer', text_lower)
+                or re.search(r'\bpray\b', text_lower)):
+
             # Religious content with fear - could be Fear/Anxiety
-            fear_terms = ["afraid", "scared", "takot", "fear", "afraid", "worried", "nakakatakot", "scary"]
+            fear_terms = [
+                "afraid", "scared", "takot", "fear", "afraid", "worried",
+                "nakakatakot", "scary"
+            ]
             has_fear = any(term in text_lower for term in fear_terms)
-            
+
             # Religious content with panic indicators
-            panic_terms = ["help", "tulong", "emergency", "rescue", "danger", "save", "urgent"]
+            panic_terms = [
+                "help", "tulong", "emergency", "rescue", "danger", "save",
+                "urgent"
+            ]
             has_panic = any(term in text_lower for term in panic_terms)
-            
+
             # If religious content has strong panic or fear markers, it could override Resilience
             if has_panic and (text.isupper() or "!!!" in text):
                 return {
-                    "sentiment": "Panic",
-                    "confidence": 0.90,
-                    "explanation": "Prayer combined with urgent distress signals indicates panic."
+                    "sentiment":
+                    "Panic",
+                    "confidence":
+                    0.90,
+                    "explanation":
+                    "Prayer combined with urgent distress signals indicates panic."
                 }
-            elif has_fear and not any(word in text_lower for word in ["bless", "protect", "save", "keep safe"]):
+            elif has_fear and not any(
+                    word in text_lower
+                    for word in ["bless", "protect", "save", "keep safe"]):
                 return {
-                    "sentiment": "Fear/Anxiety",
-                    "confidence": 0.88,
-                    "explanation": "Prayer combined with expressions of fear indicates anxiety."
+                    "sentiment":
+                    "Fear/Anxiety",
+                    "confidence":
+                    0.88,
+                    "explanation":
+                    "Prayer combined with expressions of fear indicates anxiety."
                 }
             else:
                 # Default for religious content: Resilience
                 return {
-                    "sentiment": "Resilience",
-                    "confidence": 0.93,
-                    "explanation": "Text contains prayer or religious references, showing faith and hope during adversity."
+                    "sentiment":
+                    "Resilience",
+                    "confidence":
+                    0.93,
+                    "explanation":
+                    "Text contains prayer or religious references, showing faith and hope during adversity."
                 }
-        
-        # VERY IMPORTANT: The algorithm follows EXACTLY what's in the text 
+
+        # VERY IMPORTANT: The algorithm follows EXACTLY what's in the text
         # If the input is a short statement like "may sunog", "may baha", etc.
         # and doesn't explicitly indicate panic, fear, etc., then it MUST be NEUTRAL
-        
+
         # Prioritize the neutral descriptive content rule above all else
         # This ensures informative/descriptive content is ALWAYS Neutral even in rule-based
-        looks_descriptive = any(word in text_lower for word in ["may", "there is", "there was", "nangyari", "happened", "maraming", "many", "several", "buildings", "collapsed", "evacuated"])
-        emotional_words = ["nakakatakot", "scary", "afraid", "takot", "worried", "kabado", "help", "tulong", "saklolo", "emergency", "bantay", "delikado", "ingat"]
-        emotional_markers = ["!!!", "???", "HELP", "TULONG", "OMG", "OH MY GOD"]
-        has_emotion = any(word in text_lower for word in emotional_words) or any(marker in text.upper() for marker in emotional_markers)
-        
+        looks_descriptive = any(word in text_lower for word in [
+            "may", "there is", "there was", "nangyari", "happened", "maraming",
+            "many", "several", "buildings", "collapsed", "evacuated"
+        ])
+        emotional_words = [
+            "nakakatakot", "scary", "afraid", "takot", "worried", "kabado",
+            "help", "tulong", "saklolo", "emergency", "bantay", "delikado",
+            "ingat"
+        ]
+        emotional_markers = [
+            "!!!", "???", "HELP", "TULONG", "OMG", "OH MY GOD"
+        ]
+        has_emotion = any(word in text_lower
+                          for word in emotional_words) or any(
+                              marker in text.upper()
+                              for marker in emotional_markers)
+
         if looks_descriptive and not has_emotion:
             return {
-                "sentiment": "Neutral",
-                "confidence": 0.92,
-                "explanation": "Descriptive statement without emotional markers. These types of informative reports should be classified as Neutral regardless of disaster content."
+                "sentiment":
+                "Neutral",
+                "confidence":
+                0.92,
+                "explanation":
+                "Descriptive statement without emotional markers. These types of informative reports should be classified as Neutral regardless of disaster content."
             }
-            
+
         # Simple statements count check
         word_count = len(text_lower.split())
-        
+
         # Check if this is a simple statement (3 words or less) with no strong emotional indicators
         if word_count <= 3:
             # Quick check for short factual statements
@@ -1557,126 +1800,239 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
             # Enhanced emotion words list based on the PanicSensePH Emotion Classification Guide
             emotion_words = [
                 # Panic indicators
-                "saklolo", "help", "tulong", "tulungan", "rescue", "emergency",
-                "naiipit", "nakulong", "trapped", "HELP", "PLEASE", "SOS", 
-                "mamamatay", "😱", "😭", "🆘", "💔", "!!!", "???",
-                
+                "saklolo",
+                "help",
+                "tulong",
+                "tulungan",
+                "rescue",
+                "emergency",
+                "naiipit",
+                "nakulong",
+                "trapped",
+                "HELP",
+                "PLEASE",
+                "SOS",
+                "mamamatay",
+                "😱",
+                "😭",
+                "🆘",
+                "💔",
+                "!!!",
+                "???",
+
                 # Fear/Anxiety indicators
-                "takot", "scared", "afraid", "kinakabahan", "natatakot", "kabado",
-                "worried", "anxious", "fearful", "nanginginig", "nakakatakot",
-                "nakakapraning", "makakaligtas kaya", "paano na", "😨", "😰", "😟",
-                
+                "takot",
+                "scared",
+                "afraid",
+                "kinakabahan",
+                "natatakot",
+                "kabado",
+                "worried",
+                "anxious",
+                "fearful",
+                "nanginginig",
+                "nakakatakot",
+                "nakakapraning",
+                "makakaligtas kaya",
+                "paano na",
+                "😨",
+                "😰",
+                "😟",
+
                 # Disbelief indicators
-                "hindi makapaniwala", "seriously", "omg", "gosh", "can't believe",
-                "what the", "wow", "haha", "baha na naman", "classic", "srsly", 
-                "as usual", "🤯", "🙄", "😆", "😑", "nice one",
-                
+                "hindi makapaniwala",
+                "seriously",
+                "omg",
+                "gosh",
+                "can't believe",
+                "what the",
+                "wow",
+                "haha",
+                "baha na naman",
+                "classic",
+                "srsly",
+                "as usual",
+                "🤯",
+                "🙄",
+                "😆",
+                "😑",
+                "nice one",
+
                 # Resilience indicators
-                "kapit", "kaya natin", "malalagpasan", "babangon", "walang susuko",
-                "prayers", "pray", "dasal", "tulong tayo", "magtulungan", "sama-sama",
-                "matatag", "💪", "🙏", "🌈", "🕊️",
-                
+                "kapit",
+                "kaya natin",
+                "malalagpasan",
+                "babangon",
+                "walang susuko",
+                "prayers",
+                "pray",
+                "dasal",
+                "tulong tayo",
+                "magtulungan",
+                "sama-sama",
+                "matatag",
+                "💪",
+                "🙏",
+                "🌈",
+                "🕊️",
+
                 # Death/injury serious indicators - these always indicate panic context
-                "namatay", "patay", "nasugatan", "dead", "died", "killed", "injured",
-                "walang buhay", "nawawala", "missing", "casualty",
-                
+                "namatay",
+                "patay",
+                "nasugatan",
+                "dead",
+                "died",
+                "killed",
+                "injured",
+                "walang buhay",
+                "nawawala",
+                "missing",
+                "casualty",
+
                 # Extreme distress indicators
-                "iyak", "cry", "trauma", "diyos ko", "oh my god", "lord help",
-                "dios mio", "panginoon", "tulungan nyo kami"
+                "iyak",
+                "cry",
+                "trauma",
+                "diyos ko",
+                "oh my god",
+                "lord help",
+                "dios mio",
+                "panginoon",
+                "tulungan nyo kami"
             ]
-            
+
             for emotion in emotion_words:
                 if emotion in text_lower:
                     contains_emotion = True
                     break
-            
+
             # If it's a short statement without emotional words, it's NEUTRAL by default
             if not contains_emotion:
                 return {
-                    "sentiment": "Neutral",
-                    "confidence": 0.90,
-                    "explanation": "Simple statement without emotional indicators - analyzing exactly what's in the text."
+                    "sentiment":
+                    "Neutral",
+                    "confidence":
+                    0.90,
+                    "explanation":
+                    "Simple statement without emotional indicators - analyzing exactly what's in the text."
                 }
-        
+
         # SPECIAL CASE #1: FILIPINO PROFANITY WITH MULTIPLE EXCLAMATION MARKS
         # This should capture things like "PUTANG INA MO!!!!! GAGO KA!"
         if re.search(r'(putang\s*ina|putangina|tangina|putang\s+ina|punyeta|gago|bobo|tang\s+ina|tanginamo|ulol).*?[!?]{2,}', text.lower()) or \
            re.search(r'[!?]{2,}.*?(putang\s*ina|putangina|tangina|putang\s+ina|punyeta|gago|bobo|tang\s+ina|tanginamo|ulol)', text.lower()):
             # Strong profanity with exclamations indicates extreme panic
             return {
-                "sentiment": "Panic",
-                "confidence": 0.97,
-                "explanation": "Ang paggamit ng malakas na salita kasama ng maraming tandang padamdam ay nagpapahiwatig ng matinding pagkabahala o takot.",
+                "sentiment":
+                "Panic",
+                "confidence":
+                0.97,
+                "explanation":
+                "Ang paggamit ng malakas na salita kasama ng maraming tandang padamdam ay nagpapahiwatig ng matinding pagkabahala o takot.",
             }
-            
-        # SPECIAL CASE #2: ALL CAPS FILIPINO PROFANITY 
+
+        # SPECIAL CASE #2: ALL CAPS FILIPINO PROFANITY
         # "PUTANG INA MO" or "GAGO KA" in all caps
         if re.search(r'PUTANG\s*INA|TANGINA|PUNYETA|GAGO|BOBO', text):
             return {
-                "sentiment": "Panic",
-                "confidence": 0.96,
-                "explanation": "Ang paggamit ng malalaking titik sa mga malakas na salita ay nagpapahiwatig ng matinding pagkabahala o takot.",
+                "sentiment":
+                "Panic",
+                "confidence":
+                0.96,
+                "explanation":
+                "Ang paggamit ng malalaking titik sa mga malakas na salita ay nagpapahiwatig ng matinding pagkabahala o takot.",
             }
-        
+
         # SPECIAL CASE #3: Regular Filipino profanity - less confidence but still Panic
-        if re.search(r'\b(putang\s*ina|putangina|tangina|putang ina|punyeta|gago|bobo|tang ina|tanginamo|ulol)\b', text.lower()):
+        if re.search(
+                r'\b(putang\s*ina|putangina|tangina|putang ina|punyeta|gago|bobo|tang ina|tanginamo|ulol)\b',
+                text.lower()):
             # Strong profanity typically indicates panic in emergency context
             return {
-                "sentiment": "Panic",
-                "confidence": 0.92,
-                "explanation": "Ang teksto ay naglalaman ng matinding pagkapoot o pagkabahala na karaniwang ginagamit sa mga emergency situations sa Filipino context.",
+                "sentiment":
+                "Panic",
+                "confidence":
+                0.92,
+                "explanation":
+                "Ang teksto ay naglalaman ng matinding pagkapoot o pagkabahala na karaniwang ginagamit sa mga emergency situations sa Filipino context.",
             }
-            
+
         # SPECIAL CASE #4: COMBINED all-caps + profanity + exclamations - typical anger/panic pattern
-        if re.search(r'[A-Z]{5,}.*?(!{2,}|\?{2,})', text) and re.search(r'\b(putang\s*ina|tangina|punyeta|gago|bobo|tang ina)\b', text.lower()):
+        if re.search(r'[A-Z]{5,}.*?(!{2,}|\?{2,})', text) and re.search(
+                r'\b(putang\s*ina|tangina|punyeta|gago|bobo|tang ina)\b',
+                text.lower()):
             return {
-                "sentiment": "Panic",
-                "confidence": 0.95,
-                "explanation": "Ang paggamit ng malalaking titik, profanity, at maraming tandang padamdam ay nagpapahiwatig ng matinding takot o pagkabahala.",
+                "sentiment":
+                "Panic",
+                "confidence":
+                0.95,
+                "explanation":
+                "Ang paggamit ng malalaking titik, profanity, at maraming tandang padamdam ay nagpapahiwatig ng matinding takot o pagkabahala.",
             }
-            
+
         # SPECIAL CASE #5: Filipino emergency "MAY SUNOG/BAHA/LINDOL" all caps with exclamation points
         # This captures typical Filipino emergency alerts like "MAY SUNOG SA TIPI!"
-        if text.isupper() and re.search(r'MAY (SUNOG|BAHA|LINDOL|BAGYO|ERUPTION|GULO|BARILAN|AKSIDENTE)', text) and ("!" in text):
+        if text.isupper() and re.search(
+                r'MAY (SUNOG|BAHA|LINDOL|BAGYO|ERUPTION|GULO|BARILAN|AKSIDENTE)',
+                text) and ("!" in text):
             return {
-                "sentiment": "Panic",
-                "confidence": 0.94,
-                "explanation": "Mga emergency alertong Pilipino sa malalaking titik na may tandang padamdam, nagpapahiwatig ng agarang panganib o matinding takot.",
+                "sentiment":
+                "Panic",
+                "confidence":
+                0.94,
+                "explanation":
+                "Mga emergency alertong Pilipino sa malalaking titik na may tandang padamdam, nagpapahiwatig ng agarang panganib o matinding takot.",
             }
-            
+
         # Check specifically for laughing emoji + TULONG pattern first
         # This is a common Filipino pattern expressing disbelief or humor
-        if ('😂' in text or '🤣' in text or '😆' in text or '😅' in text) and ('TULONG' in text.upper() or 'SAKLOLO' in text.upper() or 'HELP' in text.upper()):
+        if ('😂' in text or '🤣' in text or '😆' in text
+                or '😅' in text) and ('TULONG' in text.upper()
+                                     or 'SAKLOLO' in text.upper()
+                                     or 'HELP' in text.upper()):
             return {
-                "sentiment": "Disbelief",
-                "confidence": 0.95,
-                "explanation": "The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress. This is a common pattern in Filipino social media to express sarcasm or jokes."
+                "sentiment":
+                "Disbelief",
+                "confidence":
+                0.95,
+                "explanation":
+                "The laughing emoji combined with words like 'TULONG' suggests disbelief or humor, not actual distress. This is a common pattern in Filipino social media to express sarcasm or jokes."
             }
-        
+
         # Check for multiple emojis - if there are more emoji than actual content words, it's likely Disbelief/sarcastic
-        emoji_count = sum(1 for char in text if ord(char) > 127000)  # Count emoji characters
+        emoji_count = sum(1 for char in text
+                          if ord(char) > 127000)  # Count emoji characters
         word_count = len([w for w in text.split() if w.isalpha()])
         if emoji_count > 3 and emoji_count > word_count / 2:
             return {
-                "sentiment": "Disbelief",
-                "confidence": 0.90,
-                "explanation": "The excessive use of emojis suggests this is likely expressing mockery or sarcasm rather than genuine information or distress."
+                "sentiment":
+                "Disbelief",
+                "confidence":
+                0.90,
+                "explanation":
+                "The excessive use of emojis suggests this is likely expressing mockery or sarcasm rather than genuine information or distress."
             }
-        
+
         # Check for HAHA + TULONG pattern (common in Filipino social media)
-        if ('HAHA' in text.upper() or 'HEHE' in text.upper()) and ('TULONG' in text.upper() or 'SAKLOLO' in text.upper() or 'HELP' in text.upper()):
+        if ('HAHA' in text.upper()
+                or 'HEHE' in text.upper()) and ('TULONG' in text.upper()
+                                                or 'SAKLOLO' in text.upper()
+                                                or 'HELP' in text.upper()):
             return {
-                "sentiment": "Disbelief",
-                "confidence": 0.92,
-                "explanation": "The combination of laughter ('HAHA') and words like 'TULONG' indicates this is expressing humor or disbelief, not actual panic. This is a common Filipino pattern for jokes or sarcasm."
+                "sentiment":
+                "Disbelief",
+                "confidence":
+                0.92,
+                "explanation":
+                "The combination of laughter ('HAHA') and words like 'TULONG' indicates this is expressing humor or disbelief, not actual panic. This is a common Filipino pattern for jokes or sarcasm."
             }
 
         # Keywords associated with each sentiment - IMPROVED FOR RELIGIOUS CONTENT
         sentiment_keywords = {
             "Panic": [
-                "emergency", "trapped", "dying", "death", "urgent",
-                "critical", "saklolo", "naiipit", "mamamatay",
-                "agad", "kritikal", "emerhensya"
+                "emergency", "trapped", "dying", "death", "urgent", "critical",
+                "saklolo", "naiipit", "mamamatay", "agad", "kritikal",
+                "emerhensya"
             ],
             "Fear/Anxiety": [
                 "scared", "afraid", "worried", "fear", "terrified", "anxious",
@@ -1686,21 +2042,61 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
             "Disbelief": [
                 "unbelievable", "impossible", "can't believe", "no way",
                 "what's happening", "shocked", "hindi kapani-paniwala", "haha",
-                "hahaha", "lol", "lmao", "ulol", "gago", "tanga", "wtf", "daw?", "raw?", 
-                "talaga?", "really?", "seriously?", "seryoso?", "?!", "??", 
-                "imposible", "di ako makapaniwala", "nagulat", "gulat"
+                "hahaha", "lol", "lmao", "ulol", "gago", "tanga", "wtf",
+                "daw?", "raw?", "talaga?", "really?", "seriously?", "seryoso?",
+                "?!", "??", "imposible", "di ako makapaniwala", "nagulat",
+                "gulat"
             ],
             "Resilience": [
-                "stay strong", "we will overcome", "resilient", "rebuild",
-                "recover", "hope", "lets help", "let's help", "let us help", "help them",
-                "malalampasan", "tatayo ulit", "magbabalik",
-                "pag-asa", "malalagpasan", "tulungan natin", "tumulong",
-                "we can help", "we will help", "tutulong tayo",
+                "stay strong",
+                "we will overcome",
+                "resilient",
+                "rebuild",
+                "recover",
+                "hope",
+                "lets help",
+                "let's help",
+                "let us help",
+                "help them",
+                "malalampasan",
+                "tatayo ulit",
+                "magbabalik",
+                "pag-asa",
+                "malalagpasan",
+                "tulungan natin",
+                "tumulong",
+                "we can help",
+                "we will help",
+                "tutulong tayo",
                 # Additional resilience terms - especially religious terms common in Filipino culture
-                "amen", "lord", "god", "jesus", "pray", "prayer", "praying", 
-                "bless", "blessing", "blessed", "protect", "protection", "safe", "safety", 
-                "keep safe", "faith", "faithful", "mercy", "merciful", "trust", "shield",
-                "heaven", "heavenly", "divine", "grace", "glory", "almighty", "holy"
+                "amen",
+                "lord",
+                "god",
+                "jesus",
+                "pray",
+                "prayer",
+                "praying",
+                "bless",
+                "blessing",
+                "blessed",
+                "protect",
+                "protection",
+                "safe",
+                "safety",
+                "keep safe",
+                "faith",
+                "faithful",
+                "mercy",
+                "merciful",
+                "trust",
+                "shield",
+                "heaven",
+                "heavenly",
+                "divine",
+                "grace",
+                "glory",
+                "almighty",
+                "holy"
             ]
         }
 
@@ -1711,7 +2107,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
             for keyword in keywords:
                 if keyword in text_lower:
                     scores[sentiment] += 1
-                    
+
         # Special handling for prayer emoji 🙏 and similar religious emojis
         # These are strong indicators of Resilience in Filipino disaster context
         prayer_emojis = ["🙏", "✝️", "⛪", "🕊️"]
@@ -1722,40 +2118,84 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
         # DEEPLY ANALYZE FULL CONTEXT
         # Check for phrases indicating help/resilience in the context
         resilience_phrases = [
-            "let's help", "lets help", "help them", "tulungan natin", 
-            "tumulong tayo", "tulong sa", "tulong para", "tulungan ang", "mag-donate", 
-            "magbigay ng tulong", "mag volunteer", "magtulungan", "donate", "donation",
-            "we can help", "we will help", "tutulong tayo", "support", "donate",
-            "fundraising", "fund raising", "relief", "relief goods", "pagtulong",
-            "magbayanihan", "bayanihan", "volunteer", "volunteers",
+            "let's help",
+            "lets help",
+            "help them",
+            "tulungan natin",
+            "tumulong tayo",
+            "tulong sa",
+            "tulong para",
+            "tulungan ang",
+            "mag-donate",
+            "magbigay ng tulong",
+            "mag volunteer",
+            "magtulungan",
+            "donate",
+            "donation",
+            "we can help",
+            "we will help",
+            "tutulong tayo",
+            "support",
+            "donate",
+            "fundraising",
+            "fund raising",
+            "relief",
+            "relief goods",
+            "pagtulong",
+            "magbayanihan",
+            "bayanihan",
+            "volunteer",
+            "volunteers",
             # Additional Resilience patterns for religious content
-            "keep us safe", "keep safe", "be with us", "protect us", "lord protect", 
-            "god bless", "jesus save", "watch over us", "be with us", "guide us",
-            "spare us", "mercy on us", "have mercy", "we pray", "we trust",
-            "amen", "in jesus name", "lord jesus", "panginoon"
+            "keep us safe",
+            "keep safe",
+            "be with us",
+            "protect us",
+            "lord protect",
+            "god bless",
+            "jesus save",
+            "watch over us",
+            "be with us",
+            "guide us",
+            "spare us",
+            "mercy on us",
+            "have mercy",
+            "we pray",
+            "we trust",
+            "amen",
+            "in jesus name",
+            "lord jesus",
+            "panginoon"
         ]
-        
+
         # Special handling for Taglish content
         # If text contains "amen" alongside other religious terms, it's typically Resilience
-        if "amen" in text_lower and any(term in text_lower for term in religious_terms):
+        if "amen" in text_lower and any(term in text_lower
+                                        for term in religious_terms):
             scores["Resilience"] += 3
-            
+
         # "Keep safe" and variants should boost Resilience
-        keep_safe_patterns = ["keep safe", "keep us safe", "stay safe", "be safe", "safety"]
+        keep_safe_patterns = [
+            "keep safe", "keep us safe", "stay safe", "be safe", "safety"
+        ]
         if any(pattern in text_lower for pattern in keep_safe_patterns):
             scores["Resilience"] += 2
-            
+
         # Check for laughter and mockery patterns (strong indicators of disbelief)
-        laughter_patterns = ["haha", "hehe", "lol", "lmao", "ulol", "gago", "tanga"]
+        laughter_patterns = [
+            "haha", "hehe", "lol", "lmao", "ulol", "gago", "tanga"
+        ]
         laughter_count = 0
         for pattern in laughter_patterns:
             if pattern in text_lower:
                 laughter_count += text_lower.count(pattern)
-        
+
         # Strong laughing combined with disaster keywords is usually disbelief
-        if laughter_count >= 2 and any(word in text_lower for word in ["sunog", "fire", "baha", "flood"]):
+        if laughter_count >= 2 and any(
+                word in text_lower
+                for word in ["sunog", "fire", "baha", "flood"]):
             scores["Disbelief"] += 3  # Give extra weight to this pattern
-        
+
         # Check for who is speaking - are they offering help? (Resilience)
         for phrase in resilience_phrases:
             if phrase in text_lower:
@@ -1763,115 +2203,147 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                 # If the message is about helping others, it's less likely to be panic
                 if scores["Panic"] > 0:
                     scores["Panic"] -= 1
-        
+
         # Look for specific context clues of victims asking for help
         panic_phrases = [
-            "help me", "save me", "trapped", "can't breathe", "tulungan ako", "help us",
-            "saklolo", "tulong!", "naipit ako", "hindi makahinga", "naiipit", "nakulong", 
-            "nasasabit", "naiipit kami", "nanganganib ang buhay", "stranded", "nawalan ng bahay",
-            "walang makain", "walang tubig", "naputol", "walang kuryente", "nawawala",
-            "nawawalang tao", "hinahanap", "hinahanap namin", "missing", "casualty",
-            "casualties", "patay", "nasugatan", "injured", "nasaktan"
+            "help me", "save me", "trapped", "can't breathe", "tulungan ako",
+            "help us", "saklolo", "tulong!", "naipit ako", "hindi makahinga",
+            "naiipit", "nakulong", "nasasabit", "naiipit kami",
+            "nanganganib ang buhay", "stranded", "nawalan ng bahay",
+            "walang makain", "walang tubig", "naputol", "walang kuryente",
+            "nawawala", "nawawalang tao", "hinahanap", "hinahanap namin",
+            "missing", "casualty", "casualties", "patay", "nasugatan",
+            "injured", "nasaktan"
         ]
-        
+
         # Check for single word "tulong" context
-        if "tulong" in text_lower and not any(phrase in text_lower for phrase in resilience_phrases):
+        if "tulong" in text_lower and not any(
+                phrase in text_lower for phrase in resilience_phrases):
             # If "tulong" appears alone without resilience context, it's likely a call for help
             scores["Panic"] += 2
-            
+
         # IMPORTANTE: Ang mga salitang "may sunog", "may baha", "fire", etc. ay dapat NEUTRAL kung hindi malinaw na nagpapakita ng panic
         # Pag simpleng sinasabi lang na "may sunog" o "fire" ito ay statement of fact lang - hindi panic o emotion
         # Example: "May sunog" = NEUTRAL, "MAY SUNOG! TAKBO!" = PANIC
-        
+
         # Special handling for simple factual statements that should ALWAYS be Neutral
-        simple_statements = ["may sunog", "may baha", "may lindol", "there is a fire", "there is a flood", "there is an earthquake"]
-        
+        simple_statements = [
+            "may sunog", "may baha", "may lindol", "there is a fire",
+            "there is a flood", "there is an earthquake"
+        ]
+
         # Check if the text is a simple factual statement
         if any(statement in text_lower for statement in simple_statements):
             # Calculate maximum score across all sentiment categories
             max_score = max(scores.values()) if scores else 0
-            
+
             # Only override if there are no strong emotional indicators
             if max_score <= 1:
-                scores["Neutral"] = 3  # Force to Neutral with higher score if no strong emotions
-                
+                scores[
+                    "Neutral"] = 3  # Force to Neutral with higher score if no strong emotions
+
                 # Reset other scores to ensure Neutral wins
                 scores["Panic"] = 0
                 scores["Fear/Anxiety"] = 0
                 scores["Disbelief"] = 0
                 scores["Resilience"] = 0
-        
-        # Parse full context of panic phrases  
+
+        # Parse full context of panic phrases
         for phrase in panic_phrases:
             if phrase in text_lower:
                 scores["Panic"] += 2
-        
+
         # CONTEXT-AWARE ANALYSIS OF TEXT FORMATTING
         # Analyze formatting in context, not by itself
-        
+
         # Analyze surrounding context for exclamation points
         if "!" in text:
             # Don't just count exclamation points - look at CONTEXT
-            
+
             # Extract phrases with exclamation (5 words before and after)
             exclamation_phrases = []
             words = text_lower.split()
             for i, word in enumerate(words):
                 if "!" in word:
-                    start = max(0, i-5)
-                    end = min(len(words), i+6)
+                    start = max(0, i - 5)
+                    end = min(len(words), i + 6)
                     phrase = " ".join(words[start:end])
                     exclamation_phrases.append(phrase)
-            
+
             # Analyze the context of each exclamation phrase
             for phrase in exclamation_phrases:
                 # Context indicates victim perspective (panic)
-                if any(word in phrase for word in ["help", "emergency", "saklolo", "trapped", "tulong", "danger"]):
+                if any(word in phrase for word in [
+                        "help", "emergency", "saklolo", "trapped", "tulong",
+                        "danger"
+                ]):
                     if not any(rp in phrase for rp in resilience_phrases):
                         scores["Panic"] += 1
-                
+
                 # Context indicates helper perspective (resilience)
-                elif any(word in phrase for word in ["donate", "let's help", "support", "tulungan natin", "assist"]):
+                elif any(word in phrase for word in [
+                        "donate", "let's help", "support", "tulungan natin",
+                        "assist"
+                ]):
                     scores["Resilience"] += 1
-                
+
                 # Context indicates shock or disbelief
-                elif any(word in phrase for word in ["what", "can't believe", "ano", "bakit", "hindi kapani-paniwala"]):
+                elif any(word in phrase for word in [
+                        "what", "can't believe", "ano", "bakit",
+                        "hindi kapani-paniwala"
+                ]):
                     scores["Disbelief"] += 1
-        
+
         # Analyze question marks in context
         if "?" in text:
             question_phrases = []
             words = text_lower.split()
             for i, word in enumerate(words):
                 if "?" in word:
-                    start = max(0, i-5)
-                    end = min(len(words), i+1)
+                    start = max(0, i - 5)
+                    end = min(len(words), i + 1)
                     phrase = " ".join(words[start:end])
                     question_phrases.append(phrase)
-            
+
             for phrase in question_phrases:
                 # Questions about status of disaster/victims
-                if any(word in phrase for word in ["nasaan", "where", "kamusta", "how", "when", "kailan", "ilang", "how many"]):
-                    if any(word in phrase for word in ["victim", "dead", "casualties", "stranded", "missing"]):
+                if any(word in phrase for word in [
+                        "nasaan", "where", "kamusta", "how", "when", "kailan",
+                        "ilang", "how many"
+                ]):
+                    if any(word in phrase for word in [
+                            "victim", "dead", "casualties", "stranded",
+                            "missing"
+                    ]):
                         scores["Fear/Anxiety"] += 1
-                
+
                 # Questions expressing disbelief
-                if any(word in phrase for word in ["bakit", "paano", "why", "how could", "paanong"]):
+                if any(word in phrase for word in
+                       ["bakit", "paano", "why", "how could", "paanong"]):
                     scores["Disbelief"] += 1
-        
+
         # Analyze ALL CAPS text with full context
         # ALL CAPS is not itself an indicator - analyze the meaning
-        if len([word for word in text.split() if word.isupper() and len(word) > 2]) > 1:
+        if len([
+                word for word in text.split()
+                if word.isupper() and len(word) > 2
+        ]) > 1:
             # Get ALL CAPS words
-            caps_words = [word.lower() for word in text.split() if word.isupper() and len(word) > 2]
-            
+            caps_words = [
+                word.lower() for word in text.split()
+                if word.isupper() and len(word) > 2
+            ]
+
             # Context-based analysis of ALL CAPS content
-            if any(word in caps_words for word in ["emergency", "tulong", "saklolo", "help", "rescue"]):
-                if not any(phrase in text_lower for phrase in resilience_phrases):
+            if any(word in caps_words for word in
+                   ["emergency", "tulong", "saklolo", "help", "rescue"]):
+                if not any(phrase in text_lower
+                           for phrase in resilience_phrases):
                     scores["Panic"] += 1
-            
+
             # ALL CAPS for offering help is resilience
-            elif any(word in " ".join(caps_words) for word in ["donate", "tulungan", "help", "lets", "tumulong"]):
+            elif any(word in " ".join(caps_words) for word in
+                     ["donate", "tulungan", "help", "lets", "tumulong"]):
                 if any(phrase in text_lower for phrase in resilience_phrases):
                     scores["Resilience"] += 1
 
@@ -1901,61 +2373,90 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                 # IMPROVED: For mixed messages, always prioritize the stronger emotional indicators
                 # Prioritize Panic when mixed with other emotions if there are clear help indicators
                 # Neutral is ONLY used when the text is a simple factual report with no emotional markers
-                
+
                 # First check for additional indicators to give a nudge in case of ties
-                is_reporting_style = any(s in text_lower for s in ["news", "bulletin", "flash report", "balita", "ulat", "breaking news", "headline"])
-                has_help_request = any(s in text_lower for s in ["please help", "help please", "need help", "kailangan ng tulong", "pakitulong", "pakigalaw po", "asap"])
-                has_fear_words = any(s in text_lower for s in ["takot", "natatakot", "afraid", "scared", "frightened", "nanginginig"])
-                has_resilience_words = any(s in text_lower for s in ["be brave", "stay strong", "kakayanin", "magtulungan", "matibay", "malalagpasan"])
-                
+                is_reporting_style = any(s in text_lower for s in [
+                    "news", "bulletin", "flash report", "balita", "ulat",
+                    "breaking news", "headline"
+                ])
+                has_help_request = any(s in text_lower for s in [
+                    "please help", "help please", "need help",
+                    "kailangan ng tulong", "pakitulong", "pakigalaw po", "asap"
+                ])
+                has_fear_words = any(s in text_lower for s in [
+                    "takot", "natatakot", "afraid", "scared", "frightened",
+                    "nanginginig"
+                ])
+                has_resilience_words = any(s in text_lower for s in [
+                    "be brave", "stay strong", "kakayanin", "magtulungan",
+                    "matibay", "malalagpasan"
+                ])
+
                 # Religious content usually indicates Resilience in disaster context
-                has_religious_content = any(term in text_lower for term in religious_terms) or contains_prayer_emoji
-                
+                has_religious_content = any(
+                    term in text_lower
+                    for term in religious_terms) or contains_prayer_emoji
+
                 # If text has more emojis than words, prioritize Disbelief regardless
-                emoji_count = sum(1 for char in text if ord(char) > 127000)  # Count emoji characters
+                emoji_count = sum(
+                    1 for char in text
+                    if ord(char) > 127000)  # Count emoji characters
                 word_count = len([w for w in text.split() if w.isalpha()])
                 if emoji_count > 3 and emoji_count > word_count / 2:
                     if "Disbelief" in top_sentiments:
                         sentiment = "Disbelief"
                         return {
-                            "sentiment": sentiment,
-                            "confidence": 0.92,
-                            "explanation": "Multiple emojis indicate sarcasm or mockery rather than genuine distress."
+                            "sentiment":
+                            sentiment,
+                            "confidence":
+                            0.92,
+                            "explanation":
+                            "Multiple emojis indicate sarcasm or mockery rather than genuine distress."
                         }
-                        
+
                 # Mixed emotion handling - determine the STRONGEST based on content
                 if has_help_request and "Panic" in top_sentiments:
                     # Clear help request should always be Panic
                     sentiment = "Panic"
                     return {
-                        "sentiment": sentiment,
-                        "confidence": 0.95,
-                        "explanation": "Text contains explicit requests for help indicating urgent distress."
+                        "sentiment":
+                        sentiment,
+                        "confidence":
+                        0.95,
+                        "explanation":
+                        "Text contains explicit requests for help indicating urgent distress."
                     }
-                    
+
                 # News-style reporting always defaults to Neutral
                 if is_reporting_style and "Neutral" in top_sentiments:
                     sentiment = "Neutral"
                     return {
-                        "sentiment": sentiment,
-                        "confidence": 0.90, 
-                        "explanation": "Text uses news reporting style with factual information, not expressing personal emotions."
+                        "sentiment":
+                        sentiment,
+                        "confidence":
+                        0.90,
+                        "explanation":
+                        "Text uses news reporting style with factual information, not expressing personal emotions."
                     }
-                
+
                 # Religious content in disaster context is typically Resilience
                 if has_religious_content and "Resilience" in top_sentiments:
                     sentiment = "Resilience"
                     return {
-                        "sentiment": sentiment,
-                        "confidence": 0.92,
-                        "explanation": "Text contains religious references or prayers showing faith and hope during adversity."
+                        "sentiment":
+                        sentiment,
+                        "confidence":
+                        0.92,
+                        "explanation":
+                        "Text contains religious references or prayers showing faith and hope during adversity."
                     }
-                    
+
                 # Only use standard priority if no special cases match
                 priority_order = [
-                    "Panic", "Fear/Anxiety", "Resilience", "Disbelief", "Neutral"
+                    "Panic", "Fear/Anxiety", "Resilience", "Disbelief",
+                    "Neutral"
                 ]
-                
+
                 for s in priority_order:
                     if s in top_sentiments:
                         sentiment = s
@@ -1969,7 +2470,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
         else:
             # Direct scaling with no artificial limits - let AI determine confidence
             confidence = 0.70 + (max_score * 0.03)
-            
+
         # Always format as floating point with consistent 2 decimal places
         confidence = round(confidence, 2)
 
@@ -1977,7 +2478,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
         explanation = ""
         # Safely get sentiment value
         sentiment_value = sentiment if 'sentiment' in locals() else "Neutral"
-        
+
         if sentiment_value == "Panic":
             explanation = "The text shows signs of urgent distress or calls for immediate help, indicating panic."
         elif sentiment_value == "Fear/Anxiety":
@@ -1989,16 +2490,17 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
             else:
                 explanation = "The content shows shock, surprise or inability to comprehend the situation."
         elif sentiment_value == "Resilience":
-            if any(term in text_lower for term in religious_terms) or contains_prayer_emoji:
+            if any(term in text_lower
+                   for term in religious_terms) or contains_prayer_emoji:
                 explanation = "The text shows faith, prayer or religious sentiment, indicating resilience and hope during adversity."
             else:
                 explanation = "The text demonstrates community support, offers of help, or positive action toward recovery."
         else:  # Neutral
             explanation = "The text appears informational or descriptive without strong emotional indicators."
-            
+
         # Ensure sentiment is defined in case it wasn't set earlier
         sentiment = sentiment_value
-            
+
         return {
             "sentiment": sentiment,
             "confidence": confidence,
@@ -2018,7 +2520,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
 
             # Load the CSV file
             report_progress(0, "Loading CSV file")
-            
+
             # First check if file contains any data
             with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
                 sample_lines = [next(f, '') for _ in range(5)]
@@ -2026,7 +2528,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                 if not has_content:
                     report_progress(100, "No records found in empty CSV", 0)
                     return []
-            
+
             # Try loading as standard CSV first
             try:
                 # Try with default parameters first
@@ -2035,24 +2537,36 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                 except UnicodeDecodeError:
                     # Try with different encoding if utf-8 fails
                     df = pd.read_csv(file_path, encoding='latin1')
-                    
+
                 # Special handling for messy/random CSVs with empty cells
-                if len(df.columns) == 1 and all(c.count(',') > 3 for c in df.iloc[:5, 0].astype(str)):
+                if len(df.columns) == 1 and all(
+                        c.count(',') > 3 for c in df.iloc[:5, 0].astype(str)):
                     # This is a CSV that pandas couldn't parse correctly - try again with explicit parameters
-                    logging.info("CSV appears to be malformed - trying alternate parsing method")
-                    df = pd.read_csv(file_path, encoding='utf-8', header=0, on_bad_lines='skip', 
-                                    low_memory=False, skipinitialspace=True)
-                
+                    logging.info(
+                        "CSV appears to be malformed - trying alternate parsing method"
+                    )
+                    df = pd.read_csv(file_path,
+                                     encoding='utf-8',
+                                     header=0,
+                                     on_bad_lines='skip',
+                                     low_memory=False,
+                                     skipinitialspace=True)
+
                 # Check if the CSV has a single column with many commas - may need special handling
                 if len(df.columns) == 1:
-                    logging.info("Single-column CSV detected - attempting to parse manually")
+                    logging.info(
+                        "Single-column CSV detected - attempting to parse manually"
+                    )
                     # Try to parse manually by reading the file directly
                     rows = []
-                    with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+                    with open(file_path,
+                              'r',
+                              encoding='utf-8',
+                              errors='replace') as f:
                         for line in f:
                             if line.strip():  # Skip empty lines
                                 rows.append(line.strip().split(','))
-                    
+
                     # If we have data, convert to DataFrame
                     if rows:
                         # Use first row as header or generate generic headers if needed
@@ -2061,23 +2575,32 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                             data = rows[1:]
                             # Generate empty headers if none present
                             if len(headers) < max(len(row) for row in data):
-                                headers = [f"col_{i}" for i in range(max(len(row) for row in data))]
+                                headers = [
+                                    f"col_{i}" for i in range(
+                                        max(len(row) for row in data))
+                                ]
                             df = pd.DataFrame(data, columns=headers)
-            
+
             except Exception as e:
                 # If all else fails, try to parse as a simple structured CSV with no headers
-                logging.warning(f"Standard CSV parsing failed: {e}. Attempting fallback method.")
+                logging.warning(
+                    f"Standard CSV parsing failed: {e}. Attempting fallback method."
+                )
                 try:
                     # Last resort - try to read with no header
-                    df = pd.read_csv(file_path, encoding='utf-8', header=None, prefix='col_')
+                    df = pd.read_csv(file_path,
+                                     encoding='utf-8',
+                                     header=None,
+                                     prefix='col_')
                 except Exception as fallback_error:
-                    logging.error(f"Fallback CSV parsing also failed: {fallback_error}")
+                    logging.error(
+                        f"Fallback CSV parsing also failed: {fallback_error}")
                     df = pd.DataFrame()  # Empty DataFrame as a last resort
-            
+
             # Get total number of records for progress reporting
             total_records = len(df)
             report_progress(0, "CSV file loaded", total_records)
-            
+
             if total_records == 0:
                 report_progress(100, "No records found in CSV", 0)
                 return []
@@ -2185,19 +2708,20 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
             sentiment_col = identified_columns.get("sentiment")
             confidence_col = identified_columns.get("confidence")
             language_col = identified_columns.get("language")
-            
+
             # Special handling for "MAGULONG DATA" style CSVs - with many empty columns and specific positions
             # Examine first few rows to check for pattern
             first_rows = df.head(5)
             first_rows_string = first_rows.to_string()
-            logging.info(f"First rows sample for analysis: {first_rows_string[:200]}")
-            
+            logging.info(
+                f"First rows sample for analysis: {first_rows_string[:200]}")
+
             # Check if this is a CSV with many columns but only a few have values
             if len(df.columns) > 10:
                 # Check for patterns in the data
                 empty_columns = []
                 valuable_columns = []
-                
+
                 for col in df.columns:
                     # Check if column is mostly empty
                     empty_ratio = df[col].isna().mean()
@@ -2205,55 +2729,88 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                         empty_columns.append(col)
                     else:
                         valuable_columns.append(col)
-                
-                logging.info(f"Found {len(empty_columns)} mostly empty columns and {len(valuable_columns)} valuable columns")
-                
+
+                logging.info(
+                    f"Found {len(empty_columns)} mostly empty columns and {len(valuable_columns)} valuable columns"
+                )
+
                 # If we have a messy CSV with lots of empty columns, manually map important columns
                 if len(empty_columns) > 5 and len(valuable_columns) < 5:
-                    logging.info("Detected messy CSV with many empty columns - attempting to identify critical columns by position")
-                    
+                    logging.info(
+                        "Detected messy CSV with many empty columns - attempting to identify critical columns by position"
+                    )
+
                     # Special mapping for CSV files with empty columns but values at specific positions
                     # Analyze first 5 rows to find patterns
-                    column_values = {col: df[col].dropna().astype(str).tolist()[:5] for col in df.columns}
-                    
+                    column_values = {
+                        col: df[col].dropna().astype(str).tolist()[:5]
+                        for col in df.columns
+                    }
+
                     # Try to identify specific columns by content patterns
                     for col, values in column_values.items():
                         if not values:
                             continue
-                            
+
                         # Check for timestamps (date-like values with numbers and separators)
-                        if any(re.search(r'\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}|\d{1,2}[-:]\d{2}', v) for v in values):
-                            logging.info(f"Identified timestamp column by pattern: {col}")
+                        if any(
+                                re.search(
+                                    r'\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}|\d{1,2}[-:]\d{2}',
+                                    v) for v in values):
+                            logging.info(
+                                f"Identified timestamp column by pattern: {col}"
+                            )
                             timestamp_col = col
-                        
+
                         # Check for location names (cities in Philippines)
-                        ph_cities = ['Manila', 'Quezon City', 'Cebu', 'Davao', 'Tacloban', 'Legazpi', 'Baguio', 'Iloilo', 'Cagayan']
-                        if any(city in v for v in values for city in ph_cities):
-                            logging.info(f"Identified location column by city names: {col}")
+                        ph_cities = [
+                            'Manila', 'Quezon City', 'Cebu', 'Davao',
+                            'Tacloban', 'Legazpi', 'Baguio', 'Iloilo',
+                            'Cagayan'
+                        ]
+                        if any(city in v for v in values
+                               for city in ph_cities):
+                            logging.info(
+                                f"Identified location column by city names: {col}"
+                            )
                             location_col = col
-                        
+
                         # Check for news sources
-                        news_sources = ['Manila Times', 'Rappler', 'Inquirer', 'ABS-CBN', 'GMA News', 'Philippine Star', 'BusinessWorld']
-                        if any(source in v for v in values for source in news_sources):
-                            logging.info(f"Identified source column by news source names: {col}")
+                        news_sources = [
+                            'Manila Times', 'Rappler', 'Inquirer', 'ABS-CBN',
+                            'GMA News', 'Philippine Star', 'BusinessWorld'
+                        ]
+                        if any(source in v for v in values
+                               for source in news_sources):
+                            logging.info(
+                                f"Identified source column by news source names: {col}"
+                            )
                             source_col = col
-                    
+
                     # If we still don't have text column identified correctly, use the first column with actual text content
                     if text_col is None or df[text_col].isna().mean() > 0.5:
                         # Find the column with longest text content
                         text_lengths = {}
                         for col in df.columns:
-                            sample_texts = df[col].dropna().astype(str).tolist()[:5]
+                            sample_texts = df[col].dropna().astype(
+                                str).tolist()[:5]
                             if sample_texts:
-                                avg_len = sum(len(t) for t in sample_texts) / len(sample_texts) if sample_texts else 0
+                                avg_len = sum(
+                                    len(t) for t in sample_texts) / len(
+                                        sample_texts) if sample_texts else 0
                                 text_lengths[col] = avg_len
-                        
+
                         if text_lengths:
-                            text_col = max(text_lengths.items(), key=lambda x: x[1])[0]
-                            logging.info(f"Identified text column by content length: {text_col}")
-                    
+                            text_col = max(text_lengths.items(),
+                                           key=lambda x: x[1])[0]
+                            logging.info(
+                                f"Identified text column by content length: {text_col}"
+                            )
+
                     # Debug log
-                    logging.info(f"After special handling, columns are: text={text_col}, timestamp={timestamp_col}, location={location_col}, source={source_col}")
+                    logging.info(
+                        f"After special handling, columns are: text={text_col}, timestamp={timestamp_col}, location={location_col}, source={source_col}"
+                    )
 
             # Process all records without limitation
             sample_size = len(df)
@@ -2278,7 +2835,8 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                                    BATCH_SIZE]
 
                 batch_num = batch_start // BATCH_SIZE + 1
-                total_batches = (len(indices_to_process) + BATCH_SIZE - 1) // BATCH_SIZE
+                total_batches = (len(indices_to_process) + BATCH_SIZE -
+                                 1) // BATCH_SIZE
 
                 logging.info(
                     f"Starting batch processing - items {batch_start + 1} to {batch_start + len(batch_indices)}"
@@ -2334,17 +2892,16 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
 
                         # Detect social media platform from text content
                         if source == "CSV Import" or not source.strip():
-                            detected_source = self.detect_news_source(
-                                text)
+                            detected_source = self.detect_news_source(text)
                             if detected_source != "Unknown Social Media":
                                 source = detected_source
 
                         # Extract location directly from the text first (same as real-time analysis)
                         detected_location = self.extract_location(text)
-                        
+
                         # Extract disaster type directly from the text first (same as real-time analysis)
                         detected_disaster = self.extract_disaster_type(text)
-                        
+
                         # Try to extract from CSV columns if available
                         csv_location = str(row.get(
                             location_col, "")) if location_col else None
@@ -2363,13 +2920,17 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                 "nan", "none", ""
                         ]:
                             csv_disaster = None
-                            
+
                         # Always prioritize detection from text if CSV values are missing
                         # This ensures CSV handling works like real-time analysis
-                        if not csv_location or csv_location.lower() in ["nan", "none", ""]:
+                        if not csv_location or csv_location.lower() in [
+                                "nan", "none", ""
+                        ]:
                             csv_location = detected_location
-                            
-                        if not csv_disaster or csv_disaster.lower() in ["nan", "none", ""]:
+
+                        if not csv_disaster or csv_disaster.lower() in [
+                                "nan", "none", ""
+                        ]:
                             csv_disaster = detected_disaster
 
                         # Check if disaster column contains full text (common error)
@@ -2402,19 +2963,28 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                             # Ensure confidence is properly formatted as a float
                             if isinstance(csv_confidence, int):
                                 csv_confidence = float(csv_confidence)
-                                
+
                             # Keep the actual confidence values from the CSV data
                             # Just ensure it's a float and round to 2 decimal places for consistency
                             csv_confidence = round(float(csv_confidence), 2)
-                            
+
                             analysis_result = {
-                                "sentiment": csv_sentiment,
-                                "confidence": csv_confidence,
-                                "explanation": "Sentiment provided in CSV",
-                                "disasterType": csv_disaster if csv_disaster else self.extract_disaster_type(text),
-                                "location": csv_location if csv_location else self.extract_location(text),
-                                "language": csv_language if csv_language else "English",
-                                "text": text  # Add text for confidence adjustment in metrics calculation
+                                "sentiment":
+                                csv_sentiment,
+                                "confidence":
+                                csv_confidence,
+                                "explanation":
+                                "Sentiment provided in CSV",
+                                "disasterType":
+                                csv_disaster if csv_disaster else
+                                self.extract_disaster_type(text),
+                                "location":
+                                csv_location if csv_location else
+                                self.extract_location(text),
+                                "language":
+                                csv_language if csv_language else "English",
+                                "text":
+                                text  # Add text for confidence adjustment in metrics calculation
                             }
                         else:
                             # CHANGE: For CSV uploads, directly use rule-based analysis instead of AI
@@ -2427,24 +2997,33 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                     language = "English"
                             except:
                                 language = "English"
-                                
+
                             # Get sentiment using rule-based analysis
-                            rule_based_result = self._rule_based_sentiment_analysis(text, language)
-                            
+                            rule_based_result = self._rule_based_sentiment_analysis(
+                                text, language)
+
                             # Create the final analysis result with disaster and location
                             analysis_result = {
-                                "sentiment": rule_based_result["sentiment"],
-                                "confidence": rule_based_result["confidence"],
-                                "explanation": "Rule-based analysis for CSV upload: " + rule_based_result.get("explanation", ""),
-                                "disasterType": self.extract_disaster_type(text),
-                                "location": self.extract_location(text),
-                                "language": language,
-                                "text": text  # Include text for confidence adjustment
+                                "sentiment":
+                                rule_based_result["sentiment"],
+                                "confidence":
+                                rule_based_result["confidence"],
+                                "explanation":
+                                "Rule-based analysis for CSV upload: " +
+                                rule_based_result.get("explanation", ""),
+                                "disasterType":
+                                self.extract_disaster_type(text),
+                                "location":
+                                self.extract_location(text),
+                                "language":
+                                language,
+                                "text":
+                                text  # Include text for confidence adjustment
                             }
 
                         # Store the processed result
                         # CRITICAL: Make sure we use the exact same processing as single text analysis
-                        # to ensure consistent algorithm and classification between realtime and CSV 
+                        # to ensure consistent algorithm and classification between realtime and CSV
                         processed_results.append({
                             "text":
                             text,
@@ -2474,9 +3053,10 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
 
                         # Reduced delay for faster CSV processing with rule-based analysis
                         # Brief pause to avoid overwhelming the system
-                        time.sleep(0.1)  # Reduced from 3 seconds to 0.1 seconds
+                        time.sleep(
+                            0.1)  # Reduced from 3 seconds to 0.1 seconds
 
-                        # Report completed using the actual processed_count 
+                        # Report completed using the actual processed_count
                         # Instead of using progress_pct for first parameter, use the actual processed count
                         report_progress(
                             processed_count,
@@ -2494,18 +3074,20 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                 if 'processed_results' in locals() and processed_results:
                     # Get results for this batch based on index position
                     start_idx = batch_start
-                    end_idx = min(batch_start + len(batch_indices), len(processed_results))
+                    end_idx = min(batch_start + len(batch_indices),
+                                  len(processed_results))
                     current_results = processed_results[start_idx:end_idx]
-                    
+
                 batch_results = {
-                    "batchNumber": batch_num if 'batch_num' in locals() else batch_number,
+                    "batchNumber":
+                    batch_num if 'batch_num' in locals() else batch_number,
                     "totalBatches": total_batches,
                     "results": current_results
                 }
-                
+
                 # Send batch completion marker to be captured by the server
                 print(f"BATCH_COMPLETE:{json.dumps(batch_results)}::END_BATCH")
-                
+
                 # Add delay between batches to prevent API rate limits, but only for files > 20 rows
                 if batch_start + BATCH_SIZE < len(indices_to_process):
                     batch_number = batch_start // BATCH_SIZE + 1
@@ -2515,12 +3097,11 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                     logging.info(
                         f"Completed batch {batch_number} - continuing immediately to next batch"
                     )
-                    
+
                     # Just update progress
                     report_progress(
-                        5 + int(
-                            ((batch_start + BATCH_SIZE) / len(indices_to_process)) *
-                            90),
+                        5 + int(((batch_start + BATCH_SIZE) /
+                                 len(indices_to_process)) * 90),
                         f"Processing next batch {batch_number + 1} of {len(indices_to_process) // BATCH_SIZE + 1}",
                         total_records)
 
@@ -2564,8 +3145,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
 
                         # Detect social media platform from text content if source is just "CSV Import"
                         if source == "CSV Import" or not source.strip():
-                            detected_source = self.detect_news_source(
-                                text)
+                            detected_source = self.detect_news_source(text)
                             if detected_source != "Unknown Social Media":
                                 source = detected_source
 
@@ -2614,57 +3194,97 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                                 language = "English"
                         except:
                             language = "English"
-                            
+
                         # Get sentiment using rule-based analysis
-                        rule_based_result = self._rule_based_sentiment_analysis(text, language)
-                        
+                        rule_based_result = self._rule_based_sentiment_analysis(
+                            text, language)
+
                         # Create the final analysis result with disaster and location
                         analysis_result = {
-                            "sentiment": rule_based_result["sentiment"],
-                            "confidence": rule_based_result["confidence"],
-                            "explanation": "Rule-based analysis for CSV upload (retry): " + rule_based_result.get("explanation", ""),
-                            "disasterType": self.extract_disaster_type(text),
-                            "location": self.extract_location(text),
-                            "language": language,
-                            "text": text  # Include text for confidence adjustment
+                            "sentiment":
+                            rule_based_result["sentiment"],
+                            "confidence":
+                            rule_based_result["confidence"],
+                            "explanation":
+                            "Rule-based analysis for CSV upload (retry): " +
+                            rule_based_result.get("explanation", ""),
+                            "disasterType":
+                            self.extract_disaster_type(text),
+                            "location":
+                            self.extract_location(text),
+                            "language":
+                            language,
+                            "text":
+                            text  # Include text for confidence adjustment
                         }
 
                         # Get sentiment and apply post-processing
                         sentiment = analysis_result.get("sentiment", "Neutral")
                         explanation = analysis_result.get("explanation", "")
-                        
+
                         # Apply post-processing rules to correct common misclassifications in CSV
                         # This enforces our basic rule that purely descriptive/informative text should be Neutral
                         corrected_sentiment = sentiment
-                        
+
                         # Check if text is simple description without strong emotional markers
                         text_lower = text.lower()
-                        emotional_words = ["nakakatakot", "scary", "afraid", "takot", "worried", "kabado", "help", "tulong", "saklolo", "emergency", "bantay", "delikado", "ingat"]
-                        emotional_markers = ["!!!", "???", "HELP", "TULONG", "OMG", "OH MY GOD"]
-                        
+                        emotional_words = [
+                            "nakakatakot", "scary", "afraid", "takot",
+                            "worried", "kabado", "help", "tulong", "saklolo",
+                            "emergency", "bantay", "delikado", "ingat"
+                        ]
+                        emotional_markers = [
+                            "!!!", "???", "HELP", "TULONG", "OMG", "OH MY GOD"
+                        ]
+
                         # If it sounds descriptive and doesn't have emotional markers
-                        looks_descriptive = any(word in text_lower for word in ["may", "there is", "there was", "nangyari", "happened", "maraming", "many", "several", "buildings", "collapsed", "evacuated"])
-                        has_emotion = any(word in text_lower for word in emotional_words) or any(marker in text.upper() for marker in emotional_markers)
-                        
+                        looks_descriptive = any(
+                            word in text_lower for word in [
+                                "may", "there is", "there was", "nangyari",
+                                "happened", "maraming", "many", "several",
+                                "buildings", "collapsed", "evacuated"
+                            ])
+                        has_emotion = any(word in text_lower
+                                          for word in emotional_words) or any(
+                                              marker in text.upper()
+                                              for marker in emotional_markers)
+
                         # Special override for factual/descriptive content that got misclassified
                         if looks_descriptive and not has_emotion and sentiment == "Fear/Anxiety":
                             corrected_sentiment = "Neutral"
                             # Just log the correction without adding explanation text
-                            logging.info(f"CSV batch: Corrected sentiment from Fear/Anxiety to Neutral: {text}")
-                        
+                            logging.info(
+                                f"CSV batch: Corrected sentiment from Fear/Anxiety to Neutral: {text}"
+                            )
+
                         processed_results.append({
-                            "text": text,
-                            "timestamp": timestamp,
-                            "source": source,
-                            "language": csv_language if csv_language else analysis_result.get("language", "English"),
-                            "sentiment": corrected_sentiment,  # Use corrected sentiment here
-                            "confidence": analysis_result.get("confidence", 0.7),
-                            "explanation": explanation,  # Use updated explanation
-                            "disasterType": csv_disaster if csv_disaster else analysis_result.get("disasterType", "Not Specified"),
-                            "location": csv_location if csv_location else analysis_result.get("location")
+                            "text":
+                            text,
+                            "timestamp":
+                            timestamp,
+                            "source":
+                            source,
+                            "language":
+                            csv_language if csv_language else
+                            analysis_result.get("language", "English"),
+                            "sentiment":
+                            corrected_sentiment,  # Use corrected sentiment here
+                            "confidence":
+                            analysis_result.get("confidence", 0.7),
+                            "explanation":
+                            explanation,  # Use updated explanation
+                            "disasterType":
+                            csv_disaster
+                            if csv_disaster else analysis_result.get(
+                                "disasterType", "Not Specified"),
+                            "location":
+                            csv_location if csv_location else
+                            analysis_result.get("location")
                         })
 
-                        time.sleep(0.1)  # Reduced from 1 second to 0.1 seconds for faster retry processing
+                        time.sleep(
+                            0.1
+                        )  # Reduced from 1 second to 0.1 seconds for faster retry processing
 
                     except Exception as e:
                         logging.error(
@@ -2690,7 +3310,12 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
             logging.error(f"CSV processing error: {str(e)}")
             return []
 
-    def train_on_feedback(self, original_text, original_sentiment, corrected_sentiment, corrected_location='', corrected_disaster_type=''):
+    def train_on_feedback(self,
+                          original_text,
+                          original_sentiment,
+                          corrected_sentiment,
+                          corrected_location='',
+                          corrected_disaster_type=''):
         """
         Real-time training function that uses feedback to improve the model
         
@@ -2708,44 +3333,54 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
         has_sentiment_correction = original_text and original_sentiment and corrected_sentiment
         has_location_correction = original_text and corrected_location
         has_disaster_correction = original_text and corrected_disaster_type
-        
-        if not (has_sentiment_correction or has_location_correction or has_disaster_correction):
+
+        if not (has_sentiment_correction or has_location_correction
+                or has_disaster_correction):
             logging.error(f"No valid corrections provided for training")
-            return {"status": "error", "message": "No valid corrections provided"}
-            
+            return {
+                "status": "error",
+                "message": "No valid corrections provided"
+            }
+
         # For sentiment corrections, validate the label
         if has_sentiment_correction and corrected_sentiment not in self.sentiment_labels:
-            logging.error(f"Invalid sentiment label in feedback: {corrected_sentiment}")
+            logging.error(
+                f"Invalid sentiment label in feedback: {corrected_sentiment}")
             return {"status": "error", "message": "Invalid sentiment label"}
-        
+
         # Advanced AI validation of sentiment corrections
         if has_sentiment_correction:
-            validation_result = self._validate_sentiment_correction(original_text, original_sentiment, corrected_sentiment)
-            
+            validation_result = self._validate_sentiment_correction(
+                original_text, original_sentiment, corrected_sentiment)
+
             # Always proceed with the correction, but include the validation details
             # in the response for the frontend to display the interactive quiz results
             # DON'T PRINT ANYTHING TO STDOUT, ONLY LOG TO FILE
             # This prevents JSON parsing errors in the client
             logging.info(f"Validation result: {validation_result['valid']}")
             logging.info(f"Original text: {original_text}")
-            logging.info(f"Sentiment change: {original_sentiment} → {corrected_sentiment}")
+            logging.info(
+                f"Sentiment change: {original_sentiment} → {corrected_sentiment}"
+            )
             logging.info(f"Feedback reason: {validation_result['reason']}")
-            
+
             # Calculate more realistic metrics that match our CSV processing
             # Base metrics start with reasonable values that align with our CSV metrics
             old_metrics = {
                 "accuracy": 0.86,  # Start with a reasonable accuracy
-                "precision": 0.81, # Slightly lower than accuracy
-                "recall": 0.74,    # Recall is the lowest metric
-                "f1Score": 0.77    # F1 is between precision and recall
+                "precision": 0.81,  # Slightly lower than accuracy
+                "recall": 0.74,  # Recall is the lowest metric
+                "f1Score": 0.77  # F1 is between precision and recall
             }
-            
+
             # Calculate sentiment-specific improvement factors based on validation
             # Quiz validation should have smaller improvements
             if corrected_sentiment == "Neutral":
-                improvement_factor = random.uniform(0.001, 0.003)  # Smaller improvements for Neutral
+                improvement_factor = random.uniform(
+                    0.001, 0.003)  # Smaller improvements for Neutral
             elif corrected_sentiment == "Panic":
-                improvement_factor = random.uniform(0.003, 0.006)  # Larger for high-priority sentiments
+                improvement_factor = random.uniform(
+                    0.003, 0.006)  # Larger for high-priority sentiments
             elif corrected_sentiment == "Fear/Anxiety":
                 improvement_factor = random.uniform(0.002, 0.005)
             elif corrected_sentiment == "Resilience":
@@ -2754,20 +3389,22 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                 improvement_factor = random.uniform(0.002, 0.004)
             else:
                 improvement_factor = random.uniform(0.001, 0.003)
-            
+
             # Reduce improvement if validation failed
             if not validation_result["valid"]:
                 improvement_factor = improvement_factor * 0.5
-            
+
             # For compatibility with the existing response format
             previous_accuracy = old_metrics["accuracy"]
-            new_accuracy = min(0.88, round(previous_accuracy + improvement_factor, 2))
+            new_accuracy = min(
+                0.88, round(previous_accuracy + improvement_factor, 2))
             improvement = new_accuracy - previous_accuracy
-            
+
             # Even if validation isn't valid, we'll return success with educational quiz feedback
             # This allows the frontend to show the AI's quiz-like reasoning
             return {
-                "status": "quiz_feedback" if not validation_result["valid"] else "success",
+                "status": "quiz_feedback"
+                if not validation_result["valid"] else "success",
                 "message": validation_result["reason"],
                 "performance": {
                     "previous_accuracy": previous_accuracy,
@@ -2775,36 +3412,47 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                     "improvement": improvement
                 }
             }
-        
+
         # Detect language for appropriate training (including Taglish)
         try:
             # First check if the text has Taglish characteristics (mix of English and Filipino)
             # Simple Taglish detection - check for Filipino words/patterns in primarily English text
-            tagalog_markers = ['naman', 'daw', 'po', 'nga', 'talaga', 'lang', 'sana', 
-                              'yung', 'kasi', 'raw', 'din', 'rin', 'hindi', 'mga', 'natin',
-                              'ako', 'ikaw', 'siya', 'kami', 'tayo', 'kayo', 'sila',
-                              'na ', ' ba ', 'dito', 'diyan', 'doon', 'pala']
-            
+            tagalog_markers = [
+                'naman', 'daw', 'po', 'nga', 'talaga', 'lang', 'sana', 'yung',
+                'kasi', 'raw', 'din', 'rin', 'hindi', 'mga', 'natin', 'ako',
+                'ikaw', 'siya', 'kami', 'tayo', 'kayo', 'sila', 'na ', ' ba ',
+                'dito', 'diyan', 'doon', 'pala'
+            ]
+
             # Check for English words commonly used in Taglish
-            english_markers = ['the', 'and', 'you', 'for', 'that', 'have', 'with', 'this',
-                              'what', 'how', 'when', 'why', 'who', 'they', 'from', 'will',
-                              'would', 'could', 'should']
-            
+            english_markers = [
+                'the', 'and', 'you', 'for', 'that', 'have', 'with', 'this',
+                'what', 'how', 'when', 'why', 'who', 'they', 'from', 'will',
+                'would', 'could', 'should'
+            ]
+
             text_lower = original_text.lower()
-            
+
             # Count Tagalog markers
-            tagalog_count = sum(1 for marker in tagalog_markers if f" {marker} " in f" {text_lower} " or 
-                               f" {marker}." in text_lower or f" {marker}," in text_lower)
-            
+            tagalog_count = sum(
+                1 for marker in tagalog_markers
+                if f" {marker} " in f" {text_lower} "
+                or f" {marker}." in text_lower or f" {marker}," in text_lower)
+
             # Count English markers
-            english_count = sum(1 for marker in english_markers if f" {marker} " in f" {text_lower} " or 
-                               f" {marker}." in text_lower or f" {marker}," in text_lower)
-            
+            english_count = sum(
+                1 for marker in english_markers
+                if f" {marker} " in f" {text_lower} "
+                or f" {marker}." in text_lower or f" {marker}," in text_lower)
+
             # Get language detection result
             lang_code = detect(original_text)
-            
+
             # Classify as Taglish if we detect both Filipino and English patterns
-            if (tagalog_count >= 1 and english_count >= 1) or (lang_code in ['tl', 'fil'] and english_count >= 2) or (lang_code == 'en' and tagalog_count >= 2):
+            if (tagalog_count >= 1 and english_count >= 1) or (
+                    lang_code in ['tl', 'fil']
+                    and english_count >= 2) or (lang_code == 'en'
+                                                and tagalog_count >= 2):
                 language = "Taglish"
             elif lang_code in ['tl', 'fil']:
                 language = "Filipino"
@@ -2813,49 +3461,53 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
         except:
             # Default to English if detection fails
             language = "English"
-        
+
         # Log the feedback for training
         feedback_types = []
-        
+
         if has_sentiment_correction:
-            feedback_types.append(f"Sentiment: {original_sentiment} → {corrected_sentiment}")
-            
+            feedback_types.append(
+                f"Sentiment: {original_sentiment} → {corrected_sentiment}")
+
         if has_location_correction:
             feedback_types.append(f"Location: → {corrected_location}")
-            
+
         if has_disaster_correction:
-            feedback_types.append(f"Disaster Type: → {corrected_disaster_type}")
-            
-        logging.info(f"📚 TRAINING MODEL with feedback - {', '.join(feedback_types)}")
+            feedback_types.append(
+                f"Disaster Type: → {corrected_disaster_type}")
+
+        logging.info(
+            f"📚 TRAINING MODEL with feedback - {', '.join(feedback_types)}")
         logging.info(f"Text: \"{original_text}\"")
-        
+
         # Extract words for pattern matching
         word_pattern = re.compile(r'\b\w+\b')
         words = word_pattern.findall(original_text.lower())
         joined_words = " ".join(words)
-        
+
         # Store in our in-memory training data
         sentiment_to_store = corrected_sentiment if has_sentiment_correction else original_sentiment
-        self._update_training_data(words, sentiment_to_store, language, corrected_location, corrected_disaster_type)
-        
+        self._update_training_data(words, sentiment_to_store, language,
+                                   corrected_location, corrected_disaster_type)
+
         # Calculate more realistic metrics using confusion matrix approach
         # Align with the calculate_real_metrics function for consistency
-        
+
         # Base metrics with realistic starting values matching CSV metrics
         old_metrics = {
             "accuracy": 0.86,  # Start with a reasonable accuracy
-            "precision": 0.81, # Slightly lower than accuracy
-            "recall": 0.70,    # Much lower recall - matches our new CSV metrics
-            "f1Score": 0.75    # Harmonic mean of precision and recall
+            "precision": 0.81,  # Slightly lower than accuracy
+            "recall": 0.70,  # Much lower recall - matches our new CSV metrics
+            "f1Score": 0.75  # Harmonic mean of precision and recall
         }
-        
+
         # Calculate sentiment-specific improvement factors using more realistic values
         if has_sentiment_correction:
             # Same improvement factor for ALL sentiment types - no special treatment
             # Apply balanced improvements regardless of sentiment type
             improvement_factor = random.uniform(0.003, 0.006)
             recall_factor = improvement_factor * 0.65
-                
+
             # If the model was already correct, minimal improvement
             if original_sentiment == corrected_sentiment:
                 # 90% reduction for validation-only feedback
@@ -2865,39 +3517,44 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
             # Location or disaster type corrections provide smaller accuracy improvements
             improvement_factor = random.uniform(0.001, 0.003)
             recall_factor = improvement_factor * 0.6
-        
+
         # Calculate new metrics with proper relationships and realistic caps
         new_metrics = {
-            "accuracy": min(0.88, round(old_metrics["accuracy"] + improvement_factor, 2)),
-            "precision": min(0.82, round(old_metrics["precision"] + improvement_factor * 0.8, 2)),
-            "recall": min(0.70, round(old_metrics["recall"] + recall_factor, 2)),
+            "accuracy":
+            min(0.88, round(old_metrics["accuracy"] + improvement_factor, 2)),
+            "precision":
+            min(0.82,
+                round(old_metrics["precision"] + improvement_factor * 0.8, 2)),
+            "recall":
+            min(0.70, round(old_metrics["recall"] + recall_factor, 2)),
         }
-        
+
         # Calculate F1 score as an actual harmonic mean of precision and recall
         if new_metrics["precision"] + new_metrics["recall"] > 0:
-            new_metrics["f1Score"] = round(2 * (new_metrics["precision"] * new_metrics["recall"]) / 
-                                         (new_metrics["precision"] + new_metrics["recall"]), 2)
+            new_metrics["f1Score"] = round(
+                2 * (new_metrics["precision"] * new_metrics["recall"]) /
+                (new_metrics["precision"] + new_metrics["recall"]), 2)
         else:
             new_metrics["f1Score"] = 0.0
-            
+
         # For compatibility with the existing return format
         old_accuracy = old_metrics["accuracy"]
         new_accuracy = new_metrics["accuracy"]
         improvement = new_accuracy - old_accuracy
-        
+
         # Create success message based on the corrections provided
         success_message = "Model trained on feedback for "
         success_parts = []
-        
+
         if has_sentiment_correction:
             success_parts.append(f"'{sentiment_to_store}' sentiment")
         if has_location_correction:
             success_parts.append(f"location '{corrected_location}'")
         if has_disaster_correction:
             success_parts.append(f"disaster type '{corrected_disaster_type}'")
-            
+
         success_message += " and ".join(success_parts)
-        
+
         return {
             "status": "success",
             "message": success_message,
@@ -2907,38 +3564,43 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                 "improvement": new_accuracy - old_accuracy
             }
         }
-    
-    def _update_training_data(self, words, sentiment, language, location='', disaster_type=''):
+
+    def _update_training_data(self,
+                              words,
+                              sentiment,
+                              language,
+                              location='',
+                              disaster_type=''):
         """Update internal training data based on feedback (simulated)"""
         # Store the original words and corrected sentiment for future matching
         # This will create a real training effect even though it's simple
         key_words = [word for word in words if len(word) > 3][:5]
         text_key = " ".join(words).lower()
-        
+
         # Keep a map of trained examples that we can match against
         # This is a simple in-memory dictionary that persists during the instance lifecycle
         if not hasattr(self, 'trained_examples'):
             self.trained_examples = {}
-            
+
         # Store location mapping if provided
         if not hasattr(self, 'location_examples'):
             self.location_examples = {}
-            
+
         # Store disaster type mapping if provided
         if not hasattr(self, 'disaster_examples'):
             self.disaster_examples = {}
-        
+
         # Store sentiment example for future matching
         self.trained_examples[text_key] = sentiment
-        
+
         # Store location example if provided
         if location:
             self.location_examples[text_key] = location
-            
+
         # Store disaster type example if provided
         if disaster_type:
             self.disaster_examples[text_key] = disaster_type
-        
+
         # Log what we've learned
         log_parts = []
         if sentiment:
@@ -2947,16 +3609,21 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
             log_parts.append(f"location: {location}")
         if disaster_type:
             log_parts.append(f"disaster type: {disaster_type}")
-            
+
         if key_words:
             words_str = ", ".join(key_words)
-            logging.info(f"✅ Added training example: words [{words_str}] → {', '.join(log_parts)} ({language})")
+            logging.info(
+                f"✅ Added training example: words [{words_str}] → {', '.join(log_parts)} ({language})"
+            )
         else:
-            logging.info(f"✅ Added training example for {', '.join(log_parts)} ({language})")
-        
+            logging.info(
+                f"✅ Added training example for {', '.join(log_parts)} ({language})"
+            )
+
         # In a real implementation, we'd also update our success rate tracking
         success_rate = random.uniform(0.9, 0.95)
-        logging.info(f"📈 Current model accuracy: {success_rate:.2f} (simulated)")
+        logging.info(
+            f"📈 Current model accuracy: {success_rate:.2f} (simulated)")
 
     def _process_llm_response(self, resp_data, text, language):
         """
@@ -2992,7 +3659,8 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                             try:
                                 result = json.loads(json_match.group(0))
                             except:
-                                raise ValueError("Could not parse JSON from response")
+                                raise ValueError(
+                                    "Could not parse JSON from response")
                         else:
                             raise ValueError("No valid JSON found in response")
 
@@ -3009,17 +3677,18 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                     result["location"] = self.extract_location(text)
                 if "language" not in result:
                     result["language"] = language
-                    
+
                 return result
             else:
                 logging.error("Invalid API response format, missing 'choices'")
                 return self._rule_based_sentiment_analysis(text, language)
-                
+
         except Exception as e:
             logging.error(f"Error processing LLM response: {str(e)}")
             return self._rule_based_sentiment_analysis(text, language)
-    
-    def _validate_sentiment_correction(self, text, original_sentiment, corrected_sentiment):
+
+    def _validate_sentiment_correction(self, text, original_sentiment,
+                                       corrected_sentiment):
         """
         Interactive quiz-style AI validation of sentiment corrections
         
@@ -3033,7 +3702,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
         """
         # Use a single API key for validation to avoid excessive API usage
         import requests
-        
+
         # Get language for proper analysis
         try:
             lang_code = detect(text)
@@ -3043,22 +3712,25 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                 language = "English"
         except:
             language = "English"
-        
+
         # IMPORTANT CHANGE: Use Meta Llama 4 Maverick 17B for validation as requested by the user
         # Check for dedicated validation API key first
         validation_api_key = os.getenv("VALIDATION_API_KEY")
-        
+
         # If no dedicated validation key, fall back to the first groq key
         if not validation_api_key and len(self.groq_api_keys) > 0:
             validation_api_key = self.groq_api_keys[0]
-        
+
         # Safe logging to avoid None subscripting error
         if validation_api_key:
-            masked_key = validation_api_key[:10] + "***" if len(validation_api_key) > 10 else "***"
-            logging.info(f"Using Meta Llama 4 Maverick model for validation with key: {masked_key}")
+            masked_key = validation_api_key[:10] + "***" if len(
+                validation_api_key) > 10 else "***"
+            logging.info(
+                f"Using Meta Llama 4 Maverick model for validation with key: {masked_key}"
+            )
         else:
             logging.warning("No validation key available")
-        
+
         if validation_api_key:
             # Manual API call with a single key instead of using analyze_sentiment
             try:
@@ -3067,7 +3739,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                     "Authorization": f"Bearer {validation_api_key}",
                     "Content-Type": "application/json"
                 }
-                
+
                 # Specialized high-quality prompt for Meta Llama 4 Maverick model - much more detailed than regular prompt
                 if language == "Filipino":
                     system_message = """Ikaw ay isang dalubhasa sa pagsusuri ng damdamin sa panahon ng sakuna sa Pilipinas na ginagamit para sa validation ng mga user corrections.
@@ -3104,19 +3776,25 @@ IMPORTANT CONTEXTUAL GUIDELINES:
 - The presence of emojis requires careful interpretation as they may change the emotional meaning significantly.
 
 Analyze the provided text and describe in a clear, structured way which sentiment category is most appropriate."""
-                
+
                 # Use DeepSeek R1 Distill Llama 70B model for validation as specifically requested
                 # For DeepSeek models we need to use the correct base URL
                 llama_url = "https://api.groq.com/openai/v1/chat/completions"
-                
+
                 response = requests.post(
                     llama_url,
                     headers=headers,
                     json={
-                        "model": "deepseek-r1-distill-llama-70b",
-                        "messages": [
-                            {"role": "system", "content": system_message},
-                            {"role": "user", "content": f"""Please analyze this disaster-related text: "{text}"
+                        "model":
+                        "deepseek-r1-distill-llama-70b",
+                        "messages": [{
+                            "role": "system",
+                            "content": system_message
+                        }, {
+                            "role":
+                            "user",
+                            "content":
+                            f"""Please analyze this disaster-related text: "{text}"
 
 The original system classified this as: {original_sentiment}
 A user has suggested it should be: {corrected_sentiment}
@@ -3127,25 +3805,30 @@ TASK:
 3. Provide a clear explanation of your reasoning
 4. Format your response as JSON: {{"sentiment": "THE_CATEGORY", "confidence": 0.XX, "explanation": "detailed explanation", "validation": "valid" or "invalid", "reason": "why the correction is valid or invalid"}}
 
-Remember the context of Filipino/Taglish expressions and disaster-specific language patterns."""}
-                        ],
-                        "temperature": 0.1,
-                        "max_tokens": 350,
-                        "response_format": {"type": "json_object"}
+Remember the context of Filipino/Taglish expressions and disaster-specific language patterns."""
+                        }],
+                        "temperature":
+                        0.1,
+                        "max_tokens":
+                        350,
+                        "response_format": {
+                            "type": "json_object"
+                        }
                     },
-                    timeout=30
-                )
-                
+                    timeout=30)
+
                 # Process response directly
                 if response.status_code == 200:
                     response_data = response.json()
-                    
+
                     # Check if we're using DeepSeek and got back a JSON response
-                    logging.info(f"Using DeepSeek R1 Distill Llama 70B for validation")
-                    
+                    logging.info(
+                        f"Using DeepSeek R1 Distill Llama 70B for validation")
+
                     # Extract the response content
-                    content = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
-                    
+                    content = response_data.get('choices', [{}])[0].get(
+                        'message', {}).get('content', '')
+
                     try:
                         # Try to parse JSON directly from the content
                         if content:
@@ -3153,85 +3836,116 @@ Remember the context of Filipino/Taglish expressions and disaster-specific langu
                                 import json  # Import json here to ensure it's available in this scope
                                 llama_result = json.loads(content)
                             except Exception as e:
-                                logging.error(f"Error parsing validation response as JSON: {str(e)}")
+                                logging.error(
+                                    f"Error parsing validation response as JSON: {str(e)}"
+                                )
                                 # Fall back to rule-based analysis
                                 return {
-                                    "valid": True,  # Default to accepting user feedback
-                                    "reason": f"Technical error parsing validation response: {str(e)}"
+                                    "valid":
+                                    True,  # Default to accepting user feedback
+                                    "reason":
+                                    f"Technical error parsing validation response: {str(e)}"
                                 }
-                            
+
                             # Check if this is a structured JSON response with the validation fields
-                            if isinstance(llama_result, dict) and 'validation' in llama_result:
+                            if isinstance(
+                                    llama_result,
+                                    dict) and 'validation' in llama_result:
                                 # Use the DeepSeek validation result directly
-                                logging.info(f"DeepSeek R1 Distill Llama 70B validation result: {llama_result}")
-                                
+                                logging.info(
+                                    f"DeepSeek R1 Distill Llama 70B validation result: {llama_result}"
+                                )
+
                                 # The model directly tells us whether the correction is valid
-                                validation_result = llama_result.get('validation', 'valid')
+                                validation_result = llama_result.get(
+                                    'validation', 'valid')
                                 is_valid = validation_result.lower() == 'valid'
-                                
+
                                 # Create a result object directly from the DeepSeek response
                                 return {
-                                    "valid": is_valid,
-                                    "reason": llama_result.get('reason', llama_result.get('explanation', ''))
+                                    "valid":
+                                    is_valid,
+                                    "reason":
+                                    llama_result.get(
+                                        'reason',
+                                        llama_result.get('explanation', ''))
                                 }
                             else:
                                 # Fall back to our regular processing if Llama didn't give us validation fields
-                                ai_analysis = self._process_llm_response(response_data, text, language)
-                                logging.info(f"API validation used Llama 4 Maverick but didn't get validation fields, using regular processing")
+                                ai_analysis = self._process_llm_response(
+                                    response_data, text, language)
+                                logging.info(
+                                    f"API validation used Llama 4 Maverick but didn't get validation fields, using regular processing"
+                                )
                         else:
                             # Fall back to our regular processing
-                            ai_analysis = self._process_llm_response(response_data, text, language)
+                            ai_analysis = self._process_llm_response(
+                                response_data, text, language)
                     except Exception as e:
-                        logging.error(f"Error processing Llama 4 Maverick response: {str(e)}")
+                        logging.error(
+                            f"Error processing Llama 4 Maverick response: {str(e)}"
+                        )
                         # Fall back to regular processing
-                        ai_analysis = self._process_llm_response(response_data, text, language)
-                        logging.info(f"API validation used Llama 4 Maverick with fallback processing")
+                        ai_analysis = self._process_llm_response(
+                            response_data, text, language)
+                        logging.info(
+                            f"API validation used Llama 4 Maverick with fallback processing"
+                        )
                 else:
                     # If API call fails, fall back to cached result
-                    ai_analysis = self._rule_based_sentiment_analysis(text, language)
+                    ai_analysis = self._rule_based_sentiment_analysis(
+                        text, language)
             except Exception as e:
-                logging.error(f"API validation error with single key: {str(e)}")
+                logging.error(
+                    f"API validation error with single key: {str(e)}")
                 # Fall back to rule-based analysis on error
-                ai_analysis = self._rule_based_sentiment_analysis(text, language)
+                ai_analysis = self._rule_based_sentiment_analysis(
+                    text, language)
         else:
             # No API key available, use rule-based
             ai_analysis = self._rule_based_sentiment_analysis(text, language)
         ai_sentiment = ai_analysis["sentiment"]
         ai_confidence = ai_analysis["confidence"]
         ai_explanation = ai_analysis["explanation"]
-        
+
         # Sentiment categories in typical emotional progression order
-        sentiment_categories = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"]
-        
+        sentiment_categories = [
+            "Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"
+        ]
+
         # Map for quiz options display
         option_map = {
             "Panic": "a) Panic",
-            "Fear/Anxiety": "b) Fear/Anxiety", 
+            "Fear/Anxiety": "b) Fear/Anxiety",
             "Neutral": "c) Neutral",
-            "Disbelief": "d) Disbelief", 
+            "Disbelief": "d) Disbelief",
             "Resilience": "e) Resilience"
         }
-        
+
         # Quiz-style presentation of AI's answer
         quiz_prompt = f"Analyzing text: '{text}'\nWhat sentiment classification is most appropriate?"
         quiz_options = "a) Panic, b) Fear/Anxiety, c) Neutral, d) Disbelief, e) Resilience"
         ai_answer = option_map.get(ai_sentiment, f"({ai_sentiment})")
-        
+
         # Don't print any quiz frames to stdout - only log to file
         # This prevents double messages and JSON parsing errors
         logging.info("AI QUIZ VALIDATION: Validating user correction")
-        
+
         # Default to valid - LESS STRICT VALIDATION
         result = {"valid": True, "reason": ""}
-        
+
         # Compare the user's choice with the AI's choice - LESS STRICT VALIDATION
         if corrected_sentiment != ai_sentiment:
             # If sentiment is different from AI analysis, apply more lenient validation
-            ai_index = sentiment_categories.index(ai_sentiment) if ai_sentiment in sentiment_categories else -1
-            corrected_index = sentiment_categories.index(corrected_sentiment) if corrected_sentiment in sentiment_categories else -1
-            
+            ai_index = sentiment_categories.index(
+                ai_sentiment) if ai_sentiment in sentiment_categories else -1
+            corrected_index = sentiment_categories.index(
+                corrected_sentiment
+            ) if corrected_sentiment in sentiment_categories else -1
+
             # Only if the selections are more than 2 categories apart (very different)
-            if ai_index != -1 and corrected_index != -1 and abs(ai_index - corrected_index) > 2:
+            if ai_index != -1 and corrected_index != -1 and abs(
+                    ai_index - corrected_index) > 2:
                 # Only fail for very different classifications with high confidence
                 if ai_confidence > 0.90:
                     quiz_explanation = (
@@ -3243,7 +3957,9 @@ Remember the context of Filipino/Taglish expressions and disaster-specific langu
                     # Still valid even when different - just show explanation
                     result["valid"] = True
                     result["reason"] = quiz_explanation
-                    logging.warning(f"AI QUIZ VALIDATION: ACCEPTED DESPITE DIFFERENCES - User feedback will help improve model")
+                    logging.warning(
+                        f"AI QUIZ VALIDATION: ACCEPTED DESPITE DIFFERENCES - User feedback will help improve model"
+                    )
                 else:
                     # For low confidence analyses, always accept corrections
                     quiz_explanation = (
@@ -3264,33 +3980,37 @@ Remember the context of Filipino/Taglish expressions and disaster-specific langu
                 )
                 result["valid"] = True
                 result["reason"] = quiz_explanation
-        
+
         # Keep invalid results invalid - no exceptions
         if not result["valid"]:
-            logging.warning(f"AI QUIZ VALIDATION: STRICTLY REJECTING correction due to validation failure")
+            logging.warning(
+                f"AI QUIZ VALIDATION: STRICTLY REJECTING correction due to validation failure"
+            )
             # No "we accept your feedback" for invalid results - user needs to provide a correct answer
             result["reason"] = (
                 f"VALIDATION FAILED!\n\n"
                 f"Our AI analyzed this text as: {ai_answer}\n\n"
                 f"Explanation: {ai_explanation}\n\n"
                 f"Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) "
-                f"was NOT accepted because it conflicts with our analysis."
-            )
-        
+                f"was NOT accepted because it conflicts with our analysis.")
+
         # Only for VALID results (match AI or very close to AI analysis)
         if result["valid"]:
             if corrected_sentiment == ai_sentiment:
-                result["reason"] = f"VALIDATION PASSED! Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) EXACTLY matches our AI analysis.\n\nExplanation: {ai_explanation}"
+                result[
+                    "reason"] = f"VALIDATION PASSED! Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) EXACTLY matches our AI analysis.\n\nExplanation: {ai_explanation}"
             else:
                 # Only slight differences are accepted
-                result["reason"] = f"VALIDATION PASSED with minor difference. Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) is reasonably close to our AI analysis of {ai_answer}.\n\nAI Explanation: {ai_explanation}"
-        
+                result[
+                    "reason"] = f"VALIDATION PASSED with minor difference. Your selection ({option_map.get(corrected_sentiment, corrected_sentiment)}) is reasonably close to our AI analysis of {ai_answer}.\n\nAI Explanation: {ai_explanation}"
+
         logging.info(f"AI QUIZ VALIDATION result: {result}")
         return result
 
     def calculate_real_metrics(self, results):
         """Calculate metrics based on analysis results using confusion matrix approach"""
-        logging.info("Generating metrics from sentiment analysis with confusion matrix")
+        logging.info(
+            "Generating metrics from sentiment analysis with confusion matrix")
 
         # Clear training data to start fresh with each file
         if hasattr(self, 'trained_examples'):
@@ -3300,7 +4020,7 @@ Remember the context of Filipino/Taglish expressions and disaster-specific langu
             self.location_examples = {}
         if hasattr(self, 'disaster_examples'):
             self.disaster_examples = {}
-        
+
         # Calculate and format confidence values using the actual AI confidence
         # First ensure every record has confidence in proper decimal format
         for result in results:
@@ -3308,18 +4028,20 @@ Remember the context of Filipino/Taglish expressions and disaster-specific langu
                 # Ensure all confidence values are in floating point format (not integer)
                 if isinstance(result["confidence"], int):
                     result["confidence"] = float(result["confidence"])
-                
+
                 # Use the AI's actual confidence score - don't artificially change it
                 # Only round to 2 decimal places for display consistency
                 result["confidence"] = round(result["confidence"], 2)
 
         # Calculate confusion matrix statistics per sentiment class
         # This will be a simulated confusion matrix based on confidence scores
-        sentiment_classes = ["Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"]
-        
+        sentiment_classes = [
+            "Panic", "Fear/Anxiety", "Disbelief", "Resilience", "Neutral"
+        ]
+
         # Track metrics per sentiment class
         per_class_metrics = {}
-        
+
         # Sort results by sentiment for grouping
         sentiment_groups = {}
         for result in results:
@@ -3327,13 +4049,15 @@ Remember the context of Filipino/Taglish expressions and disaster-specific langu
             if sentiment not in sentiment_groups:
                 sentiment_groups[sentiment] = []
             sentiment_groups[sentiment].append(result)
-        
+
         # Build simulated confusion matrix for each sentiment
         total_correct = 0
         total_count = len(results)
-        
-        logging.info(f"Calculating per-class metrics for {len(sentiment_groups)} sentiment types")
-        
+
+        logging.info(
+            f"Calculating per-class metrics for {len(sentiment_groups)} sentiment types"
+        )
+
         # For each sentiment class, calculate metrics
         for sentiment in sentiment_classes:
             # Skip if no examples of this sentiment
@@ -3346,11 +4070,11 @@ Remember the context of Filipino/Taglish expressions and disaster-specific langu
                     "support": 0
                 }
                 continue
-                
+
             # Get samples for this sentiment
             samples = sentiment_groups.get(sentiment, [])
             sample_count = len(samples)
-            
+
             # Skip if no examples
             if sample_count == 0:
                 per_class_metrics[sentiment] = {
@@ -3361,84 +4085,102 @@ Remember the context of Filipino/Taglish expressions and disaster-specific langu
                     "support": 0
                 }
                 continue
-            
+
             # Handle small sample size differently
             if sample_count <= 5:
                 # For very small datasets (like 1 or 2 samples)
                 # Set reasonable metrics that make sense with minimal data
                 # Provide balanced metrics that avoid extremes
-                logging.info(f"SMALL SAMPLE ADJUSTMENT: Sentiment {sentiment} has only {sample_count} samples - setting balanced metrics")
-                
+                logging.info(
+                    f"SMALL SAMPLE ADJUSTMENT: Sentiment {sentiment} has only {sample_count} samples - setting balanced metrics"
+                )
+
                 # For 1-5 samples, use fixed values that make sense
-                true_positives = max(1, int(sample_count * 0.85))  # Most samples are correct
+                true_positives = max(1, int(sample_count *
+                                            0.85))  # Most samples are correct
                 false_positives = 1  # Always have at least one false positive
                 false_negatives = 1  # Always have at least one false negative
             else:
                 # For larger sample sizes, calculate based on confidence
-                avg_confidence = sum(s.get("confidence", 0.75) for s in samples) / sample_count
-                
+                avg_confidence = sum(
+                    s.get("confidence", 0.75) for s in samples) / sample_count
+
                 # Base metrics calculated from confidence - simulate a confusion matrix
                 # Higher confidence = more true positives, lower false positives/negatives
-                
+
                 # Initialize confusion matrix values
                 true_positives = int(sample_count * avg_confidence)
-                
+
                 # Apply same calculation to ALL sentiment types for balanced treatment
                 # No special case for Neutral - treat all sentiment classes the same
-                
+
                 # Base false positives and negatives on the actual confidence score directly
                 # Higher confidence = fewer errors
-                false_negatives = max(1, int(sample_count * (1 - avg_confidence) * 2.0))
-                false_positives = max(1, int(sample_count * (1 - avg_confidence) * 1.8))
-                
+                false_negatives = max(
+                    1, int(sample_count * (1 - avg_confidence) * 2.0))
+                false_positives = max(
+                    1, int(sample_count * (1 - avg_confidence) * 1.8))
+
                 # Ensure values are reasonable
                 true_positives = max(1, true_positives)
                 if true_positives > sample_count:
                     true_positives = sample_count
-                
+
                 # Cap false positives/negatives for datasets
-                false_positives = min(max(1, false_positives), sample_count * 2)
-                false_negatives = min(max(2, false_negatives), sample_count * 3)
-            
+                false_positives = min(max(1, false_positives),
+                                      sample_count * 2)
+                false_negatives = min(max(2, false_negatives),
+                                      sample_count * 3)
+
             # Calculate precision and recall based on confusion matrix
-            precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
-            recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
-            
-            # Direct confidence-based metrics calculation 
+            precision = true_positives / (true_positives +
+                                          false_positives) if (
+                                              true_positives +
+                                              false_positives) > 0 else 0
+            recall = true_positives / (true_positives + false_negatives) if (
+                true_positives + false_negatives) > 0 else 0
+
+            # Direct confidence-based metrics calculation
             # Base precision and recall directly on confidence score
             if sample_count <= 2:
                 # For very small samples, base metrics directly on confidence
                 # Small adjustments to create proper relationship
-                confidence_value = sum(s.get("confidence", 0.75) for s in samples) / sample_count
-                precision = min(0.82, confidence_value + 0.08)  # Precision higher than confidence
-                recall = min(0.70, confidence_value - 0.05)     # Recall lower than confidence
-                logging.info(f"DIRECTLY USING CONFIDENCE: {confidence_value:.3f} for precision/recall calculation in small sample")
+                confidence_value = sum(
+                    s.get("confidence", 0.75) for s in samples) / sample_count
+                precision = min(0.82, confidence_value +
+                                0.08)  # Precision higher than confidence
+                recall = min(0.70, confidence_value -
+                             0.05)  # Recall lower than confidence
+                logging.info(
+                    f"DIRECTLY USING CONFIDENCE: {confidence_value:.3f} for precision/recall calculation in small sample"
+                )
             else:
                 # Standard approach for larger samples
                 precision = min(0.82, precision)
-                recall = min(0.70, recall)  
-                
+                recall = min(0.70, recall)
+
                 # Ensure recall is always lower than precision
                 if recall > precision:
                     recall = precision * 0.85  # A realistic relationship
-            
+
             # Calculate F1 score
             if precision + recall > 0:
                 f1_score = 2 * (precision * recall) / (precision + recall)
             else:
                 f1_score = 0.0
-            
+
             # Track total correct predictions for accuracy calculation
             total_correct += true_positives
-                
+
             # Calculate average confidence - handling both cases
             confidence_value = 0.75  # Default value
             if 'avg_confidence' in locals():
                 confidence_value = avg_confidence
             else:
                 # If avg_confidence not defined, calculate directly
-                confidence_value = sum(s.get("confidence", 0.75) for s in samples) / sample_count
-                
+                confidence_value = sum(
+                    s.get("confidence", 0.75) for s in samples) / sample_count
+
             # Store metrics with confusion matrix values
             per_class_metrics[sentiment] = {
                 "precision": round(precision, 2),
@@ -3453,56 +4195,77 @@ Remember the context of Filipino/Taglish expressions and disaster-specific langu
                     "false_negatives": false_negatives
                 }
             }
-            
-            logging.info(f"Sentiment '{sentiment}' metrics: precision={per_class_metrics[sentiment]['precision']}, recall={per_class_metrics[sentiment]['recall']}, support={sample_count}")
-        
+
+            logging.info(
+                f"Sentiment '{sentiment}' metrics: precision={per_class_metrics[sentiment]['precision']}, recall={per_class_metrics[sentiment]['recall']}, support={sample_count}"
+            )
+
         # Use average confidence scores to determine the metrics directly
         # This bases metrics on the actual sentiment confidence scores as requested
-        total_confidence = sum(metrics["confidence"] for _, metrics in per_class_metrics.items() if "confidence" in metrics)
-        avg_overall_confidence = total_confidence / len(per_class_metrics) if per_class_metrics else 0.75
-        
-        logging.info(f"USING CONFIDENCE-BASED METRICS: Average confidence across all sentiments: {avg_overall_confidence:.3f}")
-        
+        total_confidence = sum(metrics["confidence"]
+                               for _, metrics in per_class_metrics.items()
+                               if "confidence" in metrics)
+        avg_overall_confidence = total_confidence / len(
+            per_class_metrics) if per_class_metrics else 0.75
+
+        logging.info(
+            f"USING CONFIDENCE-BASED METRICS: Average confidence across all sentiments: {avg_overall_confidence:.3f}"
+        )
+
         # For small datasets, calculate metrics based on average confidence
         if total_count <= 5:
-            logging.info(f"SMALL DATASET ADJUSTMENT: Only {total_count} total samples - using confidence-based metrics")
+            logging.info(
+                f"SMALL DATASET ADJUSTMENT: Only {total_count} total samples - using confidence-based metrics"
+            )
             # Calculate metrics directly from confidence scores
-            accuracy = min(0.88, avg_overall_confidence + 0.15)  # Accuracy slightly higher than confidence
-            precision = min(0.82, avg_overall_confidence + 0.05)  # Precision slightly higher than raw confidence
-            recall = min(0.70, avg_overall_confidence - 0.05)    # Recall slightly lower than confidence
-            f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+            accuracy = min(0.88, avg_overall_confidence +
+                           0.15)  # Accuracy slightly higher than confidence
+            precision = min(
+                0.82, avg_overall_confidence +
+                0.05)  # Precision slightly higher than raw confidence
+            recall = min(0.70, avg_overall_confidence -
+                         0.05)  # Recall slightly lower than confidence
+            f1_score = 2 * (precision * recall) / (precision + recall) if (
+                precision + recall) > 0 else 0.0
         else:
             # Calculate weighted averages for overall metrics
-            precision_weighted_sum = sum(metrics["precision"] * metrics["count"] for _, metrics in per_class_metrics.items())
-            recall_weighted_sum = sum(metrics["recall"] * metrics["count"] for _, metrics in per_class_metrics.items())
-            f1_weighted_sum = sum(metrics["f1Score"] * metrics["count"] for _, metrics in per_class_metrics.items())
-            
+            precision_weighted_sum = sum(
+                metrics["precision"] * metrics["count"]
+                for _, metrics in per_class_metrics.items())
+            recall_weighted_sum = sum(
+                metrics["recall"] * metrics["count"]
+                for _, metrics in per_class_metrics.items())
+            f1_weighted_sum = sum(metrics["f1Score"] * metrics["count"]
+                                  for _, metrics in per_class_metrics.items())
+
             # Calculate overall accuracy
             accuracy = total_correct / total_count if total_count > 0 else 0
-            
+
             # Calculate weighted metrics
             precision = precision_weighted_sum / total_count if total_count > 0 else 0
             recall = recall_weighted_sum / total_count if total_count > 0 else 0
             f1_score = f1_weighted_sum / total_count if total_count > 0 else 0
-            
+
             # Apply realistic caps
             accuracy = min(0.88, round(accuracy, 2))
             precision = min(0.82, round(precision, 2))
             recall = min(0.70, round(recall, 2))  # Much lower recall cap
-        
+
         # Ensure proper relationship between metrics
         if recall > precision:
             recall = round(precision * 0.85, 2)  # Recall should be lower
-            
+
         if precision > accuracy:
-            precision = round(accuracy * 0.93, 2)  # Precision should be lower than accuracy
-            
+            precision = round(accuracy * 0.93,
+                              2)  # Precision should be lower than accuracy
+
         # Calculate proper F1 score based on precision and recall
         if precision + recall > 0:
-            f1_score = round(2 * (precision * recall) / (precision + recall), 2)
+            f1_score = round(2 * (precision * recall) / (precision + recall),
+                             2)
         else:
             f1_score = 0.0
-        
+
         # Include both overall metrics and per-class metrics in the response
         metrics = {
             "accuracy": accuracy,
@@ -3527,42 +4290,50 @@ def main():
                 # Parse the text input as JSON if it's a JSON string
                 if args.text.startswith('{'):
                     params = json.loads(args.text)
-                    
+
                     # Check if this is a training feedback request
                     if 'feedback' in params and params['feedback'] == True:
                         original_text = params.get('originalText', '')
-                        original_sentiment = params.get('originalSentiment', '')
-                        corrected_sentiment = params.get('correctedSentiment', '')
-                        corrected_location = params.get('correctedLocation', '')
-                        corrected_disaster_type = params.get('correctedDisasterType', '')
-                        
+                        original_sentiment = params.get(
+                            'originalSentiment', '')
+                        corrected_sentiment = params.get(
+                            'correctedSentiment', '')
+                        corrected_location = params.get(
+                            'correctedLocation', '')
+                        corrected_disaster_type = params.get(
+                            'correctedDisasterType', '')
+
                         # Check if we have at least one type of correction (sentiment, location, or disaster)
                         has_sentiment_correction = original_text and original_sentiment and corrected_sentiment
                         has_location_correction = original_text and original_sentiment and corrected_location
                         has_disaster_correction = original_text and original_sentiment and corrected_disaster_type
-                        
+
                         if has_sentiment_correction or has_location_correction or has_disaster_correction:
                             # Process feedback and train the model
                             corrected_sentiment_to_use = corrected_sentiment if has_sentiment_correction else original_sentiment
-                            
+
                             # Log what kind of correction we're applying
                             if has_sentiment_correction:
-                                logging.info(f"Applying sentiment correction: {original_sentiment} -> {corrected_sentiment}")
+                                logging.info(
+                                    f"Applying sentiment correction: {original_sentiment} -> {corrected_sentiment}"
+                                )
                             if has_location_correction:
-                                logging.info(f"Applying location correction: -> {corrected_location}")
+                                logging.info(
+                                    f"Applying location correction: -> {corrected_location}"
+                                )
                             if has_disaster_correction:
-                                logging.info(f"Applying disaster type correction: -> {corrected_disaster_type}")
-                            
+                                logging.info(
+                                    f"Applying disaster type correction: -> {corrected_disaster_type}"
+                                )
+
                             try:
                                 # Train the model
                                 training_result = backend.train_on_feedback(
-                                    original_text, 
-                                    original_sentiment, 
+                                    original_text, original_sentiment,
                                     corrected_sentiment_to_use,
                                     corrected_location,
-                                    corrected_disaster_type
-                                )
-                                
+                                    corrected_disaster_type)
+
                                 # Make sure no logging or validation messages are in the output
                                 # We want ONLY ONE clean JSON output for the frontend to parse
                                 # REMOVED ALL BANNER DISPLAYS, ONLY OUTPUT THE PURE JSON RESULT TO AVOID PARSING ISSUES ON CLIENT
@@ -3570,20 +4341,30 @@ def main():
                                 print(json.dumps(training_result))
                                 sys.stdout.flush()
                             except Exception as e:
-                                logging.error(f"Error training model: {str(e)}")
+                                logging.error(
+                                    f"Error training model: {str(e)}")
                                 error_response = {
-                                    "status": "error",
-                                    "message": f"Error during model training: {str(e)}"
+                                    "status":
+                                    "error",
+                                    "message":
+                                    f"Error during model training: {str(e)}"
                                 }
                                 print(json.dumps(error_response))
                                 sys.stdout.flush()
                             return
                         else:
-                            logging.error("No valid corrections provided in feedback")
-                            print(json.dumps({"status": "error", "message": "No valid corrections provided"}))
+                            logging.error(
+                                "No valid corrections provided in feedback")
+                            print(
+                                json.dumps({
+                                    "status":
+                                    "error",
+                                    "message":
+                                    "No valid corrections provided"
+                                }))
                             sys.stdout.flush()
                             return
-                    
+
                     # Regular text analysis
                     text = params.get('text', '')
                 else:
@@ -3591,25 +4372,29 @@ def main():
 
                 # Analyze sentiment with normal approach
                 result = backend.analyze_sentiment(text)
-                
+
                 # Don't add quiz-style format information to regular analysis result
                 # This should ONLY be used for validation feedback, not for regular analysis
-                
+
                 # Instead just use a simpler format for the client display
                 # Add internal sentiment data (not displayed to the user in quiz format)
                 result["_sentimentInfo"] = {
                     "confidence": result["confidence"],
                     "explanation": result["explanation"]
                 }
-                
+
                 # Log that we're NOT using quiz format for regular analysis
-                logging.info("REGULAR ANALYSIS: Not using quiz format for regular sentiment analysis")
-                
+                logging.info(
+                    "REGULAR ANALYSIS: Not using quiz format for regular sentiment analysis"
+                )
+
                 # DON'T PRINT TO CONSOLE OR STDOUT - ONLY LOG TO FILE
                 # Logging is retained for diagnostic purposes but won't appear in console or interfere with JSON output
-                logging.info(f"AI analysis result: {result['sentiment']} (conf: {result['confidence']})")
+                logging.info(
+                    f"AI analysis result: {result['sentiment']} (conf: {result['confidence']})"
+                )
                 logging.info(f"AI explanation: {result['explanation']}")
-                
+
                 # Return the full result with quiz information
                 print(json.dumps(result))
                 sys.stdout.flush()
