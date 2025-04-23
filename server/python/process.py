@@ -1089,15 +1089,30 @@ CRITICAL: You must classify the message into one of five categories:
 - Resilience: Showing strength, unity and hope despite disaster.
 - Neutral: Simple factual statements without emotional content.
 
+DISASTER TYPE DETECTION (FOLLOW THESE PRECISELY):
+- Any variation of "sunog" words (sunog, nasusunog, naususnog, nasunugan, etc.) ALWAYS means FIRE disaster.
+- Messages like "may naususnog daw" MUST be classified as FIRE, even with typos.
+- Messages phrased as questions like "may sunog ba?" or "totoo ba na may sunog" still indicate FIRE disaster.
+- Never classify a message with fire-related Filipino terms as "Unknown Disaster".
+- If there's any mention of "apoy" or any fire-related terms, ALWAYS classify as FIRE, not Unknown.
+
 IMPORTANT CONTEXTUAL GUIDELINES FOR NEUTRAL VS EMOTIONAL CONTENT (CRITICAL):
 - Simple statements like "there is a fire at the corner" or "there is flooding" are ALWAYS NEUTRAL if there's no other emotional context.
+- Questions like "totoo ba?" (is it true?) indicate uncertainty and can express Fear/Anxiety if about disasters.
 - Physical descriptions like "buildings collapsed" or "people evacuated" are NEUTRAL (descriptive, no emotion).
-- General damage reports like "earthquake caused significant damage" are NEUTRAL (factual description).
+- General damage reports are NEUTRAL (factual description).
 - NEWS-STYLE REPORTS ARE NEUTRAL, not Fear/Anxiety - this is a common misclassification error.
 - Descriptions of damage or effects WITHOUT emotional words are NEUTRAL.
 - Only classify as Fear/Anxiety when there are EXPLICIT emotional markers like "scary", "afraid", "worried", etc.
 - Messages with "HELP!" or urgent cries for assistance indicate Panic.
 - Messages offering to help others ("let's help them") show Resilience, while those asking for help ("please help us") indicate Panic or Fear.
+
+YOUR EXPLANATION MUST BE DETAILED (5+ sentences/1 paragraph) covering:
+1. The emotional tone of the message and why you classified it with that sentiment
+2. What specific words indicate disaster type and location
+3. Cultural context specific to Filipino communication patterns
+4. How severe the situation appears based on language used
+5. The significance of question formats or uncertainty markers if present
 - Many messages mix Tagalog and English (Taglish) that require cultural context awareness.
 - The presence of emojis requires careful interpretation as they may change the emotional meaning significantly.
 
