@@ -6,7 +6,6 @@ import { ConfusionMatrix } from "@/components/evaluation/confusion-matrix";
 import { SentimentLabelCount } from "@/components/evaluation/sentiment-label-count";
 import { LanguageLabelCount } from "@/components/evaluation/language-label-count";
 import { WordCloud } from "@/components/evaluation/word-cloud";
-import { DownloadableMetrics } from "@/components/evaluation/DownloadableMetrics";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileUploader } from "@/components/file-uploader";
