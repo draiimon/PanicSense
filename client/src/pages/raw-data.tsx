@@ -28,8 +28,7 @@ import {
   Smile, 
   MapPin, 
   Loader2, 
-  Trash2, 
-  Download, 
+  Trash2,
   FileCheck,
   FileX
 } from "lucide-react";
@@ -317,7 +316,7 @@ export default function RawData() {
         </motion.div>
 
         {/* Action Buttons Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Upload button */}
           <Card className="overflow-hidden border-none shadow-md rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100/40">
             <CardHeader className="pb-3 pt-5">
@@ -331,55 +330,6 @@ export default function RawData() {
             </CardHeader>
             <CardContent className="pb-5">
               <FileUploader className="w-full" />
-            </CardContent>
-          </Card>
-
-          {/* Download button */}
-          <Card className="overflow-hidden border-none shadow-md rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100/40">
-            <CardHeader className="pb-3 pt-5">
-              <CardTitle className="flex items-center gap-2 text-lg font-medium">
-                <Download className="h-5 w-5 text-blue-500" />
-                Export Data
-              </CardTitle>
-              <CardDescription>
-                Save the current dataset as CSV
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-5">
-              <Button
-                onClick={async () => {
-                  try {
-                    const response = await fetch("/api/export-csv");
-                    if (!response.ok) throw new Error("Failed to download data");
-
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = "disaster-sentiments.csv";
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-
-                    toast({
-                      title: "Success",
-                      description: "Data exported successfully",
-                      variant: "default",
-                    });
-                  } catch (error) {
-                    toast({
-                      title: "Error",
-                      description: "Failed to export data",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                className="w-full relative flex items-center justify-center px-5 py-2.5 h-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:scale-105 transition-all duration-200 overflow-hidden font-medium"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                <span>Download CSV</span>
-              </Button>
             </CardContent>
           </Card>
 
