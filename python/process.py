@@ -557,7 +557,12 @@ if __name__ == "__main__":
     if args.text:
         print(json.dumps(backend.analyze_sentiment(args.text)))
     elif args.file:
-        print(json.dumps(backend.process_csv(args.file)))
+        # Use server method directly instead of a process_csv method
+        # This allows the python/process.py to use the same code as server/python/process.py
+        # without duplicating methods
+        from server.python.process import DisasterSentimentBackend as ServerBackend
+        server_backend = ServerBackend()
+        print(json.dumps(server_backend.process_csv(args.file)))
     else:
         print("Error: Please provide either --text or --file argument")
         sys.exit(1)
