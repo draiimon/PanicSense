@@ -4,11 +4,8 @@
  * 
  * Usage on Render.com:
  * - Build Command: npm install
- * - Start Command: node run.js
+ * - Start Command: node run.cjs
  */
 
-// Run setup first
-require('./render-setup.js');
-
-// Then start the main application
+// Simple solution - just invoke the main file
 require('./index.js');
