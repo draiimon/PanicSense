@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: panicsense
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: NODE_ENV=production node server/index-wrapper.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+    autoDeploy: true
