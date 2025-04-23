@@ -797,3 +797,17 @@ export async function markFeedbackAsTrained(id: number): Promise<{message: strin
   const response = await apiRequest('PATCH', `/api/sentiment-feedback/${id}/trained`);
   return response.json();
 }
+
+// Text processing interface
+export interface TextProcessingResult {
+  normalizedText: string;
+  tokenizedText: string[];
+  stemmedText: string[];
+  finalOutput: string;
+}
+
+// Process text through NLP pipeline
+export async function processText(text: string): Promise<TextProcessingResult> {
+  const response = await apiRequest('POST', '/api/text-processing', { text });
+  return response.json();
+}

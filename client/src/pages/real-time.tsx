@@ -1,4 +1,5 @@
 import { RealtimeMonitor } from "@/components/realtime/realtime-monitor";
+import { TextProcessor } from "@/components/realtime/text-processor";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Lightbulb, Zap, MessageSquareText, ClipboardCheck } from "lucide-react";
@@ -89,8 +90,11 @@ export default function RealTime() {
             </div>
           </motion.div>
 
-          {/* Realtime Monitor Component */}
-          <motion.div variants={itemVariants}>
+          {/* Text Processing and Realtime Monitor Components - Side by Side */}
+          <motion.div
+            variants={itemVariants}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TextProcessor />
             <RealtimeMonitor />
           </motion.div>
 
@@ -121,7 +125,7 @@ export default function RealTime() {
                     <div>
                       <h3 className="text-base font-medium text-indigo-900">Enter Text</h3>
                       <p className="mt-1 text-sm text-slate-600">
-                        Enter disaster-related text in the input field on the left. You can type in English or Filipino.
+                        Enter disaster-related text in the input field. You can type in English or Filipino for sentiment analysis, or use the text processor to see how text is transformed.
                       </p>
                     </div>
                   </div>
@@ -133,7 +137,7 @@ export default function RealTime() {
                     <div>
                       <h3 className="text-base font-medium text-indigo-900">Process Analysis</h3>
                       <p className="mt-1 text-sm text-slate-600">
-                        Click the "Analyze Sentiment" button to process the text, or enable auto-analyze mode.
+                        For sentiment analysis, click "Analyze Sentiment". For text processing, use the "Process Text" button to see normalization, tokenization, stemming, and final outputs.
                       </p>
                     </div>
                   </div>
@@ -145,7 +149,7 @@ export default function RealTime() {
                     <div>
                       <h3 className="text-base font-medium text-indigo-900">View Results</h3>
                       <p className="mt-1 text-sm text-slate-600">
-                        View the results in the right panel, showing the detected sentiment, confidence level, and additional insights.
+                        View sentiment analysis results showing emotions, confidence levels and insights. For text processing, see how text is transformed through normalization, tokenization, stemming and final output.
                       </p>
                     </div>
                   </div>
