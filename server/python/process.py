@@ -1478,6 +1478,57 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
         """Fallback rule-based sentiment analysis"""
         text_lower = text.lower()
         
+        # SPECIAL CASE: Check for religious/prayer content first - common in Filipino culture during disasters
+        # These should typically be classified as Resilience
+        religious_terms = ["lord", "god", "jesus", "amen", "pray", "prayer", "prayers", "bless", "blessing", 
+                          "panginoon", "diyos", "dyos", "faith", "keep us safe", "protect us", "watch over",
+                          "mercy", "keep safe", "be with us", "holy", "shield", "divine", "grace", "hope",
+                          "panalangin", "dasal", "magdasal", "tulungan mo kami", "lingapin", "mahal na panginoon"]
+        
+        prayer_emoji = ["🙏", "✝️", "⛪", "🕊️", "❤️", "🛐", "✨", "🕯️", "👼"]
+        
+        religious_pattern = len([word for word in text_lower.split() if any(term in word for term in religious_terms)])
+        contains_prayer_emoji = any(emoji in text for emoji in prayer_emoji)
+        
+        # Special handling for religious content - usually Resilience in disaster context
+        if (religious_pattern >= 2 or ("amen" in text_lower and "lord" in text_lower) or 
+            ("lord" in text_lower and contains_prayer_emoji) or 
+            ("amen" in text_lower and contains_prayer_emoji) or
+            re.search(r'\bamen\b', text_lower) or
+            re.search(r'\blord\b.*?\bamen\b', text_lower) or
+            re.search(r'\bgod\b.*?\bamen\b', text_lower) or
+            re.search(r'\bprayer', text_lower) or
+            re.search(r'\bpray\b', text_lower)):
+            
+            # Religious content with fear - could be Fear/Anxiety
+            fear_terms = ["afraid", "scared", "takot", "fear", "afraid", "worried", "nakakatakot", "scary"]
+            has_fear = any(term in text_lower for term in fear_terms)
+            
+            # Religious content with panic indicators
+            panic_terms = ["help", "tulong", "emergency", "rescue", "danger", "save", "urgent"]
+            has_panic = any(term in text_lower for term in panic_terms)
+            
+            # If religious content has strong panic or fear markers, it could override Resilience
+            if has_panic and (text.isupper() or "!!!" in text):
+                return {
+                    "sentiment": "Panic",
+                    "confidence": 0.90,
+                    "explanation": "Prayer combined with urgent distress signals indicates panic."
+                }
+            elif has_fear and not any(word in text_lower for word in ["bless", "protect", "save", "keep safe"]):
+                return {
+                    "sentiment": "Fear/Anxiety",
+                    "confidence": 0.88,
+                    "explanation": "Prayer combined with expressions of fear indicates anxiety."
+                }
+            else:
+                # Default for religious content: Resilience
+                return {
+                    "sentiment": "Resilience",
+                    "confidence": 0.93,
+                    "explanation": "Text contains prayer or religious references, showing faith and hope during adversity."
+                }
+        
         # VERY IMPORTANT: The algorithm follows EXACTLY what's in the text 
         # If the input is a short statement like "may sunog", "may baha", etc.
         # and doesn't explicitly indicate panic, fear, etc., then it MUST be NEUTRAL
@@ -1620,7 +1671,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                 "explanation": "The combination of laughter ('HAHA') and words like 'TULONG' indicates this is expressing humor or disbelief, not actual panic. This is a common Filipino pattern for jokes or sarcasm."
             }
 
-        # Keywords associated with each sentiment
+        # Keywords associated with each sentiment - IMPROVED FOR RELIGIOUS CONTENT
         sentiment_keywords = {
             "Panic": [
                 "emergency", "trapped", "dying", "death", "urgent",
@@ -1644,7 +1695,12 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                 "recover", "hope", "lets help", "let's help", "let us help", "help them",
                 "malalampasan", "tatayo ulit", "magbabalik",
                 "pag-asa", "malalagpasan", "tulungan natin", "tumulong",
-                "we can help", "we will help", "tutulong tayo"
+                "we can help", "we will help", "tutulong tayo",
+                # Additional resilience terms - especially religious terms common in Filipino culture
+                "amen", "lord", "god", "jesus", "pray", "prayer", "praying", 
+                "bless", "blessing", "blessed", "protect", "protection", "safe", "safety", 
+                "keep safe", "faith", "faithful", "mercy", "merciful", "trust", "shield",
+                "heaven", "heavenly", "divine", "grace", "glory", "almighty", "holy"
             ]
         }
 
@@ -1655,6 +1711,13 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
             for keyword in keywords:
                 if keyword in text_lower:
                     scores[sentiment] += 1
+                    
+        # Special handling for prayer emoji 🙏 and similar religious emojis
+        # These are strong indicators of Resilience in Filipino disaster context
+        prayer_emojis = ["🙏", "✝️", "⛪", "🕊️"]
+        for emoji in prayer_emojis:
+            if emoji in text:
+                scores["Resilience"] += 2  # Give extra weight to prayer emojis
 
         # DEEPLY ANALYZE FULL CONTEXT
         # Check for phrases indicating help/resilience in the context
@@ -1664,9 +1727,24 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
             "magbigay ng tulong", "mag volunteer", "magtulungan", "donate", "donation",
             "we can help", "we will help", "tutulong tayo", "support", "donate",
             "fundraising", "fund raising", "relief", "relief goods", "pagtulong",
-            "magbayanihan", "bayanihan", "volunteer", "volunteers"
+            "magbayanihan", "bayanihan", "volunteer", "volunteers",
+            # Additional Resilience patterns for religious content
+            "keep us safe", "keep safe", "be with us", "protect us", "lord protect", 
+            "god bless", "jesus save", "watch over us", "be with us", "guide us",
+            "spare us", "mercy on us", "have mercy", "we pray", "we trust",
+            "amen", "in jesus name", "lord jesus", "panginoon"
         ]
         
+        # Special handling for Taglish content
+        # If text contains "amen" alongside other religious terms, it's typically Resilience
+        if "amen" in text_lower and any(term in text_lower for term in religious_terms):
+            scores["Resilience"] += 3
+            
+        # "Keep safe" and variants should boost Resilience
+        keep_safe_patterns = ["keep safe", "keep us safe", "stay safe", "be safe", "safety"]
+        if any(pattern in text_lower for pattern in keep_safe_patterns):
+            scores["Resilience"] += 2
+            
         # Check for laughter and mockery patterns (strong indicators of disbelief)
         laughter_patterns = ["haha", "hehe", "lol", "lmao", "ulol", "gago", "tanga"]
         laughter_count = 0
@@ -1830,6 +1908,9 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                 has_fear_words = any(s in text_lower for s in ["takot", "natatakot", "afraid", "scared", "frightened", "nanginginig"])
                 has_resilience_words = any(s in text_lower for s in ["be brave", "stay strong", "kakayanin", "magtulungan", "matibay", "malalagpasan"])
                 
+                # Religious content usually indicates Resilience in disaster context
+                has_religious_content = any(term in text_lower for term in religious_terms) or contains_prayer_emoji
+                
                 # If text has more emojis than words, prioritize Disbelief regardless
                 emoji_count = sum(1 for char in text if ord(char) > 127000)  # Count emoji characters
                 word_count = len([w for w in text.split() if w.isalpha()])
@@ -1859,6 +1940,15 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                         "sentiment": sentiment,
                         "confidence": 0.90, 
                         "explanation": "Text uses news reporting style with factual information, not expressing personal emotions."
+                    }
+                
+                # Religious content in disaster context is typically Resilience
+                if has_religious_content and "Resilience" in top_sentiments:
+                    sentiment = "Resilience"
+                    return {
+                        "sentiment": sentiment,
+                        "confidence": 0.92,
+                        "explanation": "Text contains religious references or prayers showing faith and hope during adversity."
                     }
                     
                 # Only use standard priority if no special cases match
@@ -1899,7 +1989,10 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
             else:
                 explanation = "The content shows shock, surprise or inability to comprehend the situation."
         elif sentiment_value == "Resilience":
-            explanation = "The text demonstrates community support, offers of help, or positive action toward recovery."
+            if any(term in text_lower for term in religious_terms) or contains_prayer_emoji:
+                explanation = "The text shows faith, prayer or religious sentiment, indicating resilience and hope during adversity."
+            else:
+                explanation = "The text demonstrates community support, offers of help, or positive action toward recovery."
         else:  # Neutral
             explanation = "The text appears informational or descriptive without strong emotional indicators."
             
