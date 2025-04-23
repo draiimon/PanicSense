@@ -1,0 +1,44 @@
+ Cloning from https://github.com/draiimon/PanicSense
+==> Checking out commit a986b0331bb2cb920679a279c4d09cb3d2818487 in branch main
+==> Using Node.js version 22.14.0 (default)
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Using Bun version 1.1.0 (default)
+==> Docs on specifying a bun version: https://render.com/docs/bun-version
+==> Running build command 'chmod +x ./build.sh && ./build.sh'...
+=== 🚀 PanicSense FREE TIER Build Process ===
+added 502 packages, and audited 503 packages in 8s
+71 packages are looking for funding
+  run `npm fund` for details
+found 0 vulnerabilities
+=== 📦 Installing build tools globally ===
+added 13 packages in 7s
+5 packages are looking for funding
+  run `npm fund` for details
+=== 🏗️ Custom build process to avoid Vite not found error ===
+failed to load config from /opt/render/project/src/vite.config.ts
+error during build:
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /opt/render/project/src/node_modules/.vite-temp/vite.config.ts.timestamp-1745446158777-fc3bc81b1fce2.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:268:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:854:18)
+    at defaultResolve (node:internal/modules/esm/resolve:984:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:685:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:634:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:617:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:273:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:135:49)
+⚠️ Vite build failed, using fallback method...
+Creating minimal index.html...
+  dist/index.js  264.0kb
+⚡ Done in 13ms
+ESBuild succeeded!
+=== 📁 Creating required folders ===
+=== 📋 Copying frontend and Python files ===
+=== 🐍 Setting up Python environment ===
+=== 🐍 Installing Python dependencies ===
+==> Installing Python version 3.11.11...
+==> Using Python version 3.11.11 (default)
+==> Docs on specifying a Python version: https://render.com/docs/python-version
+==> Using Poetry version 1.7.1 (default)
+==> Docs on specifying a Poetry version: https://render.com/docs/poetry-version
+==> Installing Poetry version 1.7.1
