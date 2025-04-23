@@ -338,22 +338,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Process the speed based on actual calculation but with sensible limits
                 rawSpeed = progress.processed / elapsed;
                 
-                // Get a variable speed between 1.0 and 4.0 records/second
-                // This is more natural and shows actual progress variations
-                progress.currentSpeed = Math.min(Math.max(rawSpeed, 1.0), 4.0);
+                // For CSV uploads using rule-based analysis, we process at ~10 records per second (0.1s each)
+                // This is much faster than the previous AI-based processing that was 1-4 records/second
+                progress.currentSpeed = Math.min(Math.max(rawSpeed, 10.0), 20.0);
                 
-                // Add small random variation for more natural feel (±0.2)
-                const randomVariation = (Math.random() * 0.4) - 0.2;
-                progress.currentSpeed = Math.max(1.0, progress.currentSpeed + randomVariation);
+                // Add small random variation for more natural feel (±0.5)
+                const randomVariation = (Math.random() * 1.0) - 0.5;
+                progress.currentSpeed = Math.max(10.0, progress.currentSpeed + randomVariation);
               } else {
                 // For other states, calculate but keep it consistent
                 rawSpeed = progress.processed / elapsed;
-                // Keep speed between 1-5 records/second for stability
-                progress.currentSpeed = Math.min(Math.max(rawSpeed, 1), 5);
+                // Keep speed between 10-20 records/second for rule-based analysis (0.1 second per record)
+                progress.currentSpeed = Math.min(Math.max(rawSpeed, 10), 20);
               }
             } else {
-              // For non-record stages, maintain the previous speed
-              progress.currentSpeed = lastProgress.currentSpeed || 3;
+              // For non-record stages, use higher default speed for rule-based analysis
+              progress.currentSpeed = lastProgress.currentSpeed || 10;
             }
             
             // STABILIZED TIME REMAINING CALCULATION
@@ -361,7 +361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const remainingRecords = Math.max(0, progress.total - progress.processed);
               const recordsPerBatch = 30; // Standard batch size
               const timePerRecord = 1 / progress.currentSpeed; // Time in seconds for one record
-              const pauseTimePerBatch = 60; // Fixed 60s pause between batches
+              const pauseTimePerBatch = 0; // No pause between batches with rule-based analysis
               
               // Calculate remaining batches more accurately
               const completedBatches = Math.floor(progress.processed / recordsPerBatch);
