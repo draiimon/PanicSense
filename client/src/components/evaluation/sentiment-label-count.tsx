@@ -76,13 +76,13 @@ export const SentimentLabelCount: React.FC<SentimentLabelCountProps> = ({
     "Resilience": "#22c55e" // Green (unchanged)
   };
 
-  // Emoji icons for each sentiment category
+  // No more emoji icons, just using text labels for each sentiment category
   const sentimentEmojis = {
-    "Panic": "😱",      // Face screaming in fear
-    "Fear/Anxiety": "😨", // Fearful face
-    "Disbelief": "😲",    // Astonished face
-    "Neutral": "😐",      // Neutral face
-    "Resilience": "💪"    // Flexed biceps (strength)
+    "Panic": "",
+    "Fear/Anxiety": "", 
+    "Disbelief": "",
+    "Neutral": "",
+    "Resilience": ""
   };
 
   const totalRecords = sentimentCounts.reduce((sum, item) => sum + item.value, 0);
@@ -264,17 +264,7 @@ export const SentimentLabelCount: React.FC<SentimentLabelCountProps> = ({
             <BarChart4 className="h-5 w-5 text-indigo-500" />
             <CardTitle className="text-base font-medium">{title}</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={triggerAnimation} 
-              className="h-8 px-2"
-              title="Animate Chart"
-            >
-              <Sparkles className="h-4 w-4 text-amber-500" />
-            </Button>
-          </div>
+          {/* Removed sparkle button */}
         </div>
         <p className="text-sm text-slate-500 mt-2">{description}</p>
       </CardHeader>
