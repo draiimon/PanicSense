@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { usageTracker } from '../utils/usage-tracker';
+// Usage tracker import removed
 
 // IP-based rate limiting cache
 const requestCounts: Record<string, { count: number, resetTime: number }> = {};
@@ -97,21 +97,4 @@ export function createRateLimiter(limiterType: keyof typeof RATE_LIMITS = 'stand
   };
 }
 
-/**
- * Daily usage check middleware - combines with IP rate limiting
- * This is separate from IP-based rate limiting and focuses on the actual data processing volume
- */
-export function dailyUsageCheck(req: Request, res: Response, next: NextFunction) {
-  // Check if daily limit is reached
-  if (usageTracker.hasReachedDailyLimit()) {
-    const stats = usageTracker.getUsageStats();
-    return res.status(429).json({
-      error: 'Daily processing limit reached',
-      limit: stats.limit,
-      used: stats.used,
-      resetAt: stats.resetAt
-    });
-  }
-  
-  next();
-}
+// Daily usage check removed

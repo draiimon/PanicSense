@@ -1572,10 +1572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Processing batch ${batchNumber}/${totalBatches} with ${batchResults.length} records`);
           isBatchSavingActive = true;
           
-          // Increment usage counter for each batch we process
-          usageTracker.incrementRowCount(batchResults.length);
-          console.log(`Incremented usage counter by ${batchResults.length} rows for batch ${batchNumber}`);
-          console.log(`Daily usage after batch ${batchNumber}: ${usageTracker.getUsageStats().used}/${usageTracker.getUsageStats().limit} rows`);
+          // Usage tracking removed
           
           // Filter out non-disaster content
           const filteredResults = batchResults.filter(post => {
