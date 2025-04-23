@@ -11,6 +11,23 @@ import random
 import concurrent.futures
 from datetime import datetime
 
+# Import our custom emoji utils for text preprocessing
+try:
+    from emoji_utils import clean_text_preserve_indicators, preprocess_text, preserve_exclamations
+except ImportError:
+    # Try with full path
+    try:
+        from python.emoji_utils import clean_text_preserve_indicators, preprocess_text, preserve_exclamations
+    except ImportError:
+        # Create fallback functions if import fails
+        def clean_text_preserve_indicators(text):
+            return text
+        def preprocess_text(text):
+            return text
+        def preserve_exclamations(text):
+            return text
+        logging.warning("Could not import emoji_utils module. Emoji preprocessing disabled.")
+
 try:
     import pandas as pd
     import numpy as np

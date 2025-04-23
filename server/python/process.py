@@ -11,6 +11,23 @@ import random
 import concurrent.futures
 from datetime import datetime
 
+# Import our custom emoji utils for text preprocessing
+try:
+    from emoji_utils import clean_text_preserve_indicators, preprocess_text, preserve_exclamations
+except ImportError:
+    # Try with full path
+    try:
+        from server.python.emoji_utils import clean_text_preserve_indicators, preprocess_text, preserve_exclamations
+    except ImportError:
+        # Create fallback functions if import fails
+        def clean_text_preserve_indicators(text):
+            return text
+        def preprocess_text(text):
+            return text
+        def preserve_exclamations(text):
+            return text
+        logging.warning("Could not import emoji_utils module. Emoji preprocessing disabled.")
+
 try:
     import pandas as pd
     import numpy as np
@@ -909,6 +926,18 @@ class DisasterSentimentBackend:
                 "location": "UNKNOWN",
                 "language": "English"
             }
+            
+        # Store the original text to return it later
+        original_text = text
+        
+        # Preprocess text to convert emojis to text and preserve exclamation points
+        # This will help the sentiment analysis by making emojis explicit in the text
+        try:
+            text = clean_text_preserve_indicators(text)
+            logging.info(f"Applied emoji preprocessing to text")
+        except Exception as e:
+            logging.error(f"Error in emoji preprocessing: {str(e)}")
+            # Continue with original text if preprocessing fails
 
         # Detect language - handle English, Filipino/Tagalog, and Taglish (mixed)
         try:
