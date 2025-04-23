@@ -1,0 +1,15 @@
+anthropic==0.19.4
+beautifulsoup4==4.12.3
+langdetect==1.0.9
+nltk==3.8.1
+numpy==1.26.4
+openai==1.16.2
+pandas==2.2.2
+python-dotenv==1.0.1
+pytz==2024.1
+requests==2.31.0
+scikit-learn==1.4.1.post1
+snscrape==0.7.0.20240301
+soupsieve==2.5
+torch==2.2.2
+tqdm==4.66.4
