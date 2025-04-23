@@ -293,7 +293,9 @@ export const WordCloud: React.FC<WordCloudProps> = ({
         }
       }
       
-      const metrics = ctx.measureText(word.text);
+      // Measure with the word count included
+      const textWithCount = `${word.text} (${word.value})`;
+      const metrics = ctx.measureText(textWithCount);
       const width = metrics.width;
       const height = fontSize;
       
@@ -323,8 +325,8 @@ export const WordCloud: React.FC<WordCloudProps> = ({
       }
       
       if (attempts < maxAttempts) {
-        // Draw text with a subtle shadow for depth
-        ctx.fillText(word.text, x, y);
+        // Draw text with a subtle shadow for depth and include the count
+        ctx.fillText(`${word.text} (${word.value})`, x, y);
         
         // For important words, add a subtle glow effect
         if (normalizedValue > 0.6 && colorScheme === 'vibrant') {
@@ -334,7 +336,7 @@ export const WordCloud: React.FC<WordCloudProps> = ({
           ctx.globalAlpha = 0.1;
           ctx.shadowBlur = 10;
           ctx.shadowColor = COLORS[colorIndex];
-          ctx.fillText(word.text, x, y);
+          ctx.fillText(`${word.text} (${word.value})`, x, y);
           
           // Restore original settings
           ctx.globalAlpha = originalGlobalAlpha;
@@ -342,7 +344,7 @@ export const WordCloud: React.FC<WordCloudProps> = ({
           ctx.shadowColor = 'rgba(0,0,0,0.1)';
         }
         
-        placedWords.push({ text: word.text, x, y, width, height });
+        placedWords.push({ text: textWithCount, x, y, width, height });
       }
     });
     
