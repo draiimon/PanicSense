@@ -2451,6 +2451,7 @@ Format your response as a JSON object with: "sentiment", "confidence" (between 0
                             "language":
                             csv_language if csv_language else
                             analysis_result.get("language", "English"),
+                            # Make sure we preserve "Taglish" as-is, don't convert it
                             "sentiment":
                             csv_sentiment if csv_sentiment else
                             analysis_result.get("sentiment", "Neutral"),
