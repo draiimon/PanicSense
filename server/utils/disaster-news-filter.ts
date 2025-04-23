@@ -12,7 +12,7 @@ dotenv.config();
 
 // Use the provided Groq API key from environment variables
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'deepseek-v2';
 
 export interface DisasterValidationResult {
   isDisaster: boolean;

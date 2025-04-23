@@ -162,8 +162,8 @@ class DisasterSentimentBackend:
                 if not api_key_list:
                     # Load the API keys for rotation to avoid rate limiting
                     api_key_list = [
-                        "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",
                         "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",
+                        "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",
                         "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",
                         "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",
                         "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",
