@@ -14,10 +14,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "PanicSense"
+args = "PanicSense-Dev"
 
 [[workflows.workflow]]
-name = "PanicSense"
+name = "PanicSense-Dev"
 author = "agent"
 
 [workflows.workflow.metadata]
