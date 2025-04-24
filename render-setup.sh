@@ -1,32 +1,38 @@
 #!/bin/bash
 
-# Render deployment setup script
-echo "=== 🚀 Render Setup Script ==="
+# Render deployment setup script for PanicSense
+echo "=== 🚀 PanicSense Render Setup Script ==="
 echo "Current directory: $(pwd)"
 echo "Node version: $(node -v)"
 
-# Create necessary directories
-mkdir -p dist/public uploads/{temp,data,profile_images} python
+# Create necessary directories for uploads and temporary data
+mkdir -p uploads/{temp,data,profile_images} python
 
-# Copy frontend files if they exist
-if [ -d "client/dist" ]; then
-  echo "Copying client/dist to dist/public..."
-  cp -r client/dist/* dist/public/ 2>/dev/null || echo "Warning: client/dist files not copied"
-fi
-
-# Copy Python files
+# Copy Python files if not already in place
 if [ -d "python" ]; then
-  echo "Python directory already exists"
+  echo "Python directory exists"
 else
-  echo "Creating python directory and copying files..."
-  mkdir -p python
-  
-  # Copy Python files from their location
   if [ -d "server/python" ]; then
+    echo "Copying Python files from server/python..."
     cp -r server/python/* python/ 2>/dev/null || echo "Warning: Python files not copied"
-  elif [ -d "python" ]; then
-    cp -r python/* python/ 2>/dev/null || echo "Warning: Python files not copied"
   fi
 fi
+
+# Install Python requirements if running on Render
+if [ -n "$RENDER" ] && [ -f "render-requirements.txt" ]; then
+  echo "Installing Python requirements for Render..."
+  pip install -r render-requirements.txt
+fi
+
+# Build the client if needed
+if [ ! -d "client/dist" ] || [ -z "$(ls -A client/dist 2>/dev/null)" ]; then
+  echo "Building client..."
+  npm run build:client
+else
+  echo "Client build exists, skipping build step"
+fi
+
+# Ensure permissions are set correctly
+chmod -R 755 uploads python
 
 echo "=== ✅ Render setup complete ==="
