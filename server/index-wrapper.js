@@ -4,13 +4,13 @@
  * to ensure compatibility with CommonJS in production
  */
 
-const express = require('express');
-const session = require('express-session');
-const path = require('path');
-const fs = require('fs');
-const { registerRoutes } = require('./routes');
-const { simpleDbFix } = require('./db-simple-fix');
-const { cleanupAndExit } = require('./index');
+import express from 'express';
+import session from 'express-session';
+import path from 'path';
+import fs from 'fs';
+import { registerRoutes } from './routes.js';
+import { simpleDbFix } from './db-simple-fix.js';
+import { cleanupAndExit } from './index.js';
 
 // Import log function that works without Vite
 function defaultLog(message, source = "express") {
@@ -79,8 +79,9 @@ const SERVER_START_TIMESTAMP = new Date().getTime();
           !fs.existsSync(path.join(clientDistPath, 'index.html'))) {
         console.log('📋 Running render-setup.sh to prepare static files...');
         try {
-          const { execSync } = require('child_process');
-          execSync('chmod +x ./render-setup.sh && ./render-setup.sh', { stdio: 'inherit' });
+          // Use dynamic import instead of require
+          const childProcess = await import('child_process');
+          childProcess.execSync('chmod +x ./render-setup.sh && ./render-setup.sh', { stdio: 'inherit' });
           console.log('✅ render-setup.sh completed successfully');
         } catch (error) {
           console.error('⚠️ Error running render-setup.sh:', error.message);
@@ -227,4 +228,4 @@ const SERVER_START_TIMESTAMP = new Date().getTime();
 })();
 
 // Export the app and server for testing
-module.exports = { app, server, SERVER_START_TIMESTAMP };
+export { app, server, SERVER_START_TIMESTAMP };
