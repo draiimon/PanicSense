@@ -3186,5 +3186,252 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add the new hybrid model processing endpoint for advanced analysis
+  app.post('/api/upload-csv-hybrid', upload.single('file'), async (req: Request, res: Response) => {
+    try {
+      console.log('New hybrid model CSV upload request received');
+      
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      
+      // Generate session ID
+      const sessionId = nanoid(10);
+      
+      // Extract file information
+      const fileBuffer = req.file.buffer;
+      const originalFilename = req.file.originalname;
+      
+      // Create a temporary file path
+      const tempDir = './uploads/temp';
+      // Ensure temp directory exists
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      const tempFilePath = path.join(tempDir, `${sessionId}-${originalFilename}`);
+      
+      // Write the buffer to a temporary file
+      fs.writeFileSync(tempFilePath, fileBuffer);
+      
+      console.log(`File saved to ${tempFilePath}`);
+      
+      // Create an analyzed file record in the database
+      const analyzedFile = await storage.createAnalyzedFile({
+        originalName: originalFilename,
+        storedName: `hybrid-batch-${sessionId}-${originalFilename}`,
+        recordCount: 0,  // Will be updated once processing is complete
+        evaluationMetrics: {
+          status: 'processing',
+          modelInfo: 'Hybrid mBERT + Bi-GRU & LSTM'
+        }
+      });
+      
+      console.log(`Created analyzed file record with ID: ${analyzedFile.id}`);
+      
+      // Create an upload session record
+      await storage.createUploadSession({
+        sessionId,
+        status: 'active',
+        fileId: analyzedFile.id,
+        progress: {
+          processed: 0,
+          total: 100,
+          stage: 'Starting hybrid model analysis...',
+          timestamp: Date.now(),
+          batchNumber: 0,
+          totalBatches: 1,
+          batchProgress: 0,
+          currentSpeed: 0,
+          timeRemaining: 0,
+          processingStats: {
+            successCount: 0,
+            errorCount: 0,
+            lastBatchDuration: 0,
+            averageSpeed: 0
+          }
+        },
+        serverStartTimestamp: Date.now().toString()
+      });
+      
+      // Start processing in the background
+      hybridProcessor.processCSV(tempFilePath)
+        .then(async (result) => {
+          try {
+            console.log(`Hybrid model processing completed successfully for session ${sessionId}`);
+            
+            // Update the analyzed file record with results
+            await storage.updateFileMetrics(analyzedFile.id, {
+              accuracy: result.metrics?.accuracy || 0,
+              precision: result.metrics?.precision?.weighted || 0,
+              recall: result.metrics?.recall?.weighted || 0,
+              f1Score: result.metrics?.f1_score?.weighted || 0,
+              recordCount: result.totalProcessed || 0
+            });
+            
+            // Save sentiment posts to database
+            if (result.results && result.results.length > 0) {
+              let savedPosts = 0;
+              
+              // Insert in batches for better performance
+              const batchSize = 100;
+              for (let i = 0; i < result.results.length; i += batchSize) {
+                const batch = result.results.slice(i, i + batchSize);
+                
+                // Map results to sentiment posts
+                const posts = batch.map(item => ({
+                  text: item.text,
+                  timestamp: new Date(item.timestamp || Date.now()).toISOString(),
+                  source: item.source || 'CSV Import',
+                  language: item.language || 'en',
+                  sentiment: item.sentiment,
+                  confidence: item.confidence,
+                  location: item.location || null,
+                  disasterType: item.disaster_type || item.disasterType || null,
+                  explanation: item.explanation || null,
+                  fileId: analyzedFile.id,
+                  aiTrustMessage: 'Processed by Hybrid Neural Network (mBERT + Bi-GRU & LSTM)',
+                }));
+                
+                await storage.createManySentimentPosts(posts);
+                savedPosts += posts.length;
+                
+                console.log(`Saved batch of ${posts.length} sentiment posts (${savedPosts}/${result.results.length})`);
+              }
+              
+              console.log(`Successfully saved all ${savedPosts} sentiment posts to database`);
+            }
+            
+            // Update the upload session to completed
+            await storage.updateUploadSession(sessionId, 'complete', {
+              processed: result.totalProcessed,
+              total: result.totalProcessed,
+              stage: 'Hybrid model analysis complete',
+              timestamp: Date.now(),
+              batchNumber: 1,
+              totalBatches: 1,
+              batchProgress: 100,
+              currentSpeed: 0,
+              timeRemaining: 0,
+              processingStats: {
+                successCount: result.totalProcessed,
+                errorCount: 0,
+                lastBatchDuration: result.processingTime * 1000,
+                averageSpeed: result.totalProcessed / (result.processingTime || 1)
+              }
+            });
+            
+            // Broadcast completion
+            broadcastUpdate({
+              type: 'progress',
+              sessionId,
+              progress: {
+                processed: result.totalProcessed,
+                total: result.totalProcessed,
+                stage: 'Hybrid model analysis complete',
+                batchProgress: 100
+              }
+            });
+            
+            // Cleanup the temporary file
+            if (fs.existsSync(tempFilePath)) {
+              fs.unlinkSync(tempFilePath);
+              console.log(`Cleaned up temporary file: ${tempFilePath}`);
+            }
+          } catch (error) {
+            console.error(`Error handling hybrid model results for session ${sessionId}:`, error);
+          }
+        })
+        .catch(async (error) => {
+          console.error(`Hybrid model processing failed for session ${sessionId}:`, error);
+          
+          // Update upload session to error state
+          await storage.updateUploadSession(sessionId, 'error', {
+            stage: `Error: ${error.message}`,
+            error: error.message
+          });
+          
+          // Cleanup the temporary file
+          if (fs.existsSync(tempFilePath)) {
+            fs.unlinkSync(tempFilePath);
+            console.log(`Cleaned up temporary file after error: ${tempFilePath}`);
+          }
+        });
+      
+      // Return the session ID to the client
+      res.json({
+        success: true,
+        sessionId,
+        fileId: analyzedFile.id,
+        message: 'File uploaded successfully, hybrid model processing started'
+      });
+    } catch (error) {
+      console.error('Error in hybrid model upload endpoint:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Add endpoint to get hybrid model status
+  app.get('/api/hybrid-model-status', (req: Request, res: Response) => {
+    try {
+      // Get active sessions
+      const activeSessions = hybridProcessor.getActiveSessionsInfo();
+      
+      // Check if model files exist
+      const modelDir = './models';
+      let modelFiles = [];
+      
+      if (fs.existsSync(modelDir)) {
+        modelFiles = fs.readdirSync(modelDir)
+          .filter(file => file.endsWith('.pt'))
+          .map(file => ({
+            name: file,
+            path: path.join(modelDir, file),
+            size: fs.statSync(path.join(modelDir, file)).size,
+            modified: fs.statSync(path.join(modelDir, file)).mtime
+          }));
+      }
+      
+      res.json({
+        activeSessions,
+        hasActiveProcessing: activeSessions.length > 0,
+        modelFiles,
+        pythonAvailable: true,
+        processorInfo: {
+          scriptPath: hybridProcessor.scriptPath,
+          pythonBinary: hybridProcessor.pythonBinary
+        }
+      });
+    } catch (error) {
+      console.error('Error getting hybrid model status:', error);
+      res.status(500).json({ error: 'Failed to get hybrid model status' });
+    }
+  });
+  
+  // Add endpoint to cancel hybrid model processing
+  app.post('/api/hybrid-model/cancel/:sessionId', (req: Request, res: Response) => {
+    try {
+      const sessionId = req.params.sessionId;
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: 'Session ID is required' });
+      }
+      
+      const success = hybridProcessor.cancelProcessing(sessionId);
+      
+      if (success) {
+        res.json({ success: true, message: 'Hybrid model processing cancelled successfully' });
+      } else {
+        res.status(404).json({ success: false, message: 'No active processing found for this session ID' });
+      }
+    } catch (error) {
+      console.error('Error cancelling hybrid model processing:', error);
+      res.status(500).json({ error: 'Failed to cancel hybrid model processing' });
+    }
+  });
+
   return httpServer;
 }
