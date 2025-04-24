@@ -1,0 +1,70 @@
+==> Cloning from https://github.com/draiimon/PanicSense
+==> Checking out commit 80f5e831bd1dbf144c553ec4c234f035faca5405 in branch main
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.98kB done
+#1 DONE 0.0s
+#2 [internal] load metadata for docker.io/library/node:20-slim
+#2 ...
+#3 [auth] library/node:pull render-prod/docker-mirror-repository/library/node:pull token for us-west1-docker.pkg.dev
+#3 DONE 0.0s
+#2 [internal] load metadata for docker.io/library/node:20-slim
+#2 DONE 5.8s
+#4 [internal] load .dockerignore
+#4 transferring context: 968B done
+#4 DONE 0.0s
+#5 [base 1/4] FROM docker.io/library/node:20-slim@sha256:9513b8d4c59c7c35e76934765add45efb89102d639f945341d7948b168237633
+#5 resolve docker.io/library/node:20-slim@sha256:9513b8d4c59c7c35e76934765add45efb89102d639f945341d7948b168237633 0.0s done
+#5 ...
+#6 [internal] load build context
+#6 transferring context: 11.04MB 0.2s done
+#6 DONE 0.2s
+#7 [builder 5/5] RUN npm run build
+#7 CACHED
+#8 [runner  6/12] COPY --from=builder /app/python ./python
+#8 CACHED
+#9 [deps 1/5] WORKDIR /app
+#9 CACHED
+#10 [deps 5/5] RUN if [ -f requirements.txt ]; then pip install -r requirements.txt; else pip install pandas numpy langdetect requests scikit-learn torch nltk openai pytz snscrape beautifulsoup4 tqdm; fi
+#10 CACHED
+#11 [deps 2/5] COPY package.json package-lock.json ./
+#11 CACHED
+#12 [runner  2/12] COPY --from=builder /app/venv ./venv
+#12 CACHED
+#13 [runner  7/12] COPY package.json ./
+#13 CACHED
+#14 [builder 2/5] COPY --from=deps /app/node_modules ./node_modules
+#14 CACHED
+#15 [builder 4/5] COPY . .
+#15 CACHED
+#16 [runner  5/12] COPY --from=builder /app/public ./public
+#16 CACHED
+#17 [base 4/4] RUN python3 -m venv /app/venv
+#17 CACHED
+#18 [deps 3/5] RUN npm ci
+#18 CACHED
+#19 [base 3/4] RUN apt-get update && apt-get install -y     python3 python3-pip python3-venv     build-essential     && rm -rf /var/lib/apt/lists/*
+#19 CACHED
+#20 [deps 4/5] COPY requirements.txt* ./
+#20 CACHED
+#21 [builder 3/5] COPY --from=deps /app/venv ./venv
+#21 CACHED
+#22 [runner  3/12] COPY --from=builder /app/node_modules ./node_modules
+#22 CACHED
+#23 [runner  4/12] COPY --from=builder /app/dist ./dist
+#23 CACHED
+#24 [runner  8/12] COPY server/index-wrapper.js ./server/
+#24 ERROR: failed to calculate checksum of ref vxq7yqm7i788sckz5gf5h3zui::vhrrgole0q6rnuwaos3n18f0k: "/server/index-wrapper.js": not found
+#25 [base 2/4] WORKDIR /app
+#25 CANCELED
+------
+ > [runner  8/12] COPY server/index-wrapper.js ./server/:
+------
+Dockerfile:61
+--------------------
+  59 |     # Copy necessary files for runtime
+  60 |     COPY package.json ./
+  61 | >>> COPY server/index-wrapper.js ./server/
+  62 |     COPY server/direct-db-fix.js ./server/
+  63 |     COPY server/db-setup.js ./server/
+--------------------
+error: failed to solve: failed to compute cache key: failed to calculate checksum of ref vxq7yqm7i788sckz5gf5h3zui::vhrrgole0q6rnuwaos3n18f0k: "/server/index-wrapper.js": not found

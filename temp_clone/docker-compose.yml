@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # PanicSense application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${BUILD_TARGET:-runner} # Use development or runner based on environment
+    container_name: panicsense-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    volumes:
+      # For development, mount source code for hot reloading
+      - ${DEV_MODE:+./:/app}
+      # Always mount volume for persistent data
+      - panicsense-data:/app/data
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - DATABASE_URL=${DATABASE_URL}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - DB_SSL_REQUIRED=${DB_SSL_REQUIRED:-false}
+      # Add any other environment variables your app needs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - panicsense-network
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: panicsense-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-panicsense}
+      - POSTGRES_USER=${POSTGRES_USER:-panicsense}
+      - POSTGRES_DB=${POSTGRES_DB:-panicsense}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-panicsense}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - panicsense-network
+
+  # Redis for caching and session management
+  redis:
+    image: redis:alpine
+    container_name: panicsense-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - panicsense-network
+
+# Define volumes for persistent data
+volumes:
+  postgres-data:
+  redis-data:
+  panicsense-data:
+
+# Create a custom network
+networks:
+  panicsense-network:
+    driver: bridge
