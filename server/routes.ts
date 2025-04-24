@@ -3202,6 +3202,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileBuffer = req.file.buffer;
       const originalFilename = req.file.originalname;
       
+      // Get optional model name from request
+      const modelName = req.body.modelName || null;
+      
+      // Get optional column name from request
+      const textColumn = req.body.textColumn || 'text';
+      
+      // Check if validation is requested
+      const validate = req.body.validate === 'true';
+      
+      console.log(`Hybrid upload options: model=${modelName || 'default'}, textColumn=${textColumn}, validate=${validate}`);
+      
       // Create a temporary file path
       const tempDir = './uploads/temp';
       // Ensure temp directory exists
@@ -3216,6 +3227,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`File saved to ${tempFilePath}`);
       
+      // Get model description
+      let modelInfo = 'Hybrid Bi-GRU & LSTM';
+      
+      if (modelName) {
+        // If a specific model was selected, include it in the description
+        modelInfo = `${modelInfo} (${modelName})`;
+      }
+      
       // Create an analyzed file record in the database
       const analyzedFile = await storage.createAnalyzedFile({
         originalName: originalFilename,
@@ -3223,7 +3242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recordCount: 0,  // Will be updated once processing is complete
         evaluationMetrics: {
           status: 'processing',
-          modelInfo: 'Hybrid mBERT + Bi-GRU & LSTM'
+          modelInfo
         }
       });
       
@@ -3255,7 +3274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Start processing in the background
-      hybridProcessor.processCSV(tempFilePath)
+      hybridProcessor.processCSV(tempFilePath, textColumn, validate, modelName)
         .then(async (result) => {
           try {
             console.log(`Hybrid model processing completed successfully for session ${sessionId}`);
@@ -3380,19 +3399,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get active sessions
       const activeSessions = hybridProcessor.getActiveSessionsInfo();
       
-      // Check if model files exist
-      const modelDir = './models';
-      let modelFiles = [];
+      // Get available model files from the hybrid processor
+      const availableModels = hybridProcessor.getAvailableModels();
       
+      // We'll also check both models and models/sentiment directories
+      const modelFiles = [...availableModels]; // Start with models found by the processor
+      
+      // Add any additional .pt files in the root models directory
+      const modelDir = './models';
       if (fs.existsSync(modelDir)) {
-        modelFiles = fs.readdirSync(modelDir)
-          .filter(file => file.endsWith('.pt'))
-          .map(file => ({
-            name: file,
-            path: path.join(modelDir, file),
-            size: fs.statSync(path.join(modelDir, file)).size,
-            modified: fs.statSync(path.join(modelDir, file)).mtime
-          }));
+        const rootModelFiles = fs.readdirSync(modelDir)
+          .filter(file => file.endsWith('.pt') || file.endsWith('.pth'))
+          .map(file => {
+            const filePath = path.join(modelDir, file);
+            return {
+              name: file,
+              path: filePath,
+              size: fs.statSync(filePath).size,
+              modified: fs.statSync(filePath).mtime
+            };
+          });
+          
+        // Add any models not already included
+        rootModelFiles.forEach(model => {
+          if (!modelFiles.some(m => m.path === model.path)) {
+            modelFiles.push(model);
+          }
+        });
       }
       
       res.json({
@@ -3408,6 +3441,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error getting hybrid model status:', error);
       res.status(500).json({ error: 'Failed to get hybrid model status' });
+    }
+  });
+  
+  // Add endpoint to get neural model information
+  app.get('/api/hybrid-model/models', (req: Request, res: Response) => {
+    try {
+      // Get available models from the processor
+      const models = hybridProcessor.getAvailableModels();
+      
+      // Return model information including type
+      const modelInfo = models.map(model => ({
+        ...model,
+        type: model.name.endsWith('.pth') ? 'PyTorch (Bi-GRU & LSTM)' : 
+              model.name.endsWith('.pt') ? 'PyTorch' : 'Unknown',
+        location: model.path.includes('/sentiment/') ? 'sentiment' : 'general',
+        sizeFormatted: formatFileSize(model.size)
+      }));
+      
+      res.json({
+        models: modelInfo,
+        count: modelInfo.length
+      });
+    } catch (error) {
+      console.error('Error getting available models:', error);
+      res.status(500).json({ error: 'Failed to get available models' });
     }
   });
   
@@ -3432,6 +3490,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to cancel hybrid model processing' });
     }
   });
+  
+  // Helper function to format file size
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    } else if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(2)} KB`;
+    } else {
+      return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    }
+  }
 
   return httpServer;
 }

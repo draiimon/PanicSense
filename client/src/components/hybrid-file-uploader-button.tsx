@@ -1,11 +1,24 @@
-import { Upload, Loader2, BrainCircuit } from 'lucide-react';
+import { Upload, Loader2, BrainCircuit, FileText, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDisasterContext } from '@/context/disaster-context';
 import { useToast } from '@/hooks/use-toast';
 import { uploadCSVHybrid, checkForActiveSessions, cleanupErrorSessions } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import axios from 'axios';
 
 interface HybridFileUploaderButtonProps {
   onSuccess?: (data: any) => void;
@@ -13,10 +26,28 @@ interface HybridFileUploaderButtonProps {
   id?: string;
 }
 
+interface ModelInfo {
+  name: string;
+  path: string;
+  size: number;
+  modified: string;
+  sizeFormatted: string;
+  type: string;
+  location: string;
+}
+
 export function HybridFileUploaderButton({ onSuccess, className, id }: HybridFileUploaderButtonProps) {
   const { toast } = useToast();
   const { isUploading, setIsUploading, setUploadProgress } = useDisasterContext();
   const [isCheckingForUploads, setIsCheckingForUploads] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [textColumn, setTextColumn] = useState('text');
+  const [validateData, setValidateData] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Check for active uploads on mount
   useEffect(() => {
@@ -42,12 +73,42 @@ export function HybridFileUploaderButton({ onSuccess, className, id }: HybridFil
     checkActive();
   }, [setIsUploading]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Fetch available models
+  const fetchModels = async () => {
+    try {
+      setIsLoadingModels(true);
+      const response = await axios.get('/api/hybrid-model/models');
+      
+      if (response.data && response.data.models) {
+        setAvailableModels(response.data.models);
+        
+        // If models exist, select the first one by default
+        if (response.data.models.length > 0) {
+          setSelectedModel(response.data.models[0].name);
+        }
+      } else {
+        console.log('No models available');
+        setAvailableModels([]);
+      }
+    } catch (error) {
+      console.error('Error fetching models:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch available models',
+        variant: 'destructive',
+      });
+      setAvailableModels([]);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+  
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
     const file = files[0];
-
+    
     // Check if we already have an active upload
     if (isUploading) {
       toast({
@@ -68,8 +129,29 @@ export function HybridFileUploaderButton({ onSuccess, className, id }: HybridFil
       event.target.value = '';
       return;
     }
-
+    
+    // Store the selected file
+    setSelectedFile(file);
+    
+    // Open the dialog and fetch available models
+    setDialogOpen(true);
+    fetchModels();
+  };
+  
+  const handleStartAnalysis = async () => {
+    if (!selectedFile) {
+      toast({
+        title: 'No File Selected',
+        description: 'Please select a CSV file for analysis.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     try {
+      // Close the dialog
+      setDialogOpen(false);
+      
       // Set uploading state and progress in a single update
       setUploadProgress({ 
         processed: 0, 
@@ -95,7 +177,16 @@ export function HybridFileUploaderButton({ onSuccess, className, id }: HybridFil
       localStorage.setItem('uploadStartTime', Date.now().toString());
       localStorage.setItem('uploadModelType', 'hybrid');
       
-      const result = await uploadCSVHybrid(file, (progress) => {
+      // Prepare upload options
+      const uploadOptions = {
+        modelName: selectedModel || undefined,
+        textColumn: textColumn || 'text',
+        validate: validateData
+      };
+      
+      console.log('Starting hybrid model analysis with options:', uploadOptions);
+      
+      const result = await uploadCSVHybrid(selectedFile, (progress) => {
         // Enhanced progress tracking with timestamp
         const currentProgress = {
           processed: Number(progress.processed) || 0,

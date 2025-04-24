@@ -818,7 +818,12 @@ export async function processText(text: string): Promise<TextProcessingResult> {
 // Hybrid Neural Network Model CSV Upload
 export async function uploadCSVHybrid(
   file: File,
-  onProgress?: (progress: UploadProgress) => void
+  onProgress?: (progress: UploadProgress) => void,
+  options: {
+    modelName?: string;
+    textColumn?: string;
+    validate?: boolean;
+  } = {}
 ): Promise<{
   file: AnalyzedFile;
   posts: SentimentPost[];
@@ -850,6 +855,19 @@ export async function uploadCSVHybrid(
   
   const formData = new FormData();
   formData.append('file', file);
+  
+  // Add optional parameters if provided
+  if (options.modelName) {
+    formData.append('modelName', options.modelName);
+  }
+  
+  if (options.textColumn) {
+    formData.append('textColumn', options.textColumn);
+  }
+  
+  if (options.validate) {
+    formData.append('validate', 'true');
+  }
   
   // Add a parameter to indicate hybrid model
   formData.append('model', 'hybrid');
