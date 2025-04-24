@@ -30,6 +30,75 @@ export class HybridModelProcessor {
       fs.mkdirSync(modelsDir, { recursive: true });
       console.log(`Created models directory at ${modelsDir}`);
     }
+    
+    // Create sentiment models directory if it doesn't exist
+    const sentimentModelsDir = path.join(modelsDir, 'sentiment');
+    if (!fs.existsSync(sentimentModelsDir)) {
+      fs.mkdirSync(sentimentModelsDir, { recursive: true });
+      console.log(`Created sentiment models directory at ${sentimentModelsDir}`);
+    }
+    
+    // Scan for available models
+    this.scanModelFiles();
+  }
+  
+  /**
+   * Scan for available model files
+   * @returns {Array} Available model files
+   */
+  scanModelFiles() {
+    const modelsDir = path.join(process.cwd(), 'models');
+    const sentimentModelsDir = path.join(modelsDir, 'sentiment');
+    let modelFiles = [];
+    
+    try {
+      if (fs.existsSync(sentimentModelsDir)) {
+        // Get all .pth and .pt files in the sentiment models directory
+        const files = fs.readdirSync(sentimentModelsDir)
+          .filter(file => file.endsWith('.pth') || file.endsWith('.pt'));
+          
+        if (files.length > 0) {
+          console.log(`Found ${files.length} model files in ${sentimentModelsDir}:`);
+          
+          modelFiles = files.map(file => {
+            const filePath = path.join(sentimentModelsDir, file);
+            const stats = fs.statSync(filePath);
+            
+            // Log model details
+            console.log(`  - ${file} (${this.formatFileSize(stats.size)})`);
+            
+            return {
+              name: file,
+              path: filePath,
+              size: stats.size,
+              modified: stats.mtime
+            };
+          });
+        } else {
+          console.log(`No model files found in ${sentimentModelsDir}`);
+        }
+      }
+    } catch (error) {
+      console.error(`Error scanning model files: ${error.message}`);
+    }
+    
+    this.availableModels = modelFiles;
+    return modelFiles;
+  }
+  
+  /**
+   * Format file size in human-readable format
+   * @param {number} bytes - File size in bytes
+   * @returns {string} Human-readable file size
+   */
+  formatFileSize(bytes) {
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    } else if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(2)} KB`;
+    } else {
+      return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    }
   }
 
   /**
@@ -49,13 +118,22 @@ export class HybridModelProcessor {
   }
 
   /**
+   * Get available models
+   * @returns {Array} List of available model files
+   */
+  getAvailableModels() {
+    return this.availableModels || this.scanModelFiles();
+  }
+  
+  /**
    * Process a CSV file using the hybrid model
    * @param {string} filePath - Path to the CSV file
    * @param {string} textColumn - Name of the column containing text data
    * @param {boolean} validate - Whether to validate with ground truth data
+   * @param {string} modelName - Optional model name to use (if not provided, uses default)
    * @returns {Promise<object>} - Processing results and metrics
    */
-  async processCSV(filePath, textColumn = 'text', validate = false) {
+  async processCSV(filePath, textColumn = 'text', validate = false, modelName = null) {
     return new Promise((resolve, reject) => {
       // Generate a unique session ID if not provided
       const sessionId = nanoid(8);
@@ -71,6 +149,26 @@ export class HybridModelProcessor {
       
       if (validate) {
         args.push('--validate');
+      }
+      
+      // If a specific model was requested, check if it exists
+      if (modelName) {
+        const models = this.getAvailableModels();
+        const selectedModel = models.find(model => model.name === modelName);
+        
+        if (selectedModel) {
+          console.log(`Using specified model: ${modelName}`);
+          args.push('--model-path', selectedModel.path);
+        } else {
+          console.warn(`Specified model ${modelName} not found, using default model`);
+        }
+      } else {
+        // Use the first available model by default
+        const models = this.getAvailableModels();
+        if (models.length > 0) {
+          console.log(`Using default model: ${models[0].name}`);
+          args.push('--model-path', models[0].path);
+        }
       }
       
       // Include session ID for tracking
