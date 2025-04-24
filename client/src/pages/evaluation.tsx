@@ -9,6 +9,7 @@ import { WordCloud } from "@/components/evaluation/word-cloud";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileUploader } from "@/components/file-uploader";
+import { HybridFileUploader } from "@/components/hybrid-file-uploader";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { 
@@ -201,14 +202,26 @@ const Evaluation: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <FileUploader 
-                    className=""
-                    onSuccess={(data) => {
-                      if (data.file?.id) {
-                        setSelectedFileId(data.file.id.toString());
-                      }
-                    }}
-                  />
+                  <div className="flex gap-2">
+                    <FileUploader 
+                      id="file-upload"
+                      className=""
+                      onSuccess={(data) => {
+                        if (data.file?.id) {
+                          setSelectedFileId(data.file.id.toString());
+                        }
+                      }}
+                    />
+                    <HybridFileUploader 
+                      id="hybrid-file-upload"
+                      className=""
+                      onSuccess={(data) => {
+                        if (data.file?.id) {
+                          setSelectedFileId(data.file.id.toString());
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-6">
@@ -226,16 +239,31 @@ const Evaluation: React.FC = () => {
                     </div>
                     <p className="text-slate-800 font-medium text-lg">No analyzed files available</p>
                     <p className="text-sm text-slate-600 mt-2 max-w-md mx-auto">
-                      Upload a CSV file using the button above to generate model evaluation metrics and analyze performance
+                      Upload a CSV file using one of the available methods below to generate model evaluation metrics
                     </p>
-                    <Button 
-                      variant="outline" 
-                      className="mt-6 border-teal-200 text-teal-700 hover:bg-teal-50 hover:text-teal-800" 
-                      onClick={() => document.getElementById('file-upload')?.click()}
-                    >
-                      <FileTextIcon className="h-4 w-4 mr-2" />
-                      Upload CSV File
-                    </Button>
+                    <div className="flex flex-col gap-3 mt-6 items-center justify-center">
+                      <div className="flex items-center gap-4">
+                        <Button 
+                          variant="outline" 
+                          className="border-teal-200 text-teal-700 hover:bg-teal-50 hover:text-teal-800" 
+                          onClick={() => document.getElementById('file-upload')?.click()}
+                        >
+                          <FileTextIcon className="h-4 w-4 mr-2" />
+                          Standard Analysis
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800" 
+                          onClick={() => document.getElementById('hybrid-file-upload')?.click()}
+                        >
+                          <FileTextIcon className="h-4 w-4 mr-2" />
+                          Neural Network Analysis
+                        </Button>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2">
+                        Neural Network Analysis uses a hybrid Bi-GRU & LSTM model for more accurate sentiment analysis
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
