@@ -95,6 +95,9 @@ let currentUploadController: AbortController | null = null;
 let currentEventSource: EventSource | null = null;
 let currentUploadSessionId: string | null = null;
 
+// Track the current model type being used for uploads
+let currentModelType: 'standard' | 'hybrid' = 'standard';
+
 // Cancel the current upload with optional gentle/force modes
 export async function cancelUpload(forceCancel = false): Promise<{ success: boolean; message: string; forceCloseCalled?: boolean }> {
   const sessionId = currentUploadSessionId || localStorage.getItem('uploadSessionId');
@@ -810,4 +813,191 @@ export interface TextProcessingResult {
 export async function processText(text: string): Promise<TextProcessingResult> {
   const response = await apiRequest('POST', '/api/text-processing', { text });
   return response.json();
+}
+
+// Hybrid Neural Network Model CSV Upload
+export async function uploadCSVHybrid(
+  file: File,
+  onProgress?: (progress: UploadProgress) => void
+): Promise<{
+  file: AnalyzedFile;
+  posts: SentimentPost[];
+  metrics: {
+    accuracy: number;
+    precision: number;
+    recall: number;
+    f1Score: number;
+  } | null;
+  errorRecovered?: boolean;
+}> {
+  // Set the current model type to hybrid
+  currentModelType = 'hybrid';
+  
+  // Clean up any existing uploads first
+  if (currentEventSource) {
+    currentEventSource.close();
+    currentEventSource = null;
+  }
+  
+  if (currentUploadController) {
+    currentUploadController.abort();
+    currentUploadController = null;
+  }
+  
+  // Create a new abort controller
+  currentUploadController = new AbortController();
+  const { signal } = currentUploadController;
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  // Add a parameter to indicate hybrid model
+  formData.append('model', 'hybrid');
+
+  // Generate a unique session ID
+  const sessionId = crypto.randomUUID();
+  currentUploadSessionId = sessionId;
+  
+  // Store the session ID in both localStorage (legacy) and database
+  localStorage.setItem('uploadSessionId', sessionId);
+  localStorage.setItem('uploadModelType', 'hybrid');
+  
+  // If onProgress callback is provided, check for any active upload sessions 
+  // that might have been interrupted
+  if (onProgress) {
+    try {
+      // Attempt to restore any active session from previous runs
+      const activeSessionId = await checkForActiveSessions();
+      if (activeSessionId) {
+        console.log(`Detected active upload session: ${activeSessionId}. Using existing session.`);
+        // If there's an active session in the database, use that instead
+        currentUploadSessionId = activeSessionId;
+      }
+    } catch (error) {
+      console.error('Error checking for active sessions:', error);
+    }
+  }
+
+  // Set up event source for progress updates using the potentially updated sessionId
+  const eventSource = new EventSource(`/api/upload-progress/${currentUploadSessionId}`);
+  currentEventSource = eventSource;
+
+  // Keep track of the last timestamp we processed to avoid out-of-order updates
+  let lastProcessedTimestamp = 0;
+  
+  // Store recent progress updates keyed by timestamp for deduplication
+  const recentProgressUpdates = new Map<number, boolean>();
+  
+  eventSource.onmessage = (event) => {
+    try {
+      const progress = JSON.parse(event.data) as UploadProgress;
+      
+      // Add timestamp if missing
+      if (!progress.timestamp) {
+        progress.timestamp = Date.now();
+      }
+      
+      // Log the reception
+      console.log('Hybrid model progress event received:', progress);
+      
+      // Record this timestamp to prevent duplicate processing
+      recentProgressUpdates.set(progress.timestamp, true);
+      
+      // Clean up old entries to avoid memory leaks
+      if (recentProgressUpdates.size > 20) {
+        // Keep only the 10 most recent entries
+        const keys = Array.from(recentProgressUpdates.keys()).sort((a, b) => a - b);
+        for (let i = 0; i < keys.length - 10; i++) {
+          recentProgressUpdates.delete(keys[i]);
+        }
+      }
+      
+      // Anti-flicker: Ensure events are processed in chronological order
+      if (progress.timestamp < lastProcessedTimestamp - 1000) {
+        console.log(`🎭 Ignoring out-of-order progress update: ${progress.timestamp} < ${lastProcessedTimestamp}`);
+        return;
+      }
+      
+      // Special case: Always process terminal state messages
+      const stageLower = progress.stage?.toLowerCase() || '';
+      const isTerminalState = progress.stage === 'Analysis complete' || 
+                             stageLower === 'analysis complete' || 
+                             (stageLower.includes('complete') && !stageLower.includes('record')) ||
+                             progress.stage === 'Upload Error' || 
+                             progress.error;
+      
+      if (isTerminalState) {
+        console.log(`🚨 TERMINAL STATE DETECTED! AUTO-CLOSING!`, progress.stage?.toLowerCase());
+        
+        // For completion, force progress to 100%
+        if (progress.stage?.toLowerCase()?.includes('complete') && progress.total && progress.total > 0) {
+          progress.processed = progress.total || 10; // Default to 10 if total is undefined
+          progress.stage = 'Analysis complete';
+        }
+        
+        // Close the EventSource connection - we're done!
+        console.log('Closing EventSource connection');
+        eventSource.close();
+        currentEventSource = null;
+        
+        // Always process terminal states immediately
+        if (onProgress) {
+          console.log('Success completion detected - refreshing data');
+          onProgress(progress);
+        }
+        
+        return;
+      }
+      
+      // Update last processed timestamp
+      if (progress.timestamp > lastProcessedTimestamp) {
+        lastProcessedTimestamp = progress.timestamp;
+      }
+      
+      // For normal updates, pass to callback with timestamps for the UI to handle debouncing
+      if (onProgress) {
+        console.log('Progress being sent to UI:', progress);
+        onProgress(progress);
+      }
+    } catch (error) {
+      console.error('Error parsing progress data:', error);
+    }
+  };
+
+  try {
+    // Use the hybrid-specific endpoint
+    const response = await fetch('/api/upload-csv-hybrid', {
+      method: 'POST',
+      headers: {
+        'X-Session-ID': currentUploadSessionId  // Use the potentially updated sessionId
+      },
+      body: formData,
+      credentials: 'include',
+      signal, // Add abort signal
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to upload CSV with hybrid model');
+    }
+
+    // Reset model type
+    currentModelType = 'standard';
+    
+    return response.json();
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error('Upload was cancelled');
+    }
+    throw error;
+  } finally {
+    eventSource.close();
+    currentEventSource = null;
+    currentUploadSessionId = null;
+    // Clear the session ID from localStorage
+    localStorage.removeItem('uploadSessionId');
+    localStorage.removeItem('uploadModelType');
+    // Reset model type
+    currentModelType = 'standard';
+  }
 }
