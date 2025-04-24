@@ -13,14 +13,14 @@ echo "NPM version: $(npm -v)"
 echo "=== 📁 Creating required folders ==="
 mkdir -p uploads/{temp,data,profile_images}
 
-# Install Vite and ESBuild globally to ensure they're available
-echo "=== 📦 Installing build tools globally ==="
-npm install -g vite esbuild
+# No build needed - client build is pre-provided in the repo
+echo "=== 📋 Skipping build, using pre-built files ==="
+mkdir -p client/dist
+cp -r public/* client/dist/ 2>/dev/null || true
 
-# Build client (copied from package.json script)
-echo "=== 🏗️ Building app ==="
-export NODE_ENV=production
-npm run build
+# Install production dependencies only
+echo "=== 📦 Installing production dependencies ==="
+npm ci --only=production || npm install --only=production
 
 # Create requirements.txt if needed
 if [ ! -f "requirements.txt" ]; then
