@@ -113,6 +113,25 @@ class CSVProcessorHybrid:
         except ImportError:
             self.transformers_available = False
             print("Transformers not available, will use pattern matching and ML fallbacks")
+        
+        # Initialize model loader for .pth files
+        try:
+            from model_loader import ModelLoader, check_model_availability
+            self.model_loader = ModelLoader()
+            availability = check_model_availability()
+            
+            if availability['models_available']:
+                print(f"Found {availability['model_count']} pre-trained model(s)")
+                for model_path in availability['model_paths']:
+                    print(f"  - {os.path.basename(model_path)}")
+            else:
+                print("No pre-trained models found, will use fallback methods")
+                
+            self.neural_available = self.torch_available and availability['models_available']
+        except ImportError as e:
+            print(f"Error importing model loader: {str(e)}")
+            self.neural_available = False
+            self.model_loader = None
             
         # Initialize fallback pattern-based classifier
         self.initialize_fallback_classifier()
@@ -380,11 +399,43 @@ class CSVProcessorHybrid:
         # Clean and preprocess text
         cleaned_text = self.preprocess_text(text)
         
-        # Use the hybrid neural network if available
+        # Try to use our PyTorch .pth model via model_loader if available
+        if hasattr(self, 'neural_available') and self.neural_available and self.model_loader:
+            try:
+                # Use the pre-trained model for prediction
+                print(f"Using neural network model for sentiment analysis")
+                model_result = self.model_loader.predict(cleaned_text)
+                
+                # Extract key phrases for explanation
+                key_phrases = self.extract_key_phrases(cleaned_text, model_result["sentiment"])
+                
+                # Build explanation
+                explanation = (
+                    f"Neural network (Hybrid Bi-GRU & LSTM) predicted {model_result['sentiment']} "
+                    f"with {model_result['confidence']:.2f} confidence"
+                )
+                
+                if key_phrases:
+                    explanation += f"\nKey phrases: {', '.join(key_phrases)}"
+                
+                return {
+                    "sentiment": model_result["sentiment"],
+                    "confidence": float(model_result["confidence"]),
+                    "explanation": explanation
+                }
+            except Exception as e:
+                print(f"Error using .pth model: {str(e)}, falling back to ML methods")
+                # Continue to ML fallback
+        
+        # Use the hybrid neural network if transformers are available
         if self.torch_available and self.transformers_available:
-            # This would call the actual neural network if it were available
-            # Since we don't have transformers, we'll use fallbacks
-            pass
+            try:
+                # This would use transformers-based model if it were available
+                # Since we don't always have transformers, we need a fallback path
+                pass
+            except Exception as e:
+                print(f"Error in transformers model: {str(e)}")
+                # Fall back to ML-based approach
         
         # Use ML-based fallback
         # Extract features and make prediction
