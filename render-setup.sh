@@ -27,7 +27,8 @@ fi
 # Build the client if needed
 if [ ! -d "client/dist" ] || [ -z "$(ls -A client/dist 2>/dev/null)" ]; then
   echo "Building client..."
-  npm run build:client
+  # Use the existing build script instead of build:client
+  npm run build
 else
   echo "Client build exists, skipping build step"
 fi
