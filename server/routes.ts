@@ -17,6 +17,8 @@ import { registerRealNewsRoutes } from "./routes/real-news-routes";
 import textProcessingRoutes from "./routes/text-processing";
 // Import Taglish fix utility
 import { preserveTaglishEntries } from "./fix-taglish";
+// Import the hybrid model processor for advanced CSV analysis
+import { hybridProcessor } from "./hybrid_processor";
 
 // Extend global to support our connection counter
 declare global {
