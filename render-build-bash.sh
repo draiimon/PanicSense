@@ -62,7 +62,8 @@ echo "========================================="
 echo "🔨 Building server files..."
 
 echo "📄 Building server/routes.ts..."
-npx esbuild server/routes.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+# Important: We need CJS format for Render compatibility
+npx esbuild server/routes.ts --platform=node --packages=external --bundle --format=cjs --outdir=dist
 
 echo "📄 Building server/db.ts..."
 npx esbuild server/db.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
@@ -70,8 +71,9 @@ npx esbuild server/db.ts --platform=node --packages=external --bundle --format=e
 echo "📄 Building server/index.ts..."
 npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
 
-echo "📄 Building server/db-simple-fix.ts..."
-npx esbuild server/db-simple-fix.ts --platform=node --packages=external --bundle --format=cjs --outdir=dist
+# Copy the CommonJS version directly
+echo "📄 Copying server/db-simple-fix.cjs..."
+cp server/db-simple-fix.cjs dist/
 
 echo "📄 Building server/python-service.ts..."
 npx esbuild server/python-service.ts --platform=node --packages=external --bundle --format=esm --outdir=dist

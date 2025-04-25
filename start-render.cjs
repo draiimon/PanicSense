@@ -10,7 +10,7 @@ const fs = require('fs');
 const http = require('http');
 const { Pool } = require('@neondatabase/serverless');
 const ws = require('ws');
-const { simpleDbFix } = require('./server/db-simple-fix');
+const { simpleDbFix } = require('./server/db-simple-fix.cjs');
 const multer = require('multer');
 const pg = require('pg');
 const pgSession = require('connect-pg-simple')(session);
@@ -155,7 +155,12 @@ async function startServer() {
   console.log('🔄 Loading API routes...');
   try {
     // Load the compiled routes from dist directory
+    console.log("🔍 Checking dist directory contents:");
+    fs.existsSync(path.join(__dirname, 'dist')) && 
+      fs.readdirSync(path.join(__dirname, 'dist')).forEach(file => console.log(`  - ${file}`));
+    
     const serverRoutesPath = path.join(__dirname, 'dist', 'routes.js');
+    console.log(`🔍 Looking for routes at: ${serverRoutesPath}`);
     if (fs.existsSync(serverRoutesPath)) {
       console.log(`✅ Found server routes at: ${serverRoutesPath}`);
       const serverRoutes = require(serverRoutesPath);
