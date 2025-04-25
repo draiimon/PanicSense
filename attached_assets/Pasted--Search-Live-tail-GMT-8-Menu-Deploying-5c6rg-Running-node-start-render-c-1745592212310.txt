@@ -1,0 +1,233 @@
+
+Search
+
+Live tail
+GMT+8
+
+Menu
+     ==> Deploying...
+5c6rg
+==> Running 'node start-render.cjs'
+5c6rg
+/opt/render/project/src/start-render.cjs:13
+5c6rg
+const { simpleDbFix } = require('./server/db-simple-fix');
+5c6rg
+                        ^
+5c6rg
+5c6rg
+Error [ERR_REQUIRE_ESM]: require() of ES Module /opt/render/project/src/server/db-simple-fix.js from /opt/render/project/src/start-render.cjs not supported.
+5c6rg
+Instead change the require of db-simple-fix.js in /opt/render/project/src/start-render.cjs to a dynamic import() which is available in all CommonJS modules.
+5c6rg
+    at Object.<anonymous> (/opt/render/project/src/start-render.cjs:13:25) {
+5c6rg
+  code: 'ERR_REQUIRE_ESM'
+5c6rg
+}
+5c6rg
+5c6rg
+Node.js v18.20.8
+     ==> Exited with status 1
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+5c6rg
+==> Running 'node start-render.cjs'
+5c6rg
+/opt/render/project/src/start-render.cjs:13
+5c6rg
+const { simpleDbFix } = require('./server/db-simple-fix');
+5c6rg
+                        ^
+5c6rg
+5c6rg
+Error [ERR_REQUIRE_ESM]: require() of ES Module /opt/render/project/src/server/db-simple-fix.js from /opt/render/project/src/start-render.cjs not supported.
+5c6rg
+Instead change the require of db-simple-fix.js in /opt/render/project/src/start-render.cjs to a dynamic import() which is available in all CommonJS modules.
+5c6rg
+    at Object.<anonymous> (/opt/render/project/src/start-render.cjs:13:25) {
+5c6rg
+  code: 'ERR_REQUIRE_ESM'
+5c6rg
+}
+5c6rg
+5c6rg
+Node.js v18.20.8
+     ==> Deploying...
+4q7vf
+==> Running 'node start-render.cjs'
+4q7vf
+========================================
+4q7vf
+🚀 [RENDER] STARTING PANICSENSE IN DEVELOPMENT MODE
+4q7vf
+📅 Time: 2025-04-25T14:40:51.860Z
+4q7vf
+🔌 PORT: 10000
+4q7vf
+🌍 NODE_ENV: development
+4q7vf
+========================================
+4q7vf
+🗄️ DATABASE CONFIGURATION:
+4q7vf
+DB Connection: CONFIGURED
+4q7vf
+Neon Connection: MISSING
+4q7vf
+🔌 Using database type: postgresql
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "x-powered-by" to true
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "etag" to 'weak'
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "etag fn" to [Function: generateETag]
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "env" to 'development'
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "query parser" to 'extended'
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "query parser fn" to [Function: parseExtendedQueryString]
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "subdomain offset" to 2
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "trust proxy" to false
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "trust proxy fn" to [Function: trustNone]
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application booting in development mode
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "view" to [Function: View]
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "views" to '/opt/render/project/src/views'
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "jsonp callback name" to 'callback'
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:router use '/' query
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:router:layer new '/'
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:router use '/' expressInit
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:router:layer new '/'
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:router use '/' jsonParser
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:router:layer new '/'
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:router use '/' urlencodedParser
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:router:layer new '/'
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:router use '/' multerMiddleware
+4q7vf
+Fri, 25 Apr 2025 14:40:51 GMT express:router:layer new '/'
+4q7vf
+========================================
+4q7vf
+📋 STARTING SERVER INITIALIZATION
+4q7vf
+🔄 Testing database connection...
+4q7vf
+❌ DATABASE CONNECTION FAILED: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+4q7vf
+Stack trace: Error: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+4q7vf
+    at /opt/render/project/src/node_modules/@neondatabase/serverless/index.js:1345:74
+4q7vf
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+4q7vf
+    at async testDatabaseConnection (/opt/render/project/src/start-render.cjs:66:20)
+4q7vf
+    at async startServer (/opt/render/project/src/start-render.cjs:116:23)
+4q7vf
+❌ Cannot proceed without database connection
+     ==> Exited with status 1
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+4q7vf
+==> Running 'node start-render.cjs'
+4q7vf
+========================================
+4q7vf
+🚀 [RENDER] STARTING PANICSENSE IN DEVELOPMENT MODE
+4q7vf
+📅 Time: 2025-04-25T14:41:00.620Z
+4q7vf
+🔌 PORT: 10000
+4q7vf
+🌍 NODE_ENV: development
+4q7vf
+========================================
+4q7vf
+🗄️ DATABASE CONFIGURATION:
+4q7vf
+DB Connection: CONFIGURED
+4q7vf
+Neon Connection: MISSING
+4q7vf
+🔌 Using database type: postgresql
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "x-powered-by" to true
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "etag" to 'weak'
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "etag fn" to [Function: generateETag]
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "env" to 'development'
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "query parser" to 'extended'
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "query parser fn" to [Function: parseExtendedQueryString]
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "subdomain offset" to 2
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "trust proxy" to false
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "trust proxy fn" to [Function: trustNone]
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application booting in development mode
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "view" to [Function: View]
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "views" to '/opt/render/project/src/views'
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "jsonp callback name" to 'callback'
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:router use '/' query
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:router:layer new '/'
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:router use '/' expressInit
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:router:layer new '/'
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:router use '/' jsonParser
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:router:layer new '/'
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:router use '/' urlencodedParser
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:router:layer new '/'
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:router use '/' multerMiddleware
+4q7vf
+Fri, 25 Apr 2025 14:41:00 GMT express:router:layer new '/'
+4q7vf
+========================================
+4q7vf
+📋 STARTING SERVER INITIALIZATION
+4q7vf
+🔄 Testing database connection...
+4q7vf
+❌ DATABASE CONNECTION FAILED: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+4q7vf
+Stack trace: Error: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+4q7vf
+    at /opt/render/project/src/node_modules/@neondatabase/serverless/index.js:1345:74
+4q7vf
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+4q7vf
+    at async testDatabaseConnection (/opt/render/project/src/start-render.cjs:66:20)
+4q7vf
+    at async startServer (/opt/render/project/src/start-render.cjs:116:23)
+4q7vf
+❌ Cannot proceed without database connection

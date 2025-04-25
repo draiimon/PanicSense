@@ -2,7 +2,7 @@
  * Simple database fix function.
  * CommonJS version that works with both ESM and CommonJS
  * 
- * @returns Promise<boolean> True if the fix was applied successfully
+ * @returns {Promise<boolean>} True if the fix was applied successfully
  */
 
 async function simpleDbFix() {

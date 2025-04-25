@@ -34,9 +34,8 @@ console.log(`DB Connection: ${process.env.DATABASE_URL ? 'CONFIGURED' : 'MISSING
 console.log(`Neon Connection: ${process.env.NEON_DATABASE_URL ? 'CONFIGURED' : 'MISSING'}`);
 
 // Set up the database configuration for Neon PG
-const neonConfig = {
-  webSocketConstructor: ws
-};
+const { neonConfig } = require('@neondatabase/serverless');
+neonConfig.webSocketConstructor = ws;
 
 // Prioritize Neon database URL if available, fall back to regular DATABASE_URL
 let databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
@@ -115,8 +114,10 @@ async function startServer() {
   // First test the database connection
   const dbConnected = await testDatabaseConnection();
   if (!dbConnected) {
-    console.error('❌ Cannot proceed without database connection');
-    process.exit(1);
+    console.warn('⚠️ DATABASE CONNECTION FAILED, but continuing in minimal mode');
+    console.warn('⚠️ Set up the DATABASE_URL environment variable in the Render dashboard');
+    console.warn('⚠️ Only basic API functionality will be available');
+    // Continue anyway to allow minimum functionality
   }
   
   // Try to fix the database schema if needed
@@ -133,23 +134,31 @@ async function startServer() {
     console.error('Continuing anyway - tables might exist already');
   }
   
-  // Setup session with PostgreSQL
-  app.use(
-    session({
-      store: new pgSession({
-        pool,
-        tableName: 'session', // Use a custom session table name
-        createTableIfMissing: true
-      }),
-      secret: process.env.SESSION_SECRET || 'render-secure-panicsense-cat',
-      resave: false,
-      saveUninitialized: true,
-      cookie: { 
-        secure: false,
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-      }
-    })
-  );
+  // Setup session with PostgreSQL or fallback to memory store
+  let sessionConfig = {
+    secret: process.env.SESSION_SECRET || 'render-secure-panicsense-cat',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { 
+      secure: false,
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    }
+  };
+  
+  // Use PostgreSQL session store if database is connected
+  if (dbConnected) {
+    console.log('✅ Using PostgreSQL session store');
+    sessionConfig.store = new pgSession({
+      pool,
+      tableName: 'session', // Use a custom session table name
+      createTableIfMissing: true
+    });
+  } else {
+    console.log('⚠️ Using memory session store (not persistent!)');
+    // Memory store will be used by default
+  }
+  
+  app.use(session(sessionConfig));
   
   // Import server routes
   console.log('🔄 Loading API routes...');

@@ -1,0 +1,143 @@
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+    vite.config.ts:8:33:
+      8 │ const __filename = fileURLToPath(import.meta.url);
+        ╵                                  ~~~~~~~~~~~
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+✘ [ERROR] Top-level await is currently not supported with the "cjs" output format
+    vite.config.ts:19:10:
+      19 │           await import("@replit/vite-plugin-cartographer").then((m...
+         ╵           ~~~~~
+3 warnings and 1 error
+📄 Building server/db.ts...
+  dist/db.js  9.8kb
+⚡ Done in 2ms
+📄 Building server/index.ts...
+  dist/index.js  266.0kb
+⚡ Done in 13ms
+📄 Copying CommonJS files for maximum compatibility...
+📄 Building server/python-service.ts...
+  dist/python-service.js  80.3kb
+⚡ Done in 7ms
+📄 Building server/storage.ts...
+  dist/storage.js  29.5kb
+⚡ Done in 5ms
+=========================================
+🧾 Build output directory contents:
+total 416
+drwxr-sr-x  3 render render   4096 Apr 25 14:40 .
+drwxr-sr-x 14 render render   4096 Apr 25 14:40 ..
+-rw-r--r--  1 render render    712 Apr 25 14:40 db-simple-fix.cjs
+-rw-r--r--  1 render render  10017 Apr 25 14:40 db.js
+-rw-r--r--  1 render render 272337 Apr 25 14:40 index.js
+drwxr-sr-x  4 render render   4096 Apr 25 14:40 public
+-rw-r--r--  1 render render  82260 Apr 25 14:40 python-service.js
+-rw-r--r--  1 render render   3565 Apr 25 14:40 routes.cjs
+-rw-r--r--  1 render render  30238 Apr 25 14:40 storage.js
+🧾 Public directory contents:
+total 300
+drwxr-sr-x 4 render render   4096 Apr 25 14:40 .
+drwxr-sr-x 3 render render   4096 Apr 25 14:40 ..
+drwxr-sr-x 2 render render   4096 Apr 25 14:40 assets
+-rw-r--r-- 1 render render 198926 Apr 25 14:40 favicon.ico
+-rw-r--r-- 1 render render  67642 Apr 25 14:40 favicon.png
+drwxr-sr-x 2 render render   4096 Apr 25 14:40 images
+-rw-r--r-- 1 render render   3556 Apr 25 14:40 index.html
+-rw-r--r-- 1 render render  15747 Apr 25 14:40 panicenseph-og-image.png
+=========================================
+✅ Build completed successfully!
+📅 Build finished at: Fri Apr 25 14:40:16 UTC 2025
+=========================================
+==> Uploading build...
+==> Uploaded in 6.0s. Compression took 2.7s
+==> Build successful 🎉
+==> Deploying...
+==> Running 'node start-render.cjs'
+========================================
+🚀 [RENDER] STARTING PANICSENSE IN DEVELOPMENT MODE
+📅 Time: 2025-04-25T14:40:51.860Z
+🔌 PORT: 10000
+🌍 NODE_ENV: development
+========================================
+🗄️ DATABASE CONFIGURATION:
+DB Connection: CONFIGURED
+Neon Connection: MISSING
+🔌 Using database type: postgresql
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "x-powered-by" to true
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "etag" to 'weak'
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "etag fn" to [Function: generateETag]
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "env" to 'development'
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "query parser" to 'extended'
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "query parser fn" to [Function: parseExtendedQueryString]
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "subdomain offset" to 2
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "trust proxy" to false
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "trust proxy fn" to [Function: trustNone]
+Fri, 25 Apr 2025 14:40:51 GMT express:application booting in development mode
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "view" to [Function: View]
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "views" to '/opt/render/project/src/views'
+Fri, 25 Apr 2025 14:40:51 GMT express:application set "jsonp callback name" to 'callback'
+Fri, 25 Apr 2025 14:40:51 GMT express:router use '/' query
+Fri, 25 Apr 2025 14:40:51 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 14:40:51 GMT express:router use '/' expressInit
+Fri, 25 Apr 2025 14:40:51 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 14:40:51 GMT express:router use '/' jsonParser
+Fri, 25 Apr 2025 14:40:51 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 14:40:51 GMT express:router use '/' urlencodedParser
+Fri, 25 Apr 2025 14:40:51 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 14:40:51 GMT express:router use '/' multerMiddleware
+Fri, 25 Apr 2025 14:40:51 GMT express:router:layer new '/'
+========================================
+📋 STARTING SERVER INITIALIZATION
+🔄 Testing database connection...
+❌ DATABASE CONNECTION FAILED: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+Stack trace: Error: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+    at /opt/render/project/src/node_modules/@neondatabase/serverless/index.js:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async testDatabaseConnection (/opt/render/project/src/start-render.cjs:66:20)
+    at async startServer (/opt/render/project/src/start-render.cjs:116:23)
+❌ Cannot proceed without database connection
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'node start-render.cjs'
+========================================
+🚀 [RENDER] STARTING PANICSENSE IN DEVELOPMENT MODE
+📅 Time: 2025-04-25T14:41:00.620Z
+🔌 PORT: 10000
+🌍 NODE_ENV: development
+========================================
+🗄️ DATABASE CONFIGURATION:
+DB Connection: CONFIGURED
+Neon Connection: MISSING
+🔌 Using database type: postgresql
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "x-powered-by" to true
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "etag" to 'weak'
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "etag fn" to [Function: generateETag]
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "env" to 'development'
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "query parser" to 'extended'
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "query parser fn" to [Function: parseExtendedQueryString]
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "subdomain offset" to 2
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "trust proxy" to false
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "trust proxy fn" to [Function: trustNone]
+Fri, 25 Apr 2025 14:41:00 GMT express:application booting in development mode
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "view" to [Function: View]
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "views" to '/opt/render/project/src/views'
+Fri, 25 Apr 2025 14:41:00 GMT express:application set "jsonp callback name" to 'callback'
+Fri, 25 Apr 2025 14:41:00 GMT express:router use '/' query
+Fri, 25 Apr 2025 14:41:00 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 14:41:00 GMT express:router use '/' expressInit
+Fri, 25 Apr 2025 14:41:00 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 14:41:00 GMT express:router use '/' jsonParser
+Fri, 25 Apr 2025 14:41:00 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 14:41:00 GMT express:router use '/' urlencodedParser
+Fri, 25 Apr 2025 14:41:00 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 14:41:00 GMT express:router use '/' multerMiddleware
+Fri, 25 Apr 2025 14:41:00 GMT express:router:layer new '/'
+========================================
+📋 STARTING SERVER INITIALIZATION
+🔄 Testing database connection...
+❌ DATABASE CONNECTION FAILED: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+Stack trace: Error: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+    at /opt/render/project/src/node_modules/@neondatabase/serverless/index.js:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async testDatabaseConnection (/opt/render/project/src/start-render.cjs:66:20)
+    at async startServer (/opt/render/project/src/start-render.cjs:116:23)
+❌ Cannot proceed without database connection
