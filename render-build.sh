@@ -1,40 +1,45 @@
 #!/bin/bash
 
-# Render.com build script for PanicSense
-set -e  # Exit on error
+# SIMPLE BUILD SCRIPT FOR RENDER.COM
+# This doesn't require any credit card info or blueprints
+# Works with the FREE TIER!
 
-# Print environment information
-echo "========== ENVIRONMENT INFO =========="
+echo "========== STARTING PANICSENSE BUILD =========="
 echo "Node version: $(node -v)"
 echo "NPM version: $(npm -v)"
-echo "Working directory: $(pwd)"
+echo "Current directory: $(pwd)"
 
-# Install ALL dependencies (including dev dependencies)
-echo "========== INSTALLING DEPENDENCIES =========="
-echo "Installing all dependencies (including dev dependencies)..."
-npm install --production=false
+# Install Node.js dependencies
+echo "========== INSTALLING NODE.JS DEPENDENCIES =========="
+npm install --include=dev 
 
-# Ensure vite is available
-echo "========== CHECKING VITE =========="
-if ! command -v ./node_modules/.bin/vite &> /dev/null; then
-    echo "Vite not found in node_modules! Installing explicitly..."
-    npm install --no-save vite
-    echo "Vite explicitly installed: $(./node_modules/.bin/vite --version)"
-fi
-
-# Build the frontend and server
-echo "========== BUILDING APPLICATION =========="
-echo "Building the frontend and server..."
+# Build frontend
+echo "========== BUILDING FRONTEND =========="
 npm run build
 
-# Verify build output
-echo "========== VERIFYING BUILD =========="
-if [ -d "dist/public" ]; then
-    echo "✅ Frontend build successful! Files found in dist/public"
-    ls -la dist/public
-else
-    echo "⚠️ Warning: Frontend build folder not found!"
-fi
+# Create necessary directories
+echo "========== CREATING REQUIRED DIRECTORIES =========="
+mkdir -p dist
+mkdir -p dist/public
+mkdir -p dist/python
+mkdir -p uploads
+
+# Copy Python files
+echo "========== PREPARING PYTHON SCRIPTS =========="
+cp -r python/* dist/python/
+
+# Make Python scripts executable
+chmod +x python/*.py
+chmod +x dist/python/*.py
+
+# Make server scripts executable
+chmod +x *.cjs
+chmod +x *.js
+chmod +x *.sh
+
+# Create a marker file to help with debugging
+echo "render-build.sh ran at $(date)" > build-timestamp.txt
+cp build-timestamp.txt dist/
 
 echo "========== BUILD COMPLETE =========="
 echo "Build completed successfully!"

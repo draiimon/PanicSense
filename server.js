@@ -1,241 +1,240 @@
 /**
- * SERVER
- * Simple Node.js server for the application
+ * Main server for PanicSense web frontend
+ * This works with the Python worker via a shared database
  */
 
-import express from 'express';
-import pg from 'pg';
-import http from 'http';
-import path from 'path';
-import fs from 'fs';
-import { WebSocketServer } from 'ws';
-import multer from 'multer';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const http = require('http');
+const { Pool } = require('pg');
+const WebSocket = require('ws');
 
-// pg is a CommonJS module so we need to extract Pool like this
-const { Pool } = pg;
+// Configure environment
+const PORT = process.env.PORT || 10000;
+const DATABASE_URL = process.env.DATABASE_URL;
 
-// ES Module dirname equivalent
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Create database pool
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
 // Create Express app and HTTP server
 const app = express();
 const server = http.createServer(app);
-const port = process.env.PORT || 5000;
+const wss = new WebSocket.Server({ server });
 
-// Middleware
+// Set up WebSocket for live updates
+wss.on('connection', (ws) => {
+  console.log('WebSocket client connected');
+  
+  // Periodically send event updates
+  const intervalId = setInterval(async () => {
+    try {
+      const client = await pool.connect();
+      const result = await client.query('SELECT * FROM disaster_events ORDER BY created_at DESC LIMIT 5');
+      client.release();
+      
+      ws.send(JSON.stringify({
+        type: 'disaster_update',
+        data: result.rows,
+        timestamp: new Date().toISOString()
+      }));
+    } catch (error) {
+      console.error('WebSocket data fetch error:', error);
+      // Send fallback data if database isn't available
+      ws.send(JSON.stringify({
+        type: 'disaster_update',
+        data: [],
+        timestamp: new Date().toISOString(),
+        error: 'Database connection error'
+      }));
+    }
+  }, 10000);
+  
+  ws.on('close', () => {
+    console.log('WebSocket client disconnected');
+    clearInterval(intervalId);
+  });
+});
+
+// Configure middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Setup file upload
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+// Enable CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  next();
 });
 
-// Create WebSocket server
-const wss = new WebSocketServer({ server, path: '/ws' });
-wss.on('connection', (ws) => {
-  console.log('WebSocket client connected');
-  ws.send(JSON.stringify({
-    type: 'connection_established',
-    message: 'Connected to server',
-    timestamp: Date.now()
-  }));
-  ws.on('close', () => console.log('WebSocket client disconnected'));
-});
-
-// Import the database connection from server/db.ts
-// Avoid creating a separate connection - use only the Neon database 
-// managed by Drizzle ORM
-let pool;
-try {
-  // For ES Module, use dynamic import
-  const dbModule = await import('./server/db.js');
-  pool = dbModule.pool;
-  console.log('Using shared database connection from server/db.js');
-} catch (error) {
-  console.warn('Failed to import database connection from server/db.js:', error.message);
-  console.warn('Some database features might be disabled');
+// Health endpoint
+app.get('/api/health', async (req, res) => {
+  let dbStatus = 'unknown';
   
-  // Fallback to direct connection if needed
   try {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (databaseUrl) {
-      pool = new Pool({
-        connectionString: databaseUrl,
-        ssl: { rejectUnauthorized: false }
-      });
-      console.log('Created fallback database connection from DATABASE_URL');
-    }
-  } catch (fallbackError) {
-    console.error('Failed to create fallback database connection:', fallbackError.message);
+    const client = await pool.connect();
+    await client.query('SELECT NOW() as now');
+    client.release();
+    dbStatus = 'connected';
+  } catch (error) {
+    dbStatus = 'error: ' + error.message;
   }
-}
-
-// Create simple broadcast function for WebSocket
-function broadcastUpdate(data) {
-  wss.clients.forEach((client) => {
-    if (client.readyState === 1) {
-      client.send(JSON.stringify({
-        ...data,
-        timestamp: Date.now()
-      }));
-    }
+  
+  res.json({
+    status: 'ok',
+    version: '1.0.0',
+    time: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'development',
+    database: dbStatus,
+    pythonServiceUrl: process.env.PYTHON_SERVICE_URL || 'Not configured'
   });
-}
+});
 
-// Register routes
-async function registerRoutes() {
-  // Basic health check
-  app.get('/api/health', async (req, res) => {
-    try {
-      if (pool) {
-        const client = await pool.connect();
-        await client.query('SELECT NOW()');
-        client.release();
-        res.json({ 
-          status: 'ok', 
-          database: 'connected', 
-          timestamp: new Date().toISOString()
-        });
-      } else {
-        res.json({ 
-          status: 'ok', 
-          database: 'not configured', 
-          timestamp: new Date().toISOString()
-        });
-      }
-    } catch (err) {
-      res.status(500).json({ status: 'error', message: err.message });
-    }
-  });
-
-  // Core API routes
-  app.get('/api/disaster-events', async (req, res) => {
-    try {
-      if (!pool) return res.json([]);
-      // Use timestamp or id instead of created_at to fix database error
-      const result = await pool.query('SELECT * FROM disaster_events ORDER BY id DESC');
-      res.json(result.rows);
-    } catch (err) {
-      console.error('Error getting disaster events:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get('/api/sentiment-posts', async (req, res) => {
-    try {
-      if (!pool) return res.json([]);
-      const result = await pool.query('SELECT * FROM sentiment_posts ORDER BY timestamp DESC');
-      res.json(result.rows);
-    } catch (err) {
-      console.error('Error getting sentiment posts:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get('/api/analyzed-files', async (req, res) => {
-    try {
-      if (!pool) return res.json([]);
-      // Use id instead of created_at to fix database error
-      const result = await pool.query('SELECT * FROM analyzed_files ORDER BY id DESC');
-      res.json(result.rows);
-    } catch (err) {
-      console.error('Error getting analyzed files:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Serve static files from the dist directory
-  const distDir = path.join(__dirname, 'dist/public');
-  if (fs.existsSync(distDir)) {
-    app.use(express.static(distDir));
-    console.log(`Serving static files from ${distDir}`);
+// Connect to the Python service for analysis
+app.post('/api/analyze', async (req, res) => {
+  try {
+    const { text } = req.body;
     
-    // Fallback for SPA routing
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distDir, 'index.html'));
+    if (!text) {
+      return res.status(400).json({ error: 'Text is required' });
+    }
+    
+    // Store analysis request in database for Python worker to pick up
+    const client = await pool.connect();
+    const result = await client.query(
+      'INSERT INTO analysis_requests (text, status) VALUES ($1, $2) RETURNING id',
+      [text, 'pending']
+    );
+    client.release();
+    
+    const requestId = result.rows[0].id;
+    
+    res.json({
+      success: true,
+      requestId,
+      message: 'Analysis request submitted, check status endpoint'
     });
+  } catch (error) {
+    console.error('Analysis request error:', error);
+    res.status(500).json({ error: 'Failed to submit analysis request' });
+  }
+});
+
+// Get analysis results
+app.get('/api/analysis/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const client = await pool.connect();
+    const result = await client.query(
+      'SELECT * FROM analysis_requests WHERE id = $1',
+      [id]
+    );
+    client.release();
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Analysis request not found' });
+    }
+    
+    const analysis = result.rows[0];
+    
+    res.json({
+      id: analysis.id,
+      text: analysis.text,
+      status: analysis.status,
+      results: analysis.results,
+      created_at: analysis.created_at,
+      completed_at: analysis.completed_at
+    });
+  } catch (error) {
+    console.error('Analysis fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch analysis results' });
+  }
+});
+
+// API endpoints that fetch from database
+app.get('/api/disaster-events', async (req, res) => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT * FROM disaster_events ORDER BY created_at DESC');
+    client.release();
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({ error: 'Failed to fetch disaster events' });
+  }
+});
+
+app.get('/api/sentiment-posts', async (req, res) => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT * FROM sentiment_posts ORDER BY timestamp DESC LIMIT 100');
+    client.release();
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({ error: 'Failed to fetch sentiment posts' });
+  }
+});
+
+app.get('/api/analyzed-files', async (req, res) => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT * FROM analyzed_files ORDER BY created_at DESC');
+    client.release();
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({ error: 'Failed to fetch analyzed files' });
+  }
+});
+
+// Serve static files
+const distPath = path.join(__dirname, 'dist', 'public');
+if (fs.existsSync(path.join(distPath, 'index.html'))) {
+  console.log(`✅ Found frontend files in: ${distPath}`);
+  app.use(express.static(distPath));
+} else {
+  console.error(`❌ Frontend files not found at ${distPath}`);
+}
+
+// Catch-all route
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  
+  const indexPath = path.join(distPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
   } else {
-    console.warn(`Static directory ${distDir} not found`);
-    
-    // Simple fallback page
-    app.get('*', (req, res) => {
-      res.send(`
-        <html>
-          <head><title>PanicSense</title></head>
-          <body>
-            <h1>Server is running but frontend is not built</h1>
-            <p>API endpoints are available but the frontend was not properly built.</p>
-          </body>
-        </html>
-      `);
-    });
+    res.status(404).send('Frontend not found');
   }
-  
-  return server;
-}
+});
 
-// Initialize database and start server
-async function startServer() {
-  try {
-    console.log('========================================');
-    console.log(`Starting server initialization at: ${new Date().toISOString()}`);
-    console.log('========================================');
-    
-    // Test database connection
-    if (pool) {
-      try {
-        const client = await pool.connect();
-        console.log('✅ Successfully connected to PostgreSQL database');
-        client.release();
-      } catch (err) {
-        console.error('❌ Failed to connect to PostgreSQL database:', err);
-      }
-    }
-    
-    // Register routes
-    await registerRoutes();
-    console.log('Routes registered successfully');
-
-    // Start server
-    server.listen(port, '0.0.0.0', () => {
-      console.log(`========================================`);
-      console.log(`🚀 Server running on port ${port}`);
-      console.log(`Server listening at: http://0.0.0.0:${port}`);
-      console.log(`Server ready at: ${new Date().toISOString()}`);
-      console.log(`========================================`);
-    });
-    
-  } catch (err) {
-    console.error('FATAL ERROR during startup:', err);
-    process.exit(1);
-  }
-}
+// Start the server
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 PanicSense Web Server running on http://0.0.0.0:${PORT}`);
+  console.log(`📅 Started at: ${new Date().toISOString()}`);
+});
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
+process.on('SIGINT', () => {
+  console.log('Received SIGINT signal, shutting down gracefully');
   server.close(() => {
-    console.log('HTTP server closed');
-    if (pool) {
-      pool.end().then(() => {
-        console.log('Database pool closed');
-        process.exit(0);
-      }).catch(() => process.exit(1));
-    } else {
-      process.exit(0);
-    }
+    pool.end();
+    process.exit(0);
   });
 });
 
-// Start server
-startServer().catch(err => {
-  console.error('Error during startup:', err);
-  server.listen(port, '0.0.0.0', () => {
-    console.log(`Server running on port ${port} (startup error occurred)`);
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM signal, shutting down gracefully');
+  server.close(() => {
+    pool.end();
+    process.exit(0);
   });
 });

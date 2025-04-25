@@ -1,61 +1,92 @@
-# Render Deployment Fix for PanicSense
+# PanicSense Render.com Deployment Guide
 
-This guide provides step-by-step instructions to fix deployment issues on Render.com.
+## Overview
 
-## The Problem
+This guide explains how to deploy PanicSense to Render.com's free tier without requiring a credit card or blueprints. The solution uses a single service to handle both Node.js and Python components.
 
-Render.com doesn't install development dependencies by default, which causes errors like `vite: not found` during the build process. Additionally, there are module compatibility issues between CommonJS and ES modules.
+## Quick Setup
 
-## The Solution
+1. Create a new Web Service on Render
+2. Connect your GitHub repository or upload directly
+3. Configure using these settings:
 
-We've created several files to fix these issues:
+**Build Command:**
+```
+./render-build.sh
+```
 
-1. `render-build.sh` - Custom build script that installs ALL dependencies
-2. `app-render.cjs` - CommonJS-compatible server for Render deployment with development mode
+**Start Command:**
+```
+node start-render.cjs
+```
 
-## Deployment Instructions
+## Environment Variables
 
-1. Log in to your Render.com dashboard
-2. Create a new Web Service:
-   - Connect to your GitHub repository
-   - Give it a name (e.g., "PanicSense")
-   - Select "Node" as the runtime
+Add these environment variables in the Render dashboard:
 
-3. Configure the build settings:
-   - Build Command: `./render-build.sh`
-   - Start Command: `node app-render.cjs`
+- `DATABASE_URL` - Your Neon PostgreSQL database URL
+- `NODE_ENV` - Set to `production`
+- `PORT` - Set to `10000` (or let Render assign a port)
+- `SESSION_SECRET` - Any secure random string
+- `DEBUG` - Set to `true` for verbose logging (optional)
 
-4. Add the following environment variables:
-   - `NODE_ENV`: `development`
-   - `PORT`: `10000`
-   - `DATABASE_URL`: Your Neon PostgreSQL connection string
-   - `SESSION_SECRET`: A random string for session security
+## How It Works
 
-5. Click "Create Web Service"
+This deployment uses a single service approach that:
 
-## Troubleshooting Common Issues
+1. Runs a Node.js Express server for the frontend
+2. Automatically starts and monitors a Python daemon process
+3. Handles inter-process communication
+4. Auto-restarts Python if it crashes
+5. Provides API endpoints to check Python status
 
-### "vite: not found" error
-This is caused by Render not installing dev dependencies. Our `render-build.sh` script fixes this by using `npm install --production=false`.
+## Checking Deployment
 
-### Module import errors
-There can be compatibility issues between CommonJS and ES modules. Our `app-render.cjs` file is a simplified CommonJS version of the server that avoids these issues by using the .cjs extension to force CommonJS mode.
+After deployment, visit these endpoints to verify everything is working:
+
+1. `/` - Main application
+2. `/api/health` - Should show that both Node.js and Python are running
+3. `/api/disaster-events` - Should show disaster events
+4. `/api/python-logs` - Should show Python daemon activity
+
+## Troubleshooting
+
+### Python not starting
+
+If Python fails to start, check:
+
+1. Render logs for Python-related errors
+2. `/api/python-logs` endpoint for specific Python error messages
+3. Make sure `python/daemon.py` is executable (the build script should handle this)
+
+### Frontend not found
+
+If you see "Frontend not found" but APIs work:
+
+1. Check if the build process completed successfully
+2. Verify frontend files are in the correct location
+3. Review Render logs for build errors
 
 ### Database connection issues
-Make sure your `DATABASE_URL` environment variable is correctly set in the Render dashboard. The app will still start without a database connection, but some features won't work.
 
-## Checking Deployment Status
+If database operations fail:
 
-After deployment, visit `/api/health` to check if the server is running correctly:
+1. Verify your DATABASE_URL is correctly set
+2. Check the database connection string is properly formatted
+3. Make sure your IP is allowed in Neon's connection settings
 
-```
-https://your-render-app.onrender.com/api/health
-```
+## Logs and Monitoring
 
-This should return a JSON response with the server status.
+Check application status via the Render dashboard:
 
-## Additional Notes
+1. Environment tab - Verify environment variables
+2. Logs tab - See real-time application logs
+3. Events tab - View build and deployment history
 
-- The production build on Render uses a minimal server configuration without all the backend API routes
-- Real-time monitoring features require a valid database connection
-- If you need to debug deployment issues, check the logs in the Render dashboard
+## Need More Help?
+
+If you're still having issues:
+
+1. Check the complete logs in the Render dashboard
+2. Try running with `DEBUG=true` for more detailed logging
+3. Inspect the generated `build-timestamp.txt` file to confirm build ran successfully
