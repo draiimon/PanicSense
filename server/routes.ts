@@ -1830,8 +1830,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`🤖 Automatically starting hybrid model training for uploaded file (ID: ${analyzedFileId})`);
           
           // We don't wait for training to complete before responding to the client
+          // Use fileInfo from database instead of req.file.path
           trainingService.autoTrainAfterUpload(
-            req.file.path,
+            fileInfo ? fileInfo.storedName : req.file.path, // Use storedName from database
             analyzedFileId,
             sessionId,
             (progress) => {

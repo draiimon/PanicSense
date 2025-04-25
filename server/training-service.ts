@@ -125,18 +125,62 @@ export async function trainWithCSV(
   success: boolean,
   message: string
 }> {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     console.log(`Training model with CSV file: ${filePath}`);
     
-    // Validate file exists - check both possible paths
-    if (!fs.existsSync(filePath)) {
-      // Try alternate path relative to CWD
-      filePath = path.join(process.cwd(), 'uploads', path.basename(filePath));
-      
-      if (!fs.existsSync(filePath)) {
-        console.error(`File not found at paths:\n1. ${path.join(__dirname, '..', 'uploads', path.basename(filePath))}\n2. ${path.join(process.cwd(), 'uploads', path.basename(filePath))}`);
-        return reject(new Error(`File not found: ${filePath}`));
+    // Enhanced file path checking - try multiple possible paths
+    const possiblePaths = [
+      filePath,
+      path.join(process.cwd(), 'uploads', path.basename(filePath)),
+      path.join(__dirname, '..', 'uploads', path.basename(filePath)),
+      path.join('uploads', path.basename(filePath)),
+      path.join('.', 'uploads', path.basename(filePath))
+    ];
+    
+    let fileFound = false;
+    for (const tryPath of possiblePaths) {
+      console.log(`[trainWithCSV] Trying path: ${tryPath}`);
+      if (fs.existsSync(tryPath)) {
+        console.log(`[trainWithCSV] Found file at: ${tryPath}`);
+        filePath = tryPath;
+        fileFound = true;
+        break;
       }
+    }
+    
+    // Try one more approach - check the database for the file details
+    if (!fileFound) {
+      try {
+        console.log(`[trainWithCSV] File not found in standard paths, checking database for file ID: ${fileId}`);
+        const [fileRecord] = await db.select().from(schema.analyzedFiles).where(eq(schema.analyzedFiles.id, fileId));
+        
+        if (fileRecord && fileRecord.storedName) {
+          const possibleStoredPaths = [
+            path.join(process.cwd(), 'uploads', fileRecord.storedName),
+            path.join(__dirname, '..', 'uploads', fileRecord.storedName),
+            path.join('uploads', fileRecord.storedName),
+            path.join('.', 'uploads', fileRecord.storedName)
+          ];
+          
+          for (const storedPath of possibleStoredPaths) {
+            console.log(`[trainWithCSV] Trying storedName path from database: ${storedPath}`);
+            if (fs.existsSync(storedPath)) {
+              console.log(`[trainWithCSV] Found file using storedName from database: ${storedPath}`);
+              filePath = storedPath;
+              fileFound = true;
+              break;
+            }
+          }
+        }
+      } catch (dbError) {
+        console.error("[trainWithCSV] Error checking database for file:", dbError);
+      }
+    }
+    
+    // Final validation - reject if still not found
+    if (!fileFound) {
+      console.error(`[trainWithCSV] File not found after trying multiple paths: ${path.basename(filePath)}`);
+      return reject(new Error(`File not found: ${filePath}. Tried multiple possible paths.`));
     }
     
     // Create Python process
@@ -490,18 +534,51 @@ export class TrainingService {
     try {
       console.log(`[AUTO-TRAIN] Starting automatic hybrid model training for uploaded file: ${filePath} (ID: ${fileId})`);
       
-      // Verify the file exists
-      if (!fs.existsSync(filePath)) {
-        const alternateFilePath = path.join(process.cwd(), 'uploads', path.basename(filePath));
-        if (fs.existsSync(alternateFilePath)) {
-          filePath = alternateFilePath;
-        } else {
-          console.error(`[AUTO-TRAIN] Error: Uploaded file not found at ${filePath}`);
-          return {
-            success: false,
-            message: 'Uploaded file not found - automatic training aborted'
-          };
+      // Verify the file exists - we need to try multiple possible paths
+      console.log(`[AUTO-TRAIN] Checking if file exists at: ${filePath}`);
+      const possiblePaths = [
+        filePath,
+        path.join(process.cwd(), 'uploads', path.basename(filePath)),
+        path.join(__dirname, '..', 'uploads', path.basename(filePath)),
+        path.join('uploads', path.basename(filePath)),
+        path.join('.', 'uploads', path.basename(filePath))
+      ];
+      
+      let fileFound = false;
+      for (const tryPath of possiblePaths) {
+        console.log(`[AUTO-TRAIN] Trying path: ${tryPath}`);
+        if (fs.existsSync(tryPath)) {
+          console.log(`[AUTO-TRAIN] Found file at: ${tryPath}`);
+          filePath = tryPath;
+          fileFound = true;
+          break;
         }
+      }
+      
+      if (!fileFound) {
+        // Try one more approach - check the analyzed file record for storedName
+        const [fileRecord] = await db
+          .select()
+          .from(schema.analyzedFiles)
+          .where(eq(schema.analyzedFiles.id, fileId));
+        
+        if (fileRecord && fileRecord.storedName) {
+          const storedNamePath = path.join(process.cwd(), 'uploads', fileRecord.storedName);
+          console.log(`[AUTO-TRAIN] Trying storedName path: ${storedNamePath}`);
+          if (fs.existsSync(storedNamePath)) {
+            console.log(`[AUTO-TRAIN] Found file using storedName: ${storedNamePath}`);
+            filePath = storedNamePath;
+            fileFound = true;
+          }
+        }
+      }
+      
+      if (!fileFound) {
+        console.error(`[AUTO-TRAIN] Error: File not found. Tried multiple paths for: ${path.basename(filePath)}`);
+        return {
+          success: false,
+          message: 'Uploaded file not found after trying multiple paths - automatic training aborted'
+        };
       }
       
       // Initial progress update for hybrid model training
