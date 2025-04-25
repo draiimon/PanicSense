@@ -2,7 +2,7 @@ modules = ["nodejs-20", "python3", "postgresql-16", "python-3.11"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["cairo", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "gobject-introspection", "gtk3", "pkg-config", "qhull", "tcl", "tk"]
+packages = ["cairo", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "gobject-introspection", "gtk3", "openssl", "pkg-config", "postgresql", "qhull", "tcl", "tk"]
 
 [workflows]
 runButton = "Project"
@@ -15,6 +15,10 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "PanicSense-Dev"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "PanicSense-Flask"
 
 [[workflows.workflow]]
 name = "PanicSense-Dev"
@@ -31,9 +35,22 @@ task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
 
+[[workflows.workflow]]
+name = "PanicSense-Flask"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python simple_server.py"
+waitForPort = 5001
+
 [deployment]
 run = ["sh", "-c", "node hello-world.js"]
 
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3000
