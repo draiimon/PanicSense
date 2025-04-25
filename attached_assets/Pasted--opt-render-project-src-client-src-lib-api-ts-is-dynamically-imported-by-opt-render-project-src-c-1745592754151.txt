@@ -1,0 +1,78 @@
+) /opt/render/project/src/client/src/lib/api.ts is dynamically imported by /opt/render/project/src/client/src/pages/evaluation.tsx, /opt/render/project/src/client/src/pages/evaluation.tsx, /opt/render/project/src/client/src/pages/evaluation.tsx but also statically imported by /opt/render/project/src/client/src/components/data/fixed-data-table.tsx, /opt/render/project/src/client/src/components/evaluation/confusion-matrix.tsx, /opt/render/project/src/client/src/components/file-uploader-button.tsx, /opt/render/project/src/client/src/components/realtime/realtime-monitor.tsx, /opt/render/project/src/client/src/components/realtime/text-processor.tsx, /opt/render/project/src/client/src/components/sentiment-feedback.tsx, /opt/render/project/src/client/src/components/upload-progress-modal.tsx, /opt/render/project/src/client/src/context/disaster-context.tsx, /opt/render/project/src/client/src/pages/evaluation.tsx, /opt/render/project/src/client/src/pages/raw-data.tsx, dynamic import will not move module into another chunk.
+computing gzip size...
+../dist/public/index.html                                    3.56 kB │ gzip:   1.08 kB
+../dist/public/assets/upload-disaster-data-DkOvvLH4.png    292.29 kB
+../dist/public/assets/analyze-sentiment-Vh3jCVDI.png       409.09 kB
+../dist/public/assets/real-time-monitoring-CpGDf6oY.png    786.79 kB
+../dist/public/assets/geographic-analysis-C9Jw72vh.png   1,043.10 kB
+../dist/public/assets/index-J8Bo7enu.css                   203.11 kB │ gzip:  36.16 kB
+../dist/public/assets/leaflet-src-DP8PLqsD.js              149.98 kB │ gzip:  43.55 kB
+../dist/public/assets/index-CNyM1Lwi.js                  2,200.76 kB │ gzip: 555.63 kB
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 11.61s
+  dist/index.js  266.0kb
+⚡ Done in 12ms
+✅ Frontend build completed
+=========================================
+📄 Building server files with ESBuild...
+  dist/db.js  13.2kb
+⚡ Done in 3ms
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+    server/vite.ts:6:33:
+      6 │ const __filename = fileURLToPath(import.meta.url);
+        ╵                                  ~~~~~~~~~~~
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+    vite.config.ts:8:33:
+      8 │ const __filename = fileURLToPath(import.meta.url);
+        ╵                                  ~~~~~~~~~~~
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+✘ [ERROR] Top-level await is currently not supported with the "cjs" output format
+    vite.config.ts:19:10:
+      19 │           await import("@replit/vite-plugin-cartographer").then((m...
+         ╵           ~~~~~
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+    server/routes.ts:14:33:
+      14 │ const __filename = fileURLToPath(import.meta.url);
+         ╵                                  ~~~~~~~~~~~
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+3 warnings and 1 error
+✅ Server build completed
+=========================================
+📄 Copying CommonJS files for maximum compatibility...
+✅ CommonJS files copied
+=========================================
+📄 Copying start-render.cjs file...
+✅ Start script copied
+=========================================
+🧾 Build output directory contents:
+total 316
+drwxr-sr-x  3 render render   4096 Apr 25 14:51 .
+drwxr-sr-x 14 render render   4096 Apr 25 14:51 ..
+-rw-r--r--  1 render render    736 Apr 25 14:51 db-simple-fix.cjs
+-rw-r--r--  1 render render  13529 Apr 25 14:51 db.js
+-rw-r--r--  1 render render 272337 Apr 25 14:51 index.js
+drwxr-sr-x  4 render render   4096 Apr 25 14:51 public
+-rw-r--r--  1 render render   3344 Apr 25 14:51 routes.cjs
+-rw-r--r--  1 render render  10563 Apr 25 14:51 start-render.cjs
+🧾 Public directory contents:
+total 300
+drwxr-sr-x 4 render render   4096 Apr 25 14:51 .
+drwxr-sr-x 3 render render   4096 Apr 25 14:51 ..
+drwxr-sr-x 2 render render   4096 Apr 25 14:51 assets
+-rw-r--r-- 1 render render 198926 Apr 25 14:51 favicon.ico
+-rw-r--r-- 1 render render  67642 Apr 25 14:51 favicon.png
+drwxr-sr-x 2 render render   4096 Apr 25 14:51 images
+-rw-r--r-- 1 render render   3556 Apr 25 14:51 index.html
+-rw-r--r-- 1 render render  15747 Apr 25 14:51 panicenseph-og-image.png
+=========================================
+✅ Build completed successfully!
+📅 Build finished at: Fri Apr 25 14:51:51 UTC 2025
+=========================================
+==> Uploading build...
+==> Uploaded in 5.7s. Compression took 2.4s
+==> Build successful 🎉
+==> Deploying...
