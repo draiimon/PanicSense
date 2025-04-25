@@ -303,7 +303,7 @@ const Evaluation: React.FC = () => {
                         </Button>
                       </div>
                       <p className="text-xs text-slate-500 mt-2">
-                        PanicSense uses machine learning models with real metrics for accurate sentiment analysis
+                        PanicSense uses sentiment analysis with rule-based scoring for disaster monitoring
                       </p>
                     </div>
                   </div>
@@ -407,8 +407,8 @@ const Evaluation: React.FC = () => {
                       </CardTitle>
                       <p className="text-xs sm:text-sm text-indigo-100 mt-0.5 sm:mt-1">
                         {isAll 
-                          ? "Visual analysis of model performance across all datasets" 
-                          : `Visual analysis of model performance for ${name}`
+                          ? "Visual analysis of sentiment analysis performance across all datasets" 
+                          : `Visual analysis of sentiment analysis performance for ${name}`
                         }
                       </p>
                     </div>
@@ -420,8 +420,8 @@ const Evaluation: React.FC = () => {
                     confusionMatrix={selectedFile?.evaluationMetrics?.confusionMatrix}
                     title={isAll ? "Sentiment Analysis Performance" : "Sentiment Analysis Performance"}
                     description={isAll 
-                      ? "Detailed model prediction accuracy and metrics across all datasets" 
-                      : `Detailed model prediction accuracy and metrics for ${name}`
+                      ? "Detailed sentiment analysis accuracy and metrics across all datasets" 
+                      : `Detailed sentiment analysis accuracy and metrics for ${name}`
                     }
                     allDatasets={selectedFileId === "all"}
                   />
