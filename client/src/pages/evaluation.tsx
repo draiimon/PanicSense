@@ -247,46 +247,46 @@ const Evaluation: React.FC = () => {
                           variant="outline"
                           className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800"
                           onClick={() => {
-                            if (window.confirm('Use hybrid model with pretrained keyword rules?\n\nThis will load a custom dataset with the hybrid rules-based and ML model approach.')) {
+                            if (window.confirm('Use sentiment analysis with keyword rules?\n\nThis will load a custom dataset for sentiment analysis.')) {
                               // Show loading state
-                              const loadingMsg = 'Starting hybrid model training... This may take a few moments.';
+                              const loadingMsg = 'Loading sentiment analysis dataset... This may take a few moments.';
                               alert(loadingMsg);
                               
                               // Import the API function dynamically
                               import('@/lib/api').then(({ useCustomDemoFile }) => {
-                                console.log('Starting hybrid model training...');
+                                console.log('Starting sentiment analysis process...');
                                 useCustomDemoFile()
                                   .then(result => {
-                                    console.log('Hybrid model training result:', result);
+                                    console.log('Sentiment analysis result:', result);
                                     if (result && result.metrics) {
-                                      alert(`Hybrid model trained successfully!\n\nAccuracy: ${result.metrics.accuracy.toFixed(2)}%\nPrecision: ${result.metrics.precision.toFixed(2)}%\nRecall: ${result.metrics.recall.toFixed(2)}%\n\nThis combines keyword-based rules with machine learning for better sentiment classification.`);
+                                      alert(`Sentiment analysis loaded successfully!\n\nAccuracy: ${result.metrics.accuracy.toFixed(2)}%\nPrecision: ${result.metrics.precision.toFixed(2)}%\nRecall: ${result.metrics.recall.toFixed(2)}%\n\nThis uses keyword-based rules for sentiment classification.`);
                                     } else {
-                                      alert('Hybrid model training completed, but no metrics were returned. Please check the console for details.');
+                                      alert('Sentiment analysis completed, but no metrics were returned. Please check the console for details.');
                                     }
                                     // Reload page to show new dataset
                                     window.location.reload();
                                   })
                                   .catch(error => {
-                                    console.error('Hybrid model error:', error);
-                                    alert(`Error training hybrid model: ${error.message || 'Unknown error'}\n\nPlease try again.`);
+                                    console.error('Sentiment analysis error:', error);
+                                    alert(`Error loading sentiment analysis: ${error.message || 'Unknown error'}\n\nPlease try again.`);
                                   });
                               });
                             }
                           }}
                         >
                           <BrainCircuit className="h-4 w-4 mr-2" />
-                          Use Hybrid Model
+                          Load Sentiment Dataset
                         </Button>
                         <Button 
                           variant="outline" 
                           className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800" 
                           onClick={() => {
-                            if (window.confirm('Generate demo dataset with ML training?\n\nThis will create a new dataset with sample data and train a machine learning model with proper evaluation metrics.')) {
+                            if (window.confirm('Generate demo dataset for sentiment analysis?\n\nThis will create a new dataset with sample data for sentiment analysis with evaluation metrics.')) {
                               // Import the API function dynamically
                               import('@/lib/api').then(({ createDemoDataset }) => {
                                 createDemoDataset(100)
                                   .then(result => {
-                                    alert(`Demo dataset created and trained!\n\nAccuracy: ${result.metrics.accuracy.toFixed(2)}%\nPrecision: ${result.metrics.precision.toFixed(2)}%\nRecall: ${result.metrics.recall.toFixed(2)}%`);
+                                    alert(`Demo dataset created for sentiment analysis!\n\nAccuracy: ${result.metrics.accuracy.toFixed(2)}%\nPrecision: ${result.metrics.precision.toFixed(2)}%\nRecall: ${result.metrics.recall.toFixed(2)}%`);
                                     // Reload page to show new dataset
                                     window.location.reload();
                                   })
@@ -299,7 +299,7 @@ const Evaluation: React.FC = () => {
                           }}
                         >
                           <DatabaseIcon className="h-4 w-4 mr-2" />
-                          Generate ML Demo
+                          Generate Demo Dataset
                         </Button>
                       </div>
                       <p className="text-xs text-slate-500 mt-2">
@@ -346,24 +346,24 @@ const Evaluation: React.FC = () => {
                             variant="outline"
                             className="text-sm bg-violet-100 text-violet-700 hover:bg-violet-200 border-violet-300"
                             onClick={() => {
-                              if (window.confirm(`Train model with "${selectedFile.originalName}"?`)) {
-                                // Call training function here
+                              if (window.confirm(`Process dataset "${selectedFile.originalName}" for sentiment analysis?`)) {
+                                // Call processing function here
                                 import('@/lib/api').then(({ trainModel }) => {
                                   trainModel(selectedFile.id)
                                     .then(result => {
-                                      alert(`Training complete!\n\nAccuracy: ${result.metrics.accuracy.toFixed(2)}%\nPrecision: ${result.metrics.precision.toFixed(2)}%\nRecall: ${result.metrics.recall.toFixed(2)}%`);
+                                      alert(`Processing complete!\n\nAccuracy: ${result.metrics.accuracy.toFixed(2)}%\nPrecision: ${result.metrics.precision.toFixed(2)}%\nRecall: ${result.metrics.recall.toFixed(2)}%`);
                                       // Reload page or update UI
                                       window.location.reload();
                                     })
                                     .catch(error => {
-                                      console.error('Training error:', error);
-                                      alert('Error training model. Please try again.');
+                                      console.error('Processing error:', error);
+                                      alert('Error processing dataset. Please try again.');
                                     });
                                 });
                               }
                             }}
                           >
-                            Train Model
+                            Process Dataset
                           </Button>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
