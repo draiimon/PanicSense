@@ -20,7 +20,8 @@ import {
   BarChart4,
   Gauge,
   Download,
-  PieChart
+  PieChart,
+  BrainCircuit
 } from "lucide-react";
 import { AnimatedBackground } from "@/components/layout/animated-background";
 
@@ -241,6 +242,30 @@ const Evaluation: React.FC = () => {
                         >
                           <FileTextIcon className="h-4 w-4 mr-2" />
                           Upload Dataset
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800"
+                          onClick={() => {
+                            if (window.confirm('Use hybrid model with pretrained keyword rules?\n\nThis will load a custom dataset with the hybrid rules-based and ML model approach.')) {
+                              // Import the API function dynamically
+                              import('@/lib/api').then(({ useCustomDemoFile }) => {
+                                useCustomDemoFile()
+                                  .then(result => {
+                                    alert(`Hybrid model trained!\n\nAccuracy: ${result.metrics.accuracy.toFixed(2)}%\nPrecision: ${result.metrics.precision.toFixed(2)}%\nRecall: ${result.metrics.recall.toFixed(2)}%`);
+                                    // Reload page to show new dataset
+                                    window.location.reload();
+                                  })
+                                  .catch(error => {
+                                    console.error('Hybrid model error:', error);
+                                    alert('Error training hybrid model. Please try again.');
+                                  });
+                              });
+                            }
+                          }}
+                        >
+                          <BrainCircuit className="h-4 w-4 mr-2" />
+                          Use Hybrid Model
                         </Button>
                         <Button 
                           variant="outline" 
