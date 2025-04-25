@@ -9,7 +9,7 @@ import { WordCloud } from "@/components/evaluation/word-cloud";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileUploader } from "@/components/file-uploader";
-import { HybridFileUploader } from "@/components/hybrid-file-uploader";
+// Hybrid model functionality has been removed
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { 
@@ -212,15 +212,6 @@ const Evaluation: React.FC = () => {
                         }
                       }}
                     />
-                    <HybridFileUploader 
-                      id="hybrid-file-upload"
-                      className=""
-                      onSuccess={(data) => {
-                        if (data.file?.id) {
-                          setSelectedFileId(data.file.id.toString());
-                        }
-                      }}
-                    />
                   </div>
                 </div>
               </CardHeader>
@@ -251,17 +242,10 @@ const Evaluation: React.FC = () => {
                           <FileTextIcon className="h-4 w-4 mr-2" />
                           Standard Analysis
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          className="border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800" 
-                          onClick={() => document.getElementById('hybrid-file-upload')?.click()}
-                        >
-                          <FileTextIcon className="h-4 w-4 mr-2" />
-                          Neural Network Analysis
-                        </Button>
+                        {/* Hybrid model functionality has been removed */}
                       </div>
                       <p className="text-xs text-slate-500 mt-2">
-                        NeonDB Sentiment Analyzer uses a hybrid rule-based system for accurate sentiment analysis
+                        PanicSense uses a rule-based system for accurate sentiment analysis
                       </p>
                     </div>
                   </div>
