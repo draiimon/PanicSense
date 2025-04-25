@@ -499,6 +499,17 @@ class DisasterSentimentBackend:
                 confidence = 0.90
                 explanation = "Contains urgent distress signals and panic indicators"
         
+        # Extra check for words like "panic" and "kaba" with proper boundary checking
+        # But exclude cases where they appear in hashtags
+        panic_word_pattern = r'\b(panic|kaba)\b'
+        has_standalone_panic_word = re.search(panic_word_pattern, text_lower)
+        contains_hashtag_with_panic = re.search(r'#\w*(panic|kaba|tulong)\w*', text_lower)
+        
+        if has_standalone_panic_word and not contains_hashtag_with_panic and sentiment != "Panic" and sentiment != "Resilience":
+            sentiment = "Panic"
+            confidence = 0.85
+            explanation = "Contains direct mentions of panic or anxiety"
+        
         # Return complete analysis
         return {
             "sentiment": sentiment,
@@ -615,7 +626,13 @@ class DisasterSentimentBackend:
                             # Filipino articles and prepositions
                             'ang', 'mga', 'sa', 'ng', 'para', 'na', 'at',
                             # Emotional state words that shouldn't be treated as locations
-                            'panic', 'fear', 'takot', 'kaba', 'worry', 'anxiety', 'tension', 'stress'
+                            'panic', 'fear', 'takot', 'kaba', 'worry', 'anxiety', 'tension', 'stress',
+                            # Additional Filipino speech/conversational words
+                            'porket', 'dahil', 'kasi', 'siguro', 'hindi', 'oo', 'ganoon', 'ganyan', 'ganito', 
+                            'puro', 'lahat', 'basta', 'lang', 'lamang', 'daw', 'raw', 'dapat', 'sana', 'palang', 
+                            'tama', 'mali', 'mabuti', 'masama', 'pala', 'talaga', 'naman', 'pero', 'kaso',
+                            # Common Filipino polite phrases
+                            'salamat', 'maraming', 'po', 'opo', 'pakiusap', 'pasensya', 'paumanhin', 'patawad'
                         ]
                         if location_match.lower() not in common_words:
                             return location_match.title()  # Return with Title Case
