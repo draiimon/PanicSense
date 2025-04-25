@@ -39,18 +39,10 @@ export class PythonService {
   private activeProcesses: Map<string, { process: any, tempFilePath: string, startTime: Date }>;  // Track active Python processes with start times
 
   constructor() {
-    // Enhanced Python binary detection with fallbacks for different environments
+    // Python binary detection for Replit deployment
     if (process.env.NODE_ENV === 'production') {
-      // Try multiple production python paths
-      const possiblePythonPaths = [
-        '/app/venv/bin/python3',  // Default venv path
-        '/usr/bin/python3',       // System python
-        'python3',                // PATH-based python
-        'python'                  // Generic fallback
-      ];
-      
-      // Use the first Python binary that exists
-      this.pythonBinary = process.env.PYTHON_PATH || possiblePythonPaths[0];
+      // Use the system Python in Replit
+      this.pythonBinary = 'python3';
       console.log(`🐍 Using Python binary in production: ${this.pythonBinary}`);
     } else {
       this.pythonBinary = 'python3';
@@ -71,8 +63,8 @@ export class PythonService {
     }
     console.log(`📁 Using temp directory: ${this.tempDir}`);
     
-    // Script path with better error handling and logging for Render deployment
-    // In Render production environment, python folder is in the root directory
+    // Script path with better error handling and logging for Replit deployment
+    // In Replit, python folder is in the root directory
     // Note: Using process.cwd() instead of __dirname for ESM compatibility
     const possibleScriptPaths = [
       path.join(process.cwd(), 'server', 'python', 'process.py'),  // Standard path
