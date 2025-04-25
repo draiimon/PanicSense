@@ -2210,7 +2210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Save as a new file record
       const [fileRecord] = await db
-        .insert(analyzedFiles)
+        .insert(schema.analyzedFiles)
         .values({
           originalName: 'Custom Hybrid Model Dataset',
           storedName: filename,
