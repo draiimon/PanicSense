@@ -1,65 +1,61 @@
-# Fixing Render Deployment for PanicSense
+# Render Deployment Fix for PanicSense
 
-Kung nagkakaroon ka ng "vite: not found" error sa Render deployment, sundin ang mga hakbang na ito para ma-fix ito.
+This guide provides step-by-step instructions to fix deployment issues on Render.com.
 
-## Step 1: I-clone ang repository sa Render
+## The Problem
 
-Gamitin ang GitHub repository URL mo: `https://github.com/draiimon/PanicSense`
+Render.com doesn't install development dependencies by default, which causes errors like `vite: not found` during the build process. Additionally, there are module compatibility issues between CommonJS and ES modules.
 
-## Step 2: I-configure ang Web Service
+## The Solution
 
-Gamitin ang mga settings na ito:
+We've created several files to fix these issues:
 
-- **Name**: `panicsense` (o kahit anong pangalan na gusto mo)
-- **Environment**: Node.js
-- **Region**: Singapore (o mas malapit sa iyo)
-- **Branch**: main (o anumang branch na gusto mong i-deploy)
+1. `render-build.sh` - Custom build script that installs ALL dependencies
+2. `app-render.js` - CommonJS-compatible server for Render deployment
 
-## Step 3: Gamitin ang mga custom build commands
+## Deployment Instructions
 
-Sa halip na default settings, gamitin ang mga ito:
+1. Log in to your Render.com dashboard
+2. Create a new Web Service:
+   - Connect to your GitHub repository
+   - Give it a name (e.g., "PanicSense")
+   - Select "Node" as the runtime
 
-**Build Command:**
+3. Configure the build settings:
+   - Build Command: `./render-build.sh`
+   - Start Command: `node app-render.js`
+
+4. Add the following environment variables:
+   - `NODE_ENV`: `production`
+   - `PORT`: `10000`
+   - `DATABASE_URL`: Your Neon PostgreSQL connection string
+   - `SESSION_SECRET`: A random string for session security
+
+5. Click "Create Web Service"
+
+## Troubleshooting Common Issues
+
+### "vite: not found" error
+This is caused by Render not installing dev dependencies. Our `render-build.sh` script fixes this by using `npm install --production=false`.
+
+### Module import errors
+There can be compatibility issues between CommonJS and ES modules. Our `app-render.js` file is a simplified CommonJS version of the server that avoids these issues.
+
+### Database connection issues
+Make sure your `DATABASE_URL` environment variable is correctly set in the Render dashboard. The app will still start without a database connection, but some features won't work.
+
+## Checking Deployment Status
+
+After deployment, visit `/api/health` to check if the server is running correctly:
+
 ```
-./render-build-bash.sh
+https://your-render-app.onrender.com/api/health
 ```
 
-**Start Command:**
-```
-node start-render.cjs
-```
+This should return a JSON response with the server status.
 
-## Step 4: Siguruhin na nakatakda ang mga environment variables
+## Additional Notes
 
-Siguruhin na nakatakda ang mga ito:
-
-```
-NODE_ENV=production
-PORT=10000
-DATABASE_URL=your_database_connection_string
-SESSION_SECRET=your_secure_session_secret
-```
-
-Palitan ang "your_database_connection_string" sa tunay na database URL ng PostgreSQL o Neon database mo.
-
-## Step 5: Pag-click sa Deploy at Pagsubaybay ng Logs
-
-Kapag na-click mo ang Deploy button, tingnan ang mga logs. Dapat makita mo na ang build ay gumagamit ng custom script natin na nag-iinstall ng devDependencies at gumagamit ng lokal na Vite.
-
-## Kung May Errors Pa Rin
-
-Kung may errors pa rin, subukan ang mga ito:
-
-1. Tingnan kung nakita ng Render ang mga custom script files (`render-build-bash.sh` at `start-render.cjs`)
-2. Baka kailangan mong bumalik sa Render dashboard at manu-manong i-restart ang deploy
-3. Tingnan ang mga logs para sa anumang errors o warnings
-
-## Bakit Ito Gumagana
-
-Ang fix na ito ay gumagana dahil:
-
-1. Tiyak na na-i-install natin ang `devDependencies` sa build
-2. Ginagamit ang `npx` para patakbuhin ang lokal na Vite
-3. Ginagamit natin ang custom start-up script (`start-render.cjs`) na CommonJS-based para iwasan ang ESM-related issues
-
-Kapag sinunod mo ang mga steps na ito, dapat ma-fix ang "vite: not found" error sa Render deployment mo.
+- The production build on Render uses a minimal server configuration without all the backend API routes
+- Real-time monitoring features require a valid database connection
+- If you need to debug deployment issues, check the logs in the Render dashboard
