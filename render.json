@@ -1,0 +1,35 @@
+{
+  "services": [
+    {
+      "type": "web",
+      "name": "panicsense",
+      "env": "node",
+      "buildCommand": "npm install && npm run build",
+      "startCommand": "node render-start.js",
+      "envVars": [
+        {
+          "key": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "key": "PORT",
+          "value": "10000"
+        },
+        {
+          "key": "DATABASE_URL",
+          "fromDatabase": {
+            "name": "panicsense-db",
+            "property": "connectionString"
+          }
+        }
+      ],
+      "autoDeploy": true
+    }
+  ],
+  "databases": [
+    {
+      "name": "panicsense-db",
+      "type": "postgresql"
+    }
+  ]
+}
