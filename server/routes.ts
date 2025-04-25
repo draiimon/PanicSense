@@ -23,8 +23,8 @@ import { registerRealNewsRoutes } from "./routes/real-news-routes";
 import textProcessingRoutes from "./routes/text-processing";
 // Import Taglish fix utility
 import { preserveTaglishEntries } from "./fix-taglish";
-// Hybrid model processor and training service have been removed
-// No model training is performed, only basic sentiment analysis with process.py
+// Sentiment analysis processing
+// Using basic sentiment analysis with process.py
 
 // Extend global to support our connection counter
 declare global {
@@ -1825,7 +1825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           // HYBRID MODEL TRAINING REMOVED
-          console.log(`⚠️ Hybrid model training disabled, keeping only basic sentiment analysis (process.py)`);
+          console.log(`Processing data with sentiment analysis (process.py)`);
           
           // No hybrid model training is performed
         } catch (error) {
