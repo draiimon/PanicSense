@@ -1,6 +1,6 @@
 /**
- * Simple startup script for Render.com deployment
- * This is a CommonJS version that avoids ESM-related issues on Render
+ * Enhanced Render.com deployment startup script for PanicSense
+ * This improved CJS version properly loads the database and API routes with detailed logging
  */
 
 const express = require('express');
@@ -8,77 +8,233 @@ const session = require('express-session');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+const { Pool } = require('@neondatabase/serverless');
+const ws = require('ws');
+const { simpleDbFix } = require('./server/db-simple-fix');
+const multer = require('multer');
+const pg = require('pg');
+const pgSession = require('connect-pg-simple')(session);
 
-// Set environment variables
-process.env.NODE_ENV = 'production';
+// DEVELOPMENT MODE with detailed error logging
+process.env.NODE_ENV = 'development';
+process.env.DEBUG = 'express:*,drizzle:*,postgres:*,neon:*,pg:*';
 const PORT = process.env.PORT || 10000;
 
-// Log startup
+// Log detailed environment information
 console.log('========================================');
-console.log(`Starting PanicSense in direct production mode (CJS)`);
-console.log(`PORT: ${PORT}`);
-console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
-console.log(`Start time: ${new Date().toISOString()}`);
+console.log(`🚀 [RENDER] STARTING PANICSENSE IN DEVELOPMENT MODE`);
+console.log(`📅 Time: ${new Date().toISOString()}`);
+console.log(`🔌 PORT: ${PORT}`);
+console.log(`🌍 NODE_ENV: ${process.env.NODE_ENV}`);
+
+// Initialize Neon database connection
 console.log('========================================');
+console.log('🗄️ DATABASE CONFIGURATION:');
+console.log(`DB Connection: ${process.env.DATABASE_URL ? 'CONFIGURED' : 'MISSING'}`);
+console.log(`Neon Connection: ${process.env.NEON_DATABASE_URL ? 'CONFIGURED' : 'MISSING'}`);
+
+// Set up the database configuration for Neon PG
+const neonConfig = {
+  webSocketConstructor: ws
+};
+
+// Prioritize Neon database URL if available, fall back to regular DATABASE_URL
+let databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('❌ NO DATABASE URL FOUND! Please set DATABASE_URL or NEON_DATABASE_URL');
+  process.exit(1);
+}
+
+// Remove the 'DATABASE_URL=' prefix if it exists
+if (databaseUrl.startsWith('DATABASE_URL=')) {
+  databaseUrl = databaseUrl.substring('DATABASE_URL='.length);
+}
+
+console.log(`🔌 Using database type: ${databaseUrl.split(':')[0]}`);
+
+// Create the database pool
+const pool = new Pool({ 
+  connectionString: databaseUrl,
+  ssl: { rejectUnauthorized: false }
+});
+
+// Test database connection before proceeding
+async function testDatabaseConnection() {
+  console.log('🔄 Testing database connection...');
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT NOW() as now');
+    console.log(`✅ Database connection successful! Server time: ${result.rows[0].now}`);
+    client.release();
+    return true;
+  } catch (error) {
+    console.error('❌ DATABASE CONNECTION FAILED:', error.message);
+    console.error('Stack trace:', error.stack);
+    return false;
+  }
+}
 
 // Create Express server
 const app = express();
 const server = http.createServer(app);
 
-// Setup middleware
-app.use(express.json());
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'keyboard cat',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }
-  })
-);
+// Setup middleware with more logging
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static files
-const distPath = path.join(__dirname, 'dist', 'public');
-if (fs.existsSync(path.join(distPath, 'index.html'))) {
-  console.log(`✅ Found frontend files in: ${distPath}`);
-  app.use(express.static(distPath));
-} else {
-  console.log('⚠️ WARNING: No frontend files found!');
-}
-
-// Define basic API routes
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
+// Configure file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    // Make sure the uploads directory exists
+    if (!fs.existsSync('./uploads')) {
+      fs.mkdirSync('./uploads', { recursive: true });
+    }
+    cb(null, './uploads');
+  },
+  filename: function (req, file, cb) {
+    // Use a unique filename to prevent collisions
+    const uniquePrefix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniquePrefix + '-' + file.originalname);
+  }
 });
 
-// Catch-all route for SPA
-app.get('*', (req, res) => {
-  // Skip API routes
-  if (req.path.startsWith('/api/')) {
-    return;
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
+
+// Add upload middleware to express app
+app.use(upload.single('file'));
+
+// Start the application
+async function startServer() {
+  console.log('========================================');
+  console.log('📋 STARTING SERVER INITIALIZATION');
+  
+  // First test the database connection
+  const dbConnected = await testDatabaseConnection();
+  if (!dbConnected) {
+    console.error('❌ Cannot proceed without database connection');
+    process.exit(1);
   }
   
-  // Serve the main index.html for all other routes (SPA)
-  if (fs.existsSync(path.join(distPath, 'index.html'))) {
-    res.sendFile(path.join(distPath, 'index.html'));
-  } else {
-    res.status(404).send('Not found');
+  // Try to fix the database schema if needed
+  console.log('🔄 Running database schema check/fix...');
+  try {
+    const fixed = await simpleDbFix();
+    if (fixed) {
+      console.log('✅ Database schema fixed successfully');
+    } else {
+      console.log('✅ Database schema already up to date');
+    }
+  } catch (error) {
+    console.error('⚠️ Database schema fix error:', error.message);
+    console.error('Continuing anyway - tables might exist already');
   }
-});
-
-// Start the server
-server.listen(PORT, '0.0.0.0', () => {
-  console.log('========================================');
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`Server listening at: http://0.0.0.0:${PORT}`);
-  console.log(`Server ready at: ${new Date().toISOString()}`);
-  console.log('========================================');
-});
+  
+  // Setup session with PostgreSQL
+  app.use(
+    session({
+      store: new pgSession({
+        pool,
+        tableName: 'session', // Use a custom session table name
+        createTableIfMissing: true
+      }),
+      secret: process.env.SESSION_SECRET || 'render-secure-panicsense-cat',
+      resave: false,
+      saveUninitialized: true,
+      cookie: { 
+        secure: false,
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      }
+    })
+  );
+  
+  // Import server routes
+  console.log('🔄 Loading API routes...');
+  try {
+    // Load the compiled routes from dist directory
+    const serverRoutesPath = path.join(__dirname, 'dist', 'routes.js');
+    if (fs.existsSync(serverRoutesPath)) {
+      console.log(`✅ Found server routes at: ${serverRoutesPath}`);
+      const serverRoutes = require(serverRoutesPath);
+      
+      // Check if registerRoutes function exists
+      if (typeof serverRoutes.registerRoutes === 'function') {
+        await serverRoutes.registerRoutes(app);
+        console.log('✅ API routes registered successfully');
+      } else {
+        console.error('❌ registerRoutes function not found in server routes');
+      }
+    } else {
+      console.error('❌ Server routes file not found!');
+    }
+  } catch (error) {
+    console.error('❌ Error loading API routes:', error);
+  }
+  
+  // Serve static files
+  const distPath = path.join(__dirname, 'dist', 'public');
+  if (fs.existsSync(path.join(distPath, 'index.html'))) {
+    console.log(`✅ Found frontend files in: ${distPath}`);
+    app.use(express.static(distPath));
+  } else {
+    console.error('❌ WARNING: No frontend files found!');
+  }
+  
+  // Define fallback API routes
+  app.get('/api/health', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      time: new Date().toISOString(),
+      env: process.env.NODE_ENV,
+      databaseConnected: dbConnected,
+      databaseType: databaseUrl.split(':')[0]
+    });
+  });
+  
+  // Error handling middleware
+  app.use((err, req, res, next) => {
+    console.error('❌ EXPRESS ERROR:', err.stack);
+    res.status(500).json({
+      error: 'Server error',
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+  });
+  
+  // Catch-all route for SPA
+  app.get('*', (req, res) => {
+    // Skip API routes
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    
+    // Serve the main index.html for all other routes (SPA)
+    if (fs.existsSync(path.join(distPath, 'index.html'))) {
+      res.sendFile(path.join(distPath, 'index.html'));
+    } else {
+      res.status(404).send('Frontend not found');
+    }
+  });
+  
+  // Start the server
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log('========================================');
+    console.log(`🚀 SERVER RUNNING IN DEVELOPMENT MODE`);
+    console.log(`📡 Server listening at: http://0.0.0.0:${PORT}`);
+    console.log(`📅 Server ready at: ${new Date().toISOString()}`);
+    console.log('========================================');
+  });
+}
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
   console.log('Received SIGINT signal, shutting down gracefully...');
   server.close(() => {
-    console.log('Server closed');
+    pool.end();
+    console.log('Server and database connections closed');
     process.exit(0);
   });
 });
@@ -86,7 +242,14 @@ process.on('SIGINT', () => {
 process.on('SIGTERM', () => {
   console.log('Received SIGTERM signal, shutting down gracefully...');
   server.close(() => {
-    console.log('Server closed');
+    pool.end();
+    console.log('Server and database connections closed');
     process.exit(0);
   });
+});
+
+// Start the server
+startServer().catch(error => {
+  console.error('❌ Fatal error during server startup:', error);
+  process.exit(1);
 });
