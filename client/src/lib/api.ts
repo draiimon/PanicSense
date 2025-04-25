@@ -99,8 +99,8 @@ let currentUploadController: AbortController | null = null;
 let currentEventSource: EventSource | null = null;
 let currentUploadSessionId: string | null = null;
 
-// Track the current model type being used for uploads
-let currentModelType: 'standard' | 'hybrid' = 'standard';
+// Standard analysis mode is the only option (hybrid model removed)
+let currentModelType: 'standard' = 'standard';
 
 // Cancel the current upload with optional gentle/force modes
 export async function cancelUpload(forceCancel = false): Promise<{ success: boolean; message: string; forceCloseCalled?: boolean }> {
@@ -824,7 +824,7 @@ export async function processText(text: string): Promise<TextProcessingResult> {
 // Real machine learning model training functions
 
 /**
- * Use a custom demo file for hybrid model training
+ * Use a custom demo file for sentiment analysis
  */
 export async function useCustomDemoFile(): Promise<{ 
   fileId: number;
@@ -835,7 +835,7 @@ export async function useCustomDemoFile(): Promise<{
   currentUploadSessionId = sessionId;
   localStorage.setItem('uploadSessionId', sessionId);
   
-  console.log('[HYBRID-MODEL] Starting hybrid model training with session ID:', sessionId);
+  console.log('[SENTIMENT-ANALYSIS] Starting sentiment analysis with session ID:', sessionId);
   
   // Track the progress through SSE
   const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
@@ -844,25 +844,25 @@ export async function useCustomDemoFile(): Promise<{
   // Set up event handlers outside try block to ensure they're registered
   let progressPromise = new Promise<{ fileId: number; metrics: EvaluationMetrics }>((resolve, reject) => {
     const timeout = setTimeout(() => {
-      console.error('[HYBRID-MODEL] Training timed out after 5 minutes');
+      console.error('[SENTIMENT-ANALYSIS] Processing timed out after 5 minutes');
       eventSource.close();
-      reject(new Error('Hybrid model training timed out after 5 minutes'));
+      reject(new Error('Sentiment analysis timed out after 5 minutes'));
     }, 300000); // 5 minutes timeout
     
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('[HYBRID-MODEL] Progress update:', data);
+        console.log('[SENTIMENT-ANALYSIS] Progress update:', data);
         
         // Check if processing is complete
         if (data.type === 'complete' || 
             (data.progress && data.progress.processed === data.progress.total)) {
-          console.log('[HYBRID-MODEL] Training complete:', data);
+          console.log('[SENTIMENT-ANALYSIS] Processing complete:', data);
           clearTimeout(timeout);
           eventSource.close();
           
           if (data.error) {
-            console.error('[HYBRID-MODEL] Error in completion event:', data.error);
+            console.error('[SENTIMENT-ANALYSIS] Error in completion event:', data.error);
             reject(new Error(data.error));
           } else {
             resolve({
@@ -872,12 +872,12 @@ export async function useCustomDemoFile(): Promise<{
           }
         }
       } catch (error) {
-        console.error('[HYBRID-MODEL] Error parsing event data:', error);
+        console.error('[SENTIMENT-ANALYSIS] Error parsing event data:', error);
       }
     };
     
     eventSource.onerror = (err) => {
-      console.error('[HYBRID-MODEL] EventSource error:', err);
+      console.error('[SENTIMENT-ANALYSIS] EventSource error:', err);
       clearTimeout(timeout);
       eventSource.close();
       reject(new Error('Error with event source connection'));
@@ -886,30 +886,30 @@ export async function useCustomDemoFile(): Promise<{
   
   try {
     // Call the server endpoint
-    console.log('[HYBRID-MODEL] Calling server endpoint');
+    console.log('[SENTIMENT-ANALYSIS] Calling server endpoint');
     const response = await apiRequest('POST', '/api/use-custom-demo-file');
     
     if (!response.ok) {
       // Try to parse error information from the response
-      let errorMessage = 'Failed to initialize hybrid model training';
+      let errorMessage = 'Failed to initialize sentiment analysis';
       try {
         const errorData = await response.json();
-        console.error('[HYBRID-MODEL] Server error response:', errorData);
+        console.error('[SENTIMENT-ANALYSIS] Server error response:', errorData);
         errorMessage = errorData.details || errorData.error || errorMessage;
       } catch (e) {
-        console.error('[HYBRID-MODEL] Could not parse error response', e);
+        console.error('[SENTIMENT-ANALYSIS] Could not parse error response', e);
       }
       throw new Error(errorMessage);
     }
     
     const data = await response.json();
-    console.log('[HYBRID-MODEL] Server initialization response:', data);
+    console.log('[SENTIMENT-ANALYSIS] Server initialization response:', data);
     
     // Wait for the completion of the progress promise
     return await progressPromise;
     
   } catch (error) {
-    console.error('[HYBRID-MODEL] Error:', error);
+    console.error('[SENTIMENT-ANALYSIS] Error:', error);
     
     // Clean up the event source
     if (eventSource) {
