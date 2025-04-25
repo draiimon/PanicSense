@@ -26,7 +26,7 @@ Sa halip na default settings, gamitin ang mga ito:
 
 **Start Command:**
 ```
-node render-start.js
+node start-production.js
 ```
 
 ## Step 4: Siguruhin na nakatakda ang mga environment variables
@@ -50,7 +50,7 @@ Kapag na-click mo ang Deploy button, tingnan ang mga logs. Dapat makita mo na an
 
 Kung may errors pa rin, subukan ang mga ito:
 
-1. Tingnan kung nakita ng Render ang mga custom script files (`render-build-bash.sh` at `render-start.js`)
+1. Tingnan kung nakita ng Render ang mga custom script files (`render-build-bash.sh` at `start-production.js`)
 2. Baka kailangan mong bumalik sa Render dashboard at manu-manong i-restart ang deploy
 3. Tingnan ang mga logs para sa anumang errors o warnings
 
@@ -60,6 +60,6 @@ Ang fix na ito ay gumagana dahil:
 
 1. Tiyak na na-i-install natin ang `devDependencies` sa build
 2. Ginagamit ang `npx` para patakbuhin ang lokal na Vite
-3. Ginagamit natin ang custom start-up script (`render-start.js`) para maayos na i-handle ang environment variables
+3. Ginagamit natin ang custom start-up script (`start-production.js`) para maayos na i-handle ang environment variables
 
 Kapag sinunod mo ang mga steps na ito, dapat ma-fix ang "vite: not found" error sa Render deployment mo.

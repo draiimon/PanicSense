@@ -1,0 +1,57 @@
+=> Cloning from https://github.com/draiimon/PanicSense
+==> Checking out commit bf3a457ba490141658c31242963a02e7936964c3 in branch main
+==> Requesting Node.js version 18
+==> Using Node.js version 18.20.8 via /opt/render/project/src/.nvmrc
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Using Bun version 1.1.0 (default)
+==> Docs on specifying a bun version: https://render.com/docs/bun-version
+==> Running build command 'npm install --production=false && npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist'...
+added 583 packages, and audited 584 packages in 13s
+80 packages are looking for funding
+  run `npm fund` for details
+7 moderate severity vulnerabilities
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+vite v5.4.18 building for production...
+transforming...
+✓ 3308 modules transformed.
+rendering chunks...
+computing gzip size...
+../dist/public/index.html                                    3.56 kB │ gzip:   1.08 kB
+../dist/public/assets/upload-disaster-data-DkOvvLH4.png    292.29 kB
+../dist/public/assets/analyze-sentiment-Vh3jCVDI.png       409.09 kB
+../dist/public/assets/real-time-monitoring-CpGDf6oY.png    786.79 kB
+../dist/public/assets/geographic-analysis-C9Jw72vh.png   1,043.10 kB
+../dist/public/assets/index-dIYt4OM5.css                   203.24 kB │ gzip:  36.16 kB
+../dist/public/assets/leaflet-src-CNsNSc6D.js              149.98 kB │ gzip:  43.55 kB
+../dist/public/assets/index-CoLvnXw5.js                  1,659.83 kB │ gzip: 475.93 kB
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 13.57s
+  dist/index.js  284.0kb
+⚡ Done in 18ms
+==> Uploading build...
+==> Uploaded in 5.8s. Compression took 5.5s
+==> Build successful 🎉
+==> Deploying...
+==> Running 'node render-start.js'
+========================================
+Starting PanicSense on Render.com
+PORT: 10000
+NODE_ENV: production
+Start time: 2025-04-25T08:56:32.179Z
+========================================
+Failed to start server: file:///opt/render/project/src/server/index-wrapper.js:13
+import { cleanupAndExit } from './index.js';
+         ^^^^^^^^^^^^^^
+SyntaxError: The requested module './index.js' does not provide an export named 'cleanupAndExit'
+    at ModuleJob._instantiate (node:internal/modules/esm/module_job:123:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:191:5)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
