@@ -2330,9 +2330,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if file exists
-      const filePath = path.join(__dirname, '..', 'uploads', file.storedName);
+      // Try both possible paths: relative to __dirname and relative to current working directory
+      let filePath = path.join(__dirname, '..', 'uploads', file.storedName);
       if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: "File not found on disk" });
+        // Try alternate path relative to CWD
+        filePath = path.join(process.cwd(), 'uploads', file.storedName);
+        if (!fs.existsSync(filePath)) {
+          console.error(`File not found at paths:\n1. ${path.join(__dirname, '..', 'uploads', file.storedName)}\n2. ${path.join(process.cwd(), 'uploads', file.storedName)}`);
+          return res.status(404).json({ error: "File not found on disk" });
+        }
       }
       
       // Generate a unique session ID for tracking progress

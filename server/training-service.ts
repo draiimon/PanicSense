@@ -128,9 +128,15 @@ export async function trainWithCSV(
   return new Promise((resolve, reject) => {
     console.log(`Training model with CSV file: ${filePath}`);
     
-    // Validate file exists
+    // Validate file exists - check both possible paths
     if (!fs.existsSync(filePath)) {
-      return reject(new Error(`File not found: ${filePath}`));
+      // Try alternate path relative to CWD
+      filePath = path.join(process.cwd(), 'uploads', path.basename(filePath));
+      
+      if (!fs.existsSync(filePath)) {
+        console.error(`File not found at paths:\n1. ${path.join(__dirname, '..', 'uploads', path.basename(filePath))}\n2. ${path.join(process.cwd(), 'uploads', path.basename(filePath))}`);
+        return reject(new Error(`File not found: ${filePath}`));
+      }
     }
     
     // Create Python process
@@ -272,6 +278,17 @@ export async function createDemoDataAndTrain(
  */
 async function generateSentimentPostsFromFile(filePath: string, fileId: number): Promise<void> {
   try {
+    // Validate file exists - check both possible paths
+    if (!fs.existsSync(filePath)) {
+      // Try alternate path relative to CWD
+      filePath = path.join(process.cwd(), 'uploads', path.basename(filePath));
+      
+      if (!fs.existsSync(filePath)) {
+        console.error(`File not found at paths:\n1. ${path.join(__dirname, '..', 'uploads', path.basename(filePath))}\n2. ${path.join(process.cwd(), 'uploads', path.basename(filePath))}`);
+        throw new Error(`File not found: ${filePath}`);
+      }
+    }
+    
     // Read the CSV file
     const fileContent = fs.readFileSync(filePath, 'utf-8');
     const lines = fileContent.split('\n');
