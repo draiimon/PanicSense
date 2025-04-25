@@ -72,20 +72,19 @@ const SERVER_START_TIMESTAMP = new Date().getTime();
       const publicPath = path.join(process.cwd(), 'public');
       const clientPublicPath = path.join(process.cwd(), 'client', 'public');
       
-      // Check if we need to create directories for Replit deployment
-      if (!fs.existsSync(path.join(distPath, 'index.html')) && 
+      // Try to run render-setup.sh if it exists and we can't find frontend files
+      const hasRenderSetup = fs.existsSync('./render-setup.sh');
+      if (hasRenderSetup && 
+          !fs.existsSync(path.join(distPath, 'index.html')) && 
           !fs.existsSync(path.join(clientDistPath, 'index.html'))) {
-        console.log('📋 Creating necessary directories for Replit deployment...');
+        console.log('📋 Running render-setup.sh to prepare static files...');
         try {
-          // Create necessary directories
-          fs.mkdirSync('uploads/temp', { recursive: true });
-          fs.mkdirSync('uploads/data', { recursive: true });
-          fs.mkdirSync('uploads/profile_images', { recursive: true });
-          fs.mkdirSync('client/dist', { recursive: true });
-          
-          console.log('✅ Created necessary directories for Replit');
+          // Use dynamic import instead of require
+          const childProcess = await import('child_process');
+          childProcess.execSync('chmod +x ./render-setup.sh && ./render-setup.sh', { stdio: 'inherit' });
+          console.log('✅ render-setup.sh completed successfully');
         } catch (error) {
-          console.error('⚠️ Error creating directories:', error.message);
+          console.error('⚠️ Error running render-setup.sh:', error.message);
         }
       }
       

@@ -1,0 +1,13 @@
+anthropic
+beautifulsoup4
+langdetect
+nltk
+numpy
+openai
+pandas
+python-dotenv
+pytz
+requests
+scikit-learn
+torch
+tqdm
