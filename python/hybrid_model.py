@@ -242,24 +242,15 @@ class HybridModelProcessor:
             model_path (str): Path to the pretrained model weights (if None, load from default or train)
             device (str): Device to run model on ('cpu' or 'cuda')
         """
-        self.device = device if torch.cuda.is_available() and device == "cuda" else "cpu"
-        logger.info(f"Using device: {self.device}")
+        logger.info(f"Initializing NeonDB-based sentiment analysis processor")
         
-        # Initialize tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained("bert-base-multilingual-cased")
+        # Initialize the NeonDB-powered model
+        self.model = NeonDBPanicSenseModel()
         
-        # Initialize model
-        self.model = HybridPanicSenseModel()
+        # Set up the database URL from environment variable
+        self.database_url = os.environ.get('DATABASE_URL', '')
         
-        # Load model weights if available
-        if model_path and os.path.exists(model_path):
-            logger.info(f"Loading model weights from {model_path}")
-            self.model.load_state_dict(torch.load(model_path, map_location=self.device))
-        else:
-            logger.warning("No model weights found. Using initialized model.")
-        
-        # Move model to device
-        self.model.to(self.device)
+        logger.info(f"NeonDB sentiment analysis processor initialized")
         
         # Rule-based system for sanity checking and fallbacks
         self.setup_rule_based_system()
@@ -385,61 +376,27 @@ class HybridModelProcessor:
     
     def process_batch(self, texts, max_length=128):
         """
-        Process a batch of texts using the model
+        Process a batch of texts using the rule-based model
         
         Args:
             texts (list): List of text strings to analyze
-            max_length (int): Maximum sequence length for tokenization
+            max_length (int): Maximum text length to consider
             
         Returns:
             list: List of dictionaries with analysis results
         """
-        self.model.eval()
         results = []
         
-        # Clean and preprocess texts
-        preprocessed_texts = [preprocess_text(clean_text_preserve_indicators(text)) for text in texts]
-        
-        # Tokenize batch
-        encoded_inputs = self.tokenizer(
-            preprocessed_texts,
-            padding='max_length',
-            truncation=True,
-            max_length=max_length,
-            return_tensors='pt'
-        ).to(self.device)
-        
-        # Get predictions
-        with torch.no_grad():
-            outputs = self.model(
-                input_ids=encoded_inputs['input_ids'],
-                attention_mask=encoded_inputs['attention_mask']
-            )
-            probs = F.softmax(outputs, dim=1)
-            confidences, predicted_classes = torch.max(probs, dim=1)
-        
-        # Process results
-        for i, (text, pred_class, confidence) in enumerate(zip(texts, predicted_classes, confidences)):
-            sentiment = self.model.sentiment_labels[pred_class.item()]
-            confidence_score = confidence.item()
+        # Process each text individually
+        for text in texts:
+            # Apply rule-based analysis
+            result = self.apply_rule_based_analysis(text)
             
-            # Apply rule-based validation and potentially override
-            rule_based_result = self.apply_rule_based_analysis(text)
-            
-            # If model confidence is low and rule-based system has a strong opinion, use rule-based result
-            if confidence_score < 0.65 and rule_based_result["confidence"] > 0.75:
-                sentiment = rule_based_result["sentiment"]
-                confidence_score = rule_based_result["confidence"]
-                explanation = f"The model initially detected '{self.model.sentiment_labels[pred_class.item()]}' with lower confidence, but rule-based analysis strongly indicated '{sentiment}'. " + rule_based_result["explanation"]
-            else:
-                # Generate explanation based on the model's prediction
-                explanation = f"The model detected '{sentiment}' with {confidence_score:.2f} confidence. "
-                explanation += self.model._generate_explanation(preprocessed_texts[i], sentiment, confidence_score)
-            
+            # Add to results
             results.append({
-                "sentiment": sentiment,
-                "confidence": confidence_score,
-                "explanation": explanation
+                "sentiment": result["sentiment"],
+                "confidence": result["confidence"],
+                "explanation": result["explanation"]
             })
         
         return results

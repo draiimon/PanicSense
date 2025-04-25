@@ -3228,7 +3228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`File saved to ${tempFilePath}`);
       
       // Get model description
-      let modelInfo = 'Hybrid Bi-GRU & LSTM';
+      let modelInfo = 'Hybrid NeonDB Sentiment Analyzer';
       
       if (modelName) {
         // If a specific model was selected, include it in the description
@@ -3309,7 +3309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   disasterType: item.disaster_type || item.disasterType || null,
                   explanation: item.explanation || null,
                   fileId: analyzedFile.id,
-                  aiTrustMessage: 'Processed by Hybrid Neural Network (mBERT + Bi-GRU & LSTM)',
+                  aiTrustMessage: 'Processed by Hybrid NeonDB Sentiment Analyzer',
                 }));
                 
                 await storage.createManySentimentPosts(posts);
@@ -3453,8 +3453,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return model information including type
       const modelInfo = models.map(model => ({
         ...model,
-        type: model.name.endsWith('.pth') ? 'PyTorch (Bi-GRU & LSTM)' : 
-              model.name.endsWith('.pt') ? 'PyTorch' : 'Unknown',
+        type: model.name.endsWith('.pth') ? 'NeonDB Sentiment Analyzer' : 
+              model.name.endsWith('.pt') ? 'NeonDB Rule-based' : 'Unknown',
         location: model.path.includes('/sentiment/') ? 'sentiment' : 'general',
         sizeFormatted: formatFileSize(model.size)
       }));

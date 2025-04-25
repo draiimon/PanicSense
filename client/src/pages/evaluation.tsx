@@ -261,7 +261,7 @@ const Evaluation: React.FC = () => {
                         </Button>
                       </div>
                       <p className="text-xs text-slate-500 mt-2">
-                        Neural Network Analysis uses a hybrid Bi-GRU & LSTM model for more accurate sentiment analysis
+                        NeonDB Sentiment Analyzer uses a hybrid rule-based system for accurate sentiment analysis
                       </p>
                     </div>
                   </div>
