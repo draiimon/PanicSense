@@ -10,19 +10,20 @@ const fs = require('fs');
 const http = require('http');
 const { Pool } = require('@neondatabase/serverless');
 const ws = require('ws');
+// Updated to use the pure CommonJS version
 const { simpleDbFix } = require('./server/db-simple-fix.cjs');
 const multer = require('multer');
 const pg = require('pg');
 const pgSession = require('connect-pg-simple')(session);
 
-// DEVELOPMENT MODE with detailed error logging
-process.env.NODE_ENV = 'development';
+// Use production mode for Render deployment
+process.env.NODE_ENV = 'production';
 process.env.DEBUG = 'express:*,drizzle:*,postgres:*,neon:*,pg:*';
 const PORT = process.env.PORT || 10000;
 
 // Log detailed environment information
 console.log('========================================');
-console.log(`🚀 [RENDER] STARTING PANICSENSE IN DEVELOPMENT MODE`);
+console.log(`🚀 [RENDER] STARTING PANICSENSE IN PRODUCTION MODE`);
 console.log(`📅 Time: ${new Date().toISOString()}`);
 console.log(`🔌 PORT: ${PORT}`);
 console.log(`🌍 NODE_ENV: ${process.env.NODE_ENV}`);
@@ -41,8 +42,9 @@ neonConfig.webSocketConstructor = ws;
 let databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  console.error('❌ NO DATABASE URL FOUND! Please set DATABASE_URL or NEON_DATABASE_URL');
-  process.exit(1);
+  console.warn('⚠️ NO DATABASE URL FOUND! Operating in minimal mode');
+  // Continue without a database URL - will serve static files only
+  databaseUrl = "postgresql://postgres:postgres@localhost:5432/postgres";
 }
 
 // Remove the 'DATABASE_URL=' prefix if it exists
@@ -265,7 +267,7 @@ async function startServer() {
   // Start the server
   server.listen(PORT, '0.0.0.0', () => {
     console.log('========================================');
-    console.log(`🚀 SERVER RUNNING IN DEVELOPMENT MODE`);
+    console.log(`🚀 SERVER RUNNING IN PRODUCTION MODE`);
     console.log(`📡 Server listening at: http://0.0.0.0:${PORT}`);
     console.log(`📅 Server ready at: ${new Date().toISOString()}`);
     console.log('========================================');

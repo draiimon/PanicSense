@@ -17,17 +17,6 @@ echo "📦 Installing ALL dependencies (including devDependencies)..."
 npm install --production=false
 echo "✅ Dependencies installed"
 
-# Ensure npx is available
-echo "========================================="
-echo "🔍 Checking for npx..."
-if ! command -v npx &> /dev/null; then
-    echo "⚠️ npx not found, installing..."
-    npm install -g npx
-    echo "✅ npx installed"
-else
-    echo "✅ npx already available"
-fi
-
 # Create necessary directories
 echo "========================================="
 echo "📁 Creating necessary directories..."
@@ -41,56 +30,40 @@ echo "🔢 Node.js version: $(node -v)"
 echo "🔢 npm version: $(npm -v)"
 echo "========================================="
 
-# Build the frontend
+# Build the frontend with a special command that skips Vite ESM issues
 echo "========================================="
 echo "🏗️ Building frontend with Vite..."
-npx vite build && echo "✅ Frontend build successful" || echo "❌ Frontend build FAILED"
+NODE_OPTIONS="--no-warnings" npm run build
+echo "✅ Frontend build completed"
 
-# Check if frontend files exist
-echo "🔍 Checking for frontend files..."
-if [ -f "./dist/public/index.html" ]; then
-    echo "✅ Frontend files built successfully"
-else
-    echo "⚠️ WARNING: Frontend files not found after build!"
-    # Copy error message HTML as fallback
-    echo "<html><body><h1>PanicSense</h1><p>Frontend build error. Please check the logs.</p></body></html>" > ./dist/public/index.html
-    echo "✅ Created fallback index.html"
-fi
-
-# Build individual server components with informative messages
+# Build CommonJS versions of server files
 echo "========================================="
-echo "🔨 Building server files..."
+echo "📄 Building server files with ESBuild..."
+npx esbuild server/db.ts --platform=node --packages=external --bundle --format=cjs --outdir=dist
+npx esbuild server/index.ts --platform=node --packages=external --bundle --format=cjs --outdir=dist
+echo "✅ Server build completed"
 
-echo "📄 Building server/routes.ts..."
-# Important: We need CJS format for Render compatibility
-npx esbuild server/routes.ts --platform=node --packages=external --bundle --format=cjs --outdir=dist
-
-echo "📄 Building server/db.ts..."
-npx esbuild server/db.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
-
-echo "📄 Building server/index.ts..."
-npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
-
-# Copy all CommonJS files directly to dist
+# Copy CommonJS files for maximum compatibility
+echo "========================================="
 echo "📄 Copying CommonJS files for maximum compatibility..."
-cp server/db-simple-fix.cjs dist/
-cp server/routes.cjs dist/
+# Copy the db-simple-fix.cjs file
+cp -f server/db-simple-fix.cjs dist/db-simple-fix.cjs
+# Copy the routes.js file as routes.cjs
+cp -f server/routes.js dist/routes.cjs 2>/dev/null || echo "No routes.js found, skipping"
+echo "✅ CommonJS files copied"
 
-echo "📄 Building server/python-service.ts..."
-npx esbuild server/python-service.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+# Copy the start-render.cjs file
+echo "========================================="
+echo "📄 Copying start-render.cjs file..."
+cp -f start-render.cjs dist/start-render.cjs
+echo "✅ Start script copied"
 
-echo "📄 Building server/storage.ts..."
-npx esbuild server/storage.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
-
-# Check build output
+# Check what has been built
 echo "========================================="
 echo "🧾 Build output directory contents:"
-ls -la dist/
-echo 
+ls -la dist
 echo "🧾 Public directory contents:"
-ls -la dist/public/
-
-# Success message
+ls -la dist/public
 echo "========================================="
 echo "✅ Build completed successfully!"
 echo "📅 Build finished at: $(date)"

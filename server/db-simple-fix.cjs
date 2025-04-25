@@ -1,5 +1,5 @@
 /**
- * Simple database fix function.
+ * Simple database fix function for Render deployment.
  * CommonJS version that works with both ESM and CommonJS
  * 
  * @returns {Promise<boolean>} True if the fix was applied successfully
