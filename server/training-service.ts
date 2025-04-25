@@ -390,9 +390,19 @@ export class TrainingService {
   }> {
     try {
       const filePath = path.join(process.cwd(), 'uploads', 'custom_demo_dataset.csv');
+      console.log(`[HYBRID-MODEL] Starting hybrid model training with file: ${filePath}`);
+      
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        console.error(`[HYBRID-MODEL] Error: Custom dataset file not found at ${filePath}`);
+        throw new Error(`Custom dataset file not found at ${filePath}`);
+      }
+      
+      console.log(`[HYBRID-MODEL] Custom dataset file exists, proceeding with training`);
       
       // Start by reporting initial progress
       if (onProgress) {
+        console.log(`[HYBRID-MODEL] Reporting initial progress`);
         onProgress({
           processed: 0,
           total: 100,
@@ -412,9 +422,12 @@ export class TrainingService {
       }
       
       // Train the model
+      console.log(`[HYBRID-MODEL] Calling trainWithFile with fileId: ${fileId}`);
       const result = await this.trainWithFile(filePath, fileId, onProgress);
+      console.log(`[HYBRID-MODEL] Training completed successfully with metrics:`, result.metrics);
       
       // Generate sentiment posts from the file
+      console.log(`[HYBRID-MODEL] Generating sentiment posts from file`);
       await this.generateSentimentPostsFromFile(filePath, fileId);
       
       // Final progress update

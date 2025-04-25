@@ -835,58 +835,81 @@ export async function useCustomDemoFile(): Promise<{
   currentUploadSessionId = sessionId;
   localStorage.setItem('uploadSessionId', sessionId);
   
+  console.log('[HYBRID-MODEL] Starting hybrid model training with session ID:', sessionId);
+  
   // Track the progress through SSE
   const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
   currentEventSource = eventSource;
   
+  // Set up event handlers outside try block to ensure they're registered
+  let progressPromise = new Promise<{ fileId: number; metrics: EvaluationMetrics }>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      console.error('[HYBRID-MODEL] Training timed out after 5 minutes');
+      eventSource.close();
+      reject(new Error('Hybrid model training timed out after 5 minutes'));
+    }, 300000); // 5 minutes timeout
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('[HYBRID-MODEL] Progress update:', data);
+        
+        // Check if processing is complete
+        if (data.type === 'complete' || 
+            (data.progress && data.progress.processed === data.progress.total)) {
+          console.log('[HYBRID-MODEL] Training complete:', data);
+          clearTimeout(timeout);
+          eventSource.close();
+          
+          if (data.error) {
+            console.error('[HYBRID-MODEL] Error in completion event:', data.error);
+            reject(new Error(data.error));
+          } else {
+            resolve({
+              fileId: data.fileId,
+              metrics: data.metrics
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[HYBRID-MODEL] Error parsing event data:', error);
+      }
+    };
+    
+    eventSource.onerror = (err) => {
+      console.error('[HYBRID-MODEL] EventSource error:', err);
+      clearTimeout(timeout);
+      eventSource.close();
+      reject(new Error('Error with event source connection'));
+    };
+  });
+  
   try {
     // Call the server endpoint
+    console.log('[HYBRID-MODEL] Calling server endpoint');
     const response = await apiRequest('POST', '/api/use-custom-demo-file');
+    
     if (!response.ok) {
-      throw new Error('Failed to use custom demo file');
+      // Try to parse error information from the response
+      let errorMessage = 'Failed to initialize hybrid model training';
+      try {
+        const errorData = await response.json();
+        console.error('[HYBRID-MODEL] Server error response:', errorData);
+        errorMessage = errorData.details || errorData.error || errorMessage;
+      } catch (e) {
+        console.error('[HYBRID-MODEL] Could not parse error response', e);
+      }
+      throw new Error(errorMessage);
     }
     
     const data = await response.json();
+    console.log('[HYBRID-MODEL] Server initialization response:', data);
     
-    // Wait for the event source to indicate completion
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        eventSource.close();
-        reject(new Error('Training timed out'));
-      }, 300000); // 5 minutes timeout
-      
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          // Check if processing is complete
-          if (data.type === 'complete' || 
-              (data.progress && data.progress.processed === data.progress.total)) {
-            clearTimeout(timeout);
-            eventSource.close();
-            
-            if (data.error) {
-              reject(new Error(data.error));
-            } else {
-              resolve({
-                fileId: data.fileId,
-                metrics: data.metrics
-              });
-            }
-          }
-        } catch (error) {
-          console.error('Error parsing event data:', error);
-        }
-      };
-      
-      eventSource.onerror = () => {
-        clearTimeout(timeout);
-        eventSource.close();
-        reject(new Error('Error with event source connection'));
-      };
-    });
+    // Wait for the completion of the progress promise
+    return await progressPromise;
+    
   } catch (error) {
-    console.error('Error using custom demo file:', error);
+    console.error('[HYBRID-MODEL] Error:', error);
     
     // Clean up the event source
     if (eventSource) {
