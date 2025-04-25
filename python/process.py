@@ -422,6 +422,26 @@ class DisasterSentimentBackend:
             return "UNKNOWN"
 
         text_lower = text.lower()
+        
+        # Define common Philippine locations
+        philippines_locations = [
+            "Manila", "Quezon", "Cebu", "Davao", "Batangas", "Taguig", "Makati",
+            "Pasig", "Cagayan", "Cavite", "Laguna", "Baguio", "Tacloban", "Leyte",
+            "Samar", "Albay", "Bicol", "Iloilo", "Zamboanga", "Cotabato", "Bulacan",
+            "Pampanga", "Tarlac", "Zambales", "Pangasinan", "Mindoro", "Palawan",
+            "Rizal", "Bataan", "Isabela", "Ilocos", "Catanduanes", "Marinduque",
+            "Sorsogon", "Aklan", "Antique", "Benguet", "Surigao", "Legazpi",
+            "Ormoc", "Dumaguete", "Bacolod", "Marikina", "Pasay", "Parañaque", 
+            "Kalookan", "Valenzuela", "San Juan", "Mandaluyong", "Muntinlupa",
+            "Malabon", "Navotas", "Cainta", "Rodriguez", "Antipolo", "Lucena",
+            "Bataan", "Naga", "Mandaluyong", "Catarman", "Catbalogan", "Tuguegarao",
+            "Laoag", "Vigan", "Dagupan", "Olongapo", "Cabanatuan", "Malolos", 
+            "Meycauayan", "Dasmariñas", "Imus", "Lucena", "Calamba", "Santa Rosa", 
+            "Legaspi", "Roxas", "Iloilo", "Bacolod", "Tagbilaran", "Dumaguete",
+            "Tacloban", "Dipolog", "Dapitan", "Pagadian", "Iligan", "Cagayan de Oro",
+            "Butuan", "Surigao", "Digos", "Tagum", "Mati", "General Santos",
+            "Koronadal", "Kidapawan", "Marawi", "Cotabato", "QC"
+        ]
 
         # SPECIAL CASE: MAY SUNOG SA X!, MAY BAHA SA X! pattern (disaster in LOCATION)
         # Handle ALL-CAPS emergency statements common in Filipino language
@@ -433,13 +453,23 @@ class DisasterSentimentBackend:
             if upper_emergency_matches:
                 location = upper_emergency_matches[0].strip()
                 if len(location) > 1:  # Make sure it's not just a single letter
-                    return location.title()  # Return with Title Case
+                    # Verify against known locations
+                    for known_loc in philippines_locations:
+                        if location.upper() == known_loc.upper():
+                            return known_loc  # Return exact known location
+                    # Return with Title Case if not found in known list
+                    return location.title()
 
             # Check for uppercase SA LOCATION! pattern
             upper_sa_matches = re.findall(r'SA\s+([A-Z]+)[\!\.\?]*', text)
             if upper_sa_matches:
                 location = upper_sa_matches[0].strip()
                 if len(location) > 1:
+                    # Verify against known locations
+                    for known_loc in philippines_locations:
+                        if location.upper() == known_loc.upper():
+                            return known_loc  # Return exact known location
+                    # Return with Title Case if not found in known list
                     return location.title()
 
         # Regular case patterns (lowercase or mixed case)
@@ -474,27 +504,18 @@ class DisasterSentimentBackend:
             if matches:
                 for match in matches:
                     if match and len(match.strip()) > 1:  # Avoid single letters
-                        return match.strip().title()  # Return with Title Case
+                        location_match = match.strip()
+                        # First check against known locations
+                        for known_loc in philippines_locations:
+                            if location_match.lower() == known_loc.lower():
+                                return known_loc  # Return exact known location
+                        
+                        # If not in known location list, check if it's not an English common word
+                        common_english_words = ['staying', 'hiding', 'shelter', 'building', 'running', 'waiting', 'the', 'this', 'that', 'can', 'now', 'here', 'there']
+                        if location_match.lower() not in common_english_words:
+                            return location_match.title()  # Return with Title Case
 
         # Look for major city and province names frequently mentioned in disasters
-        philippines_locations = [
-            "Manila", "Quezon", "Cebu", "Davao", "Batangas", "Taguig", "Makati",
-            "Pasig", "Cagayan", "Cavite", "Laguna", "Baguio", "Tacloban", "Leyte",
-            "Samar", "Albay", "Bicol", "Iloilo", "Zamboanga", "Cotabato", "Bulacan",
-            "Pampanga", "Tarlac", "Zambales", "Pangasinan", "Mindoro", "Palawan",
-            "Rizal", "Bataan", "Isabela", "Ilocos", "Catanduanes", "Marinduque",
-            "Sorsogon", "Aklan", "Antique", "Benguet", "Surigao", "Legazpi",
-            "Ormoc", "Dumaguete", "Bacolod", "Marikina", "Pasay", "Parañaque", 
-            "Kalookan", "Valenzuela", "San Juan", "Mandaluyong", "Muntinlupa",
-            "Malabon", "Navotas", "Cainta", "Rodriguez", "Antipolo", "Lucena",
-            "Bataan", "Naga", "Mandaluyong", "Catarman", "Catbalogan", "Tuguegarao",
-            "Laoag", "Vigan", "Dagupan", "Olongapo", "Cabanatuan", "Malolos", 
-            "Meycauayan", "Dasmariñas", "Imus", "Lucena", "Calamba", "Santa Rosa", 
-            "Legaspi", "Roxas", "Iloilo", "Bacolod", "Tagbilaran", "Dumaguete",
-            "Tacloban", "Dipolog", "Dapitan", "Pagadian", "Iligan", "Cagayan de Oro",
-            "Butuan", "Surigao", "Digos", "Tagum", "Mati", "General Santos",
-            "Koronadal", "Kidapawan", "Marawi", "Cotabato", "QC"
-        ]
 
         # Try to find location names in the text
         for location in philippines_locations:
@@ -502,8 +523,16 @@ class DisasterSentimentBackend:
             if re.search(pattern, text, re.IGNORECASE):
                 return location
 
-        # We no longer try to guess locations from short texts
-        # This was causing false location detections
+        # Check for Philippine town/city names in very short texts
+        # But only if they match exactly with our known locations
+        if len(text.split()) < 3:
+            words = text.strip(",.!?").split()
+            for word in words:
+                # Check if word is in our major Philippine locations
+                for location in philippines_locations:
+                    # Case-insensitive exact match check
+                    if word.lower() == location.lower():
+                        return location
         
         return "UNKNOWN"
 
@@ -574,14 +603,24 @@ if __name__ == "__main__":
                         elif any(word in text_lower for word in ['sunog', 'fire', 'apoy']):
                             disaster_type = "Fire"
                         
-                        # Basic location extraction - ONLY match exact locations
+                        # Basic location extraction - ONLY match exact locations and some patterns
                         location = "UNKNOWN"
                         common_locations = ['Manila', 'Quezon City', 'Cebu', 'Davao', 'Makati', 'Taguig', 'Pasig', 'Cavite', 'Laguna', 'Batangas', 'Bicol', 'Luzon', 'Visayas', 'Mindanao']
+                        
+                        # First check for prepositions + location patterns
                         for loc in common_locations:
-                            # Use word boundary check to avoid partial matches
-                            if re.search(r'\b' + re.escape(loc.lower()) + r'\b', text_lower):
+                            # Check for "in LOC", "sa LOC", etc. with word boundaries
+                            if re.search(r'\b(in|at|sa|from|to)\s+' + re.escape(loc.lower()) + r'\b', text_lower):
                                 location = loc
                                 break
+                        
+                        # If no match found, try exact word boundary match
+                        if location == "UNKNOWN":
+                            for loc in common_locations:
+                                # Word boundary check to avoid partial matches
+                                if re.search(r'\b' + re.escape(loc.lower()) + r'\b', text_lower):
+                                    location = loc
+                                    break
                         
                         # Create result with rule-based values
                         result = {
