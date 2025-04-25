@@ -259,9 +259,9 @@ export default function Timeline() {
         </CardContent>
       </Card>
 
-      {/* Key Events - component already updated */}
+      {/* Key Events - with error handling for undefined/null data */}
       <KeyEvents 
-        events={disasterEvents}
+        events={disasterEvents || []}
         title="Disaster Events"
         description="Chronological view of disaster events"
       />

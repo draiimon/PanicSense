@@ -23,7 +23,7 @@ interface KeyEventsProps {
 }
 
 export function KeyEvents({ 
-  events, 
+  events = [], // Provide default empty array for safety
   title = 'Key Events',
   description = 'Disaster event timeline',
   sentimentPosts = []
@@ -85,22 +85,39 @@ export function KeyEvents({
     return <AlertTriangle size={16} />; // Default icon
   };
   
+  // Ensure events is an array before attempting to filter
+  const safeEvents = Array.isArray(events) ? events : [];
+  
   // Filter events to only remove future dates - keep UNKNOWN data as it's still valid
-  const filteredEvents = events.filter(event => {
-    const eventDate = parseISO(event.timestamp);
-    const currentDate = new Date();
+  const filteredEvents = safeEvents.filter(event => {
+    // Skip invalid events or timestamps
+    if (!event || !event.timestamp) return false;
     
-    // Only filter out future dates beyond current date
-    const isFutureDate = isAfter(eventDate, currentDate);
-    
-    // Show all events except future dates
-    return !isFutureDate;
+    try {
+      const eventDate = parseISO(event.timestamp);
+      const currentDate = new Date();
+      
+      // Only filter out future dates beyond current date
+      const isFutureDate = isAfter(eventDate, currentDate);
+      
+      // Show all events except future dates
+      return !isFutureDate;
+    } catch (err) {
+      // If date parsing fails, don't include this event
+      return false;
+    }
   });
   
-  // Sort by most recent first
-  const sortedEvents = [...filteredEvents].sort((a, b) => 
-    compareDesc(parseISO(a.timestamp), parseISO(b.timestamp))
-  );
+  // Sort by most recent first (with safety check)
+  const sortedEvents = filteredEvents.length > 0 
+    ? [...filteredEvents].sort((a, b) => {
+        try {
+          return compareDesc(parseISO(a.timestamp), parseISO(b.timestamp));
+        } catch (err) {
+          return 0; // Keep original order in case of parsing errors
+        }
+      })
+    : [];
   
   return (
     <Card className="border-none mb-2 sm:mb-4 overflow-hidden shadow-lg rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100/40">
