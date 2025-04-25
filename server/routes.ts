@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import { pythonService, pythonConsoleMessages } from "./python-service";
+import * as schema from "@shared/schema";
 import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts, uploadSessions, analyzedFiles, type SentimentPost } from "@shared/schema";
 // Usage tracker removed
 import { uploadSessionManager } from "./utils/upload-session-manager";
@@ -2207,6 +2208,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create a record for this file in the database
       console.log(`Using custom dataset file: ${filePath}`);
+      
+      // Ensure we have the schema module properly imported
+      if (!schema || !schema.analyzedFiles) {
+        throw new Error('Schema module not loaded properly');
+      }
       
       // Save as a new file record
       const [fileRecord] = await db

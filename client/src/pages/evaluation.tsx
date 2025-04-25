@@ -248,17 +248,27 @@ const Evaluation: React.FC = () => {
                           className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800"
                           onClick={() => {
                             if (window.confirm('Use hybrid model with pretrained keyword rules?\n\nThis will load a custom dataset with the hybrid rules-based and ML model approach.')) {
+                              // Show loading state
+                              const loadingMsg = 'Starting hybrid model training... This may take a few moments.';
+                              alert(loadingMsg);
+                              
                               // Import the API function dynamically
                               import('@/lib/api').then(({ useCustomDemoFile }) => {
+                                console.log('Starting hybrid model training...');
                                 useCustomDemoFile()
                                   .then(result => {
-                                    alert(`Hybrid model trained!\n\nAccuracy: ${result.metrics.accuracy.toFixed(2)}%\nPrecision: ${result.metrics.precision.toFixed(2)}%\nRecall: ${result.metrics.recall.toFixed(2)}%`);
+                                    console.log('Hybrid model training result:', result);
+                                    if (result && result.metrics) {
+                                      alert(`Hybrid model trained successfully!\n\nAccuracy: ${result.metrics.accuracy.toFixed(2)}%\nPrecision: ${result.metrics.precision.toFixed(2)}%\nRecall: ${result.metrics.recall.toFixed(2)}%\n\nThis combines keyword-based rules with machine learning for better sentiment classification.`);
+                                    } else {
+                                      alert('Hybrid model training completed, but no metrics were returned. Please check the console for details.');
+                                    }
                                     // Reload page to show new dataset
                                     window.location.reload();
                                   })
                                   .catch(error => {
                                     console.error('Hybrid model error:', error);
-                                    alert('Error training hybrid model. Please try again.');
+                                    alert(`Error training hybrid model: ${error.message || 'Unknown error'}\n\nPlease try again.`);
                                   });
                               });
                             }
