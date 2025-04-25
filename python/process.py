@@ -90,11 +90,16 @@ class DisasterSentimentBackend:
             },
             'Resilience': {
                 'definition': 'Expression of strength, unity and optimism despite adversity',
-                'indicators': ['encouraging tone', 'supportive language', 'references to community', 'affirmative language', 'faith'],
+                'indicators': ['encouraging tone', 'supportive language', 'references to community', 'affirmative language', 'faith', 'prayers'],
                 'emojis': ['💪', '🙏', '🌈', '🕊️'],
                 'phrases': [
                     'kapit lang', 'kaya natin to', 'malalagpasan din natin', 'stay strong', 'prayers',
-                    'dasal', 'tulong tayo', 'magtulungan', 'babangon tayo', 'sama-sama', 'matatag'
+                    'dasal', 'tulong tayo', 'magtulungan', 'babangon tayo', 'sama-sama', 'matatag',
+                    'panginoon', 'diyos', 'ama', 'lord', 'god', 'dalangin', 'panalangin', 'magdasal',
+                    'tulungan', 'amen', 'pray', 'prayer', 'faith', 'hope', 'bless', 'blessed', 'blessing',
+                    'pakinggan', 'dinig', 'pakiusap', 'pananampalataya', 'healing', 'galing',
+                    'patawad', 'forgive', 'forgiveness', 'kalooban', 'kalinga', 'awa', 'mercy',
+                    'salamat', 'thanks', 'thankful', 'grateful', 'gratitude', 'pasasalamat'
                 ]
             },
             'Neutral': {
@@ -454,11 +459,45 @@ class DisasterSentimentBackend:
         disaster_type = self.extract_disaster_type(text)
         location = self.extract_location(text)
         
-        # Very simplified sentiment classification for now
-        # Just to make the function work - actual AI processing happens in server
-        sentiment = "Neutral"
+        # Enhanced sentiment classification with better recognition of prayer terms
+        sentiment = "Neutral"  # Default
         confidence = 0.85
-        explanation = "Basic rule-based detection (simplified)"
+        explanation = "Basic rule-based detection"
+        
+        # Check for prayer terms and religious references (Resilience category)
+        prayer_keywords = [
+            'pray', 'prayer', 'dasal', 'panalangin', 'dalangin', 'lord', 'panginoon', 
+            'diyos', 'god', 'amen', 'pakinggan', 'tulungan', 'bless', 'blessing',
+            'faith', 'hope', 'pananampalataya', '🙏'
+        ]
+        
+        # Check if text contains prayer emoji (🙏) or prayer keywords
+        if '🙏' in text or any(keyword in text_lower for keyword in prayer_keywords):
+            sentiment = "Resilience"
+            confidence = 0.92
+            explanation = "Contains prayer phrases and religious references, indicating faith and resilience during disaster"
+            
+        # Check for panic indicators, but handle hashtags and special cases
+        panic_indicators = [
+            'help', 'emergency', 'sos', 'mayday', 'urgent', 
+            'naiipit', 'trapped', 'evacuate', 'immediate', 'danger', 
+            'critical', 'sinisira', 'nawala', 'namatay', 'rescue'
+        ]
+        
+        # Special case for "tulong" - we need to make sure it's not part of a hashtag like #TUlong
+        tulong_pattern = r'\b(tulong|TULONG|Tulong)\b'
+        has_tulong_word = re.search(tulong_pattern, text) and not re.search(r'#[Tt][Uu][Ll][Oo][Nn][Gg]', text)
+        
+        # Check if text contains panic indicators
+        if '😱' in text or any(keyword in text_lower for keyword in panic_indicators) or has_tulong_word:
+            # If both prayer and panic are present, the sentiment is still Resilience
+            # Filipinos often pray during panic situations as a coping mechanism
+            if sentiment == "Resilience":
+                explanation += " despite showing some signs of distress"
+            else:
+                sentiment = "Panic"
+                confidence = 0.90
+                explanation = "Contains urgent distress signals and panic indicators"
         
         # Return complete analysis
         return {
@@ -564,9 +603,21 @@ class DisasterSentimentBackend:
                             if location_match.lower() == known_loc.lower():
                                 return known_loc  # Return exact known location
                         
-                        # If not in known location list, check if it's not an English common word
-                        common_english_words = ['staying', 'hiding', 'shelter', 'building', 'running', 'waiting', 'the', 'this', 'that', 'can', 'now', 'here', 'there']
-                        if location_match.lower() not in common_english_words:
+                        # If not in known location list, check if it's not an English or Filipino common word
+                        common_words = [
+                            # English common words
+                            'staying', 'hiding', 'shelter', 'building', 'running', 'waiting',
+                            'the', 'this', 'that', 'can', 'now', 'here', 'there',
+                            # Filipino common words and pronouns
+                            'aming', 'ating', 'kanilang', 'kanya', 'sarili', 'inyong', 'akin',
+                            'namin', 'natin', 'nila', 'niya', 'inyo', 'siya', 'kami', 'kayo',
+                            'tayo', 'sila', 'ako', 'ikaw', 'nyo', 'atin', 'po', 'niyo', 'nyo',
+                            # Filipino articles and prepositions
+                            'ang', 'mga', 'sa', 'ng', 'para', 'na', 'at',
+                            # Emotional state words that shouldn't be treated as locations
+                            'panic', 'fear', 'takot', 'kaba', 'worry', 'anxiety', 'tension', 'stress'
+                        ]
+                        if location_match.lower() not in common_words:
                             return location_match.title()  # Return with Title Case
 
         # Look for major city and province names frequently mentioned in disasters
