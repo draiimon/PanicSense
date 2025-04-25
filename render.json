@@ -4,7 +4,7 @@
       "type": "web",
       "name": "panicsense",
       "env": "node",
-      "buildCommand": "npm install && npm run build",
+      "buildCommand": "./render-build-bash.sh",
       "startCommand": "node render-start.js",
       "envVars": [
         {
