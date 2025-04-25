@@ -1,0 +1,134 @@
+======= CHECKING VITE ==========
+========== CREATING REQUIRED DIRECTORIES ==========
+========== BUILDING APPLICATION ==========
+Building the frontend and server...
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.18 building for production...
+transforming...
+✓ 3271 modules transformed.
+rendering chunks...
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /opt/render/project/src/client/src/lib/api.ts is dynamically imported by /opt/render/project/src/client/src/pages/evaluation.tsx, /opt/render/project/src/client/src/pages/evaluation.tsx, /opt/render/project/src/client/src/pages/evaluation.tsx but also statically imported by /opt/render/project/src/client/src/components/data/fixed-data-table.tsx, /opt/render/project/src/client/src/components/evaluation/confusion-matrix.tsx, /opt/render/project/src/client/src/components/file-uploader-button.tsx, /opt/render/project/src/client/src/components/realtime/realtime-monitor.tsx, /opt/render/project/src/client/src/components/realtime/text-processor.tsx, /opt/render/project/src/client/src/components/sentiment-feedback.tsx, /opt/render/project/src/client/src/components/upload-progress-modal.tsx, /opt/render/project/src/client/src/context/disaster-context.tsx, /opt/render/project/src/client/src/pages/evaluation.tsx, /opt/render/project/src/client/src/pages/raw-data.tsx, dynamic import will not move module into another chunk.
+computing gzip size...
+../dist/public/index.html                                    3.56 kB │ gzip:   1.08 kB
+../dist/public/assets/upload-disaster-data-DkOvvLH4.png    292.29 kB
+../dist/public/assets/analyze-sentiment-Vh3jCVDI.png       409.09 kB
+../dist/public/assets/real-time-monitoring-CpGDf6oY.png    786.79 kB
+../dist/public/assets/geographic-analysis-C9Jw72vh.png   1,043.10 kB
+../dist/public/assets/index-J8Bo7enu.css                   203.11 kB │ gzip:  36.16 kB
+../dist/public/assets/leaflet-src-DP8PLqsD.js              149.98 kB │ gzip:  43.55 kB
+../dist/public/assets/index-CNyM1Lwi.js                  2,200.76 kB │ gzip: 555.63 kB
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 11.43s
+  dist/index.js  266.0kb
+⚡ Done in 12ms
+========== VERIFYING BUILD ==========
+✅ Frontend build successful! Files found in dist/public
+total 300
+drwxr-sr-x 4 render render   4096 Apr 25 15:20 .
+drwxr-sr-x 3 render render   4096 Apr 25 15:20 ..
+drwxr-sr-x 2 render render   4096 Apr 25 15:20 assets
+-rw-r--r-- 1 render render 198926 Apr 25 15:20 favicon.ico
+-rw-r--r-- 1 render render  67642 Apr 25 15:20 favicon.png
+drwxr-sr-x 2 render render   4096 Apr 25 15:20 images
+-rw-r--r-- 1 render render   3556 Apr 25 15:20 index.html
+-rw-r--r-- 1 render render  15747 Apr 25 15:20 panicenseph-og-image.png
+========== PREPARING PYTHON SCRIPTS ==========
+Python scripts copied to dist/python
+========== BUILD COMPLETE ==========
+Build completed successfully!
+==> Uploading build...
+==> Uploaded in 84.6s. Compression took 50.3s
+==> Build successful 🎉
+==> Deploying...
+==> No open ports detected, continuing to scan...
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+==> Running 'node app-render-complete.cjs'
+========================================
+🚀 STARTING PANICSENSE FULL SERVER ON PORT 10000
+📅 Time: 2025-04-25T15:26:19.993Z
+🌍 NODE_ENV: development
+💻 System: linux 6.8.0-1023-aws
+========================================
+Fri, 25 Apr 2025 15:26:20 GMT express:application set "x-powered-by" to true
+Fri, 25 Apr 2025 15:26:20 GMT express:application set "etag" to 'weak'
+Fri, 25 Apr 2025 15:26:20 GMT express:application set "etag fn" to [Function: generateETag]
+Fri, 25 Apr 2025 15:26:20 GMT express:application set "env" to 'development'
+Fri, 25 Apr 2025 15:26:20 GMT express:application set "query parser" to 'extended'
+Fri, 25 Apr 2025 15:26:20 GMT express:application set "query parser fn" to [Function: parseExtendedQueryString]
+Fri, 25 Apr 2025 15:26:20 GMT express:application set "subdomain offset" to 2
+Fri, 25 Apr 2025 15:26:20 GMT express:application set "trust proxy" to false
+Fri, 25 Apr 2025 15:26:20 GMT express:application set "trust proxy fn" to [Function: trustNone]
+Fri, 25 Apr 2025 15:26:20 GMT express:application booting in development mode
+Fri, 25 Apr 2025 15:26:20 GMT express:application set "view" to [Function: View]
+Fri, 25 Apr 2025 15:26:20 GMT express:application set "views" to '/opt/render/project/src/views'
+Fri, 25 Apr 2025 15:26:20 GMT express:application set "jsonp callback name" to 'callback'
+Fri, 25 Apr 2025 15:26:20 GMT express:router use '/' query
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 15:26:20 GMT express:router use '/' expressInit
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 15:26:20 GMT express:router use '/' jsonParser
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 15:26:20 GMT express:router use '/' urlencodedParser
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 15:26:20 GMT express:router use '/' session
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 15:26:20 GMT express:router use '/' <anonymous>
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route new '/api/health'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/api/health'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route get '/api/health'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route new '/api/upload'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/api/upload'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route post '/api/upload'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route post '/api/upload'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route new '/api/analyzed-files'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/api/analyzed-files'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route get '/api/analyzed-files'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route new '/api/sentiment-posts'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/api/sentiment-posts'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route get '/api/sentiment-posts'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route new '/api/disaster-events'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/api/disaster-events'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route get '/api/disaster-events'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+✅ Found frontend files in: /opt/render/project/src/dist/public
+Fri, 25 Apr 2025 15:26:20 GMT express:router use '/' serveStatic
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route new '*'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '*'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:route get '*'
+Fri, 25 Apr 2025 15:26:20 GMT express:router:layer new '/'
+✅ Database connected. Server time: Fri Apr 25 2025 15:26:21 GMT+0000 (Coordinated Universal Time)
+✅ Found Python script at /opt/render/project/src/python/process.py
+Python service status: started
+========================================
+🚀 SERVER RUNNING AT: http://0.0.0.0:10000
+📅 Server ready at: 2025-04-25T15:26:21.218Z
+📊 Database connected: true
+🐍 Python service: active
+========================================
+Fri, 25 Apr 2025 15:26:21 GMT express:router dispatching HEAD /
+Fri, 25 Apr 2025 15:26:21 GMT express:router query  : /
+Fri, 25 Apr 2025 15:26:21 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 15:26:21 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 15:26:21 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 15:26:21 GMT express:router session  : /
+Fri, 25 Apr 2025 15:26:21 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 15:26:21 GMT express:router serveStatic  : /
+==> Your service is live 🎉
+Python Error: 2025-04-25 15:26:29,193 - INFO - Using exactly 32 authentic Groq API keys with rotation for rate limit protection
+2025-04-25 15:26:29,193 - INFO - Loaded 32 API keys for rotation
+2025-04-25 15:26:29,193 - INFO - Using 1 key(s) for validation
+2025-04-25 15:26:29,193 - INFO - API key rotation initialized with 32 keys
+Python: Error: Please provide either --text or --file argument
+Python process exited with code 1

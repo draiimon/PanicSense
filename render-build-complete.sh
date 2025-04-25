@@ -59,5 +59,15 @@ mkdir -p dist/python
 cp -r python/* dist/python/
 echo "Python scripts copied to dist/python"
 
+# Make Python scripts executable
+chmod +x python/*.py
+chmod +x dist/python/*.py
+echo "Made Python scripts executable"
+
+# Create a marker file to help with debugging
+echo "render-build-complete.sh ran at $(date)" > python/build-timestamp.txt
+cp python/build-timestamp.txt dist/python/
+echo "Created build timestamp markers"
+
 echo "========== BUILD COMPLETE =========="
 echo "Build completed successfully!"

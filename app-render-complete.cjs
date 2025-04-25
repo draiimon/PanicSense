@@ -115,11 +115,60 @@ function startPythonService() {
   try {
     // Check if Python exists
     const pythonPath = process.env.PYTHON_PATH || 'python';
-    const scriptPath = path.join(__dirname, 'python', 'process.py');
+    
+    // Use the daemon script which doesn't require command-line arguments
+    const scriptPath = path.join(__dirname, 'python', 'daemon.py');
+    const fallbackPath = path.join(__dirname, 'dist', 'python', 'daemon.py');
+    
+    let foundScript = false;
+    let actualPath = '';
     
     if (fs.existsSync(scriptPath)) {
-      console.log(`✅ Found Python script at ${scriptPath}`);
-      pythonProcess = spawn(pythonPath, [scriptPath]);
+      console.log(`✅ Found Python daemon script at ${scriptPath}`);
+      actualPath = scriptPath;
+      foundScript = true;
+    } else if (fs.existsSync(fallbackPath)) {
+      console.log(`✅ Found Python daemon script at fallback path: ${fallbackPath}`);
+      actualPath = fallbackPath;
+      foundScript = true;
+    } else {
+      console.log(`❌ Python daemon script not found, checking alternate locations...`);
+      
+      // Try to find the script in various locations
+      const possiblePaths = [
+        path.join(__dirname, 'python'),
+        path.join(__dirname, 'dist', 'python'),
+        path.join(__dirname, '..', 'python'),
+        path.join('/opt/render/project/src/python')
+      ];
+      
+      for (const dirPath of possiblePaths) {
+        try {
+          if (fs.existsSync(dirPath)) {
+            const files = fs.readdirSync(dirPath);
+            console.log(`Files in ${dirPath}:`, files);
+            
+            if (files.includes('daemon.py')) {
+              actualPath = path.join(dirPath, 'daemon.py');
+              foundScript = true;
+              console.log(`✅ Found Python daemon script at: ${actualPath}`);
+              break;
+            } else if (files.includes('process.py')) {
+              actualPath = path.join(dirPath, 'process.py');
+              foundScript = true;
+              console.log(`✅ Found Python process script at: ${actualPath}`);
+              break;
+            }
+          }
+        } catch (error) {
+          console.error(`Error checking ${dirPath}:`, error.message);
+        }
+      }
+    }
+    
+    if (foundScript) {
+      console.log(`Starting Python service using: ${pythonPath} ${actualPath}`);
+      pythonProcess = spawn(pythonPath, [actualPath]);
       
       pythonProcess.stdout.on('data', (data) => {
         console.log(`Python: ${data.toString().trim()}`);
@@ -131,12 +180,19 @@ function startPythonService() {
       
       pythonProcess.on('close', (code) => {
         console.log(`Python process exited with code ${code}`);
+        // Auto-restart the Python process if it exits
+        if (code !== 0) {
+          console.log('Restarting Python service...');
+          setTimeout(() => {
+            startPythonService();
+          }, 5000); // Wait 5 seconds before restarting
+        }
         pythonProcess = null;
       });
       
       return true;
     } else {
-      console.error(`❌ Python script not found at ${scriptPath}`);
+      console.error(`❌ No Python scripts found!`);
       return false;
     }
   } catch (error) {

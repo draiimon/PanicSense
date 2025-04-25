@@ -62,7 +62,9 @@ After deployment, check the following endpoints:
 ## Troubleshooting
 
 ### Python not starting
-Check the Render logs for Python-related errors. Make sure `PYTHON_PATH` is correctly set in your environment variables.
+If you see "Python process exited with code 1" in the logs with an error about missing arguments, it means the Python daemon script isn't running properly. Check the Render logs for Python-related errors.
+
+We've included a special daemon.py script that runs without requiring command-line arguments, which should solve the most common issue. Make sure `PYTHON_PATH` is correctly set in your environment variables.
 
 ### Database connection issues
 Verify your DATABASE_URL is correctly set in the Render environment variables. The app uses Neon PostgreSQL.
