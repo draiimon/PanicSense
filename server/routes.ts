@@ -8,6 +8,11 @@ import path from "path";
 import multer from "multer";
 import fs from "fs";
 import { nanoid } from 'nanoid';
+import { fileURLToPath } from 'url';
+
+// ES Module fix for __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { pythonService, pythonConsoleMessages } from "./python-service";
 import { insertSentimentPostSchema, insertAnalyzedFileSchema, insertSentimentFeedbackSchema, sentimentPosts, uploadSessions, analyzedFiles, type SentimentPost } from "@shared/schema";
 // Usage tracker removed
