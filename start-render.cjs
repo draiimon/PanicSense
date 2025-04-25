@@ -154,26 +154,55 @@ async function startServer() {
   // Import server routes
   console.log('🔄 Loading API routes...');
   try {
-    // Load the compiled routes from dist directory
-    console.log("🔍 Checking dist directory contents:");
-    fs.existsSync(path.join(__dirname, 'dist')) && 
-      fs.readdirSync(path.join(__dirname, 'dist')).forEach(file => console.log(`  - ${file}`));
+    // Use the direct CommonJS routes file rather than compiled ESM
+    console.log("🔍 Using pure CommonJS routes for maximum compatibility");
     
-    const serverRoutesPath = path.join(__dirname, 'dist', 'routes.js');
-    console.log(`🔍 Looking for routes at: ${serverRoutesPath}`);
-    if (fs.existsSync(serverRoutesPath)) {
-      console.log(`✅ Found server routes at: ${serverRoutesPath}`);
-      const serverRoutes = require(serverRoutesPath);
-      
-      // Check if registerRoutes function exists
-      if (typeof serverRoutes.registerRoutes === 'function') {
-        await serverRoutes.registerRoutes(app);
-        console.log('✅ API routes registered successfully');
-      } else {
-        console.error('❌ registerRoutes function not found in server routes');
+    // First try the direct routes.cjs file
+    const cjsRoutesPath = path.join(__dirname, 'server', 'routes.cjs');
+    
+    // If routes.cjs doesn't exist in server directory, try dist directory
+    const distCjsRoutesPath = path.join(__dirname, 'dist', 'routes.cjs');
+    
+    // Then try the compiled routes
+    const compiledRoutesPath = path.join(__dirname, 'dist', 'routes.js');
+    
+    console.log("🔍 Looking for routes files at:");
+    console.log(` - ${cjsRoutesPath}`);
+    console.log(` - ${distCjsRoutesPath}`);
+    console.log(` - ${compiledRoutesPath}`);
+    
+    let serverRoutes;
+    
+    // Try each option in order of preference
+    if (fs.existsSync(cjsRoutesPath)) {
+      console.log(`✅ Found CommonJS routes at: ${cjsRoutesPath}`);
+      serverRoutes = require(cjsRoutesPath);
+    }
+    else if (fs.existsSync(distCjsRoutesPath)) {
+      console.log(`✅ Found CommonJS routes in dist at: ${distCjsRoutesPath}`);
+      serverRoutes = require(distCjsRoutesPath);
+    }
+    else if (fs.existsSync(compiledRoutesPath)) {
+      try {
+        console.log(`✅ Found compiled routes at: ${compiledRoutesPath}`);
+        serverRoutes = require(compiledRoutesPath);
+      } catch (error) {
+        console.error(`❌ Error loading compiled routes:`, error.message);
+        // Default minimal API as fallback
+        serverRoutes = getFallbackRoutes();
       }
+    } 
+    else {
+      console.error('❌ No routes file found! Using minimal API implementation');
+      serverRoutes = getFallbackRoutes();
+    }
+    
+    // Check if registerRoutes function exists
+    if (typeof serverRoutes.registerRoutes === 'function') {
+      await serverRoutes.registerRoutes(app);
+      console.log('✅ API routes registered successfully');
     } else {
-      console.error('❌ Server routes file not found!');
+      console.error('❌ registerRoutes function not found in server routes');
     }
   } catch (error) {
     console.error('❌ Error loading API routes:', error);
@@ -232,6 +261,19 @@ async function startServer() {
     console.log(`📅 Server ready at: ${new Date().toISOString()}`);
     console.log('========================================');
   });
+}
+
+// Helper function to get fallback routes
+function getFallbackRoutes() {
+  return {
+    registerRoutes: async (app) => {
+      console.log('📝 Registering minimal API routes...');
+      app.get('/api/health', (req, res) => {
+        res.json({ status: 'ok', mode: 'fallback' });
+      });
+      return app;
+    }
+  };
 }
 
 // Handle graceful shutdown
