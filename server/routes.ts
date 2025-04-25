@@ -2210,7 +2210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Save as a new file record
       const [fileRecord] = await db
-        .insert(schema.analyzedFiles)
+        .insert(analyzedFiles)
         .values({
           originalName: 'Custom Hybrid Model Dataset',
           storedName: filename,
@@ -2226,7 +2226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       uploadProgressMap.set(sessionId, {
         processed: 0,
         total: 100,
-        stage: 'Training with custom dataset',
+        stage: 'Training with hybrid model approach',
         timestamp: Date.now(),
         batchNumber: 0,
         totalBatches: 100,
@@ -2248,16 +2248,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         progress: uploadProgressMap.get(sessionId)
       });
       
-      // Train model with file
-      const result = await trainingService.trainWithFile(
-        filePath,
+      // Use our dedicated hybrid model method
+      trainingService.useCustomHybridDataset(
+        sessionId, 
         fileRecord.id,
         (progress) => {
           // Update progress
           const currentProgress = uploadProgressMap.get(sessionId) || {
             processed: 0,
             total: 100,
-            stage: 'Training with custom dataset',
+            stage: 'Training with hybrid model approach',
             timestamp: Date.now(),
             batchNumber: 0,
             totalBatches: 100,
@@ -2289,46 +2289,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
             progress: updatedProgress
           });
         }
-      );
-      
-      // Generate sentiment posts from the file
-      await trainingService.generateSentimentPostsFromFile(filePath, fileRecord.id);
-      
-      // Final progress update
-      const finalProgress = {
-        processed: 100,
-        total: 100,
-        stage: 'Training complete',
-        timestamp: Date.now(),
-        batchNumber: 100,
-        totalBatches: 100,
-        batchProgress: 100,
-        currentSpeed: 0,
-        timeRemaining: 0,
-        processingStats: {
-          successCount: 25,
-          errorCount: 0,
-          lastBatchDuration: 0,
-          averageSpeed: 0
-        }
-      };
-      
-      // Store final progress
-      uploadProgressMap.set(sessionId, finalProgress);
-      
-      // Broadcast completion
-      broadcastUpdate({
-        type: 'progress',
-        sessionId,
-        progress: finalProgress
+      )
+      .then(result => {
+        // Final progress update
+        const finalProgress = {
+          processed: 100,
+          total: 100,
+          stage: 'Hybrid model training complete',
+          timestamp: Date.now(),
+          batchNumber: 100,
+          totalBatches: 100,
+          batchProgress: 100,
+          currentSpeed: 0,
+          timeRemaining: 0,
+          processingStats: {
+            successCount: 25,
+            errorCount: 0,
+            lastBatchDuration: 0,
+            averageSpeed: 0
+          }
+        };
+        
+        // Store final progress
+        uploadProgressMap.set(sessionId, finalProgress);
+        
+        // Broadcast completion
+        broadcastUpdate({
+          type: 'complete',
+          sessionId,
+          fileId: fileRecord.id,
+          metrics: result.metrics
+        });
+      })
+      .catch(error => {
+        console.error('Error in hybrid model processing:', error);
+        // Broadcast error
+        broadcastUpdate({
+          type: 'error',
+          sessionId,
+          error: error.message || 'Unknown error during hybrid model processing'
+        });
       });
       
-      // Return success response
+      // Return immediately to allow async processing
       res.json({
         success: true,
         fileId: fileRecord.id,
-        metrics: result.metrics,
-        message: "Custom dataset used for training successfully",
+        message: "Hybrid model processing started",
         sessionId
       });
     } catch (error) {

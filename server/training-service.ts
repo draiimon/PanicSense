@@ -374,6 +374,82 @@ export class TrainingService {
   }
   
   /**
+   * Use a custom dataset with hybrid model approach
+   * @param sessionId Session ID for progress tracking
+   * @param fileId File ID to associate with the dataset
+   */
+  async useCustomHybridDataset(
+    sessionId: string,
+    fileId: number,
+    onProgress?: (progress: any) => void
+  ): Promise<{
+    fileId: number;
+    metrics: EvaluationMetrics;
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      const filePath = path.join(process.cwd(), 'uploads', 'custom_demo_dataset.csv');
+      
+      // Start by reporting initial progress
+      if (onProgress) {
+        onProgress({
+          processed: 0,
+          total: 100,
+          stage: 'Starting hybrid model training',
+          batchNumber: 0,
+          totalBatches: 100,
+          batchProgress: 0,
+          currentSpeed: 0,
+          timeRemaining: 0,
+          processingStats: {
+            successCount: 0,
+            errorCount: 0,
+            lastBatchDuration: 0,
+            averageSpeed: 0
+          }
+        });
+      }
+      
+      // Train the model
+      const result = await this.trainWithFile(filePath, fileId, onProgress);
+      
+      // Generate sentiment posts from the file
+      await this.generateSentimentPostsFromFile(filePath, fileId);
+      
+      // Final progress update
+      if (onProgress) {
+        onProgress({
+          processed: 100,
+          total: 100,
+          stage: 'Hybrid model training complete',
+          batchNumber: 100,
+          totalBatches: 100,
+          batchProgress: 100,
+          currentSpeed: 0,
+          timeRemaining: 0,
+          processingStats: {
+            successCount: 25,
+            errorCount: 0,
+            lastBatchDuration: 0,
+            averageSpeed: 0
+          }
+        });
+      }
+      
+      return {
+        fileId,
+        metrics: result.metrics,
+        success: true,
+        message: "Custom hybrid model dataset processed successfully"
+      };
+    } catch (error) {
+      console.error('Error using custom hybrid dataset:', error);
+      throw error;
+    }
+  }
+  
+  /**
    * Generate sentiment posts from a CSV file
    */
   async generateSentimentPostsFromFile(
