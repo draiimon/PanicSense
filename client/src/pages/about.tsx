@@ -67,12 +67,6 @@ export default function About() {
       role: "Data Science & Natural Language Processing",
       image: "https://raw.githubusercontent.com/draiimon/PanicSense/main/client/public/images/julia.jpg",
       description: "Optimizes our multilingual text analysis models for Filipino context"
-    },
-    {
-      name: "Raymond Sajor",
-      role: "Community Relations & Emergency Response",
-      image: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?ixlib=rb-4.0.3&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
-      description: "Coordinates with disaster response agencies and community organizations"
     }
   ];
 
@@ -231,7 +225,7 @@ export default function About() {
 
                   {/* Mobile indicator dots */}
                   <div className="flex justify-center gap-2 mt-6 md:hidden">
-                    {[0, 1, 2, 3].map((index) => (
+                    {[0, 1, 2].map((index) => (
                       <button
                         key={index}
                         onClick={() => {
