@@ -1,0 +1,262 @@
+
+
+Live tail
+GMT+8
+
+Menu
+Fri, 25 Apr 2025 17:48:52 GMT express:router:route post '/api/upload'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:route post '/api/upload'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:route new '/api/analyzed-files'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:layer new '/api/analyzed-files'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:route get '/api/analyzed-files'
+✅ Found frontend files in: /opt/render/project/src/dist/public
+Fri, 25 Apr 2025 17:48:52 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:route new '/api/sentiment-posts'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:layer new '/api/sentiment-posts'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:route get '/api/sentiment-posts'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:route new '/api/disaster-events'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:layer new '/api/disaster-events'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:route get '/api/disaster-events'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 17:48:52 GMT express:router use '/' serveStatic
+Fri, 25 Apr 2025 17:48:52 GMT express:router:layer new '/'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:route new '*'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:layer new '*'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:route get '*'
+Fri, 25 Apr 2025 17:48:52 GMT express:router:layer new '/'
+✅ Database connected. Server time: Fri Apr 25 2025 17:48:53 GMT+0000 (Coordinated Universal Time)
+✅ Found Python daemon script at /opt/render/project/src/python/daemon.py
+Starting Python service using: python /opt/render/project/src/python/daemon.py
+Python service status: started
+========================================
+🚀 SERVER RUNNING AT: http://0.0.0.0:10000
+📅 Server ready at: 2025-04-25T17:48:53.594Z
+📊 Database connected: true
+🐍 Python service: active
+========================================
+Fri, 25 Apr 2025 17:48:54 GMT express:router dispatching HEAD /
+Fri, 25 Apr 2025 17:48:54 GMT express:router query  : /
+Fri, 25 Apr 2025 17:48:54 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:48:54 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:48:54 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:48:54 GMT express:router session  : /
+Fri, 25 Apr 2025 17:48:54 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:48:54 GMT express:router serveStatic  : /
+==> Your service is live 🎉
+Fri, 25 Apr 2025 17:49:01 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:49:01 GMT express:router query  : /
+Fri, 25 Apr 2025 17:49:01 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:49:01 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:49:01 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:49:01 GMT express:router session  : /
+Fri, 25 Apr 2025 17:49:01 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:49:01 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:49:32 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:49:32 GMT express:router query  : /
+Fri, 25 Apr 2025 17:49:32 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:49:32 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:49:32 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:49:32 GMT express:router session  : /
+Fri, 25 Apr 2025 17:49:32 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:49:32 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:49:35 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:49:35 GMT express:router query  : /
+Fri, 25 Apr 2025 17:49:35 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:49:35 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:49:35 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:49:35 GMT express:router session  : /
+Fri, 25 Apr 2025 17:49:35 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:49:35 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:49:36 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:49:36 GMT express:router query  : /
+Fri, 25 Apr 2025 17:49:36 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:49:36 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:49:36 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:49:36 GMT express:router session  : /
+Fri, 25 Apr 2025 17:49:36 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:49:36 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:49:42 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:49:42 GMT express:router query  : /
+Fri, 25 Apr 2025 17:49:42 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:49:42 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:49:42 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:49:42 GMT express:router session  : /
+Fri, 25 Apr 2025 17:49:42 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:49:42 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:49:44 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:49:44 GMT express:router query  : /
+Fri, 25 Apr 2025 17:49:44 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:49:44 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:49:44 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:49:44 GMT express:router session  : /
+Fri, 25 Apr 2025 17:49:44 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:49:44 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:50:28 GMT express:router dispatching HEAD /
+Fri, 25 Apr 2025 17:50:28 GMT express:router query  : /
+Fri, 25 Apr 2025 17:50:28 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:50:28 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:50:28 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:50:28 GMT express:router session  : /
+Fri, 25 Apr 2025 17:50:28 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:50:28 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:50:33 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:50:33 GMT express:router query  : /
+Fri, 25 Apr 2025 17:50:33 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:50:33 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:50:33 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:50:33 GMT express:router session  : /
+Fri, 25 Apr 2025 17:50:33 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:50:33 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:50:33 GMT express:router dispatching GET /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:50:33 GMT express:router query  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:50:33 GMT express:router expressInit  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:50:33 GMT express:router jsonParser  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:50:33 GMT express:router urlencodedParser  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:50:33 GMT express:router session  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:50:33 GMT express:router <anonymous>  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:50:33 GMT express:router serveStatic  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:50:33 GMT express:router dispatching GET /assets/index-J8Bo7enu.css
+Fri, 25 Apr 2025 17:50:33 GMT express:router query  : /assets/index-J8Bo7enu.css
+Fri, 25 Apr 2025 17:50:33 GMT express:router expressInit  : /assets/index-J8Bo7enu.css
+Fri, 25 Apr 2025 17:50:33 GMT express:router jsonParser  : /assets/index-J8Bo7enu.css
+Fri, 25 Apr 2025 17:50:33 GMT express:router urlencodedParser  : /assets/index-J8Bo7enu.css
+Fri, 25 Apr 2025 17:50:33 GMT express:router session  : /assets/index-J8Bo7enu.css
+Fri, 25 Apr 2025 17:50:33 GMT express:router <anonymous>  : /assets/index-J8Bo7enu.css
+Fri, 25 Apr 2025 17:50:33 GMT express:router serveStatic  : /assets/index-J8Bo7enu.css
+Fri, 25 Apr 2025 17:50:35 GMT express:router dispatching GET /api/active-upload-session
+Fri, 25 Apr 2025 17:50:35 GMT express:router query  : /api/active-upload-session
+Fri, 25 Apr 2025 17:50:35 GMT express:router expressInit  : /api/active-upload-session
+Fri, 25 Apr 2025 17:50:35 GMT express:router jsonParser  : /api/active-upload-session
+Fri, 25 Apr 2025 17:50:35 GMT express:router urlencodedParser  : /api/active-upload-session
+Fri, 25 Apr 2025 17:50:35 GMT express:router session  : /api/active-upload-session
+Fri, 25 Apr 2025 17:50:35 GMT express:router <anonymous>  : /api/active-upload-session
+Fri, 25 Apr 2025 17:50:35 GMT express:router serveStatic  : /api/active-upload-session
+Fri, 25 Apr 2025 17:50:36 GMT express:router dispatching POST /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:36 GMT express:router query  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:36 GMT express:router expressInit  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:36 GMT express:router jsonParser  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:36 GMT express:router urlencodedParser  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:36 GMT express:router session  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:36 GMT express:router <anonymous>  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:36 GMT express:router serveStatic  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:37 GMT express:router dispatching GET /favicon.png
+Fri, 25 Apr 2025 17:50:37 GMT express:router query  : /favicon.png
+Fri, 25 Apr 2025 17:50:37 GMT express:router expressInit  : /favicon.png
+Fri, 25 Apr 2025 17:50:37 GMT express:router jsonParser  : /favicon.png
+Fri, 25 Apr 2025 17:50:37 GMT express:router urlencodedParser  : /favicon.png
+Fri, 25 Apr 2025 17:50:37 GMT express:router session  : /favicon.png
+Fri, 25 Apr 2025 17:50:37 GMT express:router <anonymous>  : /favicon.png
+Fri, 25 Apr 2025 17:50:37 GMT express:router serveStatic  : /favicon.png
+Fri, 25 Apr 2025 17:50:37 GMT express:router dispatching GET /api/analyzed-files
+Fri, 25 Apr 2025 17:50:37 GMT express:router query  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:37 GMT express:router expressInit  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:37 GMT express:router jsonParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:37 GMT express:router urlencodedParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:37 GMT express:router session  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:37 GMT express:router <anonymous>  : /api/analyzed-files
+Database error: error: column "created_at" does not exist
+    at /opt/render/project/src/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /opt/render/project/src/app-render-complete.cjs:248:20 {
+  length: 110,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '39',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+Fri, 25 Apr 2025 17:50:39 GMT express:router dispatching GET /api/analyzed-files
+Fri, 25 Apr 2025 17:50:39 GMT express:router query  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:39 GMT express:router expressInit  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:39 GMT express:router jsonParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:39 GMT express:router urlencodedParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:39 GMT express:router session  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:39 GMT express:router <anonymous>  : /api/analyzed-files
+Database error: error: column "created_at" does not exist
+    at /opt/render/project/src/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /opt/render/project/src/app-render-complete.cjs:248:20 {
+  length: 110,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '39',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+Fri, 25 Apr 2025 17:50:44 GMT express:router dispatching GET /api/analyzed-files
+Fri, 25 Apr 2025 17:50:44 GMT express:router query  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:44 GMT express:router expressInit  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:44 GMT express:router jsonParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:44 GMT express:router urlencodedParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:44 GMT express:router session  : /api/analyzed-files
+Fri, 25 Apr 2025 17:50:44 GMT express:router <anonymous>  : /api/analyzed-files
+Database error: error: column "created_at" does not exist
+    at /opt/render/project/src/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /opt/render/project/src/app-render-complete.cjs:248:20 {
+  length: 110,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '39',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+Fri, 25 Apr 2025 17:50:44 GMT express:router dispatching GET /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:50:44 GMT express:router query  : /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:50:44 GMT express:router expressInit  : /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:50:44 GMT express:router jsonParser  : /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:50:44 GMT express:router urlencodedParser  : /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:50:44 GMT express:router session  : /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:50:44 GMT express:router <anonymous>  : /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:50:55 GMT express:router dispatching GET /api/upload-progress/1604fd2a-473b-4084-afec-9f234125c5de
+Fri, 25 Apr 2025 17:50:55 GMT express:router query  : /api/upload-progress/1604fd2a-473b-4084-afec-9f234125c5de
+Fri, 25 Apr 2025 17:50:55 GMT express:router expressInit  : /api/upload-progress/1604fd2a-473b-4084-afec-9f234125c5de
+Fri, 25 Apr 2025 17:50:55 GMT express:router jsonParser  : /api/upload-progress/1604fd2a-473b-4084-afec-9f234125c5de
+Fri, 25 Apr 2025 17:50:55 GMT express:router urlencodedParser  : /api/upload-progress/1604fd2a-473b-4084-afec-9f234125c5de
+Fri, 25 Apr 2025 17:50:55 GMT express:router session  : /api/upload-progress/1604fd2a-473b-4084-afec-9f234125c5de
+Fri, 25 Apr 2025 17:50:55 GMT express:router <anonymous>  : /api/upload-progress/1604fd2a-473b-4084-afec-9f234125c5de
+Fri, 25 Apr 2025 17:50:55 GMT express:router serveStatic  : /api/upload-progress/1604fd2a-473b-4084-afec-9f234125c5de
+Fri, 25 Apr 2025 17:50:57 GMT express:router dispatching POST /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:57 GMT express:router query  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:57 GMT express:router expressInit  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:57 GMT express:router jsonParser  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:57 GMT express:router urlencodedParser  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:57 GMT express:router session  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:57 GMT express:router <anonymous>  : /api/cleanup-error-sessions
+Fri, 25 Apr 2025 17:50:57 GMT express:router serveStatic  : /api/cleanup-error-sessions

@@ -1,18 +1,22 @@
 {
   "name": "panicsense",
   "version": "1.0.0",
-  "description": "Advanced disaster intelligence platform",
-  "main": "production-server.cjs",
+  "description": "PanicSense Disaster Intelligence Platform",
+  "main": "server.js",
   "scripts": {
-    "start": "node start-render.cjs",
-    "build": "./render-build.sh"
+    "build": "npm install && npm run build-frontend",
+    "build-frontend": "cd client && npm install && npm run build",
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "multer": "^1.4.5-lts.1",
     "pg": "^8.11.3",
-    "ws": "^8.16.0"
-  },
-  "engines": {
-    "node": ">=16"
+    "ws": "^8.14.2"
   }
 }
