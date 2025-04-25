@@ -1,0 +1,58 @@
+===== CHECKING VITE ==========
+========== BUILDING APPLICATION ==========
+Building the frontend and server...
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.18 building for production...
+transforming...
+✓ 3271 modules transformed.
+rendering chunks...
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /opt/render/project/src/client/src/lib/api.ts is dynamically imported by /opt/render/project/src/client/src/pages/evaluation.tsx, /opt/render/project/src/client/src/pages/evaluation.tsx, /opt/render/project/src/client/src/pages/evaluation.tsx but also statically imported by /opt/render/project/src/client/src/components/data/fixed-data-table.tsx, /opt/render/project/src/client/src/components/evaluation/confusion-matrix.tsx, /opt/render/project/src/client/src/components/file-uploader-button.tsx, /opt/render/project/src/client/src/components/realtime/realtime-monitor.tsx, /opt/render/project/src/client/src/components/realtime/text-processor.tsx, /opt/render/project/src/client/src/components/sentiment-feedback.tsx, /opt/render/project/src/client/src/components/upload-progress-modal.tsx, /opt/render/project/src/client/src/context/disaster-context.tsx, /opt/render/project/src/client/src/pages/evaluation.tsx, /opt/render/project/src/client/src/pages/raw-data.tsx, dynamic import will not move module into another chunk.
+computing gzip size...
+../dist/public/index.html                                    3.56 kB │ gzip:   1.08 kB
+../dist/public/assets/upload-disaster-data-DkOvvLH4.png    292.29 kB
+../dist/public/assets/analyze-sentiment-Vh3jCVDI.png       409.09 kB
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+../dist/public/assets/real-time-monitoring-CpGDf6oY.png    786.79 kB
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+../dist/public/assets/geographic-analysis-C9Jw72vh.png   1,043.10 kB
+../dist/public/assets/index-J8Bo7enu.css                   203.11 kB │ gzip:  36.16 kB
+../dist/public/assets/leaflet-src-DP8PLqsD.js              149.98 kB │ gzip:  43.55 kB
+../dist/public/assets/index-CNyM1Lwi.js                  2,200.76 kB │ gzip: 555.63 kB
+✓ built in 13.98s
+  dist/index.js  266.0kb
+⚡ Done in 15ms
+========== VERIFYING BUILD ==========
+✅ Frontend build successful! Files found in dist/public
+total 300
+drwxr-sr-x 4 render render   4096 Apr 25 15:04 .
+drwxr-sr-x 3 render render   4096 Apr 25 15:04 ..
+drwxr-sr-x 2 render render   4096 Apr 25 15:04 assets
+-rw-r--r-- 1 render render 198926 Apr 25 15:04 favicon.ico
+-rw-r--r-- 1 render render  67642 Apr 25 15:04 favicon.png
+drwxr-sr-x 2 render render   4096 Apr 25 15:04 images
+-rw-r--r-- 1 render render   3556 Apr 25 15:04 index.html
+-rw-r--r-- 1 render render  15747 Apr 25 15:04 panicenseph-og-image.png
+========== BUILD COMPLETE ==========
+Build completed successfully!
+==> Uploading build...
+==> Uploaded in 8.4s. Compression took 2.8s
+==> Build successful 🎉
+==> Deploying...
+==> Running 'node app-render.js'
+file:///opt/render/project/src/app-render.js:6
+const express = require('express');
+                ^
+ReferenceError: require is not defined in ES module scope, you can use import instead
+This file is being treated as an ES module because it has a '.js' file extension and '/opt/render/project/src/package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
+    at file:///opt/render/project/src/app-render.js:6:17
+    at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+    at async loadESM (node:internal/process/esm_loader:34:7)
+    at async handleMainPromise (node:internal/modules/run_main:106:12)
+Node.js v18.20.8
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

@@ -11,7 +11,7 @@ Render.com doesn't install development dependencies by default, which causes err
 We've created several files to fix these issues:
 
 1. `render-build.sh` - Custom build script that installs ALL dependencies
-2. `app-render.js` - CommonJS-compatible server for Render deployment
+2. `app-render.cjs` - CommonJS-compatible server for Render deployment with development mode
 
 ## Deployment Instructions
 
@@ -23,10 +23,10 @@ We've created several files to fix these issues:
 
 3. Configure the build settings:
    - Build Command: `./render-build.sh`
-   - Start Command: `node app-render.js`
+   - Start Command: `node app-render.cjs`
 
 4. Add the following environment variables:
-   - `NODE_ENV`: `production`
+   - `NODE_ENV`: `development`
    - `PORT`: `10000`
    - `DATABASE_URL`: Your Neon PostgreSQL connection string
    - `SESSION_SECRET`: A random string for session security
@@ -39,7 +39,7 @@ We've created several files to fix these issues:
 This is caused by Render not installing dev dependencies. Our `render-build.sh` script fixes this by using `npm install --production=false`.
 
 ### Module import errors
-There can be compatibility issues between CommonJS and ES modules. Our `app-render.js` file is a simplified CommonJS version of the server that avoids these issues.
+There can be compatibility issues between CommonJS and ES modules. Our `app-render.cjs` file is a simplified CommonJS version of the server that avoids these issues by using the .cjs extension to force CommonJS mode.
 
 ### Database connection issues
 Make sure your `DATABASE_URL` environment variable is correctly set in the Render dashboard. The app will still start without a database connection, but some features won't work.
