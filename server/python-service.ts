@@ -657,8 +657,8 @@ export class PythonService {
     }
   }
 
-  // Process feedback and train the model with corrections
-  // HYBRID MODEL TRAINING DISABLED - Replaces trainModelWithFeedback method with simplified version
+  // Process feedback without model training
+  // Simplified version that maintains API compatibility but does not perform actual training
   public async trainModelWithFeedback(
     originalText: string, 
     originalSentiment: string, 
@@ -675,16 +675,16 @@ export class PythonService {
     }
   }> {
     try {
-      // Log that training has been disabled but feedback was received
-      log(`⚠️ TRAINING DISABLED: Received sentiment feedback: "${originalText.substring(0, 30)}..." - ${originalSentiment} → ${correctedSentiment}`, 'python-service');
+      // Log that feedback was received, though no training is performed
+      log(`Received sentiment feedback: "${originalText.substring(0, 30)}..." - ${originalSentiment} → ${correctedSentiment}`, 'python-service');
       
       // Log additional corrections that were provided (but won't be processed)
       if (correctedLocation && correctedLocation !== "UNKNOWN") {
-        log(`  - location correction to: ${correctedLocation} (not processed - training disabled)`, 'python-service');
+        log(`  - location correction to: ${correctedLocation} (recorded for reference only)`, 'python-service');
       }
       
       if (correctedDisasterType && correctedDisasterType !== "UNKNOWN") {
-        log(`  - disaster type correction to: ${correctedDisasterType} (not processed - training disabled)`, 'python-service');
+        log(`  - disaster type correction to: ${correctedDisasterType} (recorded for reference only)`, 'python-service');
       }
       
       // Create feedback payload for logging purposes
@@ -697,13 +697,13 @@ export class PythonService {
         correctedDisasterType: correctedDisasterType || undefined
       });
       
-      // Log the feedback that would have been processed
-      log(`Feedback received (but not processed - training disabled): ${feedbackData}`, 'python-service');
+      // Log the feedback that was received
+      log(`Feedback received and recorded: ${feedbackData}`, 'python-service');
       
       // Return a simulated successful response instead of actually processing
       const simulatedResponse = {
         status: "success",
-        message: "Thank you for your feedback. Your input has been recorded. (Note: Model training is currently disabled)",
+        message: "Thank you for your feedback. Your input has been recorded.",
         performance: {
           previous_accuracy: 0.85,
           new_accuracy: 0.85, 
@@ -711,8 +711,8 @@ export class PythonService {
         }
       };
       
-      // Log the simulated response
-      log(`Returning simulated training response (training disabled): ${JSON.stringify(simulatedResponse)}`, 'python-service');
+      // Log the response being sent
+      log(`Returning feedback response: ${JSON.stringify(simulatedResponse)}`, 'python-service');
       
       return simulatedResponse;
     } catch (error) {

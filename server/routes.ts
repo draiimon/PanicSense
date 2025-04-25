@@ -1827,7 +1827,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // HYBRID MODEL TRAINING REMOVED
           console.log(`Processing data with sentiment analysis (process.py)`);
           
-          // No hybrid model training is performed
+          // Only record the feedback, no model training
         } catch (error) {
           console.error('Error fetching processed data:', error);
         }
