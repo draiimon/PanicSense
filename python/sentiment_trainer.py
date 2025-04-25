@@ -1,7 +1,7 @@
 """
-Sentiment Analysis Trainer for PanicSense
-This script handles ML-based sentiment analysis training and evaluation,
-creating real metrics for display in the evaluation page.
+Hybrid Sentiment Analysis Trainer for PanicSense
+This script combines keyword-based approach with ML-based sentiment analysis 
+to create a hybrid model with real performance metrics.
 """
 import os
 import sys
@@ -13,6 +13,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from sklearn.utils import shuffle
+from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.base import BaseEstimator, TransformerMixin
 import datetime
 import joblib
 import re
@@ -30,6 +33,53 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 
 SENTIMENT_CATEGORIES = ["panic", "fear", "disbelief", "resilience", "neutral"]
 
+# Keyword dictionaries for each sentiment category
+KEYWORD_DICT = {
+    "panic": [
+        "emergency", "help", "tulong", "naiipit", "evacuate", "rescue", "trap", 
+        "mabilis", "tubig", "baha", "malakas", "ulan", "lindol", "tumataas",
+        "😱", "😨", "😰", "nakakatakot", "takot", "naiipit", "nasira", "kawawa",
+        "pagtulong", "hindi makahinga", "nasalanta", "bumabaha", "nagkalat", 
+        "nawalan", "nasalanta", "nasiraan", "nasira", "sinira", "nag-collapse",
+        "gumuho", "rumaragasa", "pumapatay", "nadadamay", "nadadale", "nakakatakot",
+        "buhawi", "pag-alboroto", "rescue"
+    ],
+    "fear": [
+        "worry", "scared", "afraid", "fear", "dread", "horror", "terror",
+        "nervous", "anxious", "kabado", "kinakabahan", "nag-aalala", "natatakot",
+        "matatakot", "delikado", "mapanganib", "dangerous", "banta", "nangangamba",
+        "maaaring", "posible", "hindi ligtas", "hindi safe", "magbibigay ng pinsala",
+        "magiging sanhi ng", "makakapinsala", "maaring makapinsala", "nanganganib",
+        "nararanasan", "tumatagal", "papalakas", "lumalala", "nagbabanta", "nakaamba"
+    ],
+    "disbelief": [
+        "what", "how", "why", "unbelievable", "shocking", "di makapaniwala", "bakit",
+        "paano", "anong nangyari", "hindi maintindihan", "hindi kapani-paniwala",
+        "hindi expected", "hindi inaasahan", "bakit ganito", "bakit nangyari",
+        "hindi dapat", "nakakagulat", "kakaiba", "hindi aakalain", "kagulat-gulat",
+        "nakakagulat", "iba sa inaasahan", "malayo sa inaasahan", "sobrang bilis",
+        "sobrang lakas", "sobrang dami", "sobrang laki", "napakarami", "napakalaki", 
+        "napakagrabe", "biglaan", "bigla", "walang warning", "walang abiso"
+    ],
+    "resilience": [
+        "strong", "together", "rebuild", "recover", "help", "support", "community",
+        "volunteers", "donation", "contribute", "fundraise", "survive", "overcome",
+        "endure", "withstand", "adapt", "cope", "manage", "tulungan", "sama-sama",
+        "tulong", "bangon", "malalagpasan", "malalampasan", "babangon", "makakayanan",
+        "makakabangon", "sama-sama", "tulong-tulong", "magkaisa", "nagkakaisa", 
+        "nagtutulong", "magkapit-bisig", "makababangon", "makalalampas", "relief",
+        "donation", "support", "pagtulong", "volunteer", "sumasaludo", "hope", "pag-asa"
+    ],
+    "neutral": [
+        "report", "update", "announce", "inform", "status", "condition", "situation",
+        "news", "development", "advisory", "bulletin", "notification", "alert",
+        "announcement", "briefing", "ulat", "balita", "updates", "abiso", "impormasyon",
+        "kalagayan", "sitwasyon", "kaganapan", "nangyari", "nagaganap", "naganap",
+        "nilikha", "magkakaroon", "nagkaroon", "may", "merong", "magpapasimula", 
+        "nagsimula", "maguumpisa", "uumpisa", "currently", "ngayon", "kasalukuyan"
+    ]
+}
+
 # Utils for text preprocessing
 def tokenize_text(text):
     """Simple tokenization function for text"""
@@ -41,12 +91,64 @@ def tokenize_text(text):
     tokens = text.split()
     return tokens
 
-class SentimentAnalysisTrainer:
+class KeywordFeatureExtractor(BaseEstimator, TransformerMixin):
+    """
+    Custom transformer that extracts keyword-based features from text
+    This is the backbone of our hybrid approach - combining rule-based keyword
+    matching with ML-based text classification
+    """
+    def __init__(self, keyword_dict=KEYWORD_DICT):
+        self.keyword_dict = keyword_dict
+        
+    def fit(self, X, y=None):
+        return self
+        
+    def transform(self, X):
+        """
+        Transform text data to keyword-based features
+        For each sentiment category, count how many keywords match in the text
+        """
+        features = np.zeros((len(X), len(self.keyword_dict)))
+        
+        for i, text in enumerate(X):
+            # Preprocess text
+            processed_text = text.lower()
+            tokens = tokenize_text(processed_text)
+            
+            # Calculate keyword matches for each sentiment category
+            for j, (category, keywords) in enumerate(self.keyword_dict.items()):
+                # Check both single word and phrase matches
+                single_word_matches = sum(1 for keyword in keywords if keyword.lower() in tokens)
+                
+                # Check for phrase matches (keywords with multiple words)
+                phrase_matches = sum(1 for keyword in keywords if ' ' in keyword and keyword.lower() in processed_text)
+                
+                # Add special handling for emojis and exclamations
+                emoji_matches = sum(1 for keyword in keywords if len(keyword) == 1 and keyword in text)
+                exclamation_count = text.count('!') if category in ['panic', 'fear', 'disbelief'] else 0
+                
+                # Count total matches with proper weighting
+                total_matches = (
+                    single_word_matches + 
+                    phrase_matches * 2 +  # Phrases are stronger indicators
+                    emoji_matches * 3 +   # Emojis are very strong indicators
+                    min(exclamation_count, 3)  # Cap exclamation impact
+                )
+                
+                features[i, j] = total_matches
+                
+        return features
+    
+    def get_feature_names_out(self):
+        """Return feature names for the transformer"""
+        return np.array([f"keyword_{category}" for category in self.keyword_dict.keys()])
+
+class HybridSentimentAnalysisTrainer:
     def __init__(self):
         self.model = None
         self.vectorizer = None
-        self.model_path = os.path.join(MODEL_DIR, 'sentiment_model.pkl')
-        self.vectorizer_path = os.path.join(MODEL_DIR, 'vectorizer.pkl')
+        self.model_path = os.path.join(MODEL_DIR, 'hybrid_sentiment_model.pkl')
+        self.vectorizer_path = os.path.join(MODEL_DIR, 'hybrid_vectorizer.pkl')
         
         # Load model if it exists
         self.load_model()
@@ -101,7 +203,7 @@ class SentimentAnalysisTrainer:
         return df
     
     def train(self, data, test_size=0.2, random_state=42):
-        """Train the sentiment analysis model and return evaluation metrics"""
+        """Train the hybrid sentiment analysis model and return evaluation metrics"""
         df = self.prepare_data(data)
         
         # Split data into train and test sets
@@ -113,18 +215,31 @@ class SentimentAnalysisTrainer:
             stratify=df['sentiment'] if len(df) > len(SENTIMENT_CATEGORIES) * 2 else None
         )
         
-        # Create vectorizer
-        self.vectorizer = TfidfVectorizer(
+        # Create text vectorizer
+        tfidf_vectorizer = TfidfVectorizer(
             max_features=5000,
             ngram_range=(1, 2),
             stop_words='english'
         )
         
-        # Transform text to feature vectors
+        # Create keyword feature extractor
+        keyword_extractor = KeywordFeatureExtractor(KEYWORD_DICT)
+        
+        # Create a pipeline with a FeatureUnion that combines both TF-IDF and keyword features
+        self.vectorizer = Pipeline([
+            ('features', FeatureUnion([
+                ('tfidf', Pipeline([
+                    ('vectorizer', tfidf_vectorizer)
+                ])),
+                ('keywords', keyword_extractor)
+            ]))
+        ])
+        
+        # Transform text to combined feature vectors (TF-IDF + keywords)
         X_train_vec = self.vectorizer.fit_transform(X_train)
         X_test_vec = self.vectorizer.transform(X_test)
         
-        # Train the model
+        # Train the model using LogisticRegression
         self.model = LogisticRegression(
             C=1.0,
             max_iter=1000,
@@ -135,7 +250,7 @@ class SentimentAnalysisTrainer:
         )
         self.model.fit(X_train_vec, y_train)
         
-        # Make predictions
+        # Make predictions on the test set
         y_pred = self.model.predict(X_test_vec)
         
         # Calculate metrics
@@ -150,7 +265,7 @@ class SentimentAnalysisTrainer:
         # Save the model
         self.save_model()
         
-        # Return evaluation metrics
+        # Return evaluation metrics with hybrid model indication
         metrics = {
             'accuracy': float(accuracy),
             'precision': float(precision),
@@ -160,7 +275,9 @@ class SentimentAnalysisTrainer:
             'labels': SENTIMENT_CATEGORIES,
             'trainingDate': datetime.datetime.now().isoformat(),
             'testSize': test_size,
-            'sampleCount': len(df)
+            'sampleCount': len(df),
+            'modelType': 'hybrid',  # Indicate this is a hybrid model
+            'keywordFeatures': True
         }
         
         return metrics
@@ -256,7 +373,7 @@ class SentimentAnalysisTrainer:
 
 def main():
     """Main function for testing"""
-    trainer = SentimentAnalysisTrainer()
+    trainer = HybridSentimentAnalysisTrainer()
     
     # Sample data for testing
     sample_data = [
@@ -280,6 +397,12 @@ def main():
     text = "Help! The earthquake destroyed our house!"
     sentiment, confidence = trainer.predict(text, include_confidence=True)
     print(f"Text: '{text}'")
+    print(f"Predicted sentiment: {sentiment} (confidence: {confidence:.2f})")
+    
+    # Test how keywords affect prediction
+    text_with_keywords = "Emergency! Help! The earthquake is causing panic everywhere!"
+    sentiment, confidence = trainer.predict(text_with_keywords, include_confidence=True)
+    print(f"Text with keywords: '{text_with_keywords}'")
     print(f"Predicted sentiment: {sentiment} (confidence: {confidence:.2f})")
 
 if __name__ == "__main__":
