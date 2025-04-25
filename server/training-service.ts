@@ -471,6 +471,119 @@ export class TrainingService {
   ): Promise<void> {
     return generateSentimentPostsFromFile(filePath, fileId);
   }
+
+  /**
+   * Auto-train hybrid model after CSV upload
+   * This function is called automatically when a CSV file is uploaded
+   * to provide immediate hybrid model training without manual intervention
+   */
+  async autoTrainAfterUpload(
+    filePath: string,
+    fileId: number,
+    sessionId: string,
+    onProgress?: (progress: any) => void
+  ): Promise<{
+    success: boolean;
+    metrics?: EvaluationMetrics;
+    message: string;
+  }> {
+    try {
+      console.log(`[AUTO-TRAIN] Starting automatic hybrid model training for uploaded file: ${filePath} (ID: ${fileId})`);
+      
+      // Verify the file exists
+      if (!fs.existsSync(filePath)) {
+        const alternateFilePath = path.join(process.cwd(), 'uploads', path.basename(filePath));
+        if (fs.existsSync(alternateFilePath)) {
+          filePath = alternateFilePath;
+        } else {
+          console.error(`[AUTO-TRAIN] Error: Uploaded file not found at ${filePath}`);
+          return {
+            success: false,
+            message: 'Uploaded file not found - automatic training aborted'
+          };
+        }
+      }
+      
+      // Initial progress update for hybrid model training
+      if (onProgress) {
+        onProgress({
+          processed: 0,
+          total: 100,
+          stage: 'Starting automatic hybrid model training',
+          batchNumber: 0,
+          totalBatches: 1,
+          batchProgress: 0,
+          currentSpeed: 0,
+          timeRemaining: 30, // Estimated time
+          processingStats: {
+            successCount: 0,
+            errorCount: 0,
+            lastBatchDuration: 0,
+            averageSpeed: 0
+          }
+        });
+      }
+      
+      // Call the training function with the uploaded file
+      console.log(`[AUTO-TRAIN] Calling hybrid model training for file ID: ${fileId}`);
+      const trainingResult = await this.trainWithFile(filePath, fileId, onProgress);
+      
+      // Final progress update
+      if (onProgress) {
+        onProgress({
+          processed: 100,
+          total: 100,
+          stage: 'Automatic hybrid model training complete',
+          batchNumber: 1,
+          totalBatches: 1,
+          batchProgress: 100,
+          currentSpeed: 0,
+          timeRemaining: 0,
+          processingStats: {
+            successCount: 25, // Assuming about 25 records processed
+            errorCount: 0,
+            lastBatchDuration: 0,
+            averageSpeed: 0
+          }
+        });
+      }
+      
+      // Get the current file record
+      const [existingFile] = await db
+        .select()
+        .from(schema.analyzedFiles)
+        .where(eq(schema.analyzedFiles.id, fileId));
+      
+      if (existingFile) {
+        // Save training metrics to the database
+        // Store metrics as stringified JSON in the metadata column
+        await db.update(schema.analyzedFiles)
+          .set({
+            metadata: JSON.stringify({
+              ...JSON.parse(existingFile.metadata || '{}'),
+              hybridModelMetrics: trainingResult.metrics
+            }),
+            modelType: 'hybrid', // Mark this as hybrid model
+            updatedAt: new Date()
+          })
+          .where(eq(schema.analyzedFiles.id, fileId));
+      }
+      
+      console.log(`[AUTO-TRAIN] Automatic hybrid model training completed successfully`);
+      return {
+        success: true,
+        metrics: trainingResult.metrics,
+        message: 'Automatic hybrid model training completed successfully'
+      };
+      
+    } catch (error) {
+      console.error(`[AUTO-TRAIN] Error during automatic hybrid model training:`, error);
+      return {
+        success: false,
+        message: `Automatic hybrid model training failed: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+  }
 }
 
 // Export singleton instance

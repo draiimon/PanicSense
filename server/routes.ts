@@ -25,7 +25,7 @@ import textProcessingRoutes from "./routes/text-processing";
 import { preserveTaglishEntries } from "./fix-taglish";
 // Hybrid model processor has been removed
 // Import training service for real metrics
-import { trainingService } from "./training-service";
+import { trainingService, type EvaluationMetrics } from "./training-service";
 
 // Extend global to support our connection counter
 declare global {
@@ -1809,6 +1809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // After successful processing, we need to fetch all the posts and the file document
       let fileInfo = null;
       let allPosts: SentimentPost[] = [];
+      let metrics = data.metrics;
       
       if (analyzedFileId) {
         try {
@@ -1823,6 +1824,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
               file: fileInfo
             }
           });
+          
+          // Automatically trigger hybrid model training after CSV upload
+          // This runs asynchronously in the background, so the response isn't delayed
+          console.log(`🤖 Automatically starting hybrid model training for uploaded file (ID: ${analyzedFileId})`);
+          
+          // We don't wait for training to complete before responding to the client
+          trainingService.autoTrainAfterUpload(
+            req.file.path,
+            analyzedFileId,
+            sessionId,
+            (progress) => {
+              // Broadcast training progress (use a different session ID format to distinguish from uploads)
+              const trainingSessionId = `training-${sessionId}`;
+              broadcastUpdate({
+                type: 'training_progress',
+                sessionId: trainingSessionId,
+                progress: {
+                  ...progress,
+                  stage: `[Hybrid Model] ${progress.stage}` // Prefix to distinguish in UI
+                }
+              });
+            }
+          ).then(trainingResult => {
+            // When training completes (which may be after the response), update the metrics
+            if (trainingResult.success && trainingResult.metrics) {
+              metrics = trainingResult.metrics; // Store the hybrid metrics
+              
+              // Broadcast the updated metrics to all clients
+              broadcastUpdate({
+                type: 'model_trained',
+                data: {
+                  fileId: analyzedFileId,
+                  metrics: trainingResult.metrics,
+                  message: 'Automatic hybrid model training completed'
+                }
+              });
+              
+              console.log(`✅ Automatic hybrid model training completed successfully`);
+            }
+          }).catch(error => {
+            console.error(`❌ Error in automatic hybrid model training:`, error);
+          });
         } catch (error) {
           console.error('Error fetching processed data:', error);
         }
@@ -1831,7 +1874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         file: fileInfo,
         posts: allPosts,
-        metrics: data.metrics,
+        metrics: metrics,
         sessionId
       });
     } catch (error) {
