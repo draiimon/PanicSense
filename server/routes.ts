@@ -18,6 +18,8 @@ import textProcessingRoutes from "./routes/text-processing";
 // Import Taglish fix utility
 import { preserveTaglishEntries } from "./fix-taglish";
 // Hybrid model processor has been removed
+// Import training service for real metrics
+import { trainingService } from "./training-service";
 
 // Extend global to support our connection counter
 declare global {
@@ -2183,6 +2185,267 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Endpoint to get Python console messages
   // Usage stats endpoint removed
+  
+  // MACHINE LEARNING TRAINING ENDPOINTS
+  // Create a demo dataset with sentiment analysis and real metrics
+  app.post('/api/create-demo-dataset', async (req: Request, res: Response) => {
+    try {
+      const recordCount = req.body.recordCount || 100;
+      console.log(`Creating demo dataset with ${recordCount} records`);
+      
+      // Generate a unique session ID for tracking progress
+      const sessionId = nanoid();
+      
+      // Initialize progress tracking
+      uploadProgressMap.set(sessionId, {
+        processed: 0,
+        total: 100,
+        stage: 'Creating demo dataset',
+        timestamp: Date.now(),
+        batchNumber: 0,
+        totalBatches: 100,
+        batchProgress: 0,
+        currentSpeed: 0,
+        timeRemaining: 0,
+        processingStats: {
+          successCount: 0,
+          errorCount: 0,
+          lastBatchDuration: 0,
+          averageSpeed: 0
+        }
+      });
+      
+      // Broadcast initial progress
+      broadcastUpdate({
+        type: 'progress',
+        sessionId,
+        progress: uploadProgressMap.get(sessionId)
+      });
+      
+      // Create demo dataset and train model
+      const result = await trainingService.createDemoDataset(
+        recordCount,
+        (progress) => {
+          // Update progress
+          const currentProgress = uploadProgressMap.get(sessionId) || {
+            processed: 0,
+            total: 100,
+            stage: 'Creating demo dataset',
+            timestamp: Date.now(),
+            batchNumber: 0,
+            totalBatches: 100,
+            batchProgress: 0,
+            currentSpeed: 0,
+            timeRemaining: 0,
+            processingStats: {
+              successCount: 0,
+              errorCount: 0,
+              lastBatchDuration: 0,
+              averageSpeed: 0
+            }
+          };
+          
+          // Update progress with new values
+          const updatedProgress = {
+            ...currentProgress,
+            ...progress,
+            timestamp: Date.now(),
+          };
+          
+          // Store updated progress
+          uploadProgressMap.set(sessionId, updatedProgress);
+          
+          // Broadcast progress update
+          broadcastUpdate({
+            type: 'progress',
+            sessionId,
+            progress: updatedProgress
+          });
+        }
+      );
+      
+      // Final progress update
+      const finalProgress = {
+        processed: 100,
+        total: 100,
+        stage: 'Training complete',
+        timestamp: Date.now(),
+        batchNumber: 100,
+        totalBatches: 100,
+        batchProgress: 100,
+        currentSpeed: 0,
+        timeRemaining: 0,
+        processingStats: {
+          successCount: recordCount,
+          errorCount: 0,
+          lastBatchDuration: 0,
+          averageSpeed: 0
+        }
+      };
+      
+      // Store final progress
+      uploadProgressMap.set(sessionId, finalProgress);
+      
+      // Broadcast completion
+      broadcastUpdate({
+        type: 'progress',
+        sessionId,
+        progress: finalProgress
+      });
+      
+      // Return success response
+      res.json({
+        success: true,
+        fileId: result.fileId,
+        metrics: result.metrics,
+        message: result.message,
+        sessionId
+      });
+    } catch (error) {
+      console.error('Error creating demo dataset:', error);
+      res.status(500).json({
+        error: 'Failed to create demo dataset',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Train a model with a specific file ID
+  app.post('/api/train-model/:fileId', async (req: Request, res: Response) => {
+    try {
+      const fileId = parseInt(req.params.fileId);
+      if (isNaN(fileId)) {
+        return res.status(400).json({ error: "Invalid file ID" });
+      }
+      
+      // Get the file record
+      const file = await storage.getAnalyzedFile(fileId);
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      
+      // Check if file exists
+      const filePath = path.join(__dirname, '..', 'uploads', file.storedName);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: "File not found on disk" });
+      }
+      
+      // Generate a unique session ID for tracking progress
+      const sessionId = nanoid();
+      
+      // Initialize progress tracking
+      uploadProgressMap.set(sessionId, {
+        processed: 0,
+        total: 100,
+        stage: 'Training model',
+        timestamp: Date.now(),
+        batchNumber: 0,
+        totalBatches: 100,
+        batchProgress: 0,
+        currentSpeed: 0,
+        timeRemaining: 0,
+        processingStats: {
+          successCount: 0,
+          errorCount: 0,
+          lastBatchDuration: 0,
+          averageSpeed: 0
+        }
+      });
+      
+      // Broadcast initial progress
+      broadcastUpdate({
+        type: 'progress',
+        sessionId,
+        progress: uploadProgressMap.get(sessionId)
+      });
+      
+      // Train model with file
+      const result = await trainingService.trainWithFile(
+        filePath,
+        fileId,
+        (progress) => {
+          // Update progress
+          const currentProgress = uploadProgressMap.get(sessionId) || {
+            processed: 0,
+            total: 100,
+            stage: 'Training model',
+            timestamp: Date.now(),
+            batchNumber: 0,
+            totalBatches: 100,
+            batchProgress: 0,
+            currentSpeed: 0,
+            timeRemaining: 0,
+            processingStats: {
+              successCount: 0,
+              errorCount: 0,
+              lastBatchDuration: 0,
+              averageSpeed: 0
+            }
+          };
+          
+          // Update progress with new values
+          const updatedProgress = {
+            ...currentProgress,
+            ...progress,
+            timestamp: Date.now(),
+          };
+          
+          // Store updated progress
+          uploadProgressMap.set(sessionId, updatedProgress);
+          
+          // Broadcast progress update
+          broadcastUpdate({
+            type: 'progress',
+            sessionId,
+            progress: updatedProgress
+          });
+        }
+      );
+      
+      // Final progress update
+      const finalProgress = {
+        processed: 100,
+        total: 100,
+        stage: 'Training complete',
+        timestamp: Date.now(),
+        batchNumber: 100,
+        totalBatches: 100,
+        batchProgress: 100,
+        currentSpeed: 0,
+        timeRemaining: 0,
+        processingStats: {
+          successCount: file.recordCount,
+          errorCount: 0,
+          lastBatchDuration: 0,
+          averageSpeed: 0
+        }
+      };
+      
+      // Store final progress
+      uploadProgressMap.set(sessionId, finalProgress);
+      
+      // Broadcast completion
+      broadcastUpdate({
+        type: 'progress',
+        sessionId,
+        progress: finalProgress
+      });
+      
+      // Return success response
+      res.json({
+        success: true,
+        metrics: result.metrics,
+        message: result.message,
+        sessionId
+      });
+    } catch (error) {
+      console.error('Error training model:', error);
+      res.status(500).json({
+        error: 'Failed to train model',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
   
   // EMERGENCY RESET ENDPOINT - Clears all hanging sessions and processes
   app.post('/api/emergency-reset', async (req: Request, res: Response) => {

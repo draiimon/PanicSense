@@ -31,6 +31,10 @@ interface EvaluationMetrics {
   recall: number;
   f1Score: number;
   confusionMatrix: number[][];
+  labels: string[];
+  trainingDate: string;
+  testSize: number;
+  sampleCount: number;
 }
 
 export interface AnalyzedFile {
@@ -816,3 +820,177 @@ export async function processText(text: string): Promise<TextProcessingResult> {
 }
 
 // Hybrid model functionality has been removed
+
+// Real machine learning model training functions
+
+/**
+ * Create a demo dataset and train a model with it
+ */
+export async function createDemoDataset(
+  recordCount: number = 100,
+  onProgress?: (progress: UploadProgress) => void
+): Promise<{
+  success: boolean;
+  fileId: number;
+  metrics: EvaluationMetrics;
+  message: string;
+  sessionId: string;
+}> {
+  const controller = new AbortController();
+  currentUploadController = controller;
+  const { signal } = controller;
+  
+  try {
+    // Make the request to create a demo dataset
+    const response = await apiRequest('POST', '/api/create-demo-dataset', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ recordCount }),
+      signal,
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to create demo dataset');
+    }
+    
+    const result = await response.json();
+    
+    // If onProgress callback is provided and session ID is returned
+    if (onProgress && result.sessionId) {
+      // Set up event source for progress updates
+      const eventSource = new EventSource(`/api/upload-progress/${result.sessionId}`);
+      currentEventSource = eventSource;
+      
+      // Track last processed timestamp to avoid out-of-order updates
+      let lastProcessedTimestamp = 0;
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const progress = JSON.parse(event.data);
+          
+          // Skip stale updates
+          if (progress.timestamp && progress.timestamp <= lastProcessedTimestamp) {
+            return;
+          }
+          
+          // Update last processed timestamp
+          if (progress.timestamp) {
+            lastProcessedTimestamp = progress.timestamp;
+          }
+          
+          // Call the progress callback
+          onProgress(progress);
+          
+          // Close the event source when training is complete
+          if (progress.stage?.toLowerCase()?.includes('complete')) {
+            setTimeout(() => {
+              eventSource.close();
+              currentEventSource = null;
+            }, 1500);
+          }
+        } catch (error) {
+          console.error('Error parsing progress update:', error);
+        }
+      };
+      
+      // Handle event source errors
+      eventSource.onerror = (error) => {
+        console.error('EventSource error:', error);
+        eventSource.close();
+        currentEventSource = null;
+      };
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Error creating demo dataset:', error);
+    throw error;
+  }
+}
+
+/**
+ * Train a model with an existing file
+ */
+export async function trainModel(
+  fileId: number,
+  onProgress?: (progress: UploadProgress) => void
+): Promise<{
+  success: boolean;
+  metrics: EvaluationMetrics;
+  message: string;
+  sessionId: string;
+}> {
+  const controller = new AbortController();
+  currentUploadController = controller;
+  const { signal } = controller;
+  
+  try {
+    // Make the request to train the model
+    const response = await apiRequest('POST', `/api/train-model/${fileId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      signal,
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to train model');
+    }
+    
+    const result = await response.json();
+    
+    // If onProgress callback is provided and session ID is returned
+    if (onProgress && result.sessionId) {
+      // Set up event source for progress updates
+      const eventSource = new EventSource(`/api/upload-progress/${result.sessionId}`);
+      currentEventSource = eventSource;
+      
+      // Track last processed timestamp to avoid out-of-order updates
+      let lastProcessedTimestamp = 0;
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const progress = JSON.parse(event.data);
+          
+          // Skip stale updates
+          if (progress.timestamp && progress.timestamp <= lastProcessedTimestamp) {
+            return;
+          }
+          
+          // Update last processed timestamp
+          if (progress.timestamp) {
+            lastProcessedTimestamp = progress.timestamp;
+          }
+          
+          // Call the progress callback
+          onProgress(progress);
+          
+          // Close the event source when training is complete
+          if (progress.stage?.toLowerCase()?.includes('complete')) {
+            setTimeout(() => {
+              eventSource.close();
+              currentEventSource = null;
+            }, 1500);
+          }
+        } catch (error) {
+          console.error('Error parsing progress update:', error);
+        }
+      };
+      
+      // Handle event source errors
+      eventSource.onerror = (error) => {
+        console.error('EventSource error:', error);
+        eventSource.close();
+        currentEventSource = null;
+      };
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Error training model:', error);
+    throw error;
+  }
+}

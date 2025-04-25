@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "anthropic>=0.50.0",
     "beautifulsoup4>=4.13.4",
+    "joblib",
     "langdetect>=1.0.9",
     "matplotlib>=3.10.1",
     "nltk>=3.9.1",

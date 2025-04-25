@@ -279,9 +279,34 @@ const Evaluation: React.FC = () => {
                     
                     {selectedFileId !== "all" && selectedFile && (
                       <div className="mt-6 pt-4 border-t border-slate-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <BarChart4 className="h-5 w-5 text-violet-600" />
-                          <h3 className="font-medium text-slate-800">Selected Dataset Summary</h3>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <BarChart4 className="h-5 w-5 text-violet-600" />
+                            <h3 className="font-medium text-slate-800">Selected Dataset Summary</h3>
+                          </div>
+                          <Button 
+                            variant="outline"
+                            className="text-sm bg-violet-100 text-violet-700 hover:bg-violet-200 border-violet-300"
+                            onClick={() => {
+                              if (window.confirm(`Train model with "${selectedFile.originalName}"?`)) {
+                                // Call training function here
+                                import('@/lib/api').then(({ trainModel }) => {
+                                  trainModel(selectedFile.id)
+                                    .then(result => {
+                                      alert(`Training complete!\n\nAccuracy: ${result.metrics.accuracy.toFixed(2)}%\nPrecision: ${result.metrics.precision.toFixed(2)}%\nRecall: ${result.metrics.recall.toFixed(2)}%`);
+                                      // Reload page or update UI
+                                      window.location.reload();
+                                    })
+                                    .catch(error => {
+                                      console.error('Training error:', error);
+                                      alert('Error training model. Please try again.');
+                                    });
+                                });
+                              }
+                            }}
+                          >
+                            Train Model
+                          </Button>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
                           <div className="rounded-lg bg-violet-50 border border-violet-100 p-3">

@@ -1,0 +1,147 @@
+Overall Goal of the Project:
+Develop a multilingual sentiment analysis system using mBERT combined with Bi-GRU (and optionally, LSTM) to predict emotional responses such as panic, disbelief, fear/anxiety, and resilience from social media data (primarily from Facebook, X (formerly Twitter)) focusing on natural disasters and calamities. The model should handle various forms of informal language such as Taglish, Jejemon, backwards text, and emojis.
+
+Data Collection and Preprocessing:
+Data Collection:
+
+Sources: Collect social media posts or tweets related to disasters (e.g., typhoons, earthquakes) from Facebook and X (Twitter). These posts should contain informal language like Taglish (a mix of Tagalog and English), Jejemon, and other backwards slangs.
+
+Types of Data: Focus on posts that convey emotions during critical events or disasters, such as expressions of fear, panic, disbelief, resilience, or neutral reports.
+
+Preprocessing Steps:
+
+Text Normalization:
+
+Remove any extraneous elements like URLs, mentions (@usernames), hashtags (#), special characters (except emojis that convey sentiment), and extra spaces.
+
+Normalize words, especially Jejemon and backslangs (e.g., “paasa” becomes “false hope”).
+
+Emoji Handling:
+
+Emojis need to be converted into meaningful sentiment representation (e.g., 🥺 → Anxiety, 😱 → Panic). If emojis are irrelevant, they are discarded.
+
+Tokenization:
+
+Use mBERT tokenizer to split text into tokens. This is critical for understanding the semantic meaning of words in multiple languages.
+
+Lemmatization and Stemming:
+
+Apply lemmatization to bring words down to their root form (e.g., “running” becomes “run”).
+
+Sentiment Labeling:
+You need a set of predefined labels for the emotions you want to track, and their specific keywords or phrases for automated annotation.
+
+Sentiment Categories:
+
+Resilience: Content that expresses strength, hope, unity, determination, often religious references.
+
+Example Keywords: "God," "Lord," "pray," "stay strong," "we will survive."
+
+Neutral: Factual information or updates without strong emotional content.
+
+Example Keywords: "The storm is expected to hit at noon," "The weather report says…"
+
+Disbelief: Shock, denial, or surprise.
+
+Example Keywords: "I can't believe this," "Is this real?"
+
+Fear/Anxiety: Expresses concern, uncertainty, or fear about safety.
+
+Example Keywords: "I'm scared," "I'm worried," "Please help."
+
+Panic: Immediate fear or distress, with urgency.
+
+Example Keywords: "We're going to die," "Run!" "Help!"
+
+Model Building:
+mBERT (Multilingual BERT):
+
+Use mBERT for its strong capability to handle multiple languages. It has been pre-trained on a large corpus of text in multiple languages, including Tagalog, English, and other Philippine languages, making it ideal for handling Taglish and informal language.
+
+Bi-GRU and LSTM:
+
+Combine mBERT embeddings with Bi-GRU (Bidirectional Gated Recurrent Units) to capture context in both forward and backward sequences of the text.
+
+Optionally use LSTM (Long Short-Term Memory) for sequence modeling to remember long-term dependencies in text.
+
+Hybrid Model: The final model will combine mBERT for text embedding and Bi-GRU (or LSTM) for temporal sequence learning.
+
+Training Setup:
+Model Architecture:
+
+Input Layer: Text data passed through mBERT tokenizer.
+
+Embedding Layer: Use mBERT for embeddings of tokens.
+
+Recurrent Layer: Use Bi-GRU for capturing sequential dependencies or LSTM for remembering long-term dependencies.
+
+Dense Layer: Apply a dense layer to output the emotion predictions (Resilience, Neutral, Disbelief, Fear/Anxiety, Panic).
+
+Output Layer: Softmax or sigmoid activation for multi-class classification.
+
+Training Process:
+
+Data Split: Split your data into 80% for training, 10% for validation, and 10% for testing.
+
+Loss Function: Use categorical cross-entropy loss for multi-class classification.
+
+Metrics: Track accuracy, precision, recall, F1 score, and confusion matrix.
+
+Hyperparameters:
+
+Learning rate, batch size, number of epochs, hidden layer sizes for Bi-GRU/LSTM, and dropout rates need to be tuned for optimal performance.
+
+Evaluation and Comparison:
+Model Evaluation Metrics:
+
+Accuracy: Measure the overall performance (percentage of correct predictions).
+
+Precision: The fraction of relevant instances among the retrieved instances for each sentiment category.
+
+Recall: The fraction of relevant instances retrieved.
+
+F1 Score: A balanced measure between precision and recall.
+
+Confusion Matrix:
+
+Use a confusion matrix to evaluate how well the model performs across all categories.
+
+Comparison of Models:
+
+mBERT + Bi-GRU vs mBERT + LSTM vs Hybrid Model (mBERT + Bi-GRU).
+
+Graph each model's precision-recall curve, accuracy, F1 score, and confusion matrix for a clear comparison.
+
+Deployment:
+Exporting the Model:
+
+After training, export the trained model as a .pth (for PyTorch) or .h5 (for TensorFlow/Keras) file.
+
+API Deployment:
+
+Use Flask or FastAPI to deploy your trained model via an API. This API will accept input text and return the sentiment prediction (Resilience, Neutral, Disbelief, etc.).
+
+Real-Time Prediction:
+
+For disaster response or emergency alerts, integrate this model into a dashboard to visualize the predictions of emotions in real time as new posts are made.
+
+Performance Monitoring:
+
+Track the real-time performance of the model via accuracy and other metrics.
+
+Ethical Considerations:
+GDPR Compliance: Ensure data privacy by anonymizing personal information and complying with the Data Privacy Act of 2012 in the Philippines.
+
+Bias Mitigation: Make sure the dataset is balanced to avoid model bias toward one emotion or language.
+
+Deployment Environment:
+AWS or Google Cloud: Depending on your needs, use cloud platforms like AWS or Google Cloud to host the model, either on a virtual machine (VM) or using serverless functions for real-time inference.
+
+Next Steps:
+Prepare your annotated data (manually or using tools like Prodigy/Labelbox).
+
+Proceed with model training and use evaluation metrics (accuracy, precision, recall, etc.).
+
+Deploy the model via an API and visualize results.
+
+Analyze and compare models (mBERT + Bi-GRU, mBERT + LSTM, and hybrid).
