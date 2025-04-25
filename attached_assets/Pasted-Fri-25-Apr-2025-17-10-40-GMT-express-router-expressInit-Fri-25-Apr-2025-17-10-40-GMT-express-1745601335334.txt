@@ -1,0 +1,422 @@
+Fri, 25 Apr 2025 17:10:40 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:10:40 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:10:40 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:10:40 GMT express:router session  : /
+Fri, 25 Apr 2025 17:10:40 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:10:40 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:10:40 GMT express:router dispatching GET /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:10:40 GMT express:router query  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:10:40 GMT express:router expressInit  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:10:40 GMT express:router jsonParser  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:10:40 GMT express:router urlencodedParser  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:10:40 GMT express:router session  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:10:40 GMT express:router <anonymous>  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:10:40 GMT express:router serveStatic  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:10:41 GMT express:router dispatching GET /api/disaster-events?filterUnknown=true
+Fri, 25 Apr 2025 17:10:41 GMT express:router query  : /api/disaster-events?filterUnknown=true
+Fri, 25 Apr 2025 17:10:41 GMT express:router expressInit  : /api/disaster-events?filterUnknown=true
+Fri, 25 Apr 2025 17:10:41 GMT express:router jsonParser  : /api/disaster-events?filterUnknown=true
+Fri, 25 Apr 2025 17:10:41 GMT express:router urlencodedParser  : /api/disaster-events?filterUnknown=true
+Fri, 25 Apr 2025 17:10:41 GMT express:router session  : /api/disaster-events?filterUnknown=true
+Fri, 25 Apr 2025 17:10:41 GMT express:router <anonymous>  : /api/disaster-events?filterUnknown=true
+Database error: error: column "created_at" does not exist
+    at /opt/render/project/src/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /opt/render/project/src/app-render-complete.cjs:274:20 {
+  length: 183,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: 'Perhaps you meant to reference the column "disaster_events.created_by".',
+  position: '40',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3723',
+  routine: 'errorMissingColumn'
+}
+Fri, 25 Apr 2025 17:10:42 GMT express:router dispatching GET /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:10:42 GMT express:router query  : /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:10:42 GMT express:router expressInit  : /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:10:42 GMT express:router jsonParser  : /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:10:42 GMT express:router urlencodedParser  : /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:10:42 GMT express:router session  : /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:10:42 GMT express:router <anonymous>  : /api/sentiment-posts?filterUnknown=false
+Fri, 25 Apr 2025 17:10:57 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:10:57 GMT express:router query  : /
+Fri, 25 Apr 2025 17:10:57 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:10:57 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:10:57 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:10:57 GMT express:router session  : /
+Fri, 25 Apr 2025 17:10:57 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:10:57 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:10:59 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:10:59 GMT express:router query  : /
+Fri, 25 Apr 2025 17:10:59 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:10:59 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:10:59 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:10:59 GMT express:router session  : /
+Fri, 25 Apr 2025 17:10:59 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:10:59 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:11:00 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:11:00 GMT express:router query  : /
+Fri, 25 Apr 2025 17:11:00 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:11:00 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:11:00 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:11:00 GMT express:router session  : /
+Fri, 25 Apr 2025 17:11:00 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:11:00 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:12:51 GMT express:router dispatching GET /real-time
+Fri, 25 Apr 2025 17:12:51 GMT express:router query  : /real-time
+Fri, 25 Apr 2025 17:12:51 GMT express:router expressInit  : /real-time
+Fri, 25 Apr 2025 17:12:51 GMT express:router jsonParser  : /real-time
+Fri, 25 Apr 2025 17:12:51 GMT express:router urlencodedParser  : /real-time
+Fri, 25 Apr 2025 17:12:51 GMT express:router session  : /real-time
+Fri, 25 Apr 2025 17:12:51 GMT express:router <anonymous>  : /real-time
+Fri, 25 Apr 2025 17:12:51 GMT express:router serveStatic  : /real-time
+Fri, 25 Apr 2025 17:12:51 GMT express:router dispatching GET /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:12:51 GMT express:router query  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:12:51 GMT express:router expressInit  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:12:51 GMT express:router jsonParser  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:12:51 GMT express:router urlencodedParser  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:12:51 GMT express:router session  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:12:51 GMT express:router <anonymous>  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:12:51 GMT express:router serveStatic  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:12:51 GMT express:router dispatching GET /images/fallback/panicsense-image-fallback.svg
+Fri, 25 Apr 2025 17:12:51 GMT express:router query  : /images/fallback/panicsense-image-fallback.svg
+Fri, 25 Apr 2025 17:12:51 GMT express:router expressInit  : /images/fallback/panicsense-image-fallback.svg
+Fri, 25 Apr 2025 17:12:51 GMT express:router jsonParser  : /images/fallback/panicsense-image-fallback.svg
+Fri, 25 Apr 2025 17:12:51 GMT express:router urlencodedParser  : /images/fallback/panicsense-image-fallback.svg
+Fri, 25 Apr 2025 17:12:51 GMT express:router session  : /images/fallback/panicsense-image-fallback.svg
+Fri, 25 Apr 2025 17:12:51 GMT express:router <anonymous>  : /images/fallback/panicsense-image-fallback.svg
+Fri, 25 Apr 2025 17:12:51 GMT express:router serveStatic  : /images/fallback/panicsense-image-fallback.svg
+Fri, 25 Apr 2025 17:12:51 GMT express:router dispatching GET /api/active-upload-session
+Fri, 25 Apr 2025 17:12:51 GMT express:router query  : /api/active-upload-session
+Fri, 25 Apr 2025 17:12:51 GMT express:router expressInit  : /api/active-upload-session
+Fri, 25 Apr 2025 17:12:51 GMT express:router jsonParser  : /api/active-upload-session
+Fri, 25 Apr 2025 17:12:51 GMT express:router urlencodedParser  : /api/active-upload-session
+Fri, 25 Apr 2025 17:12:51 GMT express:router session  : /api/active-upload-session
+Fri, 25 Apr 2025 17:12:51 GMT express:router <anonymous>  : /api/active-upload-session
+Fri, 25 Apr 2025 17:12:51 GMT express:router serveStatic  : /api/active-upload-session
+Fri, 25 Apr 2025 17:12:54 GMT express:router dispatching GET /api/analyzed-files
+Fri, 25 Apr 2025 17:12:54 GMT express:router query  : /api/analyzed-files
+Fri, 25 Apr 2025 17:12:54 GMT express:router expressInit  : /api/analyzed-files
+Fri, 25 Apr 2025 17:12:54 GMT express:router jsonParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:12:54 GMT express:router urlencodedParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:12:54 GMT express:router session  : /api/analyzed-files
+Fri, 25 Apr 2025 17:12:54 GMT express:router <anonymous>  : /api/analyzed-files
+Database error: error: column "created_at" does not exist
+    at /opt/render/project/src/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /opt/render/project/src/app-render-complete.cjs:248:20 {
+  length: 110,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '39',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+Fri, 25 Apr 2025 17:12:56 GMT express:router dispatching GET /api/analyzed-files
+Fri, 25 Apr 2025 17:12:56 GMT express:router query  : /api/analyzed-files
+Fri, 25 Apr 2025 17:12:56 GMT express:router expressInit  : /api/analyzed-files
+Fri, 25 Apr 2025 17:12:56 GMT express:router jsonParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:12:56 GMT express:router urlencodedParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:12:56 GMT express:router session  : /api/analyzed-files
+Fri, 25 Apr 2025 17:12:56 GMT express:router <anonymous>  : /api/analyzed-files
+Database error: error: column "created_at" does not exist
+    at /opt/render/project/src/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /opt/render/project/src/app-render-complete.cjs:248:20 {
+  length: 110,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '39',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+Fri, 25 Apr 2025 17:13:01 GMT express:router dispatching GET /api/analyzed-files
+Fri, 25 Apr 2025 17:13:01 GMT express:router query  : /api/analyzed-files
+Fri, 25 Apr 2025 17:13:01 GMT express:router expressInit  : /api/analyzed-files
+Fri, 25 Apr 2025 17:13:01 GMT express:router jsonParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:13:01 GMT express:router urlencodedParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:13:01 GMT express:router session  : /api/analyzed-files
+Fri, 25 Apr 2025 17:13:01 GMT express:router <anonymous>  : /api/analyzed-files
+Database error: error: column "created_at" does not exist
+    at /opt/render/project/src/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /opt/render/project/src/app-render-complete.cjs:248:20 {
+  length: 110,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '39',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+Fri, 25 Apr 2025 17:13:11 GMT express:router dispatching POST /api/text-processing
+Fri, 25 Apr 2025 17:13:11 GMT express:router query  : /api/text-processing
+Fri, 25 Apr 2025 17:13:11 GMT express:router expressInit  : /api/text-processing
+Fri, 25 Apr 2025 17:13:11 GMT express:router jsonParser  : /api/text-processing
+Fri, 25 Apr 2025 17:13:11 GMT express:router urlencodedParser  : /api/text-processing
+Fri, 25 Apr 2025 17:13:11 GMT express:router session  : /api/text-processing
+Fri, 25 Apr 2025 17:13:11 GMT express:router <anonymous>  : /api/text-processing
+Fri, 25 Apr 2025 17:13:11 GMT express:router serveStatic  : /api/text-processing
+Fri, 25 Apr 2025 17:13:12 GMT express:router dispatching GET /api/active-upload-session
+Fri, 25 Apr 2025 17:13:12 GMT express:router query  : /api/active-upload-session
+Fri, 25 Apr 2025 17:13:12 GMT express:router expressInit  : /api/active-upload-session
+Fri, 25 Apr 2025 17:13:12 GMT express:router jsonParser  : /api/active-upload-session
+Fri, 25 Apr 2025 17:13:12 GMT express:router urlencodedParser  : /api/active-upload-session
+Fri, 25 Apr 2025 17:13:12 GMT express:router session  : /api/active-upload-session
+Fri, 25 Apr 2025 17:13:12 GMT express:router <anonymous>  : /api/active-upload-session
+Fri, 25 Apr 2025 17:13:12 GMT express:router serveStatic  : /api/active-upload-session
+Fri, 25 Apr 2025 17:13:29 GMT express:router dispatching GET /real-time
+Fri, 25 Apr 2025 17:13:29 GMT express:router query  : /real-time
+Fri, 25 Apr 2025 17:13:29 GMT express:router expressInit  : /real-time
+Fri, 25 Apr 2025 17:13:29 GMT express:router jsonParser  : /real-time
+Fri, 25 Apr 2025 17:13:29 GMT express:router urlencodedParser  : /real-time
+Fri, 25 Apr 2025 17:13:29 GMT express:router session  : /real-time
+Fri, 25 Apr 2025 17:13:29 GMT express:router <anonymous>  : /real-time
+Fri, 25 Apr 2025 17:13:29 GMT express:router serveStatic  : /real-time
+Fri, 25 Apr 2025 17:13:31 GMT express:router dispatching GET /favicon.png
+Fri, 25 Apr 2025 17:13:31 GMT express:router query  : /favicon.png
+Fri, 25 Apr 2025 17:13:31 GMT express:router expressInit  : /favicon.png
+Fri, 25 Apr 2025 17:13:31 GMT express:router jsonParser  : /favicon.png
+Fri, 25 Apr 2025 17:13:31 GMT express:router urlencodedParser  : /favicon.png
+Fri, 25 Apr 2025 17:13:31 GMT express:router session  : /favicon.png
+Fri, 25 Apr 2025 17:13:31 GMT express:router <anonymous>  : /favicon.png
+Fri, 25 Apr 2025 17:13:31 GMT express:router serveStatic  : /favicon.png
+Fri, 25 Apr 2025 17:13:34 GMT express:router dispatching GET /real-time
+Fri, 25 Apr 2025 17:13:34 GMT express:router query  : /real-time
+Fri, 25 Apr 2025 17:13:34 GMT express:router expressInit  : /real-time
+Fri, 25 Apr 2025 17:13:34 GMT express:router jsonParser  : /real-time
+Fri, 25 Apr 2025 17:13:34 GMT express:router urlencodedParser  : /real-time
+Fri, 25 Apr 2025 17:13:34 GMT express:router session  : /real-time
+Fri, 25 Apr 2025 17:13:34 GMT express:router <anonymous>  : /real-time
+Fri, 25 Apr 2025 17:13:34 GMT express:router serveStatic  : /real-time
+Fri, 25 Apr 2025 17:13:42 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:13:42 GMT express:router query  : /
+Fri, 25 Apr 2025 17:13:42 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:13:42 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:13:42 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:13:42 GMT express:router session  : /
+Fri, 25 Apr 2025 17:13:42 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:13:42 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:13:52 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:13:52 GMT express:router query  : /
+Fri, 25 Apr 2025 17:13:52 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:13:52 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:13:52 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:13:52 GMT express:router session  : /
+Fri, 25 Apr 2025 17:13:52 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:13:52 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:14:07 GMT express:router dispatching GET /raw-data
+Fri, 25 Apr 2025 17:14:07 GMT express:router query  : /raw-data
+Fri, 25 Apr 2025 17:14:07 GMT express:router expressInit  : /raw-data
+Fri, 25 Apr 2025 17:14:07 GMT express:router jsonParser  : /raw-data
+Fri, 25 Apr 2025 17:14:07 GMT express:router urlencodedParser  : /raw-data
+Fri, 25 Apr 2025 17:14:07 GMT express:router session  : /raw-data
+Fri, 25 Apr 2025 17:14:07 GMT express:router <anonymous>  : /raw-data
+Fri, 25 Apr 2025 17:14:07 GMT express:router serveStatic  : /raw-data
+Fri, 25 Apr 2025 17:14:08 GMT express:router dispatching GET /raw-data
+Fri, 25 Apr 2025 17:14:08 GMT express:router query  : /raw-data
+Fri, 25 Apr 2025 17:14:08 GMT express:router expressInit  : /raw-data
+Fri, 25 Apr 2025 17:14:08 GMT express:router jsonParser  : /raw-data
+Fri, 25 Apr 2025 17:14:08 GMT express:router urlencodedParser  : /raw-data
+Fri, 25 Apr 2025 17:14:08 GMT express:router session  : /raw-data
+Fri, 25 Apr 2025 17:14:08 GMT express:router <anonymous>  : /raw-data
+Fri, 25 Apr 2025 17:14:08 GMT express:router serveStatic  : /raw-data
+Fri, 25 Apr 2025 17:14:09 GMT express:router dispatching GET /raw-data
+Fri, 25 Apr 2025 17:14:09 GMT express:router query  : /raw-data
+Fri, 25 Apr 2025 17:14:09 GMT express:router expressInit  : /raw-data
+Fri, 25 Apr 2025 17:14:09 GMT express:router jsonParser  : /raw-data
+Fri, 25 Apr 2025 17:14:09 GMT express:router urlencodedParser  : /raw-data
+Fri, 25 Apr 2025 17:14:09 GMT express:router session  : /raw-data
+Fri, 25 Apr 2025 17:14:09 GMT express:router <anonymous>  : /raw-data
+Fri, 25 Apr 2025 17:14:09 GMT express:router serveStatic  : /raw-data
+Fri, 25 Apr 2025 17:14:12 GMT express:router dispatching GET /raw-data
+Fri, 25 Apr 2025 17:14:12 GMT express:router query  : /raw-data
+Fri, 25 Apr 2025 17:14:12 GMT express:router expressInit  : /raw-data
+Fri, 25 Apr 2025 17:14:12 GMT express:router jsonParser  : /raw-data
+Fri, 25 Apr 2025 17:14:12 GMT express:router urlencodedParser  : /raw-data
+Fri, 25 Apr 2025 17:14:12 GMT express:router session  : /raw-data
+Fri, 25 Apr 2025 17:14:12 GMT express:router <anonymous>  : /raw-data
+Fri, 25 Apr 2025 17:14:12 GMT express:router serveStatic  : /raw-data
+Fri, 25 Apr 2025 17:14:13 GMT express:router dispatching GET /raw-data
+Fri, 25 Apr 2025 17:14:13 GMT express:router query  : /raw-data
+Fri, 25 Apr 2025 17:14:13 GMT express:router expressInit  : /raw-data
+Fri, 25 Apr 2025 17:14:13 GMT express:router jsonParser  : /raw-data
+Fri, 25 Apr 2025 17:14:13 GMT express:router urlencodedParser  : /raw-data
+Fri, 25 Apr 2025 17:14:13 GMT express:router session  : /raw-data
+Fri, 25 Apr 2025 17:14:13 GMT express:router <anonymous>  : /raw-data
+Fri, 25 Apr 2025 17:14:13 GMT express:router serveStatic  : /raw-data
+Fri, 25 Apr 2025 17:14:14 GMT express:router dispatching GET /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:14:14 GMT express:router query  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:14:14 GMT express:router expressInit  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:14:14 GMT express:router jsonParser  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:14:14 GMT express:router urlencodedParser  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:14:14 GMT express:router session  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:14:14 GMT express:router <anonymous>  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:14:14 GMT express:router serveStatic  : /assets/index-Ctjedysb.js
+Fri, 25 Apr 2025 17:14:15 GMT express:router dispatching GET /images/fallback/panicsense-logo.svg
+Fri, 25 Apr 2025 17:14:15 GMT express:router query  : /images/fallback/panicsense-logo.svg
+Fri, 25 Apr 2025 17:14:15 GMT express:router expressInit  : /images/fallback/panicsense-logo.svg
+Fri, 25 Apr 2025 17:14:15 GMT express:router jsonParser  : /images/fallback/panicsense-logo.svg
+Fri, 25 Apr 2025 17:14:15 GMT express:router urlencodedParser  : /images/fallback/panicsense-logo.svg
+Fri, 25 Apr 2025 17:14:15 GMT express:router session  : /images/fallback/panicsense-logo.svg
+Fri, 25 Apr 2025 17:14:15 GMT express:router <anonymous>  : /images/fallback/panicsense-logo.svg
+Fri, 25 Apr 2025 17:14:15 GMT express:router serveStatic  : /images/fallback/panicsense-logo.svg
+Fri, 25 Apr 2025 17:14:15 GMT express:router dispatching GET /api/active-upload-session
+Fri, 25 Apr 2025 17:14:15 GMT express:router query  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:15 GMT express:router expressInit  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:15 GMT express:router jsonParser  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:15 GMT express:router urlencodedParser  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:15 GMT express:router session  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:15 GMT express:router <anonymous>  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:15 GMT express:router serveStatic  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router dispatching GET /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router query  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router expressInit  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router jsonParser  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router urlencodedParser  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router session  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router <anonymous>  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router serveStatic  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router dispatching GET /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router query  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router expressInit  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router jsonParser  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router urlencodedParser  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router session  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router <anonymous>  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:16 GMT express:router serveStatic  : /api/active-upload-session
+Fri, 25 Apr 2025 17:14:17 GMT express:router dispatching GET /api/disaster-events?filterUnknown=true
+Fri, 25 Apr 2025 17:14:17 GMT express:router query  : /api/disaster-events?filterUnknown=true
+Fri, 25 Apr 2025 17:14:17 GMT express:router expressInit  : /api/disaster-events?filterUnknown=true
+Fri, 25 Apr 2025 17:14:17 GMT express:router jsonParser  : /api/disaster-events?filterUnknown=true
+Fri, 25 Apr 2025 17:14:17 GMT express:router urlencodedParser  : /api/disaster-events?filterUnknown=true
+Fri, 25 Apr 2025 17:14:17 GMT express:router session  : /api/disaster-events?filterUnknown=true
+Fri, 25 Apr 2025 17:14:17 GMT express:router <anonymous>  : /api/disaster-events?filterUnknown=true
+Database error: error: column "created_at" does not exist
+    at /opt/render/project/src/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /opt/render/project/src/app-render-complete.cjs:274:20 {
+  length: 183,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: 'Perhaps you meant to reference the column "disaster_events.created_by".',
+  position: '40',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3723',
+  routine: 'errorMissingColumn'
+}
+Fri, 25 Apr 2025 17:14:18 GMT express:router dispatching HEAD /
+Fri, 25 Apr 2025 17:14:18 GMT express:router query  : /
+Fri, 25 Apr 2025 17:14:18 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:14:18 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:14:18 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:14:18 GMT express:router session  : /
+Fri, 25 Apr 2025 17:14:18 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:14:18 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:14:25 GMT express:router dispatching GET /api/analyzed-files
+Fri, 25 Apr 2025 17:14:25 GMT express:router query  : /api/analyzed-files
+Fri, 25 Apr 2025 17:14:25 GMT express:router expressInit  : /api/analyzed-files
+Fri, 25 Apr 2025 17:14:25 GMT express:router jsonParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:14:25 GMT express:router urlencodedParser  : /api/analyzed-files
+Fri, 25 Apr 2025 17:14:25 GMT express:router session  : /api/analyzed-files
+Fri, 25 Apr 2025 17:14:25 GMT express:router <anonymous>  : /api/analyzed-files
+Database error: error: column "created_at" does not exist
+    at /opt/render/project/src/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /opt/render/project/src/app-render-complete.cjs:248:20 {
+  length: 110,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '39',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+Fri, 25 Apr 2025 17:14:25 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:14:25 GMT express:router query  : /
+Fri, 25 Apr 2025 17:14:25 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:14:25 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:14:25 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:14:25 GMT express:router session  : /
+Fri, 25 Apr 2025 17:14:25 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:14:25 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:14:32 GMT express:router dispatching GET /
+Fri, 25 Apr 2025 17:14:32 GMT express:router query  : /
+Fri, 25 Apr 2025 17:14:32 GMT express:router expressInit  : /
+Fri, 25 Apr 2025 17:14:32 GMT express:router jsonParser  : /
+Fri, 25 Apr 2025 17:14:32 GMT express:router urlencodedParser  : /
+Fri, 25 Apr 2025 17:14:32 GMT express:router session  : /
+Fri, 25 Apr 2025 17:14:32 GMT express:router <anonymous>  : /
+Fri, 25 Apr 2025 17:14:32 GMT express:router serveStatic  : /
+Fri, 25 Apr 2025 17:14:32 GMT express:router dispatching GET /favicon.png
+Fri, 25 Apr 2025 17:14:32 GMT express:router query  : /favicon.png
+Fri, 25 Apr 2025 17:14:32 GMT express:router expressInit  : /favicon.png
+Fri, 25 Apr 2025 17:14:32 GMT express:router jsonParser  : /favicon.png
+Fri, 25 Apr 2025 17:14:32 GMT express:router urlencodedParser  : /favicon.png
+Fri, 25 Apr 2025 17:14:32 GMT express:router session  : /favicon.png
+Fri, 25 Apr 2025 17:14:32 GMT express:router <anonymous>  : /favicon.png
+Fri, 25 Apr 2025 17:14:32 GMT express:router serveStatic  : /favicon.png
+==> Detected service running on port 10000
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+Need better ways to work with logs? Try the

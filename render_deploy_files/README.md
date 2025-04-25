@@ -1,35 +1,44 @@
-# PanicSense Render Deployment
+# PanicSense - Render Deployment Package
 
-## Clean Deployment Files for Render.com
+PanicSense is an advanced disaster intelligence platform providing comprehensive emergency insights and community safety coordination through intelligent AI-driven analysis.
 
-These are the essential files needed to deploy PanicSense on Render.com's free tier without requiring a credit card or blueprints.
+This is a specialized deployment package designed to run on Render.com's free tier.
 
-## Files and Their Purpose
+## Quick Start
 
-- `production-server.cjs` - Combined Node.js + Python server
-- `start-render.cjs` - Startup script for Render
-- `render-build.sh` - Build script for Render
-- `python/daemon.py` - Auto-running Python script (no arguments needed)
-- `package.json` - Minimal dependencies for deployment
-- `RENDER-DEPLOY-FIX.md` - Detailed deployment instructions
-
-## How to Deploy
-
-1. On Render.com, create a new Web Service
-2. Connect your GitHub repository or upload these files
-3. Configure using these settings:
+1. Push these files to a GitHub repository
+2. Create a new Web Service in Render
+3. Connect to your GitHub repository
+4. Set the following:
    - Build Command: `./render-build.sh`
    - Start Command: `node start-render.cjs`
-4. Add these environment variables:
-   - `DATABASE_URL` - Your Neon PostgreSQL database URL
+5. Add the following Environment Variables:
+   - `DATABASE_URL` - Your PostgreSQL database URL
    - `NODE_ENV` - Set to `production`
-   - `SESSION_SECRET` - Any secure random string
+   - `SESSION_SECRET` - Any random secure string
+   - `DEBUG` - Set to `true` for detailed logs (optional)
 
-## Features Supported
+## Troubleshooting
 
-- ✅ Real-time analysis with Python integration
-- ✅ File uploads and processing
-- ✅ News feeds and disaster alerts
-- ✅ Web interface with API endpoints
-- ✅ Automatic Python restart if it crashes
-- ✅ WebSocket support for real-time updates
+If you encounter issues, see the [RENDER-DEPLOY-FIX.md](./RENDER-DEPLOY-FIX.md) file for detailed troubleshooting steps.
+
+## Features
+
+- Real-time disaster alerts and monitoring
+- News aggregation and sentiment analysis
+- Data visualization and reporting
+- File upload and processing
+- WebSocket support for real-time updates
+- Automatic Python service management
+- Database schema auto-detection
+
+## Technology Stack
+
+- Node.js backend with Express
+- Python data processing and NLP
+- PostgreSQL database
+- WebSockets for real-time updates
+
+## Contact
+
+For more information, visit [draiimon/PanicSense](https://github.com/draiimon/PanicSense) on GitHub.
