@@ -2259,37 +2259,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
         progress: uploadProgressMap.get(sessionId)
       });
       
-      // HYBRID MODEL REMOVED
-      console.log(`⚠️ Hybrid model training disabled, keeping only basic sentiment analysis (process.py)`);
-      
-      // Final progress update to notify client processing is complete
-      const finalProgress = {
-        processed: 100,
-        total: 100,
-        stage: 'Processing complete (hybrid model disabled)',
-        timestamp: Date.now(),
-        batchNumber: 100,
-        totalBatches: 100,
-        batchProgress: 100,
-        currentSpeed: 0,
-        timeRemaining: 0,
-        processingStats: {
-          successCount: 25,
-          errorCount: 0,
-          lastBatchDuration: 0,
-          averageSpeed: 0
+      // Use our dedicated hybrid model method
+      trainingService.useCustomHybridDataset(
+        sessionId, 
+        fileRecord.id,
+        (progress) => {
+          // Update progress
+          const currentProgress = uploadProgressMap.get(sessionId) || {
+            processed: 0,
+            total: 100,
+            stage: 'Training with hybrid model approach',
+            timestamp: Date.now(),
+            batchNumber: 0,
+            totalBatches: 100,
+            batchProgress: 0,
+            currentSpeed: 0,
+            timeRemaining: 0,
+            processingStats: {
+              successCount: 0,
+              errorCount: 0,
+              lastBatchDuration: 0,
+              averageSpeed: 0
+            }
+          };
+          
+          // Update progress with new values
+          const updatedProgress = {
+            ...currentProgress,
+            ...progress,
+            timestamp: Date.now(),
+          };
+          
+          // Store updated progress
+          uploadProgressMap.set(sessionId, updatedProgress);
+          
+          // Broadcast progress update
+          broadcastUpdate({
+            type: 'progress',
+            sessionId,
+            progress: updatedProgress
+          });
         }
-      };
-      
-      // Store final progress
-      uploadProgressMap.set(sessionId, finalProgress);
-      
-      // Broadcast completion
-      broadcastUpdate({
-        type: 'complete',
-        sessionId,
-        fileId: fileRecord.id,
-        message: 'Process completed with basic sentiment analysis only (hybrid model disabled)'
+      )
+      .then(result => {
+        // Final progress update
+        const finalProgress = {
+          processed: 100,
+          total: 100,
+          stage: 'Hybrid model training complete',
+          timestamp: Date.now(),
+          batchNumber: 100,
+          totalBatches: 100,
+          batchProgress: 100,
+          currentSpeed: 0,
+          timeRemaining: 0,
+          processingStats: {
+            successCount: 25,
+            errorCount: 0,
+            lastBatchDuration: 0,
+            averageSpeed: 0
+          }
+        };
+        
+        // Store final progress
+        uploadProgressMap.set(sessionId, finalProgress);
+        
+        // Broadcast completion
+        broadcastUpdate({
+          type: 'complete',
+          sessionId,
+          fileId: fileRecord.id,
+          metrics: result.metrics
+        });
+      })
+      .catch(error => {
+        console.error('Error in hybrid model processing:', error);
+        // Broadcast error
+        broadcastUpdate({
+          type: 'error',
+          sessionId,
+          error: error.message || 'Unknown error during hybrid model processing'
+        });
       });
       
       // Return immediately to allow async processing
@@ -2343,67 +2393,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         progress: uploadProgressMap.get(sessionId)
       });
       
-      // HYBRID MODEL REMOVED - Create basic demo dataset without hybrid model
-      console.log(`⚠️ Hybrid model training disabled, creating basic demo dataset only`);
-      
-      // Simulate progress updates
-      let counter = 0;
-      const totalSteps = 5;
-      
-      // Create a simple result object to replace the trainingService result
-      const result = {
-        fileId: `demo-dataset-${Date.now()}`,
-        message: "Demo dataset created with basic sentiment analysis (hybrid model disabled)",
-        metrics: {
-          accuracy: 0.85,
-          precision: 0.83,
-          recall: 0.84,
-          f1_score: 0.83,
-          confusion_matrix: [
-            [20, 5],
-            [4, 21]
-          ],
-          class_report: {
-            "Neutral": { precision: 0.83, recall: 0.80, f1_score: 0.81 },
-            "Panic": { precision: 0.81, recall: 0.84, f1_score: 0.82 }
-          }
+      // Create demo dataset and train model
+      const result = await trainingService.createDemoDataset(
+        recordCount,
+        (progress) => {
+          // Update progress
+          const currentProgress = uploadProgressMap.get(sessionId) || {
+            processed: 0,
+            total: 100,
+            stage: 'Creating demo dataset',
+            timestamp: Date.now(),
+            batchNumber: 0,
+            totalBatches: 100,
+            batchProgress: 0,
+            currentSpeed: 0,
+            timeRemaining: 0,
+            processingStats: {
+              successCount: 0,
+              errorCount: 0,
+              lastBatchDuration: 0,
+              averageSpeed: 0
+            }
+          };
+          
+          // Update progress with new values
+          const updatedProgress = {
+            ...currentProgress,
+            ...progress,
+            timestamp: Date.now(),
+          };
+          
+          // Store updated progress
+          uploadProgressMap.set(sessionId, updatedProgress);
+          
+          // Broadcast progress update
+          broadcastUpdate({
+            type: 'progress',
+            sessionId,
+            progress: updatedProgress
+          });
         }
-      };
-      
-      // Simulate progress steps
-      for (let i = 0; i < totalSteps; i++) {
-        counter += 20;
-        
-        // Update progress
-        const progress = {
-          processed: counter,
-          total: 100,
-          stage: `Creating demo dataset (step ${i+1}/${totalSteps})`,
-          timestamp: Date.now(),
-          batchNumber: i+1,
-          totalBatches: totalSteps,
-          batchProgress: counter,
-          currentSpeed: 10,
-          timeRemaining: (totalSteps - i) * 0.5,
-          processingStats: {
-            successCount: counter,
-            errorCount: 0,
-            lastBatchDuration: 500,
-            averageSpeed: 10
-          }
-        };
-        
-        // Store and broadcast progress
-        uploadProgressMap.set(sessionId, progress);
-        broadcastUpdate({
-          type: 'progress',
-          sessionId,
-          progress
-        });
-        
-        // Add a small delay to simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+      );
       
       // Final progress update
       const finalProgress = {
