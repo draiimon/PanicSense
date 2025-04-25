@@ -240,12 +240,35 @@ const Evaluation: React.FC = () => {
                           onClick={() => document.getElementById('file-upload')?.click()}
                         >
                           <FileTextIcon className="h-4 w-4 mr-2" />
-                          Standard Analysis
+                          Upload Dataset
                         </Button>
-                        {/* Hybrid model functionality has been removed */}
+                        <Button 
+                          variant="outline" 
+                          className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800" 
+                          onClick={() => {
+                            if (window.confirm('Generate demo dataset with ML training?\n\nThis will create a new dataset with sample data and train a machine learning model with proper evaluation metrics.')) {
+                              // Import the API function dynamically
+                              import('@/lib/api').then(({ createDemoDataset }) => {
+                                createDemoDataset(100)
+                                  .then(result => {
+                                    alert(`Demo dataset created and trained!\n\nAccuracy: ${result.metrics.accuracy.toFixed(2)}%\nPrecision: ${result.metrics.precision.toFixed(2)}%\nRecall: ${result.metrics.recall.toFixed(2)}%`);
+                                    // Reload page to show new dataset
+                                    window.location.reload();
+                                  })
+                                  .catch(error => {
+                                    console.error('Demo dataset error:', error);
+                                    alert('Error creating demo dataset. Please try again.');
+                                  });
+                              });
+                            }
+                          }}
+                        >
+                          <DatabaseIcon className="h-4 w-4 mr-2" />
+                          Generate ML Demo
+                        </Button>
                       </div>
                       <p className="text-xs text-slate-500 mt-2">
-                        PanicSense uses a rule-based system for accurate sentiment analysis
+                        PanicSense uses machine learning models with real metrics for accurate sentiment analysis
                       </p>
                     </div>
                   </div>
