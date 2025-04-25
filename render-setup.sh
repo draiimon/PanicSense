@@ -1,92 +1,55 @@
 #!/bin/bash
-# Render setup script for PanicSense
-# This script is executed during Render deployment to prepare the environment
 
-echo "Starting Render deployment setup..."
+# Ultra-simple render setup script
+echo "=== 🚀 Render Setup Script ==="
 
-# Load the render configuration using dynamic import (ESM compatible)
-CONFIG=$(node -e "import('./render.config.js').then(m => console.log(JSON.stringify(m.default))).catch(e => console.error(e))")
+# Create necessary directories
+mkdir -p client/dist public uploads/{temp,data,profile_images}
 
-if [ -z "$CONFIG" ]; then
-  echo "Failed to load config, using default build command..."
-  BUILD_COMMAND="npx next build && npx esbuild server/index-wrapper.js --platform=node --packages=external --bundle --format=esm --outdir=dist"
+# Check if public has index.html
+if [ -f "public/index.html" ]; then
+  echo "Found index.html in public, copying to client/dist..."
+  mkdir -p client/dist
+  cp -r public/* client/dist/
 else
-  # Extract build command from config
-  BUILD_COMMAND=$(echo $CONFIG | jq -r '.buildCommand')
+  echo "No index.html found in public, creating minimal index.html..."
+  mkdir -p client/dist
+  cat > client/dist/index.html << EOL
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PanicSense API</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    header { background: #e63946; color: white; padding: 1rem; border-radius: 4px; }
+    h1 { margin: 0; }
+    .endpoint { background: #f1faee; padding: 1rem; border-left: 4px solid #1d3557; margin: 1rem 0; }
+    code { background: #e9ecef; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PanicSense API Server</h1>
+  </header>
+  <main>
+    <p>The API server is running. Access endpoints at <code>/api/*</code></p>
+    <div class="endpoint">
+      <h3>API Endpoints:</h3>
+      <ul>
+        <li><code>/api/health</code> - Health check</li>
+        <li><code>/api/sentiment-posts</code> - Get sentiment data</li>
+        <li><code>/api/disaster-events</code> - Get disaster events</li>
+      </ul>
+    </div>
+  </main>
+  <footer>
+    <p><small>PanicSense &copy; 2025 - Disaster Intelligence Platform</small></p>
+  </footer>
+</body>
+</html>
+EOL
 fi
 
-echo "Running build command: $BUILD_COMMAND"
-eval $BUILD_COMMAND
-
-echo "Build process completed"
-
-# Create a .env file if it doesn't exist
-if [ ! -f .env ]; then
-  echo "Creating .env file..."
-  touch .env
-  echo "NODE_ENV=production" >> .env
-  echo "PORT=10000" >> .env
-fi
-
-# Ensure the dist directory exists
-mkdir -p dist/public
-
-# Copy any static files if they exist
-if [ -d "public" ]; then
-  echo "Copying public files to dist/public..."
-  cp -r public/* dist/public/
-fi
-
-# Copy the Next.js output if it exists
-if [ -d ".next" ]; then
-  echo "Copying Next.js build output to dist/.next..."
-  mkdir -p dist/.next
-  cp -r .next/* dist/.next/
-fi
-
-# Create compatibility files for both ESM and CommonJS environments
-echo "Creating compatibility wrappers for both ESM and CommonJS..."
-
-# Create server starter for Render 
-cat > dist/render-start.js << EOF
-// ESM compatible server starter for Render
-import('../start-render.js').catch(err => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
-});
-EOF
-
-# Create next.config.cjs for compatibility
-cat > next.config.cjs << EOF
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: true,
-  output: 'standalone',
-  distDir: 'dist/.next',
-  experimental: {
-    outputFileTracingRoot: process.cwd(),
-  },
-  publicRuntimeConfig: {
-    apiBase: process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000',
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: '/api/:path*',
-      },
-      {
-        source: '/ws',
-        destination: '/ws',
-      }
-    ];
-  },
-};
-
-module.exports = nextConfig;
-EOF
-
-echo "Making scripts executable..."
-chmod +x start-render.js
-
-echo "Render deployment setup complete!"
+echo "=== ✅ Render setup complete ==="

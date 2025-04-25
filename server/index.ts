@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { checkPortPeriodically, checkPort } from "./debug-port";
 // Import emergency database fixes - both old and new strategy
@@ -10,8 +11,6 @@ import { simpleDbFix } from "./db-simple-fix";
 import { pythonService } from "./python-service";
 // Import rate limiter middleware
 import { createRateLimiter } from "./middleware/rate-limiter";
-// Import Next.js handler instead of Vite
-import { setupNextDev, serveNextStatic, log } from "./next-handler";
 
 // Create a global server start timestamp for detecting restarts
 // This will be used by routes.ts to detect server restarts
@@ -180,13 +179,13 @@ app.use((req, res, next) => {
     console.log("Current NODE_ENV:", process.env.NODE_ENV);
     
     if (process.env.NODE_ENV === "production") {
-      console.log("Running in production mode, serving Next.js static files...");
-      serveNextStatic(app);
-      console.log("Next.js static file serving setup complete");
+      console.log("Running in production mode, serving static files...");
+      serveStatic(app);
+      console.log("Static file serving setup complete");
     } else {
-      console.log("Running in development mode, setting up Next.js development middleware...");
-      await setupNextDev(app, server);
-      console.log("Next.js development middleware setup complete");
+      console.log("Running in development mode, setting up Vite middleware...");
+      await setupVite(app, server);
+      console.log("Vite middleware setup complete");
     }
 
     // Use PORT environment variable with fallback to 5000 for local development

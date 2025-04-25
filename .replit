@@ -16,10 +16,6 @@ author = "agent"
 task = "workflow.run"
 args = "PanicSense-Dev"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "PanicSense-Express"
-
 [[workflows.workflow]]
 name = "PanicSense-Dev"
 author = "agent"
@@ -33,15 +29,6 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
-waitForPort = 5000
-
-[[workflows.workflow]]
-name = "PanicSense-Express"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node render-express.js"
 waitForPort = 5000
 
 [deployment]
