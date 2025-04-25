@@ -67,12 +67,12 @@ export interface UploadProgress {
 }
 
 // Sentiment Posts API
-export async function getSentimentPosts(filterUnknown: boolean = true): Promise<SentimentPost[]> {
+export async function getSentimentPosts(filterUnknown: boolean = false): Promise<SentimentPost[]> {
   const response = await apiRequest('GET', `/api/sentiment-posts?filterUnknown=${filterUnknown}`);
   return response.json();
 }
 
-export async function getSentimentPostsByFileId(fileId: number, filterUnknown: boolean = true): Promise<SentimentPost[]> {
+export async function getSentimentPostsByFileId(fileId: number, filterUnknown: boolean = false): Promise<SentimentPost[]> {
   const response = await apiRequest('GET', `/api/sentiment-posts/file/${fileId}?filterUnknown=${filterUnknown}`);
   return response.json();
 }
