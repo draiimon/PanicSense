@@ -5,7 +5,7 @@
       "name": "panicsense",
       "env": "node",
       "buildCommand": "./render-build-bash.sh",
-      "startCommand": "node start-production.js",
+      "startCommand": "node start-render.cjs",
       "envVars": [
         {
           "key": "NODE_ENV",

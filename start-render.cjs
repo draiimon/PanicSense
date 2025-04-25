@@ -1,20 +1,13 @@
 /**
- * Direct production startup script for PanicSense
- * This is a simplified version for Render deployment
+ * Simple startup script for Render.com deployment
+ * This is a CommonJS version that avoids ESM-related issues on Render
  */
 
-import express from 'express';
-import session from 'express-session';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import http from 'http';
-// No WebSocket import - the ESM import is causing issues on Render
-// import WebSocket from 'ws';
-
-// For ESM support
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const express = require('express');
+const session = require('express-session');
+const path = require('path');
+const fs = require('fs');
+const http = require('http');
 
 // Set environment variables
 process.env.NODE_ENV = 'production';
@@ -22,7 +15,7 @@ const PORT = process.env.PORT || 10000;
 
 // Log startup
 console.log('========================================');
-console.log(`Starting PanicSense in direct production mode`);
+console.log(`Starting PanicSense in direct production mode (CJS)`);
 console.log(`PORT: ${PORT}`);
 console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
 console.log(`Start time: ${new Date().toISOString()}`);
@@ -31,15 +24,6 @@ console.log('========================================');
 // Create Express server
 const app = express();
 const server = http.createServer(app);
-
-// No WebSocket setup for simpler deployment
-// We'll just console log instead
-console.log('WebSocket functionality disabled for simplified deployment');
-
-// Simple broadcast function that just logs messages
-function broadcast(data) {
-  console.log('[Broadcast message]', JSON.stringify(data));
-}
 
 // Setup middleware
 app.use(express.json());
