@@ -2223,7 +2223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [fileRecord] = await db
         .insert(schema.analyzedFiles)
         .values({
-          originalName: 'Custom Hybrid Model Dataset',
+          originalName: 'Custom Dataset',
           storedName: filename,
           recordCount: 25, // We know we have 25 records
           evaluationMetrics: null
@@ -2237,7 +2237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       uploadProgressMap.set(sessionId, {
         processed: 0,
         total: 100,
-        stage: 'Training with hybrid model approach',
+        stage: 'Processing data with sentiment analysis',
         timestamp: Date.now(),
         batchNumber: 0,
         totalBatches: 100,
@@ -2259,14 +2259,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         progress: uploadProgressMap.get(sessionId)
       });
       
-      // HYBRID MODEL REMOVED
-      console.log(`⚠️ Hybrid model training disabled, keeping only basic sentiment analysis (process.py)`);
+      console.log(`Processing data with sentiment analysis (process.py)`);
       
       // Final progress update to notify client processing is complete
       const finalProgress = {
         processed: 100,
         total: 100,
-        stage: 'Processing complete (hybrid model disabled)',
+        stage: 'Processing complete',
         timestamp: Date.now(),
         batchNumber: 100,
         totalBatches: 100,
@@ -2289,14 +2288,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: 'complete',
         sessionId,
         fileId: fileRecord.id,
-        message: 'Process completed with basic sentiment analysis only (hybrid model disabled)'
+        message: 'Process completed with sentiment analysis'
       });
       
       // Return immediately to allow async processing
       res.json({
         success: true,
         fileId: fileRecord.id,
-        message: "Hybrid model processing started",
+        message: "Sentiment analysis processing started",
         sessionId
       });
     } catch (error) {
@@ -2343,8 +2342,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         progress: uploadProgressMap.get(sessionId)
       });
       
-      // HYBRID MODEL REMOVED - Create basic demo dataset without hybrid model
-      console.log(`⚠️ Hybrid model training disabled, creating basic demo dataset only`);
+      // Process data with sentiment analysis only
+      console.log(`Creating demo dataset with sentiment analysis`);
       
       // Simulate progress updates
       let counter = 0;
@@ -2353,7 +2352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create a simple result object to replace the trainingService result
       const result = {
         fileId: `demo-dataset-${Date.now()}`,
-        message: "Demo dataset created with basic sentiment analysis (hybrid model disabled)",
+        message: "Demo dataset created with sentiment analysis",
         metrics: {
           accuracy: 0.85,
           precision: 0.83,
