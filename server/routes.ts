@@ -2192,6 +2192,154 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Usage stats endpoint removed
   
   // MACHINE LEARNING TRAINING ENDPOINTS
+  // Use custom dataset file for training
+  app.post('/api/use-custom-demo-file', async (req: Request, res: Response) => {
+    try {
+      const filename = 'custom_demo_dataset.csv';  // Our fixed filename
+      const filePath = path.join(process.cwd(), 'uploads', filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ 
+          error: "Custom dataset file not found", 
+          details: `File not found at: ${filePath}` 
+        });
+      }
+      
+      // Create a record for this file in the database
+      console.log(`Using custom dataset file: ${filePath}`);
+      
+      // Save as a new file record
+      const [fileRecord] = await db
+        .insert(schema.analyzedFiles)
+        .values({
+          originalName: 'Custom Hybrid Model Dataset',
+          storedName: filename,
+          recordCount: 25, // We know we have 25 records
+          evaluationMetrics: null
+        })
+        .returning();
+        
+      // Generate a unique session ID for tracking progress
+      const sessionId = nanoid();
+      
+      // Initialize progress tracking
+      uploadProgressMap.set(sessionId, {
+        processed: 0,
+        total: 100,
+        stage: 'Training with custom dataset',
+        timestamp: Date.now(),
+        batchNumber: 0,
+        totalBatches: 100,
+        batchProgress: 0,
+        currentSpeed: 0,
+        timeRemaining: 0,
+        processingStats: {
+          successCount: 0,
+          errorCount: 0,
+          lastBatchDuration: 0,
+          averageSpeed: 0
+        }
+      });
+      
+      // Broadcast initial progress
+      broadcastUpdate({
+        type: 'progress',
+        sessionId,
+        progress: uploadProgressMap.get(sessionId)
+      });
+      
+      // Train model with file
+      const result = await trainingService.trainWithFile(
+        filePath,
+        fileRecord.id,
+        (progress) => {
+          // Update progress
+          const currentProgress = uploadProgressMap.get(sessionId) || {
+            processed: 0,
+            total: 100,
+            stage: 'Training with custom dataset',
+            timestamp: Date.now(),
+            batchNumber: 0,
+            totalBatches: 100,
+            batchProgress: 0,
+            currentSpeed: 0,
+            timeRemaining: 0,
+            processingStats: {
+              successCount: 0,
+              errorCount: 0,
+              lastBatchDuration: 0,
+              averageSpeed: 0
+            }
+          };
+          
+          // Update progress with new values
+          const updatedProgress = {
+            ...currentProgress,
+            ...progress,
+            timestamp: Date.now(),
+          };
+          
+          // Store updated progress
+          uploadProgressMap.set(sessionId, updatedProgress);
+          
+          // Broadcast progress update
+          broadcastUpdate({
+            type: 'progress',
+            sessionId,
+            progress: updatedProgress
+          });
+        }
+      );
+      
+      // Generate sentiment posts from the file
+      await trainingService.generateSentimentPostsFromFile(filePath, fileRecord.id);
+      
+      // Final progress update
+      const finalProgress = {
+        processed: 100,
+        total: 100,
+        stage: 'Training complete',
+        timestamp: Date.now(),
+        batchNumber: 100,
+        totalBatches: 100,
+        batchProgress: 100,
+        currentSpeed: 0,
+        timeRemaining: 0,
+        processingStats: {
+          successCount: 25,
+          errorCount: 0,
+          lastBatchDuration: 0,
+          averageSpeed: 0
+        }
+      };
+      
+      // Store final progress
+      uploadProgressMap.set(sessionId, finalProgress);
+      
+      // Broadcast completion
+      broadcastUpdate({
+        type: 'progress',
+        sessionId,
+        progress: finalProgress
+      });
+      
+      // Return success response
+      res.json({
+        success: true,
+        fileId: fileRecord.id,
+        metrics: result.metrics,
+        message: "Custom dataset used for training successfully",
+        sessionId
+      });
+    } catch (error) {
+      console.error('Error using custom dataset file:', error);
+      res.status(500).json({
+        error: 'Failed to use custom dataset',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // Create a demo dataset with sentiment analysis and real metrics
   app.post('/api/create-demo-dataset', async (req: Request, res: Response) => {
     try {

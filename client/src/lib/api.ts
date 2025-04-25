@@ -824,6 +824,80 @@ export async function processText(text: string): Promise<TextProcessingResult> {
 // Real machine learning model training functions
 
 /**
+ * Use a custom demo file for hybrid model training
+ */
+export async function useCustomDemoFile(): Promise<{ 
+  fileId: number;
+  metrics: EvaluationMetrics; 
+}> {
+  // Start a progress tracking event source
+  const sessionId = crypto.randomUUID();
+  currentUploadSessionId = sessionId;
+  localStorage.setItem('uploadSessionId', sessionId);
+  
+  // Track the progress through SSE
+  const eventSource = new EventSource(`/api/upload-progress/${sessionId}`);
+  currentEventSource = eventSource;
+  
+  try {
+    // Call the server endpoint
+    const response = await apiRequest('POST', '/api/use-custom-demo-file');
+    if (!response.ok) {
+      throw new Error('Failed to use custom demo file');
+    }
+    
+    const data = await response.json();
+    
+    // Wait for the event source to indicate completion
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        eventSource.close();
+        reject(new Error('Training timed out'));
+      }, 300000); // 5 minutes timeout
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          // Check if processing is complete
+          if (data.type === 'complete' || 
+              (data.progress && data.progress.processed === data.progress.total)) {
+            clearTimeout(timeout);
+            eventSource.close();
+            
+            if (data.error) {
+              reject(new Error(data.error));
+            } else {
+              resolve({
+                fileId: data.fileId,
+                metrics: data.metrics
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing event data:', error);
+        }
+      };
+      
+      eventSource.onerror = () => {
+        clearTimeout(timeout);
+        eventSource.close();
+        reject(new Error('Error with event source connection'));
+      };
+    });
+  } catch (error) {
+    console.error('Error using custom demo file:', error);
+    
+    // Clean up the event source
+    if (eventSource) {
+      eventSource.close();
+    }
+    
+    throw error;
+  }
+}
+
+/**
  * Create a demo dataset and train a model with it
  */
 export async function createDemoDataset(

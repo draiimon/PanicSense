@@ -276,7 +276,7 @@ export async function createDemoDataAndTrain(
 /**
  * Generate sentiment posts from a CSV file
  */
-async function generateSentimentPostsFromFile(filePath: string, fileId: number): Promise<void> {
+export async function generateSentimentPostsFromFile(filePath: string, fileId: number): Promise<void> {
   try {
     // Validate file exists - check both possible paths
     if (!fs.existsSync(filePath)) {
@@ -371,6 +371,16 @@ export class TrainingService {
     message: string;
   }> {
     return createDemoDataAndTrain(recordCount, onProgress);
+  }
+  
+  /**
+   * Generate sentiment posts from a CSV file
+   */
+  async generateSentimentPostsFromFile(
+    filePath: string,
+    fileId: number
+  ): Promise<void> {
+    return generateSentimentPostsFromFile(filePath, fileId);
   }
 }
 
