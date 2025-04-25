@@ -24,8 +24,8 @@ logging.basicConfig(
 logger = logging.getLogger("PanicSense")
 
 # Constants
-PORT = 5000
-STATIC_DIR = 'public'
+PORT = 5000  # Use the main port since we're replacing the Vite app completely
+STATIC_DIR = 'client'  # Use the existing Vite/React client folder
 API_ROUTES = ['/api/health', '/api/disaster-events', '/api/sentiment-posts', '/api/analyzed-files', 
               '/api/active-upload-session', '/api/cleanup-error-sessions', '/api/ai-disaster-news']
 
@@ -42,66 +42,8 @@ if os.path.exists('.env'):
                 key, value = line.strip().split('=', 1)
                 os.environ[key] = value
                 
-# Create index.html if it doesn't exist
+# Use the existing index.html
 INDEX_HTML_PATH = os.path.join(STATIC_DIR, 'index.html')
-if not os.path.exists(INDEX_HTML_PATH):
-    os.makedirs(STATIC_DIR, exist_ok=True)
-    with open(INDEX_HTML_PATH, 'w') as f:
-        f.write("""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PanicSense</title>
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            max-width: 800px; 
-            margin: 0 auto; 
-            padding: 20px;
-            line-height: 1.6;
-        }
-        h1 { color: #e74c3c; }
-        .card { 
-            border: 1px solid #ddd; 
-            border-radius: 8px; 
-            padding: 16px; 
-            margin-bottom: 16px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .footer {
-            margin-top: 30px;
-            text-align: center;
-            color: #666;
-            font-size: 0.9em;
-        }
-    </style>
-</head>
-<body>
-    <h1>PanicSense API Server</h1>
-    <div class="card">
-        <h2>Welcome to PanicSense</h2>
-        <p>This server provides disaster intelligence and community safety coordination.</p>
-    </div>
-    <div class="card">
-        <h2>API Endpoints Available:</h2>
-        <ul>
-            <li><code>/api/health</code> - Server health check</li>
-            <li><code>/api/disaster-events</code> - Get disaster events</li>
-            <li><code>/api/sentiment-posts</code> - Get sentiment posts</li>
-            <li><code>/api/analyzed-files</code> - Get analyzed files</li>
-            <li><code>/api/active-upload-session</code> - Get active upload session</li>
-            <li><code>/api/cleanup-error-sessions</code> - Clean up error sessions</li>
-            <li><code>/api/ai-disaster-news</code> - Get AI-generated disaster news</li>
-        </ul>
-    </div>
-    <div class="footer">
-        <p>PanicSense - Disaster Intelligence Platform</p>
-    </div>
-</body>
-</html>
-        """)
         
 class PanicSenseHandler(http.server.SimpleHTTPRequestHandler):
     """Custom request handler for PanicSense"""

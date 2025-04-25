@@ -14,26 +14,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "PanicSense-Dev"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "PanicSense-Flask"
-
-[[workflows.workflow]]
-name = "PanicSense-Dev"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
 
 [[workflows.workflow]]
 name = "PanicSense-Flask"
