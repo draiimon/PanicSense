@@ -322,15 +322,61 @@ export async function createDemoDataAndTrain(
  */
 export async function generateSentimentPostsFromFile(filePath: string, fileId: number): Promise<void> {
   try {
-    // Validate file exists - check both possible paths
-    if (!fs.existsSync(filePath)) {
-      // Try alternate path relative to CWD
-      filePath = path.join(process.cwd(), 'uploads', path.basename(filePath));
-      
-      if (!fs.existsSync(filePath)) {
-        console.error(`File not found at paths:\n1. ${path.join(__dirname, '..', 'uploads', path.basename(filePath))}\n2. ${path.join(process.cwd(), 'uploads', path.basename(filePath))}`);
-        throw new Error(`File not found: ${filePath}`);
+    console.log(`[generateSentimentPostsFromFile] Processing: ${filePath} for file ID: ${fileId}`);
+    
+    // Enhanced file path checking - try multiple possible paths
+    const possiblePaths = [
+      filePath,
+      path.join(process.cwd(), 'uploads', path.basename(filePath)),
+      path.join(__dirname, '..', 'uploads', path.basename(filePath)),
+      path.join('uploads', path.basename(filePath)),
+      path.join('.', 'uploads', path.basename(filePath))
+    ];
+    
+    let fileFound = false;
+    for (const tryPath of possiblePaths) {
+      console.log(`[generateSentimentPostsFromFile] Trying path: ${tryPath}`);
+      if (fs.existsSync(tryPath)) {
+        console.log(`[generateSentimentPostsFromFile] Found file at: ${tryPath}`);
+        filePath = tryPath;
+        fileFound = true;
+        break;
       }
+    }
+    
+    // Try one more approach - check the database for the file details
+    if (!fileFound) {
+      try {
+        console.log(`[generateSentimentPostsFromFile] File not found in standard paths, checking database for file ID: ${fileId}`);
+        const [fileRecord] = await db.select().from(schema.analyzedFiles).where(eq(schema.analyzedFiles.id, fileId));
+        
+        if (fileRecord && fileRecord.storedName) {
+          const possibleStoredPaths = [
+            path.join(process.cwd(), 'uploads', fileRecord.storedName),
+            path.join(__dirname, '..', 'uploads', fileRecord.storedName),
+            path.join('uploads', fileRecord.storedName),
+            path.join('.', 'uploads', fileRecord.storedName)
+          ];
+          
+          for (const storedPath of possibleStoredPaths) {
+            console.log(`[generateSentimentPostsFromFile] Trying storedName path from database: ${storedPath}`);
+            if (fs.existsSync(storedPath)) {
+              console.log(`[generateSentimentPostsFromFile] Found file using storedName from database: ${storedPath}`);
+              filePath = storedPath;
+              fileFound = true;
+              break;
+            }
+          }
+        }
+      } catch (dbError) {
+        console.error("[generateSentimentPostsFromFile] Error checking database for file:", dbError);
+      }
+    }
+    
+    // Final validation - reject if still not found
+    if (!fileFound) {
+      console.error(`[generateSentimentPostsFromFile] File not found after trying multiple paths: ${path.basename(filePath)}`);
+      throw new Error(`File not found: ${filePath}. Tried multiple possible paths.`);
     }
     
     // Read the CSV file
@@ -513,7 +559,63 @@ export class TrainingService {
     filePath: string,
     fileId: number
   ): Promise<void> {
-    return generateSentimentPostsFromFile(filePath, fileId);
+    console.log(`[TrainingService] Generating sentiment posts from file: ${filePath}`);
+    
+    // Enhanced file path checking - try multiple possible paths like in trainWithCSV
+    const possiblePaths = [
+      filePath,
+      path.join(process.cwd(), 'uploads', path.basename(filePath)),
+      path.join(__dirname, '..', 'uploads', path.basename(filePath)),
+      path.join('uploads', path.basename(filePath)),
+      path.join('.', 'uploads', path.basename(filePath))
+    ];
+    
+    let fileFound = false;
+    for (const tryPath of possiblePaths) {
+      console.log(`[generateSentimentPostsFromFile] Trying path: ${tryPath}`);
+      if (fs.existsSync(tryPath)) {
+        console.log(`[generateSentimentPostsFromFile] Found file at: ${tryPath}`);
+        filePath = tryPath;
+        fileFound = true;
+        break;
+      }
+    }
+    
+    // Try one more approach - check the database for the file details
+    if (!fileFound) {
+      try {
+        console.log(`[generateSentimentPostsFromFile] File not found in standard paths, checking database for file ID: ${fileId}`);
+        const [fileRecord] = await db.select().from(schema.analyzedFiles).where(eq(schema.analyzedFiles.id, fileId));
+        
+        if (fileRecord && fileRecord.storedName) {
+          const possibleStoredPaths = [
+            path.join(process.cwd(), 'uploads', fileRecord.storedName),
+            path.join(__dirname, '..', 'uploads', fileRecord.storedName),
+            path.join('uploads', fileRecord.storedName),
+            path.join('.', 'uploads', fileRecord.storedName)
+          ];
+          
+          for (const storedPath of possibleStoredPaths) {
+            console.log(`[generateSentimentPostsFromFile] Trying storedName path from database: ${storedPath}`);
+            if (fs.existsSync(storedPath)) {
+              console.log(`[generateSentimentPostsFromFile] Found file using storedName from database: ${storedPath}`);
+              filePath = storedPath;
+              fileFound = true;
+              break;
+            }
+          }
+        }
+      } catch (dbError) {
+        console.error("[generateSentimentPostsFromFile] Error checking database for file:", dbError);
+      }
+    }
+    
+    if (fileFound) {
+      return generateSentimentPostsFromFile(filePath, fileId);
+    } else {
+      console.error(`[generateSentimentPostsFromFile] File not found after trying multiple paths: ${path.basename(filePath)}`);
+      throw new Error(`File not found: ${filePath}. Tried multiple possible paths.`);
+    }
   }
 
   /**
@@ -633,15 +735,30 @@ export class TrainingService {
       
       if (existingFile) {
         // Save training metrics to the database
-        // Store metrics as stringified JSON in the metadata column
+        // Create a new evaluationMetrics object
+        let updatedMetrics: any = {
+          hybridModelMetrics: trainingResult.metrics,
+          lastUpdated: new Date().toISOString()
+        };
+        
+        // If previous metrics exist, merge them
+        if (existingFile.evaluationMetrics) {
+          // Handle if it's already a string or an object
+          const prevMetrics = typeof existingFile.evaluationMetrics === 'string' 
+            ? JSON.parse(existingFile.evaluationMetrics as string)
+            : existingFile.evaluationMetrics;
+            
+          // Merge previous metrics with new ones
+          updatedMetrics = {
+            ...prevMetrics,
+            ...updatedMetrics
+          };
+        }
+        
+        // Update the database with merged metrics
         await db.update(schema.analyzedFiles)
           .set({
-            metadata: JSON.stringify({
-              ...JSON.parse(existingFile.metadata || '{}'),
-              hybridModelMetrics: trainingResult.metrics
-            }),
-            modelType: 'hybrid', // Mark this as hybrid model
-            updatedAt: new Date()
+            evaluationMetrics: updatedMetrics
           })
           .where(eq(schema.analyzedFiles.id, fileId));
       }
