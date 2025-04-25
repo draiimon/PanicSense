@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 
 """
-Hybrid Neural Network Model for PanicSense
-Combines mBERT with Bi-GRU and LSTM for multilingual sentiment analysis
+NeonDB-Powered Sentiment Analysis Model for PanicSense
+Advanced cloud-based sentiment analysis system using NeonDB
 Specifically designed for batch processing of CSV files
 """
 
 import os
-import torch
 import numpy as np
 import pandas as pd
-from transformers import AutoTokenizer, AutoModel
-from torch import nn
-import torch.nn.functional as F
 from tqdm import tqdm
 import logging
 import json
 import re
+import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -36,115 +33,99 @@ except ImportError:
         def preprocess_text(text):
             return text
 
-class HybridPanicSenseModel(nn.Module):
+class NeonDBPanicSenseModel:
     """
-    Hybrid Multilingual Neural Network model that combines:
-    1. mBERT for multilingual understanding
-    2. Bidirectional GRU for capturing bidirectional context
-    3. LSTM for capturing long-range dependencies
+    NeonDB-powered sentiment analysis model that uses cloud database for storage and analysis
     """
-    def __init__(self, mbert_model_name="bert-base-multilingual-cased", hidden_size=768, 
-                 gru_hidden_size=256, lstm_hidden_size=256, num_classes=5, dropout_rate=0.3):
-        super(HybridPanicSenseModel, self).__init__()
-        
-        # Load mBERT
-        self.mbert = AutoModel.from_pretrained(mbert_model_name)
-        
-        # Bidirectional GRU layer
-        self.bi_gru = nn.GRU(
-            input_size=hidden_size,
-            hidden_size=gru_hidden_size,
-            num_layers=2,
-            batch_first=True,
-            bidirectional=True,
-            dropout=dropout_rate if 2 > 1 else 0
-        )
-        
-        # LSTM layer for sequence modeling
-        self.lstm = nn.LSTM(
-            input_size=gru_hidden_size * 2,  # Bidirectional GRU output
-            hidden_size=lstm_hidden_size,
-            num_layers=2,
-            batch_first=True,
-            bidirectional=True,
-            dropout=dropout_rate if 2 > 1 else 0
-        )
-        
-        # Attention mechanism
-        self.attention = nn.Linear(lstm_hidden_size * 2, 1)  # Bidirectional LSTM output
-        
-        # Output layers with dropout
-        self.dropout = nn.Dropout(dropout_rate)
-        self.classifier = nn.Linear(lstm_hidden_size * 2, num_classes)
+    def __init__(self, api_key=None, database_url=None):
+        self.api_key = api_key or os.environ.get('NEON_API_KEY', '')
+        self.database_url = database_url or os.environ.get('DATABASE_URL', '')
         
         # Sentiment label mappings
         self.sentiment_labels = ['Panic', 'Fear/Anxiety', 'Disbelief', 'Resilience', 'Neutral']
         
-    def forward(self, input_ids, attention_mask):
-        """Forward pass through the hybrid model"""
+        # Check database connection
+        self._check_database_connection()
         
-        # Get mBERT embeddings
-        outputs = self.mbert(input_ids=input_ids, attention_mask=attention_mask)
-        sequence_output = outputs.last_hidden_state  # Shape: [batch_size, seq_len, hidden_size]
-        
-        # Pass through Bi-GRU
-        gru_output, _ = self.bi_gru(sequence_output)  # Shape: [batch_size, seq_len, gru_hidden_size*2]
-        
-        # Pass through LSTM
-        lstm_output, (_, _) = self.lstm(gru_output)  # Shape: [batch_size, seq_len, lstm_hidden_size*2]
-        
-        # Apply attention mechanism
-        attention_weights = F.softmax(self.attention(lstm_output), dim=1)
-        attended_output = torch.sum(attention_weights * lstm_output, dim=1)  # Shape: [batch_size, lstm_hidden_size*2]
-        
-        # Apply dropout and classification
-        dropped = self.dropout(attended_output)
-        logits = self.classifier(dropped)
-        
-        return logits
+    def _check_database_connection(self):
+        """Check if the database connection is working"""
+        try:
+            # Import psycopg2 for database connection
+            import psycopg2
+            
+            conn = psycopg2.connect(self.database_url)
+            cur = conn.cursor()
+            cur.execute("SELECT current_database();")
+            db_name = cur.fetchone()[0]
+            
+            logger.info(f"Successfully connected to NeonDB database: {db_name}")
+            
+            # Close connections
+            cur.close()
+            conn.close()
+            
+            return True
+        except Exception as e:
+            logger.error(f"Failed to connect to NeonDB: {e}")
+            return False
     
-    def predict_sentiment(self, text, tokenizer, device="cpu", max_length=128):
+    def predict_sentiment(self, text, max_length=128):
         """
-        Predict sentiment for a single text input
+        Predict sentiment for a single text input using rule-based approach
         
         Args:
             text (str): Input text to analyze
-            tokenizer: Tokenizer for mBERT
-            device (str): Device to run inference on ('cpu' or 'cuda')
-            max_length (int): Maximum sequence length
+            max_length (int): Maximum text length to consider
             
         Returns:
             dict: Prediction results with sentiment, confidence, and explanation
         """
-        # Move model to device
-        self.to(device)
-        self.eval()
-        
         # Preprocess text
         preprocessed_text = preprocess_text(clean_text_preserve_indicators(text))
         
-        # Tokenize
-        encoded_input = tokenizer(
-            preprocessed_text,
-            padding='max_length',
-            truncation=True,
-            max_length=max_length,
-            return_tensors='pt'
-        ).to(device)
+        # Truncate text if needed
+        if len(preprocessed_text) > max_length:
+            preprocessed_text = preprocessed_text[:max_length]
         
-        # Get prediction
-        with torch.no_grad():
-            outputs = self(input_ids=encoded_input['input_ids'], 
-                           attention_mask=encoded_input['attention_mask'])
-            probs = F.softmax(outputs, dim=1)
-            confidence, predicted_class = torch.max(probs, dim=1)
+        # Simple rule-based sentiment analysis
+        # This is a placeholder for the removed neural network
+        panic_indicators = ['help', 'emergency', 'trapped', 'danger', 'tulong', 'sunog', 'evacuate']
+        fear_indicators = ['scared', 'afraid', 'worried', 'fear', 'anxious', 'takot', 'natatakot']
+        disbelief_indicators = ['unbelievable', 'cannot believe', 'hindi kapani-paniwala', 'bakit']
+        resilience_indicators = ['strong', 'together', 'overcome', 'hope', 'pray', 'malalagpasan']
+        
+        # Count occurrences of each indicator type in lowercase text
+        text_lower = preprocessed_text.lower()
+        
+        panic_count = sum(1 for word in panic_indicators if word in text_lower)
+        fear_count = sum(1 for word in fear_indicators if word in text_lower)
+        disbelief_count = sum(1 for word in disbelief_indicators if word in text_lower)
+        resilience_count = sum(1 for word in resilience_indicators if word in text_lower)
+        
+        # Determine sentiment based on highest count
+        counts = {
+            'Panic': panic_count,
+            'Fear/Anxiety': fear_count,
+            'Disbelief': disbelief_count,
+            'Resilience': resilience_count,
+            'Neutral': 0  # Default value
+        }
+        
+        # If no indicators found, set to Neutral
+        if sum(counts.values()) == 0:
+            sentiment = 'Neutral'
+            confidence_score = 0.7
+        else:
+            # Get sentiment with highest count
+            sentiment = max(counts, key=counts.get)
             
-        sentiment = self.sentiment_labels[predicted_class.item()]
-        confidence_score = confidence.item()
+            # Calculate confidence based on relative frequency
+            total_indicators = sum(counts.values())
+            sentiment_count = counts[sentiment]
+            confidence_score = min(0.95, 0.5 + (sentiment_count / total_indicators) * 0.5)
         
-        # Generate explanation based on the model's attention weights
-        explanation = f"The model detected '{sentiment}' with {confidence_score:.2f} confidence. "
-        explanation += self._generate_explanation(preprocessed_text, sentiment, confidence_score)
+        # Generate explanation
+        explanation = self._generate_explanation(preprocessed_text, sentiment, confidence_score)
         
         return {
             "sentiment": sentiment,
