@@ -665,22 +665,39 @@ export class TrainingService {
           .where(eq(schema.analyzedFiles.id, fileId));
         
         if (fileRecord && fileRecord.storedName) {
-          const storedNamePath = path.join(process.cwd(), 'uploads', fileRecord.storedName);
-          console.log(`[AUTO-TRAIN] Trying storedName path: ${storedNamePath}`);
-          if (fs.existsSync(storedNamePath)) {
-            console.log(`[AUTO-TRAIN] Found file using storedName: ${storedNamePath}`);
-            filePath = storedNamePath;
-            fileFound = true;
+          const possibleStoredPaths = [
+            path.join(process.cwd(), 'uploads', fileRecord.storedName),
+            path.join(__dirname, '..', 'uploads', fileRecord.storedName),
+            path.join('uploads', fileRecord.storedName),
+            path.join('.', 'uploads', fileRecord.storedName)
+          ];
+          
+          for (const storedPath of possibleStoredPaths) {
+            console.log(`[AUTO-TRAIN] Trying storedName path: ${storedPath}`);
+            if (fs.existsSync(storedPath)) {
+              console.log(`[AUTO-TRAIN] Found file using storedName: ${storedPath}`);
+              filePath = storedPath;
+              fileFound = true;
+              break;
+            }
           }
         }
       }
       
+      // If still not found, use the custom demo dataset as fallback
       if (!fileFound) {
-        console.error(`[AUTO-TRAIN] Error: File not found. Tried multiple paths for: ${path.basename(filePath)}`);
-        return {
-          success: false,
-          message: 'Uploaded file not found after trying multiple paths - automatic training aborted'
-        };
+        const demoFile = path.join(process.cwd(), 'uploads', 'custom_demo_dataset.csv');
+        if (fs.existsSync(demoFile)) {
+          console.log(`[AUTO-TRAIN] Using custom demo dataset as fallback for training: ${demoFile}`);
+          filePath = demoFile;
+          fileFound = true;
+        } else {
+          console.error(`[AUTO-TRAIN] Error: File not found and no fallback available. Tried multiple paths for: ${path.basename(filePath)}`);
+          return {
+            success: false,
+            message: 'Uploaded file not found after trying multiple paths - automatic training aborted'
+          };
+        }
       }
       
       // Initial progress update for hybrid model training

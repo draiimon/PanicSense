@@ -297,10 +297,10 @@ export class DatabaseStorage implements IStorage {
       const safeLanguage = sentimentPost.language ? sentimentPost.language.replace(/'/g, "''") : null;
       const safeSentiment = sentimentPost.sentiment ? sentimentPost.sentiment.replace(/'/g, "''") : "Unknown";
       const safeConfidence = typeof sentimentPost.confidence === 'number' ? sentimentPost.confidence : 0.5;
-      const safeLocation = sentimentPost.location ? sentimentPost.location.replace(/'/g, "''") : null;
-      const safeDisasterType = sentimentPost.disasterType ? sentimentPost.disasterType.replace(/'/g, "''") : null;
-      const safeExplanation = sentimentPost.explanation ? sentimentPost.explanation.replace(/'/g, "''") : null;
-      const safeProcessedBy = sentimentPost.processedBy ? sentimentPost.processedBy.replace(/'/g, "''") : null;
+      const safeLocation = sentimentPost.location ? String(sentimentPost.location).replace(/'/g, "''") : null;
+      const safeDisasterType = sentimentPost.disasterType ? String(sentimentPost.disasterType).replace(/'/g, "''") : null;
+      const safeExplanation = sentimentPost.explanation ? String(sentimentPost.explanation).replace(/'/g, "''") : null;
+      const safeProcessedBy = sentimentPost.processedBy ? String(sentimentPost.processedBy).replace(/'/g, "''") : null;
       
       // Use direct SQL query with sanitized inputs
       const result = await db.execute(sql`
@@ -371,9 +371,9 @@ export class DatabaseStorage implements IStorage {
         const safeLanguage = sentimentPost.language ? sentimentPost.language.replace(/'/g, "''") : "Unknown";
         const safeSentiment = sentimentPost.sentiment ? sentimentPost.sentiment.replace(/'/g, "''") : "Unknown";
         const safeConfidence = typeof sentimentPost.confidence === 'number' ? sentimentPost.confidence : 0.5;
-        const safeLocation = sentimentPost.location ? sentimentPost.location.replace(/'/g, "''") : null;
-        const safeDisasterType = sentimentPost.disasterType ? sentimentPost.disasterType.replace(/'/g, "''") : null;
-        const safeExplanation = sentimentPost.explanation ? sentimentPost.explanation.replace(/'/g, "''") : "Direct DB insertion";
+        const safeLocation = sentimentPost.location ? String(sentimentPost.location).replace(/'/g, "''") : null;
+        const safeDisasterType = sentimentPost.disasterType ? String(sentimentPost.disasterType).replace(/'/g, "''") : null;
+        const safeExplanation = sentimentPost.explanation ? String(sentimentPost.explanation).replace(/'/g, "''") : "Direct DB insertion";
         
         // Use raw SQL with parametrized queries for maximum stability
         const result = await db.execute(sql`
