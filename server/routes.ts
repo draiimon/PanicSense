@@ -869,21 +869,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const posts = await storage.getSentimentPosts();
       
-      // Filter out "UNKNOWN" locations if the query parameter is set
-      const filterUnknown = req.query.filterUnknown === 'true';
-      
-      if (filterUnknown) {
-        const filteredPosts = posts.filter(post => 
-          post.location !== null && 
-          post.location.toUpperCase() !== 'UNKNOWN' && 
-          post.location !== 'Not specified' &&
-          post.location !== 'Philippines'
-        );
-        res.json(filteredPosts);
-      } else {
-        // Send all posts without filtering if not explicitly requested
-        res.json(posts);
-      }
+      // No more filtering by UNKNOWN location - return all posts
+      res.json(posts);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch sentiment posts" });
     }
@@ -895,21 +882,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileId = parseInt(req.params.fileId);
       const posts = await storage.getSentimentPostsByFileId(fileId);
       
-      // Filter out "UNKNOWN" locations if the query parameter is set
-      const filterUnknown = req.query.filterUnknown === 'true';
-      
-      if (filterUnknown) {
-        const filteredPosts = posts.filter(post => 
-          post.location !== null && 
-          post.location.toUpperCase() !== 'UNKNOWN' && 
-          post.location !== 'Not specified' &&
-          post.location !== 'Philippines'
-        );
-        res.json(filteredPosts);
-      } else {
-        // Send all posts without filtering if not explicitly requested
-        res.json(posts);
-      }
+      // No more filtering by UNKNOWN location - return all posts
+      res.json(posts);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch sentiment posts" });
     }
