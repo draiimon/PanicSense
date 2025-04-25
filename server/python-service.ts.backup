@@ -724,7 +724,7 @@ export class PythonService {
         status: "error",
         message: errorMsg
       };
-    }
+    }}
   }
 
   public async processCSV(
