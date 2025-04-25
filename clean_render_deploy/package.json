@@ -4,8 +4,7 @@
   "description": "PanicSense Disaster Intelligence Platform",
   "main": "server.js",
   "scripts": {
-    "build": "npm install && npm run build-frontend",
-    "build-frontend": "cd client && npm install && npm run build",
+    "build": "npm install && chmod +x setup.sh && ./setup.sh",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
