@@ -33,6 +33,42 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 
 SENTIMENT_CATEGORIES = ["panic", "fear", "disbelief", "resilience", "neutral"]
 
+# Filipino/Jejemon language pattern transformations
+# These patterns help normalize Filipino internet slang and jejemon text
+JEJEMON_PATTERNS = [
+    (r'po0h?|p0h?|poUwH|pOw', 'po'),     # po variants
+    (r'ah|4h|aH|@h', 'a'),               # ah variants
+    (r'w0w|wOw|woAhh|waH', 'wow'),       # wow variants
+    (r'(.)(\1{2,})', r'\1'),             # Repeated characters (eeeee -> e)
+    (r'([a-z])0', r'\1o'),               # Replace 0 with o (p0 -> po)
+    (r'([a-z])3', r'\1e'),               # Replace 3 with e (m3 -> me)
+    (r'([a-z])4', r'\1a'),               # Replace 4 with a (p4re -> pare)
+    (r'c([k])', r'k\1'),                 # ck -> k
+    (r'x([sz])', r'\1'),                 # xs/xz -> s/z
+    (r'q([uw])', r'k\1'),                # qu/qw -> ku/kw
+    (r'nG|n9|Ng', 'ng'),                 # ng variants
+    (r'([a-z])\$', r'\1s'),              # $ -> s (pe$o$ -> pesos)
+    (r'([a-z])@', r'\1a'),               # @ -> a (p@re -> pare)
+    (r'([a-z])!', r'\1i'),               # ! -> i (h! -> hi)
+    (r'mHu?a|mWa|mwUaH', 'mwa'),         # mwa variants (kiss sound)
+    (r'cGuZ|kC', 'kasi'),                # kasi variants
+    (r'Ü|:D|XD|<3|♥', '')                # Remove emoticons
+]
+
+# Additional Filipino language markers for detection
+FILIPINO_MARKERS = ['ang', 'ng', 'mga', 'sa', 'ko', 'mo', 'naman', 'po', 'na', 'ay', 'at', 'ito', 
+                    'yung', 'kasi', 'wala', 'may', 'hindi', 'siya', 'ako', 'ikaw', 'tayo', 'kami', 
+                    'gusto', 'pero', 'para', 'lang', 'din', 'rin', 'daw', 'raw', 'ba', 'eh', 'oo', 
+                    'talaga', 'sobra', 'grabe', 'baha', 'lindol', 'bagyo', 'tulong', 'patulong',
+                    'sana', 'diyos', 'kalma', 'bilis', 'malakas', 'mabilis', 'ingat', 'uwi', 'lipat']
+
+# Filipino disaster-related keywords
+FILIPINO_DISASTER_KEYWORDS = ['bagyo', 'baha', 'lindol', 'sunog', 'putok', 'kalamidad', 'sakuna',
+                              'pagputok', 'pagbaha', 'apoy', 'tubig', 'evacuate', 'evacuation',
+                              'tulong', 'saklolo', 'trapik', 'trapiko', 'naiipit', 'naipit', 'nai-pit',
+                              'nasalanta', 'nasira', 'nawala', 'namatay', 'natumba', 'naguho', 'bumagsak',
+                              'bumigay', 'gumuho', 'lumindol', 'umapaw', 'tumataas', 'bumabaha']
+
 # Keyword dictionaries for each sentiment category
 KEYWORD_DICT = {
     "panic": [
@@ -81,12 +117,54 @@ KEYWORD_DICT = {
 }
 
 # Utils for text preprocessing
+def normalize_jejemon(text):
+    """
+    Normalize Jejemon text variations to standard Filipino/English
+    This improves the model's ability to understand Filipino internet slang
+    """
+    text_lower = text.lower()
+    
+    # Apply all Jejemon pattern transformations
+    for pattern, replacement in JEJEMON_PATTERNS:
+        text_lower = re.sub(pattern, replacement, text_lower)
+    
+    # Fix repeated letters (e.g., "helloooo" -> "hello")
+    text_lower = re.sub(r'(.)\1{2,}', r'\1\1', text_lower)
+    
+    # Fix excessive punctuation
+    text_lower = re.sub(r'([!?.]){2,}', r'\1', text_lower)
+    
+    return text_lower
+
+def is_filipino(text):
+    """
+    Detect if text contains Filipino language markers
+    Returns True if the text is likely Filipino/Taglish
+    """
+    text_lower = text.lower()
+    words = re.findall(r'\b\w+\b', text_lower)
+    
+    # Count Filipino marker words
+    filipino_word_count = sum(1 for word in words if word in FILIPINO_MARKERS)
+    
+    # Check for Filipino disaster keywords
+    has_filipino_disaster_term = any(keyword in text_lower for keyword in FILIPINO_DISASTER_KEYWORDS)
+    
+    # Simple heuristic: if we have Filipino markers or disaster terms, it's likely Filipino/Taglish
+    return filipino_word_count > 0 or has_filipino_disaster_term
+
 def tokenize_text(text):
-    """Simple tokenization function for text"""
+    """Enhanced tokenization function for text that handles Filipino and Jejemon text"""
+    # First normalize any Jejemon text
+    if is_filipino(text):
+        text = normalize_jejemon(text)
+    
     # Convert text to lowercase
     text = text.lower()
+    
     # Replace multiple whitespaces with a single space
     text = re.sub(r'\s+', ' ', text)
+    
     # Split text into tokens
     tokens = text.split()
     return tokens
@@ -176,7 +254,7 @@ class HybridSentimentAnalysisTrainer:
             print(f"Model and vectorizer saved to {MODEL_DIR}")
     
     def prepare_data(self, data):
-        """Prepare data for training"""
+        """Prepare data for training with enhanced Filipino text support"""
         if isinstance(data, list):
             df = pd.DataFrame(data)
         elif isinstance(data, pd.DataFrame):
@@ -189,8 +267,35 @@ class HybridSentimentAnalysisTrainer:
         if not all(col in df.columns for col in required_cols):
             raise ValueError(f"Data must contain the following columns: {required_cols}")
         
-        # Preprocess text
-        df['processed_text'] = df['text'].apply(clean_text_preserve_indicators)
+        # Enhanced preprocessing for Filipino/Jejemon text
+        def enhanced_preprocess(text):
+            # Handle NaN/None values
+            if pd.isna(text) or text is None:
+                return ""
+                
+            # Handle Jejemon text normalization for Filipino text
+            if is_filipino(text):
+                normalized = normalize_jejemon(text)
+                # Then apply standard cleaning
+                return clean_text_preserve_indicators(normalized)
+            else:
+                # Standard cleaning for English text
+                return clean_text_preserve_indicators(text)
+                
+        # Apply the enhanced preprocessing
+        df['processed_text'] = df['text'].apply(enhanced_preprocess)
+        
+        # Detect and add language information if not present
+        if 'language' not in df.columns:
+            df['language'] = df['text'].apply(lambda text: 'Filipino' if is_filipino(text) else 'English')
+            print(f"Language detection: Found {df['language'].value_counts().to_dict()}")
+            
+        # Handle Taglish by identifying it
+        taglish_mask = df['processed_text'].apply(lambda text: 
+            bool(re.search(r'[a-zA-Z]', text)) and  # Has English characters
+            any(marker in text.lower() for marker in FILIPINO_MARKERS)  # Has Filipino markers
+        )
+        df.loc[taglish_mask, 'language'] = 'Taglish'
         
         # Check if sentiment values are valid
         valid_sentiments = set(SENTIMENT_CATEGORIES)
@@ -199,6 +304,11 @@ class HybridSentimentAnalysisTrainer:
             print(f"Warning: Found invalid sentiment values: {invalid_sentiments}")
             # Filter out rows with invalid sentiments
             df = df[df['sentiment'].isin(valid_sentiments)]
+            
+        # Print language statistics
+        if 'language' in df.columns:
+            language_counts = df['language'].value_counts().to_dict()
+            print(f"Language distribution: {language_counts}")
             
         return df
     
@@ -283,12 +393,18 @@ class HybridSentimentAnalysisTrainer:
         return metrics
     
     def predict(self, text, include_confidence=False):
-        """Predict sentiment for a given text"""
+        """Predict sentiment for a given text with enhanced Filipino handling"""
         if not self.model or not self.vectorizer:
             raise ValueError("Model not trained. Call train() first or load a pre-trained model.")
         
-        # Preprocess text
-        processed_text = clean_text_preserve_indicators(text)
+        # Enhanced preprocessing with Jejemon support
+        if is_filipino(text):
+            # Use special Jejemon normalization for Filipino text
+            normalized = normalize_jejemon(text)
+            processed_text = clean_text_preserve_indicators(normalized)
+        else:
+            # Standard cleaning for non-Filipino text
+            processed_text = clean_text_preserve_indicators(text)
         
         # Vectorize text
         text_vec = self.vectorizer.transform([processed_text])
@@ -296,22 +412,54 @@ class HybridSentimentAnalysisTrainer:
         # Predict sentiment
         sentiment = self.model.predict(text_vec)[0]
         
+        # Calculate confidence and additional linguistic info
+        language_info = {}
         if include_confidence:
             # Get prediction probabilities
             proba = self.model.predict_proba(text_vec)[0]
             # Get the confidence for the predicted class
             confidence = float(proba[self.model.classes_ == sentiment][0])
-            return sentiment, confidence
+            
+            # Add language detection info
+            is_filipino_text = is_filipino(text)
+            has_slang = False
+            
+            # Check if text was normalized (had Jejemon elements)
+            if is_filipino_text:
+                # Check if normalization made changes
+                normalized = normalize_jejemon(text.lower())
+                has_slang = normalized != text.lower()
+                
+                # Detect if Taglish (mix of English and Filipino)
+                is_taglish = bool(re.search(r'[a-zA-Z]', text)) and any(marker in text.lower() for marker in FILIPINO_MARKERS)
+                
+                language_info = {
+                    'language': 'Taglish' if is_taglish else 'Filipino',
+                    'has_slang': has_slang,
+                    'normalized_text': normalized if has_slang else None
+                }
+            else:
+                language_info = {'language': 'English'}
+            
+            return sentiment, confidence, language_info
         
         return sentiment
     
     def batch_predict(self, texts):
-        """Predict sentiment for a batch of texts"""
+        """Predict sentiment for a batch of texts with enhanced Jejemon/Filipino support"""
         if not self.model or not self.vectorizer:
             raise ValueError("Model not trained. Call train() first or load a pre-trained model.")
         
-        # Preprocess texts
-        processed_texts = [clean_text_preserve_indicators(text) for text in texts]
+        # Enhanced preprocessing with Jejemon/Filipino support
+        processed_texts = []
+        for text in texts:
+            if is_filipino(text):
+                # Normalize Jejemon for Filipino texts
+                normalized = normalize_jejemon(text)
+                processed_texts.append(clean_text_preserve_indicators(normalized))
+            else:
+                # Standard processing for English texts
+                processed_texts.append(clean_text_preserve_indicators(text))
         
         # Vectorize texts
         texts_vec = self.vectorizer.transform(processed_texts)
@@ -323,13 +471,35 @@ class HybridSentimentAnalysisTrainer:
         probas = self.model.predict_proba(texts_vec)
         
         results = []
-        for i, (text, sentiment, proba) in enumerate(zip(texts, sentiments, probas)):
+        for i, (text, sentiment, proba, processed_text) in enumerate(zip(texts, sentiments, probas, processed_texts)):
             # Get the confidence for the predicted class
             confidence = float(proba[self.model.classes_ == sentiment][0])
+            
+            # Detect language and check for Jejemon elements
+            is_filipino_text = is_filipino(text)
+            language = 'English'
+            has_slang = False
+            normalized_text = None
+            
+            if is_filipino_text:
+                # Check if normalization made changes
+                normalized = normalize_jejemon(text.lower())
+                has_slang = normalized != text.lower()
+                normalized_text = normalized if has_slang else None
+                
+                # Detect if Taglish (mix of English and Filipino)
+                is_taglish = bool(re.search(r'[a-zA-Z]', text)) and any(marker in text.lower() for marker in FILIPINO_MARKERS)
+                language = 'Taglish' if is_taglish else 'Filipino'
+            
+            # Add the result with enhanced info
             results.append({
                 'text': text,
                 'sentiment': sentiment,
-                'confidence': confidence
+                'confidence': confidence,
+                'language': language,
+                'has_slang': has_slang,
+                'normalized_text': normalized_text,
+                'processed_text': processed_text  # Include the actual text used for prediction
             })
         
         return results
@@ -375,7 +545,7 @@ def main():
     """Main function for testing"""
     trainer = HybridSentimentAnalysisTrainer()
     
-    # Sample data for testing
+    # Sample data for testing including Taglish and Filipino examples
     sample_data = [
         {"text": "Oh my god! It's flooding everywhere! We're trapped!", "sentiment": "panic"},
         {"text": "I hope everyone stays safe during this typhoon. 🙏", "sentiment": "resilience"},
@@ -386,24 +556,85 @@ def main():
         {"text": "Together, we can overcome this disaster. Stay strong!", "sentiment": "resilience"},
         {"text": "I'm afraid for my family's safety during this storm.", "sentiment": "fear"},
         {"text": "Is this real? I've never seen flooding this bad before.", "sentiment": "disbelief"},
-        {"text": "The governor announced relief operations will begin tomorrow.", "sentiment": "neutral"}
+        {"text": "The governor announced relief operations will begin tomorrow.", "sentiment": "neutral"},
+        # Filipino and Taglish samples
+        {"text": "Grabe ang baha! Kailangan na nating lumikas!", "sentiment": "panic"},
+        {"text": "Malakas ang ulan pero kakayanin natin ito.", "sentiment": "resilience"},
+        {"text": "Natatakot ako sa mga aftershocks ng lindol.", "sentiment": "fear"},
+        {"text": "Di ako makapaniwala na ganito kalakas ang bagyo!", "sentiment": "disbelief"},
+        {"text": "Ayon sa PAGASA, Signal No. 3 na sa ating lugar.", "sentiment": "neutral"},
+        # Jejemon style text
+        {"text": "GraB3h n4 b4hA d2! tuL0ng p0h!", "sentiment": "panic"},
+        {"text": "sAnA mAkAliGtAs tAy0 s4 bAgy0nG iT0h...", "sentiment": "resilience"},
+        {"text": "T4k0t aQ0h s4 liNd0L n4 2 huhu", "sentiment": "fear"},
+        {"text": "0MG di aQ mkapNiwaL4 s4 nanGyaR!!", "sentiment": "disbelief"},
+        {"text": "PAGASA: m4y b4Gy0 p0h n4 p4p4s0k s4 PAR", "sentiment": "neutral"}
     ]
     
     # Train and evaluate
     metrics = trainer.train(sample_data)
     print(json.dumps(metrics, indent=2))
     
-    # Test prediction
+    # Test prediction with English text
     text = "Help! The earthquake destroyed our house!"
-    sentiment, confidence = trainer.predict(text, include_confidence=True)
+    sentiment, confidence, language_info = trainer.predict(text, include_confidence=True)
     print(f"Text: '{text}'")
     print(f"Predicted sentiment: {sentiment} (confidence: {confidence:.2f})")
+    print(f"Language info: {language_info}")
     
-    # Test how keywords affect prediction
-    text_with_keywords = "Emergency! Help! The earthquake is causing panic everywhere!"
-    sentiment, confidence = trainer.predict(text_with_keywords, include_confidence=True)
-    print(f"Text with keywords: '{text_with_keywords}'")
+    # Test with Taglish
+    taglish_text = "Oh my God! Ang lakas ng ulan at lumilikas na ang mga tao sa village namin!"
+    sentiment, confidence, language_info = trainer.predict(taglish_text, include_confidence=True)
+    print(f"\nTaglish text: '{taglish_text}'")
     print(f"Predicted sentiment: {sentiment} (confidence: {confidence:.2f})")
+    print(f"Language info: {language_info}")
+    
+    # Test with Jejemon text
+    jejemon_text = "GrAb3h n4 LiNd0L! nAs!r4 aNg b4h4y nM!n, tuL0nG p0h!"
+    sentiment, confidence, language_info = trainer.predict(jejemon_text, include_confidence=True)
+    print(f"\nJejemon text: '{jejemon_text}'")
+    print(f"Predicted sentiment: {sentiment} (confidence: {confidence:.2f})")
+    print(f"Language info: {language_info}")
+    
+    # Show normalized Jejemon text
+    if language_info.get('has_slang') and language_info.get('normalized_text'):
+        print(f"Normalized text: '{language_info['normalized_text']}'")
+    
+    # Test batch prediction with mixed languages
+    mixed_texts = [
+        "The typhoon is causing severe flooding in our area.",
+        "Grabe ang baha dito sa amin, hanggang baywang na!",
+        "nAPakA LAk4s nG b4gY0h! n4SiRa aNg bAh4y nM!n!",
+        "We're organizing relief operations for affected communities."
+    ]
+    
+    print("\nBatch prediction with mixed languages:")
+    predictions = trainer.batch_predict(mixed_texts)
+    for i, pred in enumerate(predictions):
+        print(f"\n{i+1}. Text: '{pred['text']}'")
+        print(f"   Sentiment: {pred['sentiment']} (confidence: {pred['confidence']:.2f})")
+        print(f"   Language: {pred['language']}")
+        if pred['has_slang'] and pred['normalized_text']:
+            print(f"   Normalized: '{pred['normalized_text']}'")
+            print(f"   Processed: '{pred['processed_text']}'")
+    
+    # Show keyword feature importance (if possible)
+    print("\nKeyword feature importance:")
+    if hasattr(trainer.model, 'coef_'):
+        feature_names = trainer.vectorizer.get_feature_names_out() if hasattr(trainer.vectorizer, 'get_feature_names_out') else []
+        if len(feature_names) > 0:
+            # Show only keyword features (which appear at the end)
+            keyword_features = [f for f in feature_names if f.startswith('keyword_')]
+            for feature in keyword_features:
+                sentiment = feature.replace('keyword_', '')
+                # Try to get the feature importance
+                try:
+                    sentiment_idx = list(trainer.model.classes_).index(sentiment)
+                    feature_idx = list(feature_names).index(feature)
+                    importance = trainer.model.coef_[sentiment_idx, feature_idx]
+                    print(f"   {feature}: {importance:.4f}")
+                except (ValueError, IndexError, AttributeError):
+                    continue
 
 if __name__ == "__main__":
     main()
