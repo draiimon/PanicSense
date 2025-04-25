@@ -502,14 +502,9 @@ class DisasterSentimentBackend:
             if re.search(pattern, text, re.IGNORECASE):
                 return location
 
-        # For very short texts, check if it's just a location name
-        if len(text.split()) < 3:
-            words = text.strip(",.!?").split()
-            for word in words:
-                if word.upper() != word:  # Avoid all caps words which might be emphatic expressions
-                    if len(word) > 2 and word.isalpha():  # Avoid short words and non-alphabetic
-                        return word.title()
-
+        # We no longer try to guess locations from short texts
+        # This was causing false location detections
+        
         return "UNKNOWN"
 
 # Main execution part of the script
@@ -579,11 +574,12 @@ if __name__ == "__main__":
                         elif any(word in text_lower for word in ['sunog', 'fire', 'apoy']):
                             disaster_type = "Fire"
                         
-                        # Basic location extraction
+                        # Basic location extraction - ONLY match exact locations
                         location = "UNKNOWN"
                         common_locations = ['Manila', 'Quezon City', 'Cebu', 'Davao', 'Makati', 'Taguig', 'Pasig', 'Cavite', 'Laguna', 'Batangas', 'Bicol', 'Luzon', 'Visayas', 'Mindanao']
                         for loc in common_locations:
-                            if loc.lower() in text_lower:
+                            # Use word boundary check to avoid partial matches
+                            if re.search(r'\b' + re.escape(loc.lower()) + r'\b', text_lower):
                                 location = loc
                                 break
                         
