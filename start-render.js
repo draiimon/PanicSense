@@ -1,16 +1,10 @@
 /**
- * This is a simple starter script that redirects to start-render.cjs
- * It's needed because Render sometimes has issues with .cjs files directly
+ * Enhanced Render.com deployment startup script for PanicSense
+ * This simple starter loads the CommonJS version for compatibility
  */
 
-// Set production environment
-process.env.NODE_ENV = 'production';
-
-// Simple log about what's happening
-console.log('============================');
-console.log('🚀 STARTING PANICSENSE ON RENDER');
-console.log('📂 Using start-render.cjs script');
-console.log('============================');
-
-// Load the CJS version of the start script
-require('./start-render.cjs');
+// Import the CJS version directly for better compatibility with Render
+import('./index.js').catch(err => {
+  console.error('Failed to import server:', err);
+  process.exit(1);
+});
